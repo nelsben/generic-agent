@@ -27,9 +27,9 @@ says so.
 - `sf agent validate authoring-bundle --json --api-name Account_Brief -o experimental`, from the OPS-13 worktree
   (main) and then the BE-8 worktree. Both return `{"status": 0, "result": {"success": true}, "warnings": []}`.
 - Bundle shape (generate Rule 15): directory and both files named `Account_Brief`; meta is `<bundleType>AGENT</bundleType>`, no `<target>`. Correct.
-- Bindings (verified by reading): every input and output name, case and required flag in the three action
-  definitions matches the Apex `Request`/`Response` fields. The only type gap is `contextRecordId` (nit 10).
-  `knownAccountId` is optional and unbound (nit 12).
+- Bindings (verified by reading): every input and output name and case matches the Apex `Request`/`Response` fields.
+  Type gap: `contextRecordId` (nit 10). Required flags match except `accountName` (main 81 `is_required: True`, Apex
+  `AccountBriefResolver.cls` 22 not required): the agent is stricter, which is harmless. `knownAccountId` is unbound (nit 12).
 - On failure the user sees fixed Apex text, relayed by instruction: get_brief NOT_FOUND "I can't see that account.
   Check the name or your access.", ERROR "I couldn't finish the brief right now. Try again in a minute.", EMPTY
   "Nothing is on record for the requested sections." (or the valid-keys list for bad `include` keys); Explore ERROR
@@ -47,7 +47,7 @@ suspected. New.
 - Where: `Account_Brief.agent` main 122-136, BE-8 127-141. The cause is
   `staticresources/AgentPrompt_Explore.resource` rule 8: "Use [the open record] when the question ... names nothing else."
 - What: once `briefed_account_id` is set, `explore_data` is withdrawn (`available when ... == ""`). Only
-  `explore_data_for_account` remains, and it always binds the account as `contextRecordId`. Nothing clears the Id.
+  `explore_data_for_account` remains, bound to the account. Whether a failed resolve clears the Id needs a preview (finding 4).
 - Scenario: briefed on account A, the user asks "How many open opportunities are there?". BE-8 sends this to
   explore because it names no account. The explorer gets A as the open record and, by rule 8, counts A's
   opportunities. The user sees that count as an org-wide fact.
@@ -90,11 +90,11 @@ does not say whether a new turn re-enters `start_agent`. New.
 semantics are not documented). New.
 - Where: main 63-69 / BE-8 68-74 set `briefed_account_id = @outputs.accountId` unconditionally and gate on `!= ""`.
   The resolver leaves `accountId`/`accountName` null on AMBIGUOUS and NOT_FOUND (`AccountBriefResolver.cls` 126-153).
-- If null is stored as None, `None != ""` is true. get_brief becomes available with no Id, and `AccountBrief.run`
-  line 161 returns "I can't see that account. Check the name or your access." The router and explore hints render
+- If null is stored as None, `None != ""` is true. get_brief becomes available with no Id, and `AccountBrief.cls`
+  line 109 returns "I can't see that account. Check the name or your access." The router and explore hints render
   with a blank name, and explore binds a null open record. If null becomes `""`, the gate holds. Core-language
   section 4 documents `is None`, which suggests None is a distinct value.
-- Skill: generate, action-and-state diagnostics ("a branch depends on an accidental default").
+- Skill: generate, instruction-and-routing diagnostics ("a branch depends on an accidental default").
 - Fix: store the resolve status in its own variable, set only by resolve_account, and gate get_brief on
   `== "RESOLVED"`. That also gives `last_status` (nit 9) a consumer. Or gate on `is not None and != ""`.
 
