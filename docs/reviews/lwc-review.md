@@ -43,7 +43,7 @@ There are no Jest tests. Score: **120/165**. Tags: V = verified (the failure pat
 
 **5. Focus is lost on Esc, on close and on drill.** Should-fix. V, new (the live focus check is already planned, plan section 6). WCAG 2.4.3 Focus Order.
 - Where:
-  - Esc in the composer blurs it to `body` (js:173-174).
+  - Esc in the composer blurs it to `body` (js:173-174), and from there a second Esc cannot minimize the panel (finding 6).
   - `_close` blurs and minimizes, but never returns focus to where it was before Cmd-K (js:237-249).
   - Several clicks remove the element that has focus. A conversation row click swaps the conversation for the drill view (js:556-561; html:52/120). Within a drill, a row click or a related-object chip replaces the table or card (js:574-579). "Conversation" removes the whole drill view (js:586-588).
 - Scenario: a keyboard user drills a row and focus lands on `body`, so they must Tab from the top of the page.
@@ -52,7 +52,7 @@ There are no Jest tests. Score: **120/165**. Tags: V = verified (the failure pat
 
 **6. A Tab trap in a non-modal panel.** Should-fix. V, new (the live focus-trap check is already planned, plan section 6). The nearest criterion is WCAG 2.1.2 No Keyboard Trap. This is not a strict failure, because Esc does leave the panel, but it is a design defect.
 - Where: `_trapKeydown` (js:166-200) wraps Tab inside the panel.
-- What is wrong: the utility header (minimize, pop-out) and the page cannot be reached by Tab. Esc is the only way out, and the first Esc only blurs. Every result row is also a tab stop (js:529), so 50 rows means 50 stops inside the wrap.
+- What is wrong: the utility header (minimize, pop-out) and the page cannot be reached by Tab. Esc is the only way out, and the first Esc only blurs. A second Esc then does nothing: focus is on `body`, so the trap never sees it, and `template.activeElement` is null, so the `document` Escape branch (js:158) does not fire either. Every result row is also a tab stop (js:529), so 50 rows means 50 stops inside the wrap.
 - Fix: remove the trap; the skill's trap pattern is for modals only. Keep Esc to minimize, and give rows a single tab stop (finding 7). Do not patch FOCUSABLE (js:33) instead: it will not match `lightning-*` hosts once finding 12 lands.
 - Skill: experience-lwc-generate `accessibility-guide.md` (Focus Trap in Modals). There is no matching reviewer file in experience-accessibility-validate.
 
@@ -87,7 +87,7 @@ There are no Jest tests. Score: **120/165**. Tags: V = verified (the failure pat
   - It ignores Shift and Alt, so Cmd-Shift-K also triggers it.
   - `event.key` fails on non-Latin layouts: a Cyrillic layout reports `л`.
   - Inside the composer, keydown never reaches `document` (js:204), so Ctrl-K there falls through to the browser. Chrome and Firefox on Windows focus their own search box.
-  - The `document` Escape branch (js:158-162) is unreachable: the trap or the composer always consumes Esc first.
+  - The `document` Escape branch (js:158-162) is unreachable. With focus inside the panel, the trap or the composer consumes Esc first; with focus outside, `template.activeElement` is null.
 - Fix: use `metaKey` on Mac and `ctrlKey` elsewhere, test `event.code === 'KeyK'` with no Shift or Alt, and handle Cmd-K in `handleComposerKeydown` too. Delete the dead branch.
 - Skill: none covers shortcuts directly. This is reviewer judgement against the card's hotkey checklist.
 
@@ -151,7 +151,7 @@ The Jest setup is already planned (plan section 3). `.forceignore` ignoring `**/
 ## experience-lwc-generate score
 
 The skill's `validate_slds.py` scored HTML 153/165 and CSS and JS 165/165. That number is not reliable:
-- It flagged valid SLDS classes as unknown (`slds-breadcrumb`, `slds-breadcrumb__item`, `slds-line-height_reset`).
+- It raised 5 "unknown class" warnings against 3 valid SLDS classes (`slds-breadcrumb` once, `slds-breadcrumb__item` twice, `slds-line-height_reset` twice).
 - It passed CSS hooks that are absent from its own SLDS 2 list.
 - It does not inspect behaviour at all.
 
@@ -186,4 +186,4 @@ The skill's `validate_slds.py` scored HTML 153/165 and CSS and JS 165/165. That 
 - **RTL:** experience-lwc-rtl-validate is not in this lane.
 - **Bare `accountBriefPanel` against the `c:` prefix** the flexipage skill uses: it deployed, and I did not compare it against an org retrieve.
 
-**How the skills were loaded:** experience-lds-best-practices-apply, platform-custom-application-generate and platform-flexipage-generate were loaded with the Skill tool. experience-lwc-generate, experience-accessibility-validate, experience-lwc-security-validate and experience-lwc-base-components-integrate were read, with their scripts, from the plugin cache.
+**How the skills were loaded:** experience-lds-best-practices-apply, platform-custom-application-generate and platform-flexipage-generate were loaded with the Skill tool from the start. experience-lwc-generate, experience-accessibility-validate, experience-lwc-security-validate and experience-lwc-base-components-integrate were first read, with their scripts, from the plugin cache, and were loaded with the Skill tool on a second pass. Their instructions match the cached files. Findings 3-7, 12 and 13, the LWS pass and the score were rechecked against them, and none changed.
