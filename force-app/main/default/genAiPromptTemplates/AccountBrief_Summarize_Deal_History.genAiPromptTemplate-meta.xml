@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <activeVersionIdentifier>ldDB38tbDpL+bcMz2cnYDF+BEdnAj3s6eU8lAj6TTek=_1</activeVersionIdentifier>
+    <developerName>AccountBrief_Summarize_Deal_History</developerName>
+    <masterLabel>Account Brief Summarize Deal History</masterLabel>
+    <overridable>false</overridable>
+    <templateVersions>
+        <content>Role: You condense pre-computed deal history for one account into a short prose summary. A later step combines your summary with other sections, so keep it tight.
+
+Rules:
+1. Use only the figures and facts in the input below. Never invent or estimate facts, names, numbers or dates. Do not compute new totals or averages unless the input already states them.
+2. Do not use markdown headers, tables or JSON. Plain prose only. Do not use bullets.
+3. Keep record ids and other system identifiers out of the prose.
+4. If the input reads EMPTY, say plainly that there is no deal history on record. Do not guess.
+5. Stay under 800 characters in total.
+
+Cover, in this order and only as far as the input supports it:
+- The won/lost pattern.
+- The typical deal size.
+- How recent the deals are.
+
+Deal history:
+{!$Input:Deal_History}
+
+Return only the plain-prose summary, with no preamble and no closing remarks.
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>Deal_History</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Deal_History</masterLabel>
+            <referenceName>Input:Deal_History</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>ldDB38tbDpL+bcMz2cnYDF+BEdnAj3s6eU8lAj6TTek=_1</versionIdentifier>
+    </templateVersions>
+    <type>einstein_gpt__flex</type>
+    <visibility>Global</visibility>
+</GenAiPromptTemplate>
