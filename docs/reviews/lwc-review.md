@@ -4,26 +4,20 @@ Reviewed 2026-11-11 (OPS-12). This is a review only: nothing was changed, deploy
 
 ## Summary
 
-**Verdict: sound with fixes.** The panel is safe in the ways that matter most:
-- Model text is only ever bound as text. There is no `innerHTML`, no `lwc:dom="manual"` and no model-supplied link.
-- The LWS rule catalog (lws-001 to lws-023b) comes up clean.
-- The listeners are removed on disconnect.
-- Page-context resolves are guarded against stale replies.
+**Verdict: sound with fixes.** The panel is safe where it matters most. Model text is only ever bound as text: there is no `innerHTML`, no `lwc:dom="manual"` and no model-supplied link. The LWS rule catalog (lws-001 to lws-023b) comes up clean, the listeners are removed on disconnect, and page-context resolves are guarded against stale replies.
 
-The defects are in how it behaves, not in its safety:
+The defects are in behaviour:
 - The Cmd/Ctrl-K hotkey probably does nothing until the utility has been opened once.
-- Some actions bypass the "one request at a time" guard.
-- Placing the component on a record page as well creates a second live instance.
-- Screen-reader and keyboard users get no announcement of results and lose focus on Esc and on drill.
-- The composer is not pinned at 340x480.
-- Most controls are hand-rolled instead of `lightning-*` base components.
+- Some actions bypass the "one request at a time" guard, and a record-page placement creates a second live instance.
+- Keyboard and screen-reader users get no announcement of results and lose focus on Esc and on drill.
+- The composer is not pinned at 340x480, and most controls are hand-rolled instead of `lightning-*` base components.
 
-There are no Jest tests. The experience-lwc-generate score is **120/165 (functional, needs SLDS cleanup)**. The 14 findings below are ordered by severity. Tags: V = verified (the failure path is in the code), S = suspected (depends on platform behaviour at runtime).
+There are no Jest tests. Score: **120/165**. Tags: V = verified (the failure path is in the code), S = suspected (depends on platform behaviour at runtime).
 
 ## Findings
 
 **1. Hotkey and message channel are inert until the utility is first opened.** Blocker if confirmed. S, new (the live Cmd-K check is already planned, plan section 6).
-- Where: `Account_Brief_UtilityBar.flexipage-meta.xml:6-10` sets `eager=false`.
+- Where: `Account_Brief_UtilityBar.flexipage-meta.xml:7-11` sets `eager=false`.
 - What is wrong: utility items that are not eager are created only when first clicked. Until then nothing has run `connectedCallback` (js:112-118), so neither the `document` keydown listener nor the `AccountBriefOpen` subscription exists.
 - Scenario: a user loads the app and presses Cmd-K. Nothing happens. Any `AccountBriefOpen` publish before the first click is lost.
 - Fix: set `eager` to `true` (Load in background), then confirm it live.
@@ -33,13 +27,13 @@ There are no Jest tests. The experience-lwc-generate score is **120/165 (functio
 - Where: `_run` (js:402-411) never checks `pending`. `handleCandidate` (js:393-396) calls it unguarded, and the candidate buttons are never disabled (html:136-139). The message-channel brief path (js:710-712) does the same.
 - Scenario: a double-click on an AMBIGUOUS candidate starts two resolve+brief runs, which means two model calls and two memory writes. The first run to finish sets `pending=false` while the second is still running, so Send re-enables mid-flight. Separately, a message with a `prompt` that arrives while a request is pending is silently dropped (js:371).
 - Fix: early-return in `_run` when `pending`, and disable the candidate buttons. Queue or reject an incoming message visibly.
-- Skill: experience-lwc-generate (`async-notification-patterns.md`, `performance-guide.md` on duplicate submits).
+- Skill: none states a request-guard rule. This is reviewer judgement against the card's racing-request checklist item.
 
 **3. Two live instances when the component is also placed on a record page.** Should-fix. V, new.
 - Where: `accountBriefPanel.js-meta.xml:7-10` exposes both `lightning__UtilityBar` and `lightning__RecordPage`, with no `targetConfigs`. Every instance subscribes with `APPLICATION_SCOPE` (js:141-146) and adds a `document` listener (js:113-114).
-- Scenario: an admin drops the panel on an Account page in this app and publishes one `AccountBriefOpen`. Both instances run the prompt: two model calls and two memory rows. Cmd-K focuses whichever instance registered first.
+- Scenario: an admin drops the panel on an Account page in this app and publishes one `AccountBriefOpen`. Both instances run the prompt, so there are two model calls and two answers. For a brief, both also upsert the same memory row; for a plain question, no memory is written. Cmd-K focuses whichever instance registered first.
 - Fix: drop the RecordPage target. If it stays, register the hotkey and subscription only when `utilityId` is truthy.
-- Skill: experience-lwc-security-validate step 5 (over-broad targets); experience-lwc-generate `lms-guide.md`.
+- Skill: experience-lwc-security-validate step 5 (over-broad targets).
 
 **4. Screen readers are told nothing about results.** Should-fix. V, new. WCAG 4.1.3 Status Messages.
 - Where: turns are appended (html:121-233) with no `aria-live` region. The only status is the "Loading" spinner (html:49). Apex error turns (js:407) and brief ERROR/NOT_FOUND text (html:149-151) are plain text. Only `notice` has `role="alert"` (html:43).
@@ -47,16 +41,16 @@ There are no Jest tests. The experience-lwc-generate score is **120/165 (functio
 - Fix: add a visually hidden `aria-live="polite"` region and set it to "Brief ready: <header>" or "Answer ready". Give error turns `role="alert"`, and give brief ERROR turns `isError` styling too.
 - Skill: experience-lwc-generate `accessibility-guide.md` (Live Regions). The skill's own `validate_slds.py` also emits "Consider adding aria-live".
 
-**5. Focus is lost on Esc, on close and on drill.** Should-fix. V, new. WCAG 2.4.3 Focus Order.
+**5. Focus is lost on Esc, on close and on drill.** Should-fix. V, new (the live focus check is already planned, plan section 6). WCAG 2.4.3 Focus Order.
 - Where:
   - Esc in the composer blurs it to `body` (js:173-174).
   - `_close` blurs and minimizes, but never returns focus to where it was before Cmd-K (js:237-249).
-  - A row click swaps the conversation for the drill view, removing the focused row (js:556-561; html:52/120). "Conversation" and the crumbs remove the focused button the same way (js:581-588).
+  - Several clicks remove the element that has focus. A conversation row click swaps the conversation for the drill view (js:556-561; html:52/120). Within a drill, a row click or a related-object chip replaces the table or card (js:574-579). "Conversation" removes the whole drill view (js:586-588).
 - Scenario: a keyboard user drills a row and focus lands on `body`, so they must Tab from the top of the page.
 - Fix: record `document.activeElement` on Cmd-K and restore it on close. After a drill or back, focus the new heading or the restored row.
 - Skill: experience-lwc-generate `accessibility-guide.md` (Focus Management: store and restore previous focus).
 
-**6. A Tab trap in a non-modal panel.** Should-fix. V, new.
+**6. A Tab trap in a non-modal panel.** Should-fix. V, new (the live focus-trap check is already planned, plan section 6). The nearest criterion is WCAG 2.1.2 No Keyboard Trap. This is not a strict failure, because Esc does leave the panel, but it is a design defect.
 - Where: `_trapKeydown` (js:166-200) wraps Tab inside the panel.
 - What is wrong: the utility header (minimize, pop-out) and the page cannot be reached by Tab. Esc is the only way out, and the first Esc only blurs. Every result row is also a tab stop (js:529), so 50 rows means 50 stops inside the wrap.
 - Fix: remove the trap; the skill's trap pattern is for modals only. Keep Esc to minimize, and give rows a single tab stop (finding 7). Do not patch FOCUSABLE (js:33) instead: it will not match `lightning-*` hosts once finding 12 lands.
@@ -72,16 +66,16 @@ There are no Jest tests. The experience-lwc-generate score is **120/165 (functio
 - Where: `:host` has no height (css:1-3), so `.abp-panel { height:100% }` (css:10) resolves to auto. `.abp-body` (css:33-39) then never becomes the scroll box. Nothing scrolls to the newest turn.
 - Scenario: after two briefs the composer is below the fold, and the third answer appears out of view.
 - Fix: make `:host` and `.abp-panel` `height:100%` with `min-height:0` on `.abp-body`. After `_push`, scroll the new turn into view.
-- Skill: experience-lwc-generate `slds-design-guide.md` (layout).
+- Skill: none covers panel layout. This is reviewer judgement from the CSS.
 
 **9. Earlier briefs can show another account's history.** Should-fix. V, new.
 - Where: `_syncContext` clears `pageAccount` but not `historyItems` (js:288-292). `_loadHistory` (js:660-677) has no stale-reply guard. The list never names its account (html:26-39). `historyAccountId` (js:648-650) is unused.
 - Scenario: go from Account A to Home. A's "Earlier briefs" stay visible with no label. Go quickly A to B, and if A's reply lands last, B shows A's history.
 - Fix: clear `historyItems` in `_syncContext`, guard on a request token the way `_lastContextId` does, and label the list with the account name.
-- Skill: experience-lwc-generate `state-management.md`.
+- Skill: none states a stale-reply rule. This is reviewer judgement.
 
 **10. Unexpected Apex errors reach the user raw.** Should-fix. S, new.
-- Where: `AccountBriefPanelController.resolve`, `getBrief`, `explore` and `history` (controller:20-37, 57-60) do not catch unexpected exceptions. `drill` rethrows `QueryException` text verbatim (controller:47-49). `errorText` shows `body.message` as-is (js:42-50).
+- Where: `AccountBriefPanelController.resolve`, `getBrief`, `explore` and `history` (controller:21, 27, 33, 58) do not catch unexpected exceptions. `drill` rethrows `QueryException` text verbatim (controller:45). `errorText` shows `body.message` as-is (js:42-50).
 - Scenario: a limit or query failure shows platform text or a generic "internal server error" instead of the fixed sentence that ARCHITECTURE.md's Rules require ("ERROR carry fixed user-facing text").
 - Fix: wrap each controller method in `catch (Exception e)`, log the detail, and throw an `AuraHandledException` with one fixed line.
 - Skill: experience-lwc-generate `assets/apex-controller/LwcController.cls` (the AuraHandledException pattern). Apex itself is OPS-11's lane; this is the contract as the panel sees it.
@@ -105,11 +99,11 @@ There are no Jest tests. The experience-lwc-generate score is **120/165 (functio
   - `<details>` as an accordion (html:16, 27, 162, 215)
   - `toLocaleString()` for dates (js:668), which ignores the user's Salesforce locale
 - Fix: switch to `lightning-button` / `lightning-button-stateful` (chips), `lightning-textarea` (its keydown is composed, so `stopPropagation` still works), `lightning-badge`, `lightning-breadcrumbs`, `lightning-accordion` with `allow-multiple-sections-open`, and `lightning-formatted-date-time`. Consider `lightning-datatable` for results. This also fixes findings 6 and 7.
-- Skill: experience-lwc-base-components-integrate; experience-lwc-generate ("prefer platform base components").
+- Skill: experience-lwc-base-components-integrate (component and attribute names confirmed with its `extract-component-docs.sh`); experience-lwc-generate ("prefer platform base components").
 
-**13. Styling hooks that are not SLDS 2 hooks, which fails contrast in dark theme.** Should-fix. S, new. WCAG 1.4.3.
-- Where: `--slds-g-color-error-base-40` (css:59) and `--slds-g-color-border-base-1` (css:110, 114) are not in the skill's SLDS 2 hook list (`scripts/slds_data/styling_hooks.json`). The hex fallbacks therefore apply.
-- Contrast (the a11y skill's `contrast-ratio.py`): `#ea001e` on white is 4.65:1 (pass). On a `#242424` dark surface it is 3.34:1 (fail).
+**13. Styling hooks that are not SLDS 2 hooks, which may fail contrast in dark theme.** Should-fix. S, new. WCAG 1.4.3.
+- Where: `--slds-g-color-error-base-40` (css:59) and `--slds-g-color-border-base-1` (css:110, 114) are not in the skill's SLDS 2 hook list (`scripts/slds_data/styling_hooks.json`). If they do not resolve, the hex fallbacks apply.
+- Contrast (the a11y skill's `contrast-ratio.py`): `#ea001e` on white is 4.65:1 (pass). On `#242424`, my assumption for a dark surface (not measured), it is 3.34:1 (fail).
 - Fix: use `--slds-g-color-error-1` and `--slds-g-color-border-1`.
 - Skill: experience-lwc-generate (`scoring-and-testing.md` Dark Mode); experience-accessibility-validate `sc-1-4-3-contrast.md`.
 
@@ -123,7 +117,10 @@ There are no Jest tests. The experience-lwc-generate score is **120/165 (functio
 - **(g)** AMBIGUOUS candidate buttons show raw 18-character Ids (html:138).
 
 **Checked and clean:**
-- No `innerHTML` or `lwc:dom`. Follow-ups and drill Ids come from Apex section text, never from model prose, and navigation goes only through `NavigationMixin` with a record Id.
+- No `innerHTML` or `lwc:dom`; everything is bound as text.
+- Drill Ids come only from Apex section text and result rows.
+- Follow-ups are model-written (js:517), but they render as text and only resubmit as a question when the user clicks one (js:398-400).
+- Navigation goes only through `NavigationMixin` with a record Id.
 - LWS lws-001 to lws-023b: no pattern matched in any bundle file. `document.addEventListener('keydown')` is allowed.
 - Listener and subscription cleanup in `disconnectedCallback` (js:125-135) is correct, and `_trapKeydown` is a stable arrow function.
 - `_syncContext` discards stale resolves (js:295).
@@ -132,7 +129,7 @@ There are no Jest tests. The experience-lwc-generate score is **120/165 (functio
 
 ## Tests I would require, most valuable first
 
-`.forceignore` ignoring `**/__tests__/**` is correct; keep it. `lightning/platformUtilityBarApi` and `lightning/accApi` need `moduleNameMapper` stubs.
+The Jest setup is already planned (plan section 3). `.forceignore` ignoring `**/__tests__/**` is correct; keep it. `lightning/platformUtilityBarApi` and `lightning/accApi` need `moduleNameMapper` stubs.
 
 1. Concurrency: a second submit, candidate click or message while pending does not call Apex. A late reply after a context change is discarded.
 2. Rendering safety: an answer, section line or follow-up containing `<img src=x onerror=...>` renders as text and creates no element.
