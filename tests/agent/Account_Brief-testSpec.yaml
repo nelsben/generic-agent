@@ -1,15 +1,17 @@
+# The account name "Edge Communications" (used in three cases) must exist in the target org and have
+# opportunities. It is a standard Developer Edition sample account. Change it if the org lacks it.
 name: Account_Brief
 description: Account Brief agent. Resolve-then-brief gate, verbatim relay, open data exploration and an off-topic refusal.
 subjectType: AGENT
 subjectName: Account_Brief
 testCases:
-  - utterance: "Give me a brief on Acme Corp"
+  - utterance: "Give me a brief on Edge Communications"
     expectedTopic: account_brief
     expectedActions:
       - resolve_account
       - get_brief
     expectedOutcome: "The agent resolves the account first, then returns the account brief for it."
-  - utterance: "What is going on with Acme Corp, and which deals are slipping?"
+  - utterance: "What is going on with Edge Communications, and which deals are slipping?"
     expectedTopic: account_brief
     expectedActions:
       - resolve_account
@@ -25,7 +27,7 @@ testCases:
     expectedActions:
       - resolve_account
     expectedOutcome: "The agent resolves the pasted Id through resolve_account, then returns a brief or says no account matches. It does not invent a brief."
-  - utterance: "Just the open deals for Acme Corp"
+  - utterance: "Just the open deals for Edge Communications"
     expectedTopic: account_brief
     expectedActions:
       - resolve_account
@@ -42,5 +44,6 @@ testCases:
       - explore_data
     expectedOutcome: "The agent relays a list of the largest open opportunities from the data explorer."
   - utterance: "What is the weather in Paris today?"
+    expectedTopic: topic_selector
     expectedActions: []
     expectedOutcome: "The agent declines with a single line saying it briefs accounts and answers questions about CRM data. It calls no action."
