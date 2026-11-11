@@ -14,7 +14,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { subscribe, unsubscribe, MessageContext, APPLICATION_SCOPE } from 'lightning/messageService';
-import { getEnclosingUtilityId, open as openUtility, minimize as minimizeUtility } from 'lightning/platformUtilityBarApi';
+import { EnclosingUtilityId, open as openUtility, minimize as minimizeUtility } from 'lightning/platformUtilityBarApi';
 import { open as openAgent, execute as executeAgent } from 'lightning/accApi';
 import ACCOUNT_BRIEF_OPEN from '@salesforce/messageChannel/AccountBriefOpen__c';
 import resolve from '@salesforce/apex/AccountBriefPanelController.resolve';
@@ -85,6 +85,9 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     _subscription;
 
     @wire(MessageContext) messageContext;
+
+    /** The utility bar item this panel sits in, or null outside a utility bar. */
+    @wire(EnclosingUtilityId) utilityId;
 
     @wire(CurrentPageReference)
     wiredPageRef(ref) {
@@ -216,9 +219,8 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
 
     async _openAndFocus() {
         try {
-            const utilityId = await getEnclosingUtilityId(this);
-            if (utilityId) {
-                await openUtility(utilityId, { autoFocus: true });
+            if (this.utilityId) {
+                await openUtility(this.utilityId, { autoFocus: true });
             }
         } catch (e) {
             // Not in a utility bar, or the API is unavailable: just focus.
@@ -238,9 +240,8 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
             active.blur();
         }
         try {
-            const utilityId = await getEnclosingUtilityId(this);
-            if (utilityId) {
-                await minimizeUtility(utilityId);
+            if (this.utilityId) {
+                await minimizeUtility(this.utilityId);
             }
         } catch (e) {
             // Not in a utility bar: blurring is all Esc does.
