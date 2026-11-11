@@ -22,8 +22,7 @@ Researched 2026-11-11; live probe of a custom server run the same day. Status wo
    out of scope). Two ways to be safe: flip the classes to `global`, or add a thin `global`
    facade class for MCP that calls the same engine.
 5. A registered agent can also be a tool (source `PLATFORM_AGENT`). Verified: the Employee-type
-   Account_Brief agent is listed and was added as a tool. The April GA blog said "soon" for
-   agents, so a real end-to-end call stays unverified.
+   Account_Brief agent is listed and was added as a tool; a real call stays unverified.
 6. The Salesforce DX MCP server (`@salesforce/mcp`) is a developer tool for sf CLI tasks, not a
    way to call our actions. It reached end of life on 2026-11-02.
 7. Agentforce consuming outside MCP servers exists and does not matter for this baseline.
