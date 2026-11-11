@@ -98,7 +98,7 @@ There are no Jest tests. Score: **120/165**. Tags: V = verified (the failure pat
   - hand-built tables (html:92, 191), badges (js:36-40), breadcrumbs (html:54-63)
   - `<details>` as an accordion (html:16, 27, 162, 215)
   - `toLocaleString()` for dates (js:668), which ignores the user's Salesforce locale
-- Fix: switch to `lightning-button` / `lightning-button-stateful` (chips), `lightning-textarea` (its keydown is composed, so `stopPropagation` still works), `lightning-badge`, `lightning-breadcrumbs`, `lightning-accordion` with `allow-multiple-sections-open`, and `lightning-formatted-date-time`. Consider `lightning-datatable` for results. This also fixes findings 6 and 7.
+- Fix: switch to `lightning-button` / `lightning-button-stateful` (chips), `lightning-textarea` (its keydown is composed, so `stopPropagation` still works), `lightning-badge`, `lightning-breadcrumbs`, `lightning-accordion` with `allow-multiple-sections-open`, and `lightning-formatted-date-time`. Consider `lightning-datatable` for results, which also addresses finding 7.
 - Skill: experience-lwc-base-components-integrate (component and attribute names confirmed with its `extract-component-docs.sh`); experience-lwc-generate ("prefer platform base components").
 
 **13. Styling hooks that are not SLDS 2 hooks, which may fail contrast in dark theme.** Should-fix. S, new. WCAG 1.4.3.
