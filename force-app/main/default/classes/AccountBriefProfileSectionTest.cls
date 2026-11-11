@@ -29,7 +29,7 @@ private class AccountBriefProfileSectionTest {
         insert a;
         Date since = [SELECT CreatedDate FROM Account WHERE Id = :a.Id].CreatedDate.date();
 
-        AccountBriefSection s = AccountBriefProfileSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefProfileSection().build(a.Id);
         Assert.areEqual('profile', s.key);
         Assert.areEqual('Account', s.title);
         Assert.areEqual(AccountBriefSection.OK, s.status);
@@ -58,7 +58,7 @@ private class AccountBriefProfileSectionTest {
         Account a = new Account(Name = t + ' Bare', BillingCity = 'Austin', BillingCountry = 'United States');
         insert a;
 
-        List<String> lines = AccountBriefProfileSection.build(a.Id).body.split('\n');
+        List<String> lines = new AccountBriefProfileSection().build(a.Id).body.split('\n');
         Assert.areEqual(11, lines.size());
         Assert.areEqual('Type: n/a', lines[1]);
         Assert.areEqual('Industry: n/a', lines[2]);
@@ -71,11 +71,11 @@ private class AccountBriefProfileSectionTest {
 
         Account blankLoc = new Account(Name = t + ' NoLoc');
         insert blankLoc;
-        Assert.areEqual('Location: n/a', AccountBriefProfileSection.build(blankLoc.Id).body.split('\n')[7]);
+        Assert.areEqual('Location: n/a', new AccountBriefProfileSection().build(blankLoc.Id).body.split('\n')[7]);
 
         Account longDesc = new Account(Name = t + ' Long', Description = 'x'.repeat(500));
         insert longDesc;
-        AccountBriefSection s = AccountBriefProfileSection.build(longDesc.Id);
+        AccountBriefSection s = new AccountBriefProfileSection().build(longDesc.Id);
         String descLine = s.body.split('\n')[10];
         Assert.areEqual('Description: '.length() + 300, descLine.length());
         Assert.isTrue(descLine.endsWith('…'));
@@ -90,7 +90,7 @@ private class AccountBriefProfileSectionTest {
         delete a;
 
         for (Id id : new List<Id>{ gone, null }) {
-            AccountBriefSection s = AccountBriefProfileSection.build(id);
+            AccountBriefSection s = new AccountBriefProfileSection().build(id);
             Assert.areEqual('profile', s.key);
             Assert.areEqual(AccountBriefSection.EMPTY, s.status);
             Assert.areEqual('Account not found or not visible to you.', s.body);

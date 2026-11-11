@@ -44,7 +44,7 @@ private class AccountBriefActivitySectionTest {
             mkTask(other.Id, null, 'Email', 'Other account', 1, false)
         };
 
-        AccountBriefSection s = AccountBriefActivitySection.build(a.Id);
+        AccountBriefSection s = new AccountBriefActivitySection().build(a.Id);
         Assert.areEqual('activity', s.key);
         Assert.areEqual('Recent activity', s.title);
         Assert.areEqual(AccountBriefSection.OK, s.status);
@@ -72,7 +72,7 @@ private class AccountBriefActivitySectionTest {
             mkTask(a.Id, null, 'Email', 'Newest', 1, false),
             mkTask(a.Id, null, 'Email', 'Oldest', 30, false)
         };
-        AccountBriefSection s = AccountBriefActivitySection.build(a.Id);
+        AccountBriefSection s = new AccountBriefActivitySection().build(a.Id);
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(3, s.total);
         Assert.areEqual(3, s.shown);
@@ -89,7 +89,7 @@ private class AccountBriefActivitySectionTest {
     static void onlyOldTasksIsEmpty() {
         Account a = mkAccount();
         insert mkTask(a.Id, null, 'Email', 'Ancient', 100, false);
-        AccountBriefSection s = AccountBriefActivitySection.build(a.Id);
+        AccountBriefSection s = new AccountBriefActivitySection().build(a.Id);
         Assert.areEqual(AccountBriefSection.EMPTY, s.status);
         Assert.areEqual('No tasks in the last 90 days.', s.body);
         Assert.areEqual(0, s.total);
@@ -98,7 +98,7 @@ private class AccountBriefActivitySectionTest {
 
     @IsTest
     static void failureReturnsErrorSectionInsteadOfThrowing() {
-        AccountBriefSection s = AccountBriefActivitySection.build(null);
+        AccountBriefSection s = new AccountBriefActivitySection().build(null);
         Assert.areEqual(AccountBriefSection.ERROR, s.status);
         Assert.areEqual('Couldn\'t load Recent activity right now.', s.body);
         Assert.areEqual('activity', s.key);

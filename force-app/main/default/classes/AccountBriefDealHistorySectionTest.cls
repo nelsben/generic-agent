@@ -29,7 +29,7 @@ private class AccountBriefDealHistorySectionTest {
         }
         insert opps;
 
-        AccountBriefSection s = AccountBriefDealHistorySection.build(a.Id);
+        AccountBriefSection s = new AccountBriefDealHistorySection().build(a.Id);
         Assert.areEqual('deal_history', s.key);
         Assert.areEqual('Deal history', s.title);
         Assert.areEqual(AccountBriefSection.OK, s.status);
@@ -67,7 +67,7 @@ private class AccountBriefDealHistorySectionTest {
             new Opportunity(AccountId = a.Id, Name = t + ' Lost B', StageName = 'Closed Lost', Amount = 200, CloseDate = Date.today().addDays(-6))
         };
 
-        AccountBriefSection s = AccountBriefDealHistorySection.build(a.Id);
+        AccountBriefSection s = new AccountBriefDealHistorySection().build(a.Id);
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(2, s.total);
         Assert.areEqual(2, s.shown);
@@ -87,14 +87,14 @@ private class AccountBriefDealHistorySectionTest {
             CloseDate = Date.today().addDays(40)
         );
 
-        AccountBriefSection s = AccountBriefDealHistorySection.build(a.Id);
+        AccountBriefSection s = new AccountBriefDealHistorySection().build(a.Id);
         Assert.areEqual('deal_history', s.key);
         Assert.areEqual(AccountBriefSection.EMPTY, s.status);
         Assert.areEqual('No closed deals on this account.', s.body);
         Assert.areEqual(0, s.total);
         Assert.areEqual(0, s.shown);
 
-        AccountBriefSection none = AccountBriefDealHistorySection.build(mkAccount().Id);
+        AccountBriefSection none = new AccountBriefDealHistorySection().build(mkAccount().Id);
         Assert.areEqual(AccountBriefSection.EMPTY, none.status);
         Assert.areEqual(0, none.total);
     }

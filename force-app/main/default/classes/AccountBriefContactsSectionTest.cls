@@ -57,7 +57,7 @@ private class AccountBriefContactsSectionTest {
         }
         insert tasks;
 
-        AccountBriefSection s = AccountBriefContactsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefContactsSection().build(a.Id);
         Assert.areEqual('contacts', s.key);
         Assert.areEqual('Contacts', s.title);
         Assert.areEqual(AccountBriefSection.OK, s.status);
@@ -88,7 +88,7 @@ private class AccountBriefContactsSectionTest {
         };
         insert new List<Event>{ mkEvent(busy.Id, 10), mkEvent(busy.Id, 120) };
 
-        AccountBriefSection s = AccountBriefContactsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefContactsSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(1, s.total);
         Assert.areEqual(1, s.shown);
@@ -119,7 +119,7 @@ private class AccountBriefContactsSectionTest {
         Assert.isNotNull(rOldOnly.LastActivityDate);
         Assert.isNull(rNever.LastActivityDate);
 
-        AccountBriefSection s = AccountBriefContactsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefContactsSection().build(a.Id);
         Assert.areEqual(4, s.total);
         Assert.areEqual(4, s.shown);
         List<String> lines = s.body.split('\n');
@@ -134,7 +134,7 @@ private class AccountBriefContactsSectionTest {
     @IsTest
     static void accountWithoutContactsIsEmpty() {
         Account a = mkAccount();
-        AccountBriefSection s = AccountBriefContactsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefContactsSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.EMPTY, s.status);
         Assert.areEqual('No contacts on this account.', s.body);
         Assert.areEqual(0, s.total);
@@ -146,13 +146,13 @@ private class AccountBriefContactsSectionTest {
         Account a = mkAccount();
         Account b = mkAccount();
         insert mkContact(b.Id, 'Elsewhere', 'Dir');
-        AccountBriefSection s = AccountBriefContactsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefContactsSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.EMPTY, s.status);
     }
 
     @IsTest
     static void failureReturnsErrorSectionInsteadOfThrowing() {
-        AccountBriefSection s = AccountBriefContactsSection.build(null);
+        AccountBriefSection s = new AccountBriefContactsSection().build(null);
         Assert.areEqual(AccountBriefSection.ERROR, s.status);
         Assert.areEqual('Couldn\'t load Contacts right now.', s.body);
         Assert.areEqual('contacts', s.key);

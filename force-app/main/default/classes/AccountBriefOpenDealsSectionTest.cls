@@ -33,7 +33,7 @@ private class AccountBriefOpenDealsSectionTest {
         }
         insert opps;
 
-        AccountBriefSection s = AccountBriefOpenDealsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefOpenDealsSection().build(a.Id);
         Assert.areEqual('open_deals', s.key);
         Assert.areEqual('Open deals', s.title);
         Assert.areEqual(AccountBriefSection.OK, s.status);
@@ -75,7 +75,7 @@ private class AccountBriefOpenDealsSectionTest {
             new OpportunityContactRole(OpportunityId = o.Id, ContactId = primary.Id, Role = 'Decision Maker', IsPrimary = true)
         };
 
-        AccountBriefSection s = AccountBriefOpenDealsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefOpenDealsSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.OK, s.status);
         List<String> lines = s.body.split('\n');
         Assert.areEqual(4, lines.size());
@@ -100,14 +100,14 @@ private class AccountBriefOpenDealsSectionTest {
             CloseDate = Date.today().addDays(-20)
         );
 
-        AccountBriefSection s = AccountBriefOpenDealsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefOpenDealsSection().build(a.Id);
         Assert.areEqual('open_deals', s.key);
         Assert.areEqual(AccountBriefSection.EMPTY, s.status);
         Assert.areEqual('No open deals on this account.', s.body);
         Assert.areEqual(0, s.total);
         Assert.areEqual(0, s.shown);
 
-        AccountBriefSection none = AccountBriefOpenDealsSection.build(mkAccount().Id);
+        AccountBriefSection none = new AccountBriefOpenDealsSection().build(mkAccount().Id);
         Assert.areEqual(AccountBriefSection.EMPTY, none.status);
         Assert.areEqual(0, none.total);
     }
