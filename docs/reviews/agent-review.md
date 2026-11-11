@@ -1,16 +1,14 @@
 # Agent review: Account_Brief Agent Script, test spec and publish workflow (OPS-13)
 
-Reviewed 2026-11-11. Lane: `Account_Brief.agent` and `Account_Brief.bundle-meta.xml` on `main` and on
-`agent/backend/BE-8` (8a8afb6), `tests/agent/Account_Brief-testSpec.yaml` on both, `tests/test_agent_bundle.py`,
-`scripts/validate-org.sh`, and the three invocable classes (read for the contract). On the lane files, `main`
-matches the BE-8 merge base, so the BE-8 diff is the candidate next version. Standard: the installed
-`agentforce-adlc` 0.14.0 skills `agentforce-generate` (audit references, core language, known issues),
-`agentforce-test`, and `agentforce-architecture-analyze` (could not run, see the end).
+Reviewed 2026-11-11: the Account_Brief bundle and test spec on `main` and on `agent/backend/BE-8` (8a8afb6; on these
+files main equals the merge base, so the diff is the candidate), `tests/test_agent_bundle.py`, `scripts/validate-org.sh`,
+and the three invocable classes. Standard: `agentforce-adlc` 0.14.0 skills `agentforce-generate` (audit references,
+core language, known issues), `agentforce-test`, `agentforce-architecture-analyze` (could not run, see the end).
 
 ## Summary
 
-Verdict: **sound with fixes.** The structure is sound and clean for publish. Both versions compile, and the org
-validates both. All three actions have `outputs:`. The resolve-then-brief gate binds the Id from state, so the
+Verdict: **sound with fixes.** The structure is sound, and none of the skill's "Internal Error" causes matches. Both
+versions compile, and the org validates both. All three actions have `outputs:`. The resolve-then-brief gate binds the Id from state, so the
 model cannot pass an Id of its own choosing. BE-8 is a real improvement over main on routing and relay. The defects
 are in what happens after the first turn. Once an account is briefed, every Explore question carries that account
 as the open record, so an org-wide count can come back scoped to one account. Neither subagent has a route out. A
@@ -28,13 +26,24 @@ says so.
   `deprecated-field: 'id' is deprecated: Use string instead.` (main 146, BE-8 151).
 - `sf agent validate authoring-bundle --json --api-name Account_Brief -o experimental`, from the OPS-13 worktree
   (main) and then the BE-8 worktree. Both return `{"status": 0, "result": {"success": true}, "warnings": []}`.
-- Bundle shape (generate Rule 15): the directory and both files are named `Account_Brief`, and the meta is
-  `<bundleType>AGENT</bundleType>` with no `<target>`. Correct.
+- Bundle shape (generate Rule 15): directory and both files named `Account_Brief`; meta is `<bundleType>AGENT</bundleType>`, no `<target>`. Correct.
+- Bindings (verified by reading): every input and output name, case and required flag in the three action
+  definitions matches the Apex `Request`/`Response` fields. The only type gap is `contextRecordId` (nit 10).
+  `knownAccountId` is optional and unbound (nit 12).
+- On failure the user sees fixed Apex text, relayed by instruction: get_brief NOT_FOUND "I can't see that account.
+  Check the name or your access.", ERROR "I couldn't finish the brief right now. Try again in a minute.", EMPTY
+  "Nothing is on record for the requested sections." (or the valid-keys list for bad `include` keys); Explore ERROR
+  gives the explorer's fixed text with no table. An uncaught Apex exception should show `messages.error` (suspected,
+  not run). `ExploreAction.explore` lacks the null guard on `requests` that the other two have (harmless in practice).
+- Duplicate names (verified by reading, `AccountBriefResolver.cls` 76-96): two accounts with the same exact name fail
+  the unique-exact step, so the LIKE step returns AMBIGUOUS. The list shows "Name — City — Id", so only the city, or
+  the Id when cities match, tells them apart. The user must paste the Id or pick by position (finding 3).
 
 ## Findings (most severe first)
 
 **1. After a brief, Explore scopes org-wide questions to the briefed account.** Blocker for BE-8; should-fix on
-main. Verified code path; the model step is suspected. New.
+main. Verified code path (`DataExplorer.cls` 74 puts `contextRecordId` into `{{context}}`); the model step is
+suspected. New.
 - Where: `Account_Brief.agent` main 122-136, BE-8 127-141. The cause is
   `staticresources/AgentPrompt_Explore.resource` rule 8: "Use [the open record] when the question ... names nothing else."
 - What: once `briefed_account_id` is set, `explore_data` is withdrawn (`available when ... == ""`). Only
@@ -56,8 +65,8 @@ in the text; the outcome is suspected. New (BE-8 only).
   replies "Resolved: <account>" with no brief. That is the main path.
 - Skill: generate, instruction diagnostics ("global and local instructions demand incompatible outcomes"; "give each
   reachable branch one next outcome").
-- Fix: remove RESOLVED from step 6 and say "on RESOLVED, call get_brief and relay its answer". Consider making the
-  RESOLVED message not displayable (`filter_from_agent` or `is_displayable: False`).
+- Fix: remove RESOLVED from step 6 and say "on RESOLVED, call get_brief and relay its answer". (Hiding `message`
+  does not work: it is one output for all three statuses, and AMBIGUOUS/NOT_FOUND need it.)
 
 **3. No route out of a subagent, and no route for a reply to a candidate list.** Should-fix. Suspected: the skill
 does not say whether a new turn re-enters `start_agent`. New.
@@ -105,12 +114,11 @@ Suspected. New.
 - Scenario: briefed on A, the user says "and B?". The model calls get_brief(A, "and B?"), and the reply describes A
   as though it answered about B.
 - Skill: generate, posture-and-determinism / Rule 13 (a stable consequence that rests on model judgement).
-- Fix: cover it with a preview case and a multi-turn spec case. The semantic call has to stay with the model; the
-  brief names its account in its first line, which limits the harm.
+- Fix: a preview case and a multi-turn spec case; the call stays semantic. The brief names its account up front.
 
 **7. The test spec misses branches and cannot assert negatives.** Should-fix. Verified. New; plan §1d covers only
 a manual two-turn check.
-- No AMBIGUOUS case: every resolver branch except AMBIGUOUS is exercised. No multi-turn case, though
+- No AMBIGUOUS case (RESOLVED by name and NOT_FOUND are covered; RESOLVED by Id is not). No multi-turn case, though
   `agentforce-test` `references/batch-testing.md` supports `conversationHistory` and the BE-8 card asked for one.
 - `explore_data_for_account` is never reached, and no case follows a brief with an org-wide question (finding 1).
   A pronoun follow-up and a list pick are missing too.
@@ -133,11 +141,11 @@ the §3 workflow card).
   preview every branch, approval, then publish (generate Rules 5-6 and "Deploy, Publish, and Activate").
   `sf agent test run` works only on an activated agent, so the spec cannot gate a candidate before publish; only
   preview can.
-- The `sf` first on PATH in this shell is 2.130.9, below `agentforce-test`'s 2.131.0 floor for `--simulate-actions`
-  and missing `org auth show-access-token`. The research doc records 2.157.8, so there are two CLIs, and the
-  workflow card should pin which one runs.
+- Two CLIs are installed: `/opt/homebrew/bin/sf` 2.130.9 is first on PATH (below `agentforce-test`'s 2.131.0 floor
+  for `--simulate-actions`, no `org auth show-access-token`), `/usr/local/bin/sf` is 2.157.8. The workflow card
+  should pin one.
 
-**Nits** (verified unless noted; all new):
+**Nits** (verified unless noted; new except 14, which answers plan §3):
 9. `last_status` has four writers and no reader (main 18, 63/72/130/136). It is state with no consumer (generate
    Rule 7). Use it as in finding 4 or delete it.
 10. `contextRecordId: id` (main 146) gives the two compiler diagnostics. Declare it `string`; the Apex field can stay `Id`.
@@ -160,11 +168,8 @@ the §3 workflow card).
 2. Missing `outputs:` (known-issue 15): all three definitions have one (main 82, 105, 149). Clean.
 3. Structural drift: main is the script that published as v1, and BE-8 adds only prose and one `if` in the router.
    Both validate. No drift found.
-4. Transient: not tested.
-
-The recorded failure was not this error anyway: it was a 404 on the versions endpoint, plus "Error saving or
-updating agent graph" on replay (`docs/research/agent-publish-failure.md`). Nothing in the script explains it.
-Plan §1c can be marked checked from the script side.
+4. Transient: not tested. The recorded failure was a 404 plus "Error saving or updating agent graph", not this
+   error (`docs/research/agent-publish-failure.md`); nothing in the script explains it. Plan §1c: checked, script side.
 
 ## Deliberate differences
 
@@ -172,9 +177,6 @@ Plan §1c can be marked checked from the script side.
   typed outputs, and relaying the status verbatim fits this agent better. The weak spot is that the model, not the
   runtime, branches on status; finding 4's status gate moves the one branch that matters into the runtime.
 - Apex only, no Flows, and no prompt-template actions. The skill supports both but requires neither. No conflict.
-- Generate Rule 7 prefers one `start_agent` block and no mutable state. That is not a recorded choice, but the design
-  passes the skill's own test: two domains with different actions, and an Id with a deterministic consumer
-  (`available when` plus binding).
 
 ## Is BE-8 safe to publish as the next version?
 
