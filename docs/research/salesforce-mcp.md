@@ -256,5 +256,4 @@ practices (general, security), beta-to-ga, end-of-life. Also the `llms*.txt` ind
 manage-external-mcp-servers; Agentforce `mcp`, `agent-dx-mcp`; hxl `hxl-mcp-server`; pkg2-dev
 `dev2gp-package-mcp-agentforce`; the GA blog; `github.com/forcedotcom/mcp` issue 46; npm
 `@salesforce/mcp`. Not readable: the Salesforce Help page (empty body), the Metadata API
-`McpServerDefinition` reference (404). Not read: ChatGPT, Cursor, Postman, Vibes pages, standard
-server tool references, troubleshooting.
+`McpServerDefinition` reference (404). Not read: other client pages, standard server references.
