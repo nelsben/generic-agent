@@ -35,6 +35,13 @@ class TestValidateOrg(unittest.TestCase):
             f.write("#!/bin/sh\ntouch '%s'\nexit 99\n" % self.marker)
         os.chmod(fake_sf, 0o755)
 
+    def test_deploy_start_is_always_dry_run(self):
+        # Any `deploy start` in the script must carry --dry-run, so a real deploy cannot slip in.
+        with open(SCRIPT, encoding="utf-8") as f:
+            for line in f:
+                if "deploy start" in line:
+                    self.assertIn("--dry-run", line, line)
+
     def test_skips_when_force_app_holds_only_gitkeep(self):
         env = dict(
             os.environ,
