@@ -1,0 +1,97 @@
+/**
+ * AccountBriefActivitySection: the `activity` gather section of the Account Brief.
+ * Tasks with AccountId = the account and ActivityDate in the last 90 days (through today).
+ * Line 1 counts them by TaskSubtype (Email, Call, everything else) plus how many of them are
+ * open and past due; then the 5 most recent, newest first. Counts come from aggregate SOQL.
+ * Read-only: no DML. Runs with sharing, deterministic Apex, no LLM, plain text only.
+ * build() never throws: any failure comes back as an ERROR section.
+ */
+public with sharing class AccountBriefActivitySection {
+    public static final String KEY = 'activity';
+    public static final String TITLE = 'Recent activity';
+    public static final Integer CAP = 5;
+    private static final Integer WINDOW_DAYS = 90;
+
+    public static AccountBriefSection build(Id accountId) {
+        try {
+            return buildInternal(accountId);
+        } catch (Exception e) {
+                       AccountBriefSection err = new AccountBriefSection();
+            err.key = KEY;
+            err.title = TITLE;
+            err.status = AccountBriefSection.ERROR;
+            err.body = 'Couldn\'t load ' + TITLE + ' right now.';
+            return err;
+        }
+    }
+
+    private static AccountBriefSection buildInternal(Id accountId) {
+        if (accountId == null) {
+            throw new IllegalArgumentException('accountId is required');
+        }
+        AccountBriefSection s = new AccountBriefSection();
+        s.key = KEY;
+        s.title = TITLE;
+
+        Date today = Date.today();
+        Date since = today.addDays(-WINDOW_DAYS);
+
+        Integer emails = 0;
+        Integer calls = 0;
+        Integer other = 0;
+        for (AggregateResult ar : [
+            SELECT TaskSubtype st, COUNT(Id) cnt
+            FROM Task
+            WHERE AccountId = :accountId AND ActivityDate >= :since AND ActivityDate <= :today
+            GROUP BY TaskSubtype
+        ]) {
+            Integer n = Integer.valueOf(ar.get('cnt'));
+            String st = (String) ar.get('st');
+            if (st == 'Email') {
+                emails += n;
+            } else if (st == 'Call') {
+                calls += n;
+            } else {
+                other += n;
+            }
+        }
+        Integer total = emails + calls + other;
+        if (total == 0) {
+            s.status = AccountBriefSection.EMPTY;
+            s.body = 'No tasks in the last 90 days.';
+            return s;
+        }
+
+        Integer overdue = [
+            SELECT COUNT()
+            FROM Task
+            WHERE AccountId = :accountId AND IsClosed = false AND ActivityDate >= :since AND ActivityDate < :today
+        ];
+        // Task.Type is not present in every org, so it is only selected when the describe has it.
+        Boolean hasType = Schema.SObjectType.Task.fields.getMap().containsKey('type');
+        String soql = 'SELECT Id, ActivityDate, TaskSubtype, ' + (hasType ? 'Type, ' : '') + 'Subject, Who.Name '
+            + 'FROM Task WHERE AccountId = :accountId AND ActivityDate >= :since AND ActivityDate <= :today '
+            + 'ORDER BY ActivityDate DESC, CreatedDate DESC, Id DESC LIMIT ' + CAP;
+        List<Task> recent = (List<Task>) Database.queryWithBinds(
+            soql,
+            new Map<String, Object>{ 'accountId' => accountId, 'since' => since, 'today' => today },
+            AccessLevel.SYSTEM_MODE
+        );
+
+        List<String> lines = new List<String>();
+        lines.add('90d: ' + emails + ' emails, ' + calls + ' calls, ' + other + ' other; ' + overdue + ' open tasks overdue');
+        for (Task t : recent) {
+            String kind = !String.isBlank(t.TaskSubtype) ? t.TaskSubtype : (hasType && !String.isBlank((String) t.get('Type')) ? (String) t.get('Type') : 'Task');
+            lines.add('- ' + AccountBriefSection.fmtDate(t.ActivityDate)
+                + ' — ' + AccountBriefSection.clip(kind, 30)
+                + ' — ' + AccountBriefSection.clip(t.Subject, 120)
+                + ' — ' + (t.Who == null ? 'n/a' : AccountBriefSection.clip(t.Who.Name, 40)));
+        }
+
+        s.status = AccountBriefSection.OK;
+        s.total = total;
+        s.shown = recent.size();
+        s.body = String.join(lines, '\n');
+        return s;
+    }
+}
