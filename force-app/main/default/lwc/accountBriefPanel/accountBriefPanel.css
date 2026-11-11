@@ -1,0 +1,115 @@
+:host {
+    display: block;
+}
+
+.abp-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+.abp-bar-row,
+.abp-chips,
+.abp-candidates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.abp-chip,
+.abp-candidate {
+    margin: 0;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+    line-height: 1.25;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.abp-body {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 6rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.abp-spinner {
+    position: sticky;
+    top: 0;
+    height: 0;
+    z-index: 1;
+}
+
+.abp-pre {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.abp-question {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+[data-error='true'] {
+    color: var(--slds-g-color-error-base-40, #ea001e);
+}
+
+.abp-card-head,
+.abp-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.abp-section-head {
+    cursor: pointer;
+}
+
+.abp-section-title {
+    font-weight: 600;
+}
+
+.abp-field {
+    padding: 0.125rem 0;
+}
+
+.abp-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.abp-cell {
+    max-width: 14rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.abp-row-link {
+    cursor: pointer;
+}
+
+.abp-line-link {
+    white-space: normal;
+    text-align: left;
+    line-height: 1.375;
+}
+
+.abp-composer {
+    width: 100%;
+    resize: vertical;
+}
+
+.abp-composer-row {
+    border-top: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+}
+
+.abp-history {
+    border-bottom: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+}

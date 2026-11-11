@@ -9,17 +9,17 @@ public with sharing class AccountBriefSection {
     public static final String ERROR = 'ERROR';
 
     /** Stable machine key for the section, e.g. 'cases'. */
-    public String key;
+    @AuraEnabled public String key;
     /** Heading shown to the rep. */
-    public String title;
+    @AuraEnabled public String title;
     /** One of OK, EMPTY, ERROR. */
-    public String status;
+    @AuraEnabled public String status;
     /** Plain-text block. Never JSON, never null. EMPTY sections carry one human sentence. */
-    public String body = '';
+    @AuraEnabled public String body = '';
     /** Rows that matched. */
-    public Integer total = 0;
+    @AuraEnabled public Integer total = 0;
     /** Rows rendered after the cap. */
-    public Integer shown = 0;
+    @AuraEnabled public Integer shown = 0;
 
     /**
      * Single-line, whitespace-collapsed, length-capped text. Blank input gives 'n/a'.

@@ -1,0 +1,250 @@
+<template>
+    <div class="abp-panel slds-card">
+        <!-- Brief bar -->
+        <div class="slds-p-around_x-small abp-bar">
+            <div class="abp-bar-row">
+                <template lwc:if={isAccountPage}>
+                    <button class="slds-button slds-button_brand" onclick={handleBriefThisAccount} disabled={pending}>
+                        {briefButtonLabel}
+                    </button>
+                </template>
+                <template lwc:if={showAgentButton}>
+                    <button class="slds-button slds-button_neutral" onclick={handleAskAgent}>Ask the agent</button>
+                </template>
+            </div>
+            <template lwc:if={hasSources}>
+                <details class="slds-m-top_x-small">
+                    <summary class="slds-text-body_small slds-text-color_weak">{includeSummary}</summary>
+                    <div class="abp-chips slds-m-top_xx-small">
+                        <template for:each={includeChips} for:item="chip">
+                            <button key={chip.key} class={chip.className} data-key={chip.key}
+                                aria-pressed={chip.pressed} onclick={handleChip}>{chip.title}</button>
+                        </template>
+                    </div>
+                </details>
+            </template>
+            <template lwc:if={hasHistory}>
+                <details class="slds-m-top_x-small">
+                    <summary class="slds-text-body_small slds-text-color_weak">{historyLabel}</summary>
+                    <ul class="slds-m-top_xx-small">
+                        <template for:each={historyItems} for:item="h">
+                            <li key={h.key} class="slds-p-vertical_xx-small abp-history">
+                                <div class="slds-text-body_small slds-text-color_weak">{h.at} · {h.status}</div>
+                                <div class="slds-text-body_small">{h.headline}</div>
+                                <div class="slds-text-body_small slds-text-color_weak">{h.question}</div>
+                            </li>
+                        </template>
+                    </ul>
+                </details>
+            </template>
+        </div>
+
+        <template lwc:if={notice}>
+            <div class="slds-p-horizontal_x-small slds-text-color_error slds-text-body_small" role="alert">{notice}</div>
+        </template>
+
+        <!-- Body: drill view or conversation -->
+        <div class="abp-body slds-p-horizontal_x-small">
+            <template lwc:if={pending}>
+                <div class="abp-spinner"><lightning-spinner alternative-text="Loading" size="small"></lightning-spinner></div>
+            </template>
+
+            <template lwc:if={isDrilling}>
+                <nav role="navigation" aria-label="Drill path" class="slds-m-vertical_x-small">
+                    <ol class="slds-breadcrumb slds-list_horizontal slds-wrap">
+                        <li class="slds-breadcrumb__item">
+                            <button class="slds-button" onclick={handleBackToConversation}>Conversation</button>
+                        </li>
+                        <template for:each={breadcrumbs} for:item="crumb">
+                            <li key={crumb.key} class="slds-breadcrumb__item">
+                                <button class="slds-button" data-index={crumb.index} onclick={handleCrumb}>{crumb.label}</button>
+                            </li>
+                        </template>
+                    </ol>
+                </nav>
+                <article class="slds-box slds-box_x-small">
+                    <template lwc:if={drillTop.isRecord}>
+                        <div class="abp-card-head">
+                            <h2 class="slds-text-heading_small">{drillTop.label}</h2>
+                            <span class="slds-text-body_small slds-text-color_weak">{drillTop.objectName}</span>
+                        </div>
+                        <dl class="slds-m-top_x-small">
+                            <template for:each={drillTop.fields} for:item="f">
+                                <div key={f.key} class="abp-field">
+                                    <dt class="slds-text-body_small slds-text-color_weak">{f.label}</dt>
+                                    <dd class="abp-pre">{f.value}</dd>
+                                </div>
+                            </template>
+                        </dl>
+                        <template lwc:if={drillTop.hasRelated}>
+                            <div class="abp-chips slds-m-top_x-small">
+                                <template for:each={drillTop.related} for:item="r">
+                                    <button key={r.key} class="slds-button slds-button_neutral abp-chip"
+                                        data-object={r.name} onclick={handleRelated}>{r.name}</button>
+                                </template>
+                            </div>
+                        </template>
+                    </template>
+                    <template lwc:else>
+                        <div class="slds-text-heading_small">{drillTop.table.title}</div>
+                        <template lwc:if={drillTop.table.hasRows}>
+                            <div class="abp-table-wrap slds-m-top_x-small">
+                                <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped">
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <template for:each={drillTop.table.columns} for:item="col">
+                                                <th key={col.key} scope="col"><div class="slds-truncate">{col.label}</div></th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={drillTop.table.rows} for:item="row">
+                                            <tr key={row.key} class={row.rowClass} data-id={row.id} tabindex={row.tabindex}
+                                                onclick={handleRowClick} onkeydown={handleRowKeydown}>
+                                                <template for:each={row.cells} for:item="cell">
+                                                    <td key={cell.key}><div class="abp-cell">{cell.value}</div></td>
+                                                </template>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                    </template>
+                    <div class="slds-m-top_x-small">
+                        <button class="slds-button abp-view-link" onclick={handleViewRecord}>View record</button>
+                    </div>
+                </article>
+            </template>
+
+            <template lwc:else>
+                <template lwc:if={hasTurns}>
+                    <template for:each={turns} for:item="turn">
+                        <section key={turn.key} class="slds-m-vertical_small abp-turn">
+                            <div class="abp-question slds-text-body_small">{turn.question}</div>
+
+                            <!-- Plain text: NOT_FOUND from the resolver, or an Apex error -->
+                            <template lwc:if={turn.isText}>
+                                <div class="abp-pre slds-m-top_xx-small" data-error={turn.isError}>{turn.text}</div>
+                            </template>
+
+                            <!-- AMBIGUOUS: candidates re-resolve by Id -->
+                            <template lwc:if={turn.isAmbiguous}>
+                                <div class="slds-m-top_xx-small">{turn.header}</div>
+                                <div class="abp-candidates slds-m-top_xx-small">
+                                    <template for:each={turn.candidates} for:item="c">
+                                        <button key={c.key} class="slds-button slds-button_neutral abp-candidate"
+                                            data-id={c.id} data-label={c.label} title={c.detail} onclick={handleCandidate}>
+                                            {c.detail}
+                                        </button>
+                                    </template>
+                                </div>
+                                <template for:each={turn.notes} for:item="n">
+                                    <div key={n.key} class="slds-text-body_small slds-text-color_weak">{n.text}</div>
+                                </template>
+                            </template>
+
+                            <!-- Brief: summary card, then one card per section -->
+                            <template lwc:if={turn.isBrief}>
+                                <template lwc:if={turn.showMessage}>
+                                    <div class="abp-pre slds-m-top_xx-small">{turn.message}</div>
+                                </template>
+                                <template lwc:if={turn.header}>
+                                    <article class="slds-box slds-box_x-small slds-m-top_xx-small abp-summary">
+                                        <h2 class="slds-text-heading_small">{turn.header}</h2>
+                                        <div class="abp-pre slds-m-top_xx-small">{turn.rest}</div>
+                                    </article>
+                                </template>
+                                <template lwc:if={turn.ignoredText}>
+                                    <div class="slds-text-body_small slds-text-color_weak">{turn.ignoredText}</div>
+                                </template>
+                                <template for:each={turn.sections} for:item="s">
+                                    <details key={s.key} class="slds-box slds-box_x-small slds-m-top_xx-small abp-section">
+                                        <summary class="abp-section-head">
+                                            <span class="abp-section-title">{s.title}</span>
+                                            <span class={s.badgeClass}>{s.status}</span>
+                                            <span class="slds-text-body_small slds-text-color_weak">{s.countText}</span>
+                                        </summary>
+                                        <div class="slds-m-top_xx-small">
+                                            <template for:each={s.lines} for:item="line">
+                                                <div key={line.key} class="abp-pre">
+                                                    <template lwc:if={line.isDrill}>
+                                                        <button class="slds-button abp-line-link" data-id={line.drillId}
+                                                            onclick={handleLineDrill}>{line.text}</button>
+                                                    </template>
+                                                    <template lwc:else>{line.text}</template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </details>
+                                </template>
+                            </template>
+
+                            <!-- Explore: answer, result tables, trail, follow-ups -->
+                            <template lwc:if={turn.isExplore}>
+                                <div class="abp-pre slds-m-top_xx-small" data-error={turn.isError}>{turn.answer}</div>
+                                <template for:each={turn.tables} for:item="t">
+                                    <div key={t.key} class="slds-m-top_x-small">
+                                        <div class="slds-text-body_small slds-text-color_weak">{t.title}</div>
+                                        <template lwc:if={t.hasRows}>
+                                            <div class="abp-table-wrap">
+                                                <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped">
+                                                    <thead>
+                                                        <tr class="slds-line-height_reset">
+                                                            <template for:each={t.columns} for:item="col">
+                                                                <th key={col.key} scope="col"><div class="slds-truncate">{col.label}</div></th>
+                                                            </template>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template for:each={t.rows} for:item="row">
+                                                            <tr key={row.key} class={row.rowClass} data-id={row.id} tabindex={row.tabindex}
+                                                                onclick={handleRowClick} onkeydown={handleRowKeydown}>
+                                                                <template for:each={row.cells} for:item="cell">
+                                                                    <td key={cell.key}><div class="abp-cell">{cell.value}</div></td>
+                                                                </template>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template lwc:if={turn.hasTrail}>
+                                    <details class="slds-m-top_x-small">
+                                        <summary class="slds-text-body_small slds-text-color_weak">{turn.trailLabel}</summary>
+                                        <ol class="slds-m-top_xx-small">
+                                            <template for:each={turn.trail} for:item="q">
+                                                <li key={q.key} class="slds-text-body_small abp-pre">{q.text}</li>
+                                            </template>
+                                        </ol>
+                                    </details>
+                                </template>
+                                <div class="abp-chips slds-m-top_x-small">
+                                    <template for:each={turn.followups} for:item="f">
+                                        <button key={f.key} class="slds-button slds-button_neutral abp-chip"
+                                            data-text={f.text} onclick={handleFollowup} disabled={pending}>{f.text}</button>
+                                    </template>
+                                </div>
+                            </template>
+                        </section>
+                    </template>
+                </template>
+                <template lwc:else>
+                    <p class="slds-text-color_weak slds-text-body_small slds-m-vertical_small">
+                        Ask anything about your data, or type /brief and an account name. Cmd/Ctrl-K focuses this box.
+                    </p>
+                </template>
+            </template>
+        </div>
+
+        <!-- Composer -->
+        <div class="slds-p-around_x-small abp-composer-row">
+            <textarea class="slds-textarea abp-composer" rows="2" aria-label="Ask or /brief an account"
+                placeholder="Ask anything, or /brief Account name" onkeydown={handleComposerKeydown}
+                onkeyup={handleComposerKeyOther} onkeypress={handleComposerKeyOther} oninput={handleComposerInput}></textarea>
+            <button class="slds-button slds-button_brand slds-m-top_xx-small" onclick={handleSend} disabled={sendDisabled}>Send</button>
+        </div>
+    </div>
+</template>
