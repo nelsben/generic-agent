@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Gate `org`: check-only deploy of force-app to the target org, running only our own Apex tests.
+# With *Test.cls classes it uses `deploy validate` (RunSpecifiedTests). With none, sf rejects
+# NoTestRun for validate, so it uses `deploy start --dry-run` (still check-only, never saves).
 # Never deploys for real and never writes to the org.
 set -euo pipefail
 
@@ -37,7 +39,7 @@ if [ "$test_count" -gt 0 ]; then
   sf project deploy validate --source-dir "$FORCE_APP_DIR" --target-org "$TARGET_ORG" \
     --wait 30 --json --test-level RunSpecifiedTests "${test_args[@]}" > "$out" 2>/dev/null || sf_rc=$?
 else
-  sf project deploy validate --source-dir "$FORCE_APP_DIR" --target-org "$TARGET_ORG" \
+  sf project deploy start --dry-run --source-dir "$FORCE_APP_DIR" --target-org "$TARGET_ORG" \
     --wait 30 --json --test-level NoTestRun > "$out" 2>/dev/null || sf_rc=$?
 fi
 
