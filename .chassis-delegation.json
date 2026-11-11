@@ -1,0 +1,49 @@
+{
+  "_comment": "chassis-delegation per-repo config. Every key is optional. Precedence: built-in defaults < this file < the mod options (/delegation config <field> <value>; maps merge per key). Keys starting with _ are comments and are ignored.",
+  "_gateMap": "Brief gate= id -> the command the verifier re-runs in the worker's own worktree, by argv (no shell). {files} is the changed-files list (one path a line); chain with ' && '. Example: {\"test\": \"npm test\", \"lint\": \"npx eslint --max-warnings 0 {files}\"}. An id the map lacks is reported 'gate not re-run' (unverified), never run raw. The key _empty names a gate id of this map (not a command): a hand-back that changes no file runs that gate instead of the card's, e.g. {\"test\": \"npm test\", \"smoke\": \"npm run lint\", \"_empty\": \"smoke\"}.",
+  "gateMap": {
+    "test": "python3 -m unittest discover -s tests"
+  },
+  "_agentTypes": "Card domain -> the subagent type of the Agent call /dispatch prepares for the brain to make (the Agent tool subagent_type). A domain not named here runs on a subagent type of its own name when the session offers one, else general-purpose. Example: {\"ops\": \"general-purpose\", \"web\": \"frontend\"}.",
+  "agentTypes": {},
+  "_tierMap": "Card tier -> model alias (haiku, sonnet, opus; fable is rewritten to opus). Always an alias, so model releases move the ladder.",
+  "tierMap": {
+    "economy": "haiku",
+    "standard": "sonnet",
+    "frontier": "opus",
+    "premium": "fable"
+  },
+  "_domains": "The card domains /dispatch accepts; the branch is agent/<domain>/<id>.",
+  "domains": [
+    "frontend",
+    "backend",
+    "ops",
+    "dispatcher",
+    "cross",
+    "shared"
+  ],
+  "_maxWorkers": "Briefed workers at once; past it /dispatch says queued, and the hand-back that frees a slot says ready: <id>, and the brain makes the spawn.",
+  "maxWorkers": 2,
+  "_maxWorkersByTier": "A lower limit on the briefed workers of one tier (economy, standard, frontier, premium), under maxWorkers; a tier not named takes maxWorkers alone. Example: {\"frontier\": 2}.",
+  "maxWorkersByTier": {},
+  "_worktreeRoot": "Folder for the workers' worktrees; empty = sibling folders <repo>-<id>.",
+  "worktreeRoot": "",
+  "_cardDir": "The folder the task cards live in, relative to the repo root. In a repo that is itself a plugin keep it out of agents/: the engine reads agents/*.md as subagents.",
+  "cardDir": "agents/tasks",
+  "_briefTemplate": "A brief body template file (absolute path); empty = the mod's hooks/templates/brief.md.",
+  "briefTemplate": "",
+  "_briefExtra": "Repo-specific lines added to every brief (setup steps, conventions, things never to do).",
+  "briefExtra": "",
+  "_briefLocal": "A gitignored rules file (repo-relative or absolute) copied into every brief under a section the debrief drops; free text, then \"### allow: <id>\" blocks a card pulls in with allow: [<id>]. Empty = none. A tracked file is refused.",
+  "briefLocal": "",
+  "_evalCommand": "What a background eval runner runs once per new origin/main sha when the session is idle; empty = no eval. Needs autoEval true here or set with /delegation config autoEval true.",
+  "evalCommand": "",
+  "evalLiveCommand": "",
+  "autoEval": false,
+  "_issueRepo": "Unset (leave this key out): /delegation debrief post files the mod findings, one issue per finding after showing them, in the mod's own tracker, from any repo. owner/name files them there instead; \"\" turns posting off.",
+  "spendByTier": {
+    "economy": 3,
+    "standard": 10,
+    "frontier": 25
+  }
+}
