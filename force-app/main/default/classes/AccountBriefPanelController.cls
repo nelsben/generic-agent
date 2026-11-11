@@ -68,9 +68,10 @@ public with sharing class AccountBriefPanelController {
     /** The BotDefinition Id of the Account_Brief agent, or null when the org has none or the user can't see it. */
     @AuraEnabled(cacheable=true)
     public static String agentId() {
+        String developerName = AGENT_DEVELOPER_NAME;
         try {
             List<SObject> rows = Database.query(
-                'SELECT Id FROM BotDefinition WHERE DeveloperName = :AGENT_DEVELOPER_NAME LIMIT 1');
+                'SELECT Id FROM BotDefinition WHERE DeveloperName = :developerName LIMIT 1');
             return rows.isEmpty() ? null : String.valueOf(rows[0].Id);
         } catch (Exception e) {
             System.debug(LoggingLevel.WARN, 'AccountBriefPanelController.agentId: ' + e.getMessage());
