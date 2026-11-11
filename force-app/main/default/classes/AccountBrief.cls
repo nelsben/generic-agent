@@ -50,6 +50,29 @@ public with sharing class AccountBrief {
         @AuraEnabled public List<String> ignored = new List<String>();
     }
 
+    /** One registry source as a picker lists it. */
+    public class SourceInfo {
+        @AuraEnabled public String key;
+        @AuraEnabled public String title;
+    }
+
+    /** The registry's keys and titles, in brief order. Reads no data and calls no model. */
+    public static List<SourceInfo> sources() {
+        List<SourceInfo> out = new List<SourceInfo>();
+        for (Source src : registry) {
+            SourceInfo info = new SourceInfo();
+            info.key = src.key;
+            info.title = src.key;
+            try {
+                info.title = ((AccountBriefSource) Type.forName(src.className).newInstance()).title();
+            } catch (Exception e) {
+                System.debug(LoggingLevel.ERROR, 'AccountBrief source ' + src.key + ' has no title: ' + e.getMessage());
+            }
+            out.add(info);
+        }
+        return out;
+    }
+
     @TestVisible
     private class Source {
         public String key;

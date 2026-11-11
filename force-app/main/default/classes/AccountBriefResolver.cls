@@ -27,13 +27,13 @@ public with sharing class AccountBriefResolver {
 
     public class Response {
         @InvocableVariable(label='Status' description='RESOLVED, AMBIGUOUS or NOT_FOUND')
-        public String status;
+        @AuraEnabled public String status;
         @InvocableVariable(label='Account Id' description='18-character Id of the resolved account; blank unless RESOLVED')
-        public String accountId;
+        @AuraEnabled public String accountId;
         @InvocableVariable(label='Account Name' description='Name of the resolved account; blank unless RESOLVED')
-        public String accountName;
+        @AuraEnabled public String accountName;
         @InvocableVariable(label='Message' description='User-facing text. Relay it verbatim.')
-        public String message;
+        @AuraEnabled public String message;
     }
 
     @InvocableMethod(
