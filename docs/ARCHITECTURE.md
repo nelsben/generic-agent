@@ -31,6 +31,11 @@ builds one plain-text section. Reduce: the model writes prose from those section
 | `AccountBriefMemory` | Per-user, per-account memory of past briefs (the only DML) |
 | `AgentLlm` | The only door to a model: loads a prompt, fills `{{vars}}`, calls the provider |
 | `AgentLlmModelsApi` | Default provider: the Salesforce Models API, model held in one constant |
+| `DataExplorer` | Explore loop (`explore`) and model-free drill-down (`drill`); see Explore |
+| `ExploreCatalog` | Curated objects and fields, describe-checked for the running user |
+| `ExplorePlan` | The JSON query plan the model fills, and its validation |
+| `ExploreQuery` | Builds bound SOQL from a resolved plan and runs it in user mode (read-only) |
+| `ExploreAction` | The Explore Data action: question in, status and answer plus a table out |
 
 ## Add a source
 
@@ -65,3 +70,32 @@ version bumps. Callers name a prompt without the prefix: `AgentLlm.complete('Bri
   A model failure gives ERROR, keeps the sections, and writes nothing.
 - `with sharing` everywhere; the brief adds no visibility the user lacks.
 - Tests set `AgentLlm.stub`; no test calls a model.
+
+## Explore
+
+Ask anything, drill into anything. The model never writes SOQL: it fills a JSON plan, and
+Apex checks, builds and runs it. Entry points: `DataExplorer.explore(question, contextRecordId,
+historyJson)`, `DataExplorer.drill(recordId, relatedObject)` (no model), and the `Explore Data`
+action (`ExploreAction`).
+
+- **Loop.** Each turn `AgentPrompt_Explore` gets the catalog, the open record, the history, the
+  question, the turns so far and `queries_left`. The model replies with one JSON object:
+  `{"action":"query","plan":{...}}` or `{"action":"answer","text":"...","followups":[...]}`. Caps:
+  5 turns, 4 queries. At 0 queries left the prompt says answer now. A bad reply, a plan error or a
+  QueryException goes back as `INVALID: <reason>`. The model sees 20 rows plus the total per query.
+- **Plan.** `object`, `fields[]`, `filters[]` of `{field, op, value}` joined by AND (ops
+  `= != < <= > >= LIKE IN`), `orderBy {field, dir}`, `limit`, `groupBy[]`,
+  `aggregates[]` of `{fn, field}` (COUNT SUM AVG MIN MAX). Date values are `YYYY-MM-DD` or a token
+  from `ExplorePlan.DATE_LITERALS` / `DATE_LITERALS_N`.
+- **Guards.** `ExplorePlan.resolve` matches every name to the catalog and returns errors in plain
+  English. `ExploreQuery` resolves again and builds SOQL only from catalog paths, fixed tokens
+  and its own aliases. Every value is bound. The limit defaults to 50 and is capped at 200; an
+  aggregate without groupBy gets no LIMIT. Queries run in `AccessLevel.USER_MODE`. There is no DML.
+  A model failure returns ERROR with fixed text and keeps the result sets already read.
+- **Catalog.** `ExploreCatalog.CURATED` maps each object to its allowed fields and one-level
+  parent paths. Each name is describe-checked for the running user: anything not accessible or
+  not in the org is dropped. Long text is shown but not filterable.
+
+To add an object, add one `CURATED` entry, `'Object' => new List<String>{ 'Id', 'Name', ... }`,
+with names as strings. Lookups and parent paths such as `Account.Name` work from then on in
+plans and in `drill`. Nothing else changes.

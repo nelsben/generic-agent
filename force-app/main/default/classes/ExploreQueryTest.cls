@@ -1,0 +1,126 @@
+@IsTest
+private class ExploreQueryTest {
+    @TestSetup
+    static void data() {
+        Account acme = new Account(Name = 'Query Acme', NumberOfEmployees = 40);
+        insert acme;
+        insert new List<Opportunity>{
+            new Opportunity(AccountId = acme.Id, Name = 'Q One', StageName = 'Closed Won', Amount = 1000, CloseDate = Date.today(), NextStep = 'Call'),
+            new Opportunity(AccountId = acme.Id, Name = 'Q Two', StageName = 'Prospecting', Amount = 2000, CloseDate = Date.today()),
+            new Opportunity(AccountId = acme.Id, Name = 'Q Three', StageName = 'Closed Won', Amount = 3000, CloseDate = Date.today()),
+            new Opportunity(Name = 'Q Orphan', StageName = 'Prospecting', Amount = 500, CloseDate = Date.today().addYears(-3))
+        };
+    }
+
+    private static ExploreQuery.ResultSet run(String planJson) {
+        return ExploreQuery.run(ExplorePlan.fromJson(planJson));
+    }
+
+    @IsTest
+    static void quoteAndKeywordsAreBoundNotInjected() {
+        String evil = 'x\' OR Name != \'\' OR Name LIKE \'% ; DELETE FROM Account WHERE Id != null) SELECT Id FROM User --';
+        ExplorePlan plan = new ExplorePlan();
+        plan.objectName = 'Account';
+        plan.fields = new List<String>{ 'Name' };
+        ExplorePlan.Filter f = new ExplorePlan.Filter();
+        f.field = 'Name';
+        f.op = '=';
+        f.value = evil;
+        plan.filters.add(f);
+
+        ExploreQuery.ResultSet rs = ExploreQuery.run(plan);
+
+        Assert.areEqual(0, rs.shown);
+        Assert.areEqual(0, rs.total);
+        Assert.areEqual('SELECT Name, Id FROM Account WHERE Name = :b0 LIMIT 50', rs.soql);
+        Assert.isFalse(rs.soql.contains('DELETE'));
+        Assert.areEqual(1, [SELECT COUNT() FROM Account WHERE Name = 'Query Acme']);
+    }
+
+    @IsTest
+    static void limitDefaultsAndClamps() {
+        Assert.isTrue(run('{"object":"Opportunity","fields":["Name"]}').soql.endsWith(' LIMIT 50'));
+        Assert.isTrue(run('{"object":"Opportunity","fields":["Name"],"limit":500}').soql.endsWith(' LIMIT 200'));
+        Assert.isTrue(run('{"object":"Opportunity","fields":["Name"],"limit":0}').soql.endsWith(' LIMIT 50'));
+
+        ExploreQuery.ResultSet two = run('{"object":"Opportunity","fields":["Name"],"limit":2}');
+        Assert.areEqual(2, two.shown);
+        Assert.areEqual(4, two.total, 'a full page counts the total');
+        Assert.areEqual(2, two.rows.size());
+    }
+
+    @IsTest
+    static void aggregateWithoutGroupByHasNoLimit() {
+        ExploreQuery.ResultSet rs = run('{"object":"Opportunity","aggregates":[{"fn":"COUNT"},{"fn":"sum","field":"amount"}],'
+            + '"filters":[{"field":"Account.Name","op":"=","value":"Query Acme"}],"orderBy":{"field":"Name"}}');
+
+        Assert.areEqual('SELECT COUNT(Id) a0, SUM(Amount) a1 FROM Opportunity WHERE Account.Name = :b0', rs.soql);
+        Assert.areEqual(new List<String>{ 'COUNT(Id)', 'SUM(Amount)' }, rs.columns);
+        Assert.areEqual(1, rs.shown);
+        Assert.areEqual(3, rs.rows[0].get('COUNT(Id)'));
+        Assert.areEqual(6000, ((Decimal) rs.rows[0].get('SUM(Amount)')).intValue());
+        Assert.isFalse(rs.rows[0].containsKey('Id'));
+    }
+
+    @IsTest
+    static void aggregateWithGroupBy() {
+        ExploreQuery.ResultSet rs = run('{"object":"Opportunity","fields":["StageName"],"groupBy":["stagename"],'
+            + '"aggregates":[{"fn":"COUNT","field":"Id"},{"fn":"SUM","field":"Amount"}],"orderBy":{"field":"sum(amount)","dir":"desc"}}');
+
+        Assert.areEqual('SELECT StageName g0, COUNT(Id) a0, SUM(Amount) a1 FROM Opportunity GROUP BY StageName '
+            + 'ORDER BY SUM(Amount) DESC NULLS LAST LIMIT 50', rs.soql);
+        Assert.areEqual(2, rs.shown);
+        Assert.areEqual('Closed Won', rs.rows[0].get('StageName'));
+        Assert.areEqual(4000, ((Decimal) rs.rows[0].get('SUM(Amount)')).intValue());
+        Assert.areEqual(2, rs.rows[1].get('COUNT(Id)'));
+
+        ExploreQuery.ResultSet byGroup = run('{"object":"Opportunity","groupBy":["StageName"],"aggregates":[{"fn":"COUNT"}],'
+            + '"orderBy":{"field":"StageName"},"limit":1}');
+        Assert.isTrue(byGroup.soql.endsWith('GROUP BY StageName ORDER BY StageName ASC LIMIT 1'), byGroup.soql);
+        Assert.areEqual(1, byGroup.total, 'grouped results are not recounted');
+
+        ExploreQuery.ResultSet byCount = run('{"object":"Opportunity","groupBy":["StageName"],"aggregates":[{"fn":"COUNT"}],'
+            + '"orderBy":{"field":"COUNT()","dir":"DESC"}}');
+        Assert.isTrue(byCount.soql.contains('ORDER BY COUNT(Id) DESC'), byCount.soql);
+    }
+
+    @IsTest
+    static void typedFiltersAndDateLiterals() {
+        String base = '{"object":"Opportunity","fields":["Name","Account.Name"],"filters":[';
+        Assert.areEqual(3, run(base + '{"field":"CloseDate","op":"=","value":"this_year"},{"field":"Name","op":"LIKE","value":"Q %"}]}').shown);
+        Assert.isTrue(run(base + '{"field":"CloseDate","op":"=","value":"this_year"}]}').soql.contains('CloseDate = THIS_YEAR'));
+        Assert.areEqual(4, run(base + '{"field":"CreatedDate","op":">=","value":"LAST_N_DAYS: 30"}]}').shown);
+        Assert.isTrue(run(base + '{"field":"CreatedDate","op":">=","value":"last_n_days:30"}]}').soql.contains('CreatedDate >= LAST_N_DAYS:30'));
+        Assert.areEqual(1, run(base + '{"field":"CloseDate","op":"<","value":"' + String.valueOf(Date.today().addYears(-1)) + '"}]}').shown);
+        Assert.areEqual(4, run(base + '{"field":"CreatedDate","op":">","value":"2020-01-01"}]}').shown);
+        Assert.areEqual(4, run(base + '{"field":"CreatedDate","op":">","value":"2020-01-01T00:00:00Z"}]}').shown);
+        Assert.areEqual(2, run(base + '{"field":"Amount","op":">=","value":2000}]}').shown);
+        Assert.areEqual(1, run(base + '{"field":"Amount","op":"=","value":"500"}]}').shown);
+        Assert.areEqual(2, run(base + '{"field":"StageName","op":"IN","value":["Prospecting"]}]}').shown);
+        Assert.areEqual(2, run(base + '{"field":"IsWon","op":"=","value":true}]}').shown);
+        Assert.areEqual(3, run(base + '{"field":"NextStep","op":"=","value":null}]}').shown);
+        Assert.areEqual(3, run(base + '{"field":"Probability","op":">=","value":0},{"field":"Name","op":"!=","value":"Q Two"}]}').shown);
+
+        Id acmeId = [SELECT Id FROM Account WHERE Name = 'Query Acme'].Id;
+        Assert.areEqual(3, run(base + '{"field":"AccountId","op":"IN","value":["' + acmeId + '"]}]}').shown);
+        Assert.areEqual(1, run('{"object":"Account","fields":["Name"],"filters":[{"field":"NumberOfEmployees","op":"IN","value":[40,41]},'
+            + '{"field":"NumberOfEmployees","op":"<","value":"41"}]}').shown);
+
+        ExploreQuery.ResultSet orphan = run(base + '{"field":"Name","op":"=","value":"Q Orphan"}]}');
+        Assert.isNull(orphan.rows[0].get('Account.Name'), 'an empty parent lookup reads as null');
+        Assert.areEqual('Name = Q Orphan', orphan.filters);
+        Assert.isNotNull(orphan.rows[0].get('Id'));
+        Assert.isTrue(orphan.planJson.contains('"object":"Opportunity"'));
+        Assert.areEqual('no filters', run('{"object":"Opportunity","fields":["Name"]}').filters);
+    }
+
+    @IsTest
+    static void invalidPlanIsRefused() {
+        try {
+            run('{"object":"Opportunity","fields":["Nope"]}');
+            Assert.fail('expected PlanException');
+        } catch (ExplorePlan.PlanException e) {
+            Assert.isTrue(e.getMessage().contains('Unknown field "Nope" on Opportunity.'));
+        }
+    }
+}
