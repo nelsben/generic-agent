@@ -36,7 +36,7 @@ private class AccountBriefCasesSectionTest {
         Case low1 = mkCase(a, t + ' low1', 'Low', 1);
         insert new Case(AccountId = a.Id, Subject = t + ' done', Priority = 'High', Status = 'Closed');
 
-        AccountBriefSection s = AccountBriefCasesSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefCasesSection().build(a.Id);
         Assert.areEqual('cases', s.key);
         Assert.areEqual('Service health', s.title);
         Assert.areEqual(AccountBriefSection.OK, s.status);
@@ -63,7 +63,7 @@ private class AccountBriefCasesSectionTest {
     static void subjectIsClippedToOneHundredCharacters() {
         Account a = mkAccount();
         Case c = mkCase(a, 'y'.repeat(150), 'High', 3);
-        List<String> lines = AccountBriefCasesSection.build(a.Id).body.split('\n');
+        List<String> lines = new AccountBriefCasesSection().build(a.Id).body.split('\n');
         Assert.areEqual(2, lines.size());
         Assert.areEqual('1 open (1 high priority), 0 closed in last 90 days, oldest open 3 days', lines[0]);
         String num = [SELECT CaseNumber FROM Case WHERE Id = :c.Id].CaseNumber;
@@ -78,7 +78,7 @@ private class AccountBriefCasesSectionTest {
             new Case(AccountId = a.Id, Subject = token() + ' two', Status = 'Closed')
         };
 
-        AccountBriefSection s = AccountBriefCasesSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefCasesSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(0, s.total);
         Assert.areEqual(0, s.shown);
@@ -90,14 +90,14 @@ private class AccountBriefCasesSectionTest {
 
     @IsTest
     static void noCasesIsEmpty() {
-        AccountBriefSection s = AccountBriefCasesSection.build(mkAccount().Id);
+        AccountBriefSection s = new AccountBriefCasesSection().build(mkAccount().Id);
         Assert.areEqual('cases', s.key);
         Assert.areEqual(AccountBriefSection.EMPTY, s.status);
         Assert.areEqual('No cases on this account.', s.body);
         Assert.areEqual(0, s.total);
         Assert.areEqual(0, s.shown);
 
-        AccountBriefSection nullId = AccountBriefCasesSection.build(null);
+        AccountBriefSection nullId = new AccountBriefCasesSection().build(null);
         Assert.areEqual(AccountBriefSection.EMPTY, nullId.status);
         Assert.areEqual(0, nullId.total);
     }

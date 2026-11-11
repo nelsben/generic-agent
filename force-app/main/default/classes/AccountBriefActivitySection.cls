@@ -6,13 +6,21 @@
  * Read-only: no DML. Runs with sharing, deterministic Apex, no LLM, plain text only.
  * build() never throws: any failure comes back as an ERROR section.
  */
-public with sharing class AccountBriefActivitySection {
+public with sharing class AccountBriefActivitySection implements AccountBriefSource {
     public static final String KEY = 'activity';
     public static final String TITLE = 'Recent activity';
     public static final Integer CAP = 5;
     private static final Integer WINDOW_DAYS = 90;
 
-    public static AccountBriefSection build(Id accountId) {
+    public String key() {
+        return KEY;
+    }
+
+    public String title() {
+        return TITLE;
+    }
+
+    public AccountBriefSection build(Id accountId) {
         try {
             return buildInternal(accountId);
         } catch (Exception e) {

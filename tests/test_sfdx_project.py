@@ -8,7 +8,7 @@ FOLDERS = [
     "force-app/main/default/aiAuthoringBundles",
     "force-app/main/default/flows",
     "force-app/main/default/classes",
-    "force-app/main/default/genAiPromptTemplates",
+    "force-app/main/default/staticresources",
     "force-app/main/default/permissionsets",
 ]
 

@@ -43,7 +43,7 @@ private class AccountBriefCallsSectionTest {
             mkEvent(other.Id, 'Other account', -1, 30, null)
         };
 
-        AccountBriefSection s = AccountBriefCallsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefCallsSection().build(a.Id);
         Assert.areEqual('calls', s.key);
         Assert.areEqual('Calls & meetings', s.title);
         Assert.areEqual(AccountBriefSection.OK, s.status);
@@ -74,7 +74,7 @@ private class AccountBriefCallsSectionTest {
         events.add(mkEvent(a.Id, 'Upcoming', 2, 30, null));
         insert events;
 
-        AccountBriefSection s = AccountBriefCallsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefCallsSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(6, s.total);
         Assert.isTrue(s.shown >= 1 && s.shown < 5, 'blocks dropped, not cut: ' + s.shown);
@@ -95,7 +95,7 @@ private class AccountBriefCallsSectionTest {
     @IsTest
     static void noEventsIsEmpty() {
         Account a = mkAccount();
-        AccountBriefSection s = AccountBriefCallsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefCallsSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.EMPTY, s.status);
         Assert.areEqual('No calls or meetings logged.', s.body);
         Assert.areEqual(0, s.total);
@@ -106,7 +106,7 @@ private class AccountBriefCallsSectionTest {
     static void onlyFutureEventStillReportsNext() {
         Account a = mkAccount();
         insert mkEvent(a.Id, 'First meeting', 4, 30, null);
-        AccountBriefSection s = AccountBriefCallsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefCallsSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(0, s.total);
         Assert.areEqual(0, s.shown);
@@ -117,13 +117,13 @@ private class AccountBriefCallsSectionTest {
     static void missingDurationAndSubjectRenderAsNotAvailable() {
         Account a = mkAccount();
         insert new Event(WhatId = a.Id, Subject = null, StartDateTime = DateTime.now().addDays(-2), IsAllDayEvent = false, DurationInMinutes = 30);
-        AccountBriefSection s = AccountBriefCallsSection.build(a.Id);
+        AccountBriefSection s = new AccountBriefCallsSection().build(a.Id);
         Assert.areEqual('- ' + dateOf(-2) + ' — n/a — 30 min — with n/a', s.body);
     }
 
     @IsTest
     static void failureReturnsErrorSectionInsteadOfThrowing() {
-        AccountBriefSection s = AccountBriefCallsSection.build(null);
+        AccountBriefSection s = new AccountBriefCallsSection().build(null);
         Assert.areEqual(AccountBriefSection.ERROR, s.status);
         Assert.areEqual('Couldn\'t load Calls & meetings right now.', s.body);
         Assert.areEqual('calls', s.key);

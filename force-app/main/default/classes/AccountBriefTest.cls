@@ -1,0 +1,256 @@
+@IsTest
+private class AccountBriefTest {
+    private static final List<String> ALL_KEYS = new List<String>{
+        'profile', 'open_deals', 'cases', 'contacts', 'activity', 'calls', 'deal_history'
+    };
+
+    /** Records every model call; never reaches a model. */
+    private class Stub implements AgentLlm.Provider {
+        List<String> systems = new List<String>();
+        List<String> users = new List<String>();
+        Boolean fail = false;
+
+        public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
+            if (fail) {
+                throw new AgentLlm.LlmException('model down');
+            }
+            systems.add(systemPrompt);
+            users.add(userPrompt);
+            if (systemPrompt.contains('engagement data')) {
+                return 'ENGAGEMENT SUMMARY';
+            }
+            if (systemPrompt.contains('deal history for one account')) {
+                return 'DEAL HISTORY SUMMARY';
+            }
+            return 'Headline finding.\nAccount\nBody.';
+        }
+
+        Integer count(String marker) {
+            Integer n = 0;
+            for (String s : systems) {
+                if (s.contains(marker)) {
+                    n++;
+                }
+            }
+            return n;
+        }
+
+        String synthesisUser() {
+            for (Integer i = 0; i < systems.size(); i++) {
+                if (systems[i].contains('final account brief')) {
+                    return users[i];
+                }
+            }
+            return null;
+        }
+    }
+
+    private static Stub install() {
+        Stub s = new Stub();
+        AgentLlm.stub = s;
+        return s;
+    }
+
+    private static Account mkAccount(Boolean withData) {
+        Account a = new Account(Name = 'Brief Engine Test ' + String.valueOf(Math.abs(Crypto.getRandomInteger())));
+        insert a;
+        if (withData) {
+            insert new Contact(AccountId = a.Id, LastName = 'Rivera', Title = 'Buyer');
+            insert new Opportunity(AccountId = a.Id, Name = 'Won deal', StageName = 'Closed Won', Amount = 5000, CloseDate = Date.today().addDays(-20));
+        }
+        return a;
+    }
+
+    private static Integer memoryRows() {
+        return [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE];
+    }
+
+    private static List<String> keysOf(AccountBrief.Result r) {
+        List<String> keys = new List<String>();
+        for (AccountBriefSection s : r.sections) {
+            keys.add(s.key);
+        }
+        return keys;
+    }
+
+    @IsTest
+    static void allSourcesByDefaultInRegistryOrder() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+
+        Test.startTest();
+        AccountBrief.Result r = AccountBrief.run(a.Id, ' What is the risk? ', null);
+        Test.stopTest();
+
+        Assert.areEqual(AccountBrief.OK, r.status);
+        Assert.areEqual('', r.message);
+        Assert.areEqual('Headline finding.\nAccount\nBody.', r.answer);
+        Assert.areEqual(ALL_KEYS, keysOf(r));
+        Assert.isTrue(r.ignored.isEmpty());
+
+        Assert.areEqual(3, stub.systems.size());
+        Assert.areEqual(1, stub.count('engagement data'));
+        Assert.areEqual(1, stub.count('deal history for one account'));
+        Assert.isTrue(stub.systems[2].contains('final account brief'), 'synthesis runs last');
+
+        String engagementUser = stub.users[0];
+        Assert.isTrue(engagementUser.contains('Account: ' + a.Name));
+        Assert.isTrue(engagementUser.contains('Rivera'));
+
+        String synth = stub.synthesisUser();
+        Assert.isTrue(synth.contains('Question:\nWhat is the risk?'));
+        Assert.isTrue(synth.contains('Name: ' + a.Name));
+        Assert.isTrue(synth.contains('Engagement summary:\nENGAGEMENT SUMMARY'));
+        Assert.isTrue(synth.contains('Deal history summary:\nDEAL HISTORY SUMMARY'));
+        Assert.isTrue(synth.contains('Cases:\nEMPTY: '));
+        Assert.isFalse(synth.contains('{{'));
+
+        Assert.areEqual(1, memoryRows());
+        Assert.areEqual(r.answer, AccountBriefMemory.lastBrief(a.Id));
+    }
+
+    @IsTest
+    static void everyRegistryKeyMatchesItsSource() {
+        for (AccountBrief.Source src : AccountBrief.registry) {
+            AccountBriefSource impl = (AccountBriefSource) Type.forName(src.className).newInstance();
+            Assert.areEqual(src.key, impl.key(), src.className);
+            Assert.isTrue(String.isNotBlank(impl.title()), src.className);
+        }
+    }
+
+    @IsTest
+    static void emptyIncludeMeansAll() {
+        Account a = mkAccount(false);
+        install();
+        AccountBrief.Result r = AccountBrief.run(a.Id, null, new Set<String>{ ' ', '' });
+        Assert.areEqual(ALL_KEYS, keysOf(r));
+        Assert.isTrue(r.ignored.isEmpty());
+    }
+
+    @IsTest
+    static void includeFiltersAndSkipsEngagement() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+
+        AccountBrief.Result r = AccountBrief.run(a.Id, null, new Set<String>{ 'Open_Deals', ' deal_history ', 'bogus' });
+
+        Assert.areEqual(new List<String>{ 'open_deals', 'deal_history' }, keysOf(r));
+        Assert.areEqual(new List<String>{ 'bogus' }, r.ignored);
+        Assert.areEqual(0, stub.count('engagement data'), 'no engagement source included');
+        Assert.areEqual(1, stub.count('deal history for one account'));
+
+        String synth = stub.synthesisUser();
+        Assert.isTrue(synth.contains('Profile:\nEMPTY: not requested'));
+        Assert.isTrue(synth.contains('Cases:\nEMPTY: not requested'));
+        Assert.isTrue(synth.contains('Engagement summary:\nEMPTY\n'));
+        Assert.isTrue(synth.contains('Deal history summary:\nDEAL HISTORY SUMMARY'));
+        Assert.isTrue(synth.contains('Question:\n\n'));
+    }
+
+    @IsTest
+    static void emptySourcesSkipPreReduceAndGiveEmpty() {
+        Account a = mkAccount(false);
+        Stub stub = install();
+
+        AccountBrief.Result r = AccountBrief.run(a.Id, 'Anyone engaged?', new Set<String>{ 'contacts' });
+
+        Assert.areEqual(AccountBrief.EMPTY, r.status);
+        Assert.areEqual(AccountBrief.EMPTY_TEXT, r.message);
+        Assert.areEqual(1, stub.systems.size(), 'only synthesis runs');
+        Assert.isTrue(stub.synthesisUser().contains('Engagement summary:\nEMPTY\n'));
+        Assert.areEqual(1, memoryRows());
+    }
+
+    @IsTest
+    static void notFoundMakesNoModelCall() {
+        Account a = mkAccount(false);
+        Id goneId = a.Id;
+        delete a;
+        Stub stub = install();
+
+        for (Id candidate : new List<Id>{ goneId, null, UserInfo.getUserId() }) {
+            AccountBrief.Result r = AccountBrief.run(candidate, 'Hi', null);
+            Assert.areEqual(AccountBrief.NOT_FOUND, r.status);
+            Assert.areEqual('I can\'t see that account. Check the name or your access.', r.message);
+            Assert.areEqual(r.message, r.answer);
+            Assert.isTrue(r.sections.isEmpty());
+        }
+        Assert.areEqual(0, stub.systems.size());
+        Assert.areEqual(0, memoryRows());
+    }
+
+    @IsTest
+    static void modelExceptionGivesErrorAndNoMemory() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+        stub.fail = true;
+
+        AccountBrief.Result r = AccountBrief.run(a.Id, null, null);
+
+        Assert.areEqual(AccountBrief.ERROR, r.status);
+        Assert.areEqual('I couldn\'t finish the brief right now. Try again in a minute.', r.answer);
+        Assert.areEqual(ALL_KEYS, keysOf(r), 'sections still returned');
+        Assert.areEqual(0, memoryRows());
+    }
+
+    @IsTest
+    static void onlyUnknownKeysBuildsNothing() {
+        Account a = mkAccount(false);
+        Stub stub = install();
+
+        AccountBrief.Result r = AccountBrief.run(a.Id, null, new Set<String>{ 'bogus' });
+
+        Assert.areEqual(AccountBrief.EMPTY, r.status);
+        Assert.isTrue(r.answer.startsWith(AccountBrief.NO_SECTIONS_TEXT));
+        Assert.isTrue(r.answer.contains('deal_history'));
+        Assert.areEqual(new List<String>{ 'bogus' }, r.ignored);
+        Assert.isTrue(r.sections.isEmpty());
+        Assert.areEqual(0, stub.systems.size());
+        Assert.areEqual(0, memoryRows());
+    }
+
+    @IsTest
+    static void brokenSourceBecomesErrorSection() {
+        Account a = mkAccount(false);
+        install();
+        AccountBrief.registry.add(new AccountBrief.Source('broken', 'NoSuchBriefSourceZz'));
+
+        AccountBrief.Result r = AccountBrief.run(a.Id, null, new Set<String>{ 'broken' });
+
+        Assert.areEqual(1, r.sections.size());
+        Assert.areEqual('broken', r.sections[0].key);
+        Assert.areEqual(AccountBriefSection.ERROR, r.sections[0].status);
+        Assert.areEqual(AccountBrief.EMPTY, r.status);
+    }
+
+    @IsTest
+    static void invocableParsesInclude() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+
+        Assert.areEqual(new Set<String>{ 'open_deals', 'contacts' }, AccountBriefGetAction.parseInclude(' open_deals, contacts ,, '));
+        Assert.isTrue(AccountBriefGetAction.parseInclude('  ').isEmpty());
+        Assert.isTrue(AccountBriefGetAction.parseInclude(null).isEmpty());
+
+        AccountBriefGetAction.Request ok = new AccountBriefGetAction.Request();
+        ok.accountId = String.valueOf(a.Id);
+        ok.userQuestion = 'Who is engaged?';
+        ok.include = 'open_deals, contacts';
+        AccountBriefGetAction.Request badId = new AccountBriefGetAction.Request();
+        badId.accountId = 'not-an-id';
+
+        List<AccountBriefGetAction.Response> out = AccountBriefGetAction.getBriefs(
+            new List<AccountBriefGetAction.Request>{ ok, badId, null }
+        );
+
+        Assert.areEqual(3, out.size());
+        Assert.areEqual(AccountBrief.OK, out[0].status);
+        Assert.areEqual('Headline finding.\nAccount\nBody.', out[0].answer);
+        Assert.areEqual(1, stub.count('engagement data'), 'contacts included and not empty');
+        Assert.areEqual(0, stub.count('deal history for one account'), 'deal_history not included');
+        Assert.areEqual(AccountBrief.NOT_FOUND, out[1].status);
+        Assert.areEqual(AccountBrief.NOT_FOUND_TEXT, out[1].answer);
+        Assert.areEqual(AccountBrief.NOT_FOUND, out[2].status);
+        Assert.isTrue(AccountBriefGetAction.getBriefs(null).isEmpty());
+    }
+}

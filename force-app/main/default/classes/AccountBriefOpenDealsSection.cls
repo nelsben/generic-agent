@@ -4,7 +4,7 @@
  * Read-only: no DML. Runs with sharing, so a rep sees only the deals their record access permits.
  * Plain text, one fact per line. build() never throws: a failure returns status ERROR.
  */
-public with sharing class AccountBriefOpenDealsSection {
+public with sharing class AccountBriefOpenDealsSection implements AccountBriefSource {
     @TestVisible private static final Integer ROW_CAP = 5;
     @TestVisible private static final Integer CONTACT_CAP = 3;
     @TestVisible private static final Integer BODY_MAX = 1200;
@@ -12,7 +12,15 @@ public with sharing class AccountBriefOpenDealsSection {
     private static final String KEY = 'open_deals';
     private static final String TITLE = 'Open deals';
 
-    public static AccountBriefSection build(Id accountId) {
+    public String key() {
+        return KEY;
+    }
+
+    public String title() {
+        return TITLE;
+    }
+
+    public AccountBriefSection build(Id accountId) {
         try {
             return load(accountId);
         } catch (Exception e) {

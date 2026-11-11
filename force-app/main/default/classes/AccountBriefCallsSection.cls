@@ -9,13 +9,21 @@
  * Read-only: no DML. Runs with sharing, deterministic Apex, no LLM, plain text only.
  * build() never throws: any failure comes back as an ERROR section.
  */
-public with sharing class AccountBriefCallsSection {
+public with sharing class AccountBriefCallsSection implements AccountBriefSource {
     public static final String KEY = 'calls';
     public static final String TITLE = 'Calls & meetings';
     public static final Integer CAP = 5;
     public static final Integer MAX_BODY = 1200;
 
-    public static AccountBriefSection build(Id accountId) {
+    public String key() {
+        return KEY;
+    }
+
+    public String title() {
+        return TITLE;
+    }
+
+    public AccountBriefSection build(Id accountId) {
         try {
             return buildInternal(accountId);
         } catch (Exception e) {
