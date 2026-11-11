@@ -38,6 +38,30 @@ class TestAccountBriefBundle(unittest.TestCase):
         self.assertIn("subjectType: AGENT", text)
         self.assertIn("subjectName: Account_Brief", text)
 
+    def test_spec_uses_no_missing_account(self):
+        text = SPEC.read_text(encoding="utf-8")
+        self.assertNotIn("Acme Corp", text)
+        self.assertIn("Zzqxv Nonexistent Holdings", text)
+        self.assertIn("001000000000000AAA", text)
+        # A comment at the top of the spec says the account name must exist in the target org.
+        head = text.split("name:", 1)[0]
+        self.assertRegex(head, r"(?m)^#.*must exist in the target org")
+
+    def test_off_topic_case_names_an_expected_topic(self):
+        text = SPEC.read_text(encoding="utf-8")
+        case = text.split("What is the weather in Paris today?", 1)[1]
+        self.assertRegex(case, r"expectedTopic:\s*\S+")
+
+    def test_agent_routes_by_named_account_and_relays_verbatim(self):
+        text = (BUNDLE / "Account_Brief.agent").read_text(encoding="utf-8")
+        router = text.split("subagent account_brief:", 1)[0]
+        self.assertIn("names one specific account", router)
+        self.assertIn("do not name one account", router)
+        for sub in text.split("subagent ")[1:]:
+            self.assertIn("nothing else", sub)
+            self.assertIn("closing question", sub)
+        self.assertIn("userQuestion", text.split("subagent explore:", 1)[0])
+
 
 if __name__ == "__main__":
     unittest.main()
