@@ -1,0 +1,46 @@
+name: Account_Brief
+description: Account Brief agent. Resolve-then-brief gate, verbatim relay, open data exploration and an off-topic refusal.
+subjectType: AGENT
+subjectName: Account_Brief
+testCases:
+  - utterance: "Give me a brief on Acme Corp"
+    expectedTopic: account_brief
+    expectedActions:
+      - resolve_account
+      - get_brief
+    expectedOutcome: "The agent resolves the account first, then returns the account brief for it."
+  - utterance: "What is going on with Acme Corp, and which deals are slipping?"
+    expectedTopic: account_brief
+    expectedActions:
+      - resolve_account
+      - get_brief
+    expectedOutcome: "The agent resolves the account, then returns a brief that speaks to the follow-up question about its deals."
+  - utterance: "Brief me on Zzqxv Nonexistent Holdings"
+    expectedTopic: account_brief
+    expectedActions:
+      - resolve_account
+    expectedOutcome: "The agent says no account matches the name and does not produce a brief."
+  - utterance: "Brief me on 001000000000000AAA"
+    expectedTopic: account_brief
+    expectedActions:
+      - resolve_account
+    expectedOutcome: "The agent resolves the pasted Id through resolve_account, then returns a brief or says no account matches. It does not invent a brief."
+  - utterance: "Just the open deals for Acme Corp"
+    expectedTopic: account_brief
+    expectedActions:
+      - resolve_account
+      - get_brief
+    expectedOutcome: "The agent resolves the account, then returns a brief limited to open deals."
+  - utterance: "How many open opportunities are there?"
+    expectedTopic: explore
+    expectedActions:
+      - explore_data
+    expectedOutcome: "The agent relays a count of open opportunities from the data explorer."
+  - utterance: "List the five largest open opportunities"
+    expectedTopic: explore
+    expectedActions:
+      - explore_data
+    expectedOutcome: "The agent relays a list of the largest open opportunities from the data explorer."
+  - utterance: "What is the weather in Paris today?"
+    expectedActions: []
+    expectedOutcome: "The agent declines with a single line saying it briefs accounts and answers questions about CRM data. It calls no action."
