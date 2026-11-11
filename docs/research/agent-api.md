@@ -1,7 +1,8 @@
 # Calling Account_Brief programmatically (OPS-5)
 
-Researched 2026-11-11. Status words: documented (official page says it), verified (seen in
-the `experimental` org), unverified (community source, search-result summary or inference).
+Researched 2026-11-11; live probe run 2026-11-11 (OPS-6). Status words: documented (official
+page says it), verified (seen in the `experimental` org), unverified (community source,
+search-result summary or inference).
 
 ## Plain answer
 
@@ -13,16 +14,16 @@ the `experimental` org), unverified (community source, search-result summary or 
   and `bypassUser=true`, which runs as the agent's assigned user. An Employee agent runs as the
   logged-in user and has no assigned user, so that exact recipe likely does not fit it
   (inference). A user-bound token with `bypassUser=false` is the probable route (unverified).
-- Inside the same org (Apex or LWC): the documented route is the custom agent invocable action
-  `generateAiAgentResponse`, called from Apex. It takes a user message and an optional session
-  Id and returns the agent's reply and a session Id. A Salesforce blog says it works for any
-  active agent, employee-facing included. The experimental org already exposes it for
-  Account_Brief (verified listing). Whether a call actually returns a reply was not run.
+- Inside the same org (Apex or LWC): the custom agent invocable action
+  `generateAiAgentResponse` works for Account_Brief. Verified live: two Apex calls returned
+  replies about the right account, the second without naming it, in the same session. Inputs
+  are `userMessage` and `sessionId`; outputs are `agentResponse` and `sessionId`. The reply
+  string is a JSON envelope, `{"type":"Text","value":"..."}`, not bare text. It took 14 to 18
+  seconds per turn. See "Live probe".
 - Apex calling the Agent API through a Named Credential is possible in principle but needs an
   External Client App and a user-context token. It is the heavier path.
-- Smallest first step: one throwaway Apex call of `generateAiAgentResponse` for Account_Brief
-  run as the Ben user, with no Agent API, ECA or Named Credential. If it returns a reply,
-  wrap it in an `@AuraEnabled` method for the panel.
+- Next step: wrap the action in an `@AuraEnabled` method for the panel (message, sessionId in;
+  reply, sessionId out). Still unverified: a non-admin user, an Apex test, session lifetime.
 
 ## Facts
 
@@ -77,7 +78,7 @@ Route A, in-org Apex and LWC (recommended first):
 1. Confirm the running user has Agentforce and Manage AI Agents (unverified, see table).
 2. Apex: `Invocable.Action.createCustomAction('generateAiAgentResponse', 'Account_Brief')`,
    set `userMessage` and, for turn 2 and later, `sessionId`; invoke; read the reply and the
-   returned session Id. Exact parameter names: unverified, check the example-class page.
+   returned session Id. Parameter names `userMessage`, `sessionId`: verified (describe).
 3. Wrap in an `@AuraEnabled` method; the LWC holds the session Id between turns.
 4. Pass the open record by writing it into the message text, for example
    "Brief account 001...". The route-gather-reduce agent already accepts an Id.
@@ -97,8 +98,8 @@ list), but none for the Agent API.
 
 | Type | In org | Deploys with sf |
 |---|---|---|
-| ExternalClientApplication, ExtlClntAppOauthSettings | verified: 2 apps, `Plesio_CI_Staging` and `Plesio_Claude`; retrieved fine | yes (retrieve worked; ECA policy and secrets need care) |
-| NamedCredential, ExternalCredential | verified: Tavily_API, Plesio_Anthropic, Plesio_Einstein, Plesio_Anthropic_User, Brave_API | yes |
+| ExternalClientApplication, ExtlClntAppOauthSettings | verified: two existing External Client Apps; retrieved fine | yes (retrieve worked; ECA policy and secrets need care) |
+| NamedCredential, ExternalCredential | verified: five Named Credentials for other services | yes |
 | AiAuthoringBundle (agent), GenAiPlannerBundle | verified: Account_Brief bundle and `Account_Brief_v1` planner | yes |
 | ConversationVariable, ConversationContextVariable | documented as the variable metadata | yes (Metadata API) |
 | Agent-specific invocable action | no metadata; it is generated per active agent (verified) | n/a |
@@ -106,14 +107,14 @@ list), but none for the Agent API.
 ## Org probes (read-only, org `experimental`)
 
 - `SELECT ... FROM BotDefinition`: Account_Brief `0XxgK000002WVtxSAG`, Type `InternalCopilot`,
-  AgentType `AgentforceEmployeeAgent`. Also Plesio_for_Slack `0XxgK0000023fblSAA`, same types.
-- `BotVersion`: Account_Brief v1 `0X9gK0000048xtRSAQ` is Active. Plesio_for_Slack v1 is Inactive.
-- `ExternalClientApplication`: Plesio_CI_Staging and Plesio_Claude. Their OAuth scopes are
-  Api, Web, RefreshToken and RefreshToken, MCP. Neither has `chatbot_api` or `sfap_api`, so
+  AgentType `AgentforceEmployeeAgent`. Also a second agent, same types.
+- `BotVersion`: Account_Brief v1 `0X9gK0000048xtRSAQ` is Active. The second agent's v1 is Inactive.
+- `ExternalClientApplication`: two existing apps. Their OAuth scopes are Api, Web,
+  RefreshToken and RefreshToken, MCP. Neither has `chatbot_api` or `sfap_api`, so
   neither is an Agent API app. No ConnectedApplication query was usable (field names rejected).
 - `GET /services/data/v68.0/actions/custom`, then `/generateAiAgentResponse`: lists one action,
-  `Account_Brief`, type `GENERATE_AI_AGENT_RESPONSE`. Plesio_for_Slack is absent (inactive).
-  This shows the action exists. It was not invoked (a call opens a billable session).
+  `Account_Brief`, type `GENERATE_AI_AGENT_RESPONSE`. The second, inactive agent is absent.
+  This showed the action exists; the probe below then invoked it.
 - `sf org list metadata` for NamedCredential and GenAiPlannerBundle matched the table above.
 
 ## Limits and cost
@@ -136,38 +137,106 @@ list), but none for the Agent API.
 | ConnectApi classes for agents | not found: nothing read or surfaced in searches | not found |
 | LWC calling `api.salesforce.com` directly | not recommended: needs a token in the browser and a CSP/CORS allowance | unverified inference |
 
+## Live probe (generateAiAgentResponse)
+
+Run 2026-11-11 in `experimental` as the org's admin user, `sf apex run`, 2 invocations.
+
+Describe, `GET /services/data/v68.0/actions/custom/generateAiAgentResponse/Account_Brief`
+(verified): type `GENERATE_AI_AGENT_RESPONSE`, `hasCallout` true.
+
+| Direction | Name | Type | Required |
+|---|---|---|---|
+| input | `userMessage` | STRING | yes |
+| input | `sessionId` | STRING | no |
+| output | `agentResponse` | STRING | n/a |
+| output | `sessionId` | STRING | n/a |
+
+Account picked at run time: the most recently modified Account with an Opportunity (name
+shown below as `<account>`). Turn 1 Apex (verified, ran as written):
+
+```apex
+Invocable.Action a = Invocable.Action.createCustomAction('generateAiAgentResponse', 'Account_Brief');
+a.setInvocationParameter('userMessage', 'Give me a brief on <account>');
+List<Invocable.Action.Result> rs = a.invoke();   // turn 2 also sets 'sessionId'
+Map<String,Object> o = rs[0].getOutputParameters(); // keys agentResponse, sessionId
+```
+
+Results (each verified):
+
+- Pass: turn 1 returned a non-empty reply about the picked account (1271 chars).
+- Pass: a session Id came back (a UUID, for example `01a1cb57-...`). Turn 2 returned the
+  same Id.
+- Pass: turn 2, in a separate execution with the Id as a literal and the message `What about
+  its open cases?`, answered about the same account without it being named (136 chars).
+- `isSuccess` true and `getErrors()` empty on both turns. Nothing failed.
+- Timing: turn 1 18.1 s, turn 2 13.8 s (wall clock around `invoke()`).
+- Caller transaction counts: callouts 0 and DML 0 on both turns, although the describe says
+  `hasCallout` true. The agent's own work does not show in the caller's limits.
+
+Reply, first 300 characters, turn 1 (verified):
+`{"type":"Text","value":"<account> Insurance faces an overdue new business opportunity with
+zero pipeline value and silent engagement from the sole contact.\n\nAccount <account> is an
+insurance company that became an account on August 5, 2026. The account is owned by <owner>.
+No parent organizatio`
+
+Reply, turn 2, whole text (verified):
+`{"type":"Text","value":"<account> has no open cases. All cases associated with this account
+are either closed or there are no cases at all."}`
+
+Reply is not the action's text verbatim (verified). The brief text saved on the session row
+(`Last_Brief__c`, 1156 chars) differs from turn 1's reply in three ways: the section label and
+its body were joined on one line ("Open deals One open deal..."), the "- " bullets under
+Watch next became plain lines, and the agent added a closing question ("Would you like more
+details on <account>'s contacts, activity, or another area?"). The prompt asks for none of
+that. So the agent rewrites lightly despite "reply verbatim". The panel should render the
+`value` field and expect small format changes.
+
+Turn 2 did not call the brief action (verified): the session row's `Turns_JSON__c` has no
+entry for it and the row's LastModifiedDate did not move. The agent answered the case
+question itself. Its "no open cases" matches turn 1's "No cases are open or on record".
+It did not run a fresh case query (inference from the missing entry; not tested).
+
+User context, partial check (verified): `Account_Brief_Session__c` is one row per user and
+account, updated in place. The row for this account was created earlier by the same user
+(`CreatedById` equals the running user from `sf org display user`) and turn 1 updated it
+(`LastModifiedById` equals the running user too; no new row was created, Brief_Count 2). The
+probe ran as the admin user, so this does not show a non-admin user is handled correctly.
+
 ## Open questions
 
-1. Does Agent API start-session accept an `AgentforceEmployeeAgent`? Needs a live test or
-   Salesforce confirmation. This is the deciding question for Route B.
-2. Does `generateAiAgentResponse` run Account_Brief as the calling user, with the same record
-   access as the chat panel? Employee agents are documented as running in the user's context.
-3. Reply shape in 1.1.0 "structured output": can it carry anything beyond text?
-4. Session lifetime and a rate limit number.
-5. Pages not read: the Help articles (bodies would not render in the browser tools); their
-   claims above come from a search summary and are marked unverified. Agent API schema
-   pages (InformMessage, CitedReference) did not render.
-6. Pages read: agent-api, -get-started, -lifecycle, -examples, -considerations,
-   -troubleshooting, -variables, the reference (summary, startSession, sendMessage, with
-   the other operations on the same page), ascript-blocks, and the two developer blogs above.
+1. Does the Agent API start-session accept an `AgentforceEmployeeAgent`? Not tested; this
+   probe did not use the Agent API. Only matters for callers outside Salesforce.
+2. Does the action run Account_Brief with the calling user's record access? The session row
+   is written as the calling user, which fits. Record visibility for a non-admin user was not
+   tested.
+3. Does the action work for a non-admin user? It needs Manage AI Agents (unverified, from a
+   search summary). Not tested.
+4. Can the action run inside an Apex test? The summary says Apex tests are not supported
+   (unverified). Not tested; the panel's Apex wrapper would need a stub seam.
+5. Session lifetime and a rate limit number: not found, not tested. Turn 2 reused a session
+   created about 30 seconds earlier.
+6. Is the 1.1.0 structured output richer than `{"type":"Text","value":...}`? Only text was
+   seen. Which version the org runs was not read.
+7. Help article bodies and Agent API schema pages did not render; claims from them are
+   marked unverified above. Pages read: agent-api, -get-started, -lifecycle, -examples,
+   -considerations, -troubleshooting, -variables, the reference, ascript-blocks, two blogs.
 
 ## Recommendation
 
-For a custom LWC panel holding a conversation with Account_Brief: use Route A. The agent
-type is a likely fit, the in-org action is listed for this agent, no ECA, token or Named
-Credential is needed, and it runs as the signed-in user, which is what an Employee agent
-expects. It is not streaming, so show a progress state for tens of seconds.
+For a custom LWC panel holding a conversation with Account_Brief: use Route A. The door
+exists and works for an Employee agent: two live turns, reply, same session Id, same account
+without naming it. No ECA, token or Named Credential is needed.
 
-Smallest first step, in this order:
-1. Anonymous Apex in `experimental`: call `generateAiAgentResponse` for Account_Brief with
-   "Brief Acme" and print the reply and session Id; call again with the session Id and a
-   follow-up. Confirms reply, multi-turn and user context in one go (costs a few credits).
-2. If it works, add one `@AuraEnabled` method (message, sessionId) returning (reply,
-   sessionId), and point the panel at it as an alternative to the existing Apex and Named
-   Credential bypass path.
-3. Only for callers outside Salesforce, test Route B start-session once with a user token. If
-   it rejects Employee agents, the fallback is an Apex `@RestResource` that wraps Route A,
-   or a Service-type agent sharing the same three actions.
+Next steps, in this order:
+1. Add one `@AuraEnabled` method (message, sessionId) that calls the action, parses the
+   `agentResponse` JSON envelope, and returns (text, sessionId). Fall back to the raw string if
+   it does not parse. The panel keeps the session Id between turns.
+2. Before shipping, test as a non-admin user with Manage AI Agents and with a user lacking
+   it, and record the error text for the second case.
+3. Plan the Apex test seam: the action may not run in a test, so wrap it in a small class
+   with a stub, as `AgentLlm.stub` does.
+4. Show a progress state: 14 to 18 s per turn, no streaming.
+5. Only for callers outside Salesforce, test Route B start-session once with a user token.
 
 If Employee agents are rejected by the Agent API, a Service agent (`AgentforceServiceAgent`,
 requires `default_agent_user`, fits `bypassUser=true`) would be needed. It runs as a fixed
