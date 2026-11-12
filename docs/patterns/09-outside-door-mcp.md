@@ -16,9 +16,10 @@ text. This pattern is designed and partly probed. It is not yet proven.
 As of 2026-11-12, agent-probe has an active custom server `AccountBriefMcp` with three tools:
 `resolve_account`, `get_account_brief` and `ask_account_brief` (the agent). Each tool has its own
 client-facing description, so the agent-facing "Relay it verbatim" wording is not the tool text.
-There is also a dedicated External Client App, `AccountBriefMcpClient`, with the `mcp_api` and
-`refresh_token` scopes, PKCE, and access limited to holders of `Account_Brief_Data_Access`. A call
-without a token gets HTTP 401. The first real tool call waits on Ben's OAuth sign-in. The
+There is also a dedicated External Client App, `AccountBriefMcpClient`, with PKCE and access
+limited to holders of `Account_Brief_Data_Access`. Its metadata names its scopes `MCP` and
+`RefreshToken`. These are taken to be the documented `mcp_api` and `refresh_token` scopes, but
+that mapping is not yet proven. A call without a token gets HTTP 401. The first real tool call waits on Ben's OAuth sign-in. The
 [runbook](../research/mcp-door-runbook.md) lists each step, what it changed, and what is proven.
 
 ## The problem it removes
@@ -110,6 +111,9 @@ and the API steps that build the server where that deploy is not enough.
 - Hosted MCP is documented for Enterprise Edition and above, and for customers with Flex Credits.
   Calls may be billed.
 - Whether a called action also needs class access through a permission set is not confirmed.
+- The client app's metadata accepts the scope name `MCP`, not `mcp_api`. That `MCP` is the
+  documented `mcp_api` scope is inferred from the name and not yet proven. The app's description
+  text uses the documented names.
 - The server's metadata is in `mcp-door/`. Whether deploying it creates the server in a fresh
   org is not yet tested, and activation is not in source.
 - Org-wide questions through `ExploreAction` are not a tool. The agent tool, `ask_account_brief`,
