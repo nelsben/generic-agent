@@ -2,11 +2,14 @@
   "name": "generic-agent",
   "private": true,
   "version": "1.0.0",
-  "description": "Account Brief agent and panel: Jest unit tests for the LWC",
+  "description": "Account Brief agent and panel: Jest unit tests and Playwright end-to-end tests for the LWC",
   "scripts": {
-    "test:unit": "sfdx-lwc-jest"
+    "test:unit": "sfdx-lwc-jest",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
+    "@playwright/test": "1.64.1",
     "@sa11y/jest": "^7.0.0",
     "@salesforce/sfdx-lwc-jest": "^7.0.0"
   }
