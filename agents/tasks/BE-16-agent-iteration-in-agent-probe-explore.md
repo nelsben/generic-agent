@@ -4,8 +4,7 @@ title: Agent iteration in agent-probe: explore follow-ups keep the previous ques
 domain: backend
 tier: frontier
 tier_reason: Apex plus agent script change shipped through publish, activate, test and rollback in a live org
-status: blocked
-blocked_by: [FE-8]
+status: queued
 fixes: []
 scope: [force-app/main/default/classes/ExploreAction.cls, force-app/main/default/classes/ExploreActionTest.cls, force-app/main/default/classes/AccountBriefResolver.cls, force-app/main/default/classes/AccountBriefResolverTest.cls, force-app/main/default/aiAuthoringBundles/Account_Brief/**, tests/test_agent_bundle.py, tests/agent/Account_Brief-testSpec.yaml, docs/research/agent-iteration-1.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/permissionsets/**, force-app/main/default/classes/DataExplorer.cls, e2e/**, scripts/**, README.md, docs/patterns/**, docs/plans/**, docs/reviews/**, agents/**, .chassis-delegation.json, reference/**, .sf/**]

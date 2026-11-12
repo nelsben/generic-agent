@@ -4,8 +4,7 @@ title: Access in one step: a permission set group grants the agent and the panel
 domain: ops
 tier: standard
 tier_reason: one metadata file, one test and two doc paragraphs, plus a small deploy
-status: blocked
-blocked_by: [FE-8]
+status: queued
 fixes: []
 scope: [force-app/main/default/permissionsetgroups/**, tests/test_access_group.py, README.md, docs/patterns/07-trust-access-and-failure.md]
 forbid: [force-app/main/default/permissionsets/**, force-app/main/default/classes/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, e2e/**, scripts/**, docs/plans/**, docs/reviews/**, docs/research/**, agents/**, .chassis-delegation.json, reference/**, .sf/**]
