@@ -69,10 +69,11 @@ signed in to it, and at least one Account with some contacts, deals and cases.
    sf org assign permset -o <org-alias> -n Account_Brief_Data_Access
    ```
 
-   The panel works from here (step 5). If the CLI classifies your org as production, a plain
-   deploy is refused: run the same `--source-dir` list with `sf project deploy validate
-   --test-level RunLocalTests --wait 30`, then `sf project deploy quick --job-id <id> --wait 30`.
-   Do the same for step 4. The recorded run did this ([org-migration.md](docs/research/org-migration.md)).
+   The panel works from here (step 5). On an org the CLI classifies as production (a Developer
+   Edition org can be), deploy in two steps instead, as the recorded run did: the same
+   `--source-dir` list with `sf project deploy validate --test-level RunLocalTests --wait 30`,
+   then `sf project deploy quick --job-id <id> --wait 30`. Do the same for step 4
+   ([org-migration.md](docs/research/org-migration.md)).
 
 2. **Load the sample data** (optional, for an org with no accounts). The plan is
    `data/sample/sample-data-plan.json`; the script reads it and imports 107 records:
