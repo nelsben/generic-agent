@@ -35,13 +35,13 @@ sequenceDiagram
     participant GA as AccountBriefGetAction
     participant EX as subagent explore
     participant EA as ExploreAction
-    Note over U,R: From the built-in Agentforce panel, a message goes straight to the router.
     U->>P: What are the open deals at this account? then Ask the agent
     P->>AC: askAgent: message, open record, no session yet
     AC->>R: generateAiAgentResponse(Account_Brief)
     R-->>AC: reply envelope and sessionId
     AC-->>P: reply text and sessionId
     P-->>U: the reply in the custom panel
+    Note over U,R: From the built-in Agentforce panel, a message goes straight to the router.
     U->>R: Brief me on Edge Communications
     R->>AB: go_to_account_brief
     AB->>RA: resolve_account(accountName)
