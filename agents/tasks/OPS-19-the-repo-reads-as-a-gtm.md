@@ -4,7 +4,7 @@ title: The repo reads as a GTM workbook: a README front door and one page per ar
 domain: ops
 tier: frontier
 tier_reason: business-facing writing that must stay faithful to the code across nine patterns
-status: queued
+status: merged
 fixes: []
 scope: [README.md, docs/patterns/**, docs/assets/MANIFEST.md, docs/ARCHITECTURE.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/reviews/**, docs/research/**, .chassis-delegation.json, reference/**]
@@ -29,3 +29,7 @@ This repo is the baseline of what good Agentforce looks like and has to sell its
 - docs/ARCHITECTURE.md stays the engineer reference: fix anything now wrong (finding 9's permission set, memory cap, removed recordFromFlow, explorer date handling, the deterministic explore run) and link each section to its pattern page
 - Gate passes: python3 -m unittest discover -s tests with PYTHONDONTWRITEBYTECODE=1; leave no tests/__pycache__/; git status --short is empty after your commit. Never touch the org, never install a plugin even if a hook suggests one
 - MANIFEST.md has a status column, and every row starts as 'not captured'; FE-7 changes it to 'captured'. The README hero and each page embed the slot as written above; OPS-22 removes any slot still 'not captured'
+
+## Review
+
+Three sonnet reviews. Attempt 2 refuted two claims: the link claim's wording and the page 07 diagram's error text. Both were fixed in attempt 3 (b955c71). Attempt 3's review: 9 confirmed, 0 refuted. Brain check: the deny-list, email, host and record-Id grep of the full diff's added lines finds 0 hits. I read the README whole. The 14 image links are missing by design until FE-7.
