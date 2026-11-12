@@ -4,8 +4,7 @@ title: Stretch: the panel can ask the registered Account_Brief agent, through an
 domain: backend
 tier: frontier
 tier_reason: new Apex to agent integration with a seam, plus panel state changes
-status: blocked
-blocked_by: [FE-10]
+status: queued
 fixes: []
 scope: [force-app/main/default/classes/AccountBriefPanelController.cls, force-app/main/default/classes/AccountBriefPanelControllerTest.cls, force-app/main/default/classes/AccountBriefAgentClient*.cls, force-app/main/default/classes/AccountBriefAgentClient*.cls-meta.xml, force-app/main/default/lwc/accountBriefPanel/**, e2e/panel.spec.js, e2e/support/panel.js]
 forbid: [force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, tests/**, scripts/**, docs/**, agents/**, .chassis-delegation.json, reference/**]
@@ -14,6 +13,10 @@ gate: test, jest, org
 budget: 2-attempts
 spend: 25
 ---
+## Parked (2026-11-12)
+
+Not dispatched after FE-10 released it. As written it builds without deploying and forbids docs/**, so main would change what "Ask the agent" does while the org, the README, page 03 and the agent-slot captions still show the hand-off to the built-in panel. Its stop line also points at agent-publish-spike.md, which records the first org. `generateAiAgentResponse` and the permission it needs were probed only in the first org. Re-cut as one org-live card in agent-probe: deploy, run the agent round-trip spec, update the docs and recapture the affected assets together.
+
 ## Why
 
 Corrective plan step 5. Today the panel hands 'Ask the agent' off to the built-in panel. Calling the registered agent from the custom panel proves the panel and the agent are one product, and it is only possible once a version with the BE-11 script is active.
