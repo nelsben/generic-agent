@@ -13,7 +13,7 @@ spend: 10
 ---
 ## Why
 
-In the reduce step, prompt templates write all the prose the user reads and never query data; every fact they state arrives as an input produced deterministically upstream. Engagement and deal history are the heavy sections, so each gets a pre-reduce template, and one final template combines everything into the brief. The architecture reference is local and confidential; restate its patterns and never copy its client names: /Users/bennelsen/Documents/generic-agent/reference/agent-landscape-guide/guide.md. Read sections 2.5, 6.3, 8.1 and 8.3. For the exact XML shape, see the retrieved example /Users/bennelsen/Documents/generic-agent/reference/examples/letsgtm/genAiPromptTemplates/Extract_Issue_Resolution_and_Summary.genAiPromptTemplate-meta.xml.
+In the reduce step, prompt templates write all the prose the user reads and never query data; every fact they state arrives as an input produced deterministically upstream. Engagement and deal history are the heavy sections, so each gets a pre-reduce template, and one final template combines everything into the brief. The architecture reference is local and confidential; restate its patterns and never copy its client names: <repo>/reference/agent-landscape-guide/guide.md. Read sections 2.5, 6.3, 8.1 and 8.3. For the exact XML shape, see the retrieved example <repo>/reference/examples/<another org>/genAiPromptTemplates/Extract_Issue_Resolution_and_Summary.genAiPromptTemplate-meta.xml.
 
 ## Done when
 

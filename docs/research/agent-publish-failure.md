@@ -79,7 +79,7 @@ comparison is not possible (verified absence).
 | Probe | Result |
 |---|---|
 | `sf data query` BotDefinition `DeveloperName='Account_Brief'` | One row <agent id>, Type InternalCopilot, AgentType AgentforceEmployeeAgent, BotUserId null, BotSource None, last modified 2026-11-11 04:34:35Z (unchanged since creation). verified |
-| `sf data query` BotVersion for it | One row 0X9gK0000048xtRSAQ, v1, VersionNumber 1, Active, BillingMode ActionBased, language en_US. No draft or second version row. verified |
+| `sf data query` BotVersion for it | One row 0X9000000000000AAA, v1, VersionNumber 1, Active, BillingMode ActionBased, language en_US. No draft or second version row. verified |
 | `sf org list metadata -m AiAuthoringBundle` | `Account_Brief_1` and `Account_Brief_2`, both 04:34:47Z. There is no bundle named plain `Account_Brief` in the org. verified |
 | Retrieve both into a scratch project | `_1` has `<target>Account_Brief.v1</target>` (locked to v1). `_2` has no target (the editable draft). Both `.agent` files are byte-identical to the repo's `Account_Brief.agent`. verified |
 | `sf org list metadata` GenAiPlannerBundle, AiAgentDefinition(+Version), Bot | Account_Brief_v1 planner, Account_Brief definition and Account_Brief#1 version. Nothing in progress. verified |

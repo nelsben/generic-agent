@@ -34,7 +34,7 @@ search-result summary or inference).
 | No official page found that lists Employee agents as supported or excluded. Searched: Agent API guide (get-started, lifecycle, examples, considerations, troubleshooting, variables), reference, Agent Script blocks, two web searches | not found | pages above |
 | Agent Script `agent_type` values: `AgentforceServiceAgent` (default) or `AgentforceEmployeeAgent` | documented | https://developer.salesforce.com/docs/ai/agentforce/guide/ascript-blocks.html |
 | Start: `POST https://api.salesforce.com/einstein/ai-agent/v1/agents/{AGENT_ID}/sessions` | documented | https://developer.salesforce.com/docs/ai/agentforce/guide/agent-api-considerations.html (path shown for Gov Cloud host; same path otherwise) |
-| Start body: `externalSessionKey` (UUID) and `instanceConfig.endpoint` (My Domain URL) required; `tz`, `variables`, `featureSupport` (Sync or Streaming), `streamingCapabilities`, `bypassUser` optional | documented | https://developer.salesforce.com/docs/ai/agentforce/references/agent-api?meta=startSession |
+| Start body: `externalSessionKey` (UUID) and `instanceConfig.endpoint` (My Domain URL) required; `tz`, `variables`, `featureSupport` (Sync or Streaming), `streamingCapabilities`, `bypassUser` optional | documented | https://developer.salesforce.com/docs/ai/agentforce/references/agent-api (startSession) |
 | Send sync: `POST /sessions/{id}/messages`, body `message {type:"Text", sequenceId, text}`; sequenceId rises each message | documented | same reference; https://developer.salesforce.com/docs/ai/agentforce/guide/agent-api-examples.html |
 | Send streaming: `POST /sessions/{id}/messages/stream`, header `Accept: text/event-stream`, SSE | documented | same reference |
 | End: `DELETE /sessions/{id}` with header `x-session-end-reason` (UserRequest, Transfer, Expiration, Error, Other) | documented | same reference |
@@ -60,10 +60,10 @@ search-result summary or inference).
 | Flow: AI Agent action per active agent; inputs user message and optional session Id; outputs response and session Id | documented | https://developer.salesforce.com/blogs/2025/04/invoke-agentforce-agents-with-apex-and-flow (blog, official) |
 | Apex: build a custom agent invocable action with the agent API name, pass user message and optional session Id, invoke via the Invocable Action API | documented | same blog |
 | Same blog: "trigger any active Agentforce agent"; it describes employee-facing agents as using the user's permissions | documented (blog, not reference) | same blog |
-| `generateAiAgentResponse` version 1.0.0 returns text, 1.1.0 structured output; Apex tests not supported for it; Flow use only in asynchronous paths; not for Experience Cloud site users; needs Manage AI Agents permission; Flow element moved to Run Agent in API 67.0 | unverified: from a web-search summary of help.salesforce.com pages whose bodies would not render in the browser | https://help.salesforce.com/s/articleView?id=ai.agent_custom_invocable_action_apex_example.htm , https://help.salesforce.com/s/articleView?id=ai.agent_custom_invocable_action_flow_apex.htm |
+| `generateAiAgentResponse` version 1.0.0 returns text, 1.1.0 structured output; Apex tests not supported for it; Flow use only in asynchronous paths; not for Experience Cloud site users; needs Manage AI Agents permission; Flow element moved to Run Agent in API 67.0 | unverified: from a web-search summary of help.salesforce.com pages whose bodies would not render in the browser | Salesforce Help article `ai.agent_custom_invocable_action_apex_example.htm` , Salesforce Help article `ai.agent_custom_invocable_action_flow_apex.htm` |
 | LWC calls the agent through an Apex method that runs the invocable action | documented | invoke-agentforce-agents blog above |
 | Headless sync prompt "lasts tens of seconds"; SSE recommended for UI | documented | https://developer.salesforce.com/blogs/2025/04/build-headless-agents-with-the-agent-api |
-| A community answer says Employee agent sessions work via the Agent REST API from Apex or LWC | unverified (community, shorter path than official) | https://trailhead.salesforce.com/trailblazer-community/feed/0D5KX00000pOkO00AK |
+| A community answer says Employee agent sessions work via the Agent REST API from Apex or LWC | unverified (community, shorter path than official) | a Trailblazer Community feed post (link removed in the privacy pass) |
 
 ## Availability
 
@@ -108,7 +108,7 @@ list), but none for the Agent API.
 
 - `SELECT ... FROM BotDefinition`: Account_Brief `<agent id>`, Type `InternalCopilot`,
   AgentType `AgentforceEmployeeAgent`. Also a second agent, same types.
-- `BotVersion`: Account_Brief v1 `0X9gK0000048xtRSAQ` is Active. The second agent's v1 is Inactive.
+- `BotVersion`: Account_Brief v1 `0X9000000000000AAA` is Active. The second agent's v1 is Inactive.
 - `ExternalClientApplication`: two existing apps. Their OAuth scopes are Api, Web,
   RefreshToken and RefreshToken, MCP. Neither has `chatbot_api` or `sfap_api`, so
   neither is an Agent API app. No ConnectedApplication query was usable (field names rejected).

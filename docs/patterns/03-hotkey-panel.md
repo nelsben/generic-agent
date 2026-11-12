@@ -73,11 +73,15 @@ sequenceDiagram
   found an inert hotkey until first open (finding 1), a bypassed one-request guard (2), no screen
   reader output (4), lost focus (5), a Tab trap (6), a composer that scrolled away at 340 by 480
   (8) and a hotkey that matched too broadly (11). Each is fixed and covered by the Jest tests
-  above. The re-review is pending.
-- **It runs in a real org.** The Playwright suite ([e2e/README.md](../../e2e/README.md)) has
-  8 specs. Six passed on the live org, including the hotkey before first open, the pinned
-  composer, latest wins, Enter to send, and axe ([FE-4 card](../../agents/tasks/FE-4-playwright-end-to-end-suite-for.md),
-  [gtm-burn-plan.md](../../docs/plans/gtm-burn-plan.md)).
+  above. The re-review ([lwc-review-2.md](../reviews/lwc-review-2.md)) confirms 1, 2, 4, 8 and 11
+  fixed, 5 fixed for the one starting point tested, and 6 changed: the trap is gone. It rates the
+  panel "Ready with fixes" with no blockers, and its own Jest run passed 36 of 36 with 89.5% line
+  coverage of the panel's JavaScript.
+- **It runs in a real org.** The Playwright suite ([e2e/README.md](../../e2e/README.md)) passed
+  8 of 8 on the first run against a real org, as an admin user: the hotkey before first open, Esc
+  returning focus, the live region, the pinned composer, latest wins, Enter to send, a drill and
+  back, and axe ([deploy-verify.md](../research/deploy-verify.md),
+  [e2e report](../assets/e2e-report.png)).
 
 ## Adopt it
 
@@ -92,12 +96,17 @@ sequenceDiagram
 
 ## Limits and open items
 
-- Live, the platform's minimize moved focus after the panel had restored it, so spec 2 of the
-  Playwright suite failed. Jest passes because it cannot see the platform's own focus move. The
-  fix is queued.
+- Should-fix from the panel re-review ([lwc-review-2.md](../reviews/lwc-review-2.md)):
+  - N4: Esc returning focus is proven from one starting point only, the global search button.
+    From a field inside another component, focus can land on the page body.
+  - N5: stacked drill-line buttons are about 18 px tall with no gap, which may miss the WCAG 2.2
+    target size.
+- Still open from the first review: every result row is a separate Tab stop (row 6), and the app
+  has no brand block (14f). Esc during IME composition also minimizes the panel (note N9).
 - The hotkey works only inside an app whose utility bar holds the panel.
 - The panel needs a desktop browser. It is not built for the Salesforce mobile app.
 
 > [!WARNING]
-> **Not yet proven:** all 8 Playwright specs passing on the live org. The last live run was 6 of 8,
-> before the Esc focus and brief-line drill fixes.
+> **Not yet proven:** a run as a non-admin user, the second hotkey branch (one run exercises only
+> Cmd-K or only Ctrl-K), the dark theme and its contrast, and real screen-reader output. The live
+> region has been checked in the page markup only.

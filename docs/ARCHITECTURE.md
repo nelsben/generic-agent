@@ -160,7 +160,8 @@ action (`ExploreAction`).
   English. `ExploreQuery` resolves again and builds SOQL only from catalog paths, fixed tokens
   and its own aliases. Every value is bound. The limit defaults to 50 and is capped at 200; an
   aggregate without groupBy gets no LIMIT. Queries run in `AccessLevel.USER_MODE`. There is no DML.
-  A model failure returns ERROR with fixed text and keeps the result sets already read.
+  A model failure returns ERROR with fixed text and keeps the result sets already read. The panel
+  shows them; the agent's `ExploreAction` relays only the fixed text (apex-review-2 N4).
 - **Row cap.** A LIMIT on an aggregate limits groups, not the records read, and the 50,000
   query-row limit cannot be caught. So an aggregate first runs `COUNT()` with
   `LIMIT ROW_CAP + 1` (`ROW_CAP` is 10,000, shrunk to what the transaction has left), and throws

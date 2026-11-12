@@ -3,8 +3,12 @@
 ## The outcome
 
 Reps who use the built-in Agentforce panel get the same brief and the same data answers as the
-custom panel, word for word. The agent decides which of two jobs a message is, then passes the
-Apex answer through without rewording it.
+custom panel. The agent decides which of two jobs a message is, then passes the Apex answer
+through without rewording it.
+
+Today this is proven only in a Studio preview of the draft. The version reps reach is still
+version 1, the script from before the review fixes, and no newer version can be published in
+the org it was built in. See "Limits and open items".
 
 ## The problem it removes
 
@@ -60,9 +64,8 @@ sequenceDiagram
 
 ## See it
 
-![The built-in Agentforce panel replying to "Give me a brief on Edge Communications" with the same brief text the custom panel shows](../assets/agent-brief.png)
-
-![The built-in Agentforce panel answering "How many open opportunities are there?" with a count and a small table](../assets/agent-explore.png)
+No screenshots of the built-in panel are shown, because the only active version is version 1,
+which does not hold the script this page describes.
 
 ## Why you can trust it
 
@@ -85,7 +88,9 @@ sequenceDiagram
   found org-wide questions scoped to the briefed account (finding 1), the resolve message relayed
   on RESOLVED (2), no route out of a subagent (3), a null Id passing the gate (4), and a system
   rule that contradicted the off-topic reply (5). Each is fixed and covered by
-  test_agent_bundle.py. The re-review is pending.
+  test_agent_bundle.py. The re-review ([agent-review-2.md](../reviews/agent-review-2.md)) confirms
+  1 to 5 fixed in the script on main, but none of it is live, and rates the agent **"Not ready"**.
+  Its one blocker is that reps still run version 1 and no version can be published.
 - **The agent can be called from Apex.** A probe called it twice through `generateAiAgentResponse`
   in one session. The second turn found the right account without naming it. Each turn took 14 to
   18 seconds ([agent-api.md](../research/agent-api.md)).
@@ -98,14 +103,31 @@ sequenceDiagram
 3. **Change the routes.** Edit the six rules in `agent_router`, and keep the org-wide rule first.
 4. **Change the jobs.** Point each subagent's actions at your own `apex://` classes. Keep each
    action's answer ready to relay, under about 6,000 characters.
-5. Run `bash scripts/agent-check.sh`, then save, preview and publish in Agentforce Studio (see
-   [08](08-test-and-release-lifecycle.md)).
+5. Run `bash scripts/agent-check.sh`, then preview, publish and activate the bundle (see
+   [08](08-test-and-release-lifecycle.md)). In the org this was built in, publishing fails; see
+   below.
 
 ## Limits and open items
 
-- Version 1 is the active version. The fixed script is saved as a draft (version 2). The CLI
-  publish fails with a server error ([agent-publish-failure.md](../research/agent-publish-failure.md)).
-- Explore through the agent gets no history, so an explorer follow-up there starts fresh.
+- **Blocker: version 1 is the active version.** The fixed script sits in an open draft, and no
+  version 2 exists. Every publish in the org returned `401` "Error saving or updating agent
+  graph": the CLI publish, the first publish of a new throwaway agent, and a comment-only
+  version 3. Studio's Commit Version also failed; whether with the same error was not captured
+  ([agent-publish-spike.md](../research/agent-publish-spike.md)). The plan notes report that a
+  minimal agent published in a fresh Developer Edition org, so the fault looks specific to that
+  one org ([gtm-burn-plan.md](../plans/gtm-burn-plan.md), "Morning notes"). This is second-hand
+  and not recorded in a probe file.
+- Should-fix from the agent re-review ([agent-review-2.md](../reviews/agent-review-2.md)):
+  - N3: an explorer follow-up through the agent gets no history, so "Which close this quarter?"
+    loses the question before it. A pronoun can also send the follow-up to the briefed account.
+  - N4: the explorer runs before the explore step can hand a misrouted message back, so that
+    work can be wasted or relayed for the wrong question (suspected).
+  - N5: access needs two permission sets plus a standard one, with no group and no setup doc.
+    See [07](07-trust-access-and-failure.md).
+  - N6: word-for-word relay of explorer tables is unproven on the current Apex.
+- Still open from the first review: a brief on the wrong account is stopped only by instruction
+  text (finding 6), and the NOT_FOUND reply says "open the account and ask again" although the
+  open record is not passed in (finding 12, Studio's one warning).
 - Agent turns are slow. The Apex probe recorded 14 to 18 seconds per turn
   ([agent-api.md](../research/agent-api.md)). The custom panel calls the same Apex directly.
 - The custom panel's "Ask the agent" button only opens the built-in panel and sends the question.

@@ -1,6 +1,6 @@
 /**
  * AccountBriefCallsSection: the `calls` gather section of the Account Brief.
- * Gong-style calls and meetings are Event records with AccountId = the account; call notes
+ * Recorded calls and meetings are Event records with AccountId = the account; call notes
  * live in Description. Shows the 5 most recent past Events (StartDateTime <= now, newest
  * first), each followed by an indented notes line when Description is not blank, then the
  * soonest future Event as a final `Next:` line. total counts past Events only. Description is

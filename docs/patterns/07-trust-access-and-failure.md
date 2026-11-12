@@ -3,8 +3,8 @@
 ## The outcome
 
 The assistant shows a rep only records that rep can already open in Salesforce. When something
-goes wrong, the rep reads one plain sentence that says what to do next, never a stack trace or a
-half-written answer. Granting access takes two permission sets that grant nothing extra.
+goes wrong, the rep reads one plain sentence that says what to do next, never a stack trace.
+Granting access takes two permission sets that grant nothing extra.
 
 ## The problem it removes
 
@@ -89,7 +89,11 @@ sequenceDiagram
   finding 7 (implicit access modes and discarded causes), finding 9 (the data permission set
   granted more than the engine uses), and finding 15 (drill passed raw messages to the UI). From
   the LWC review ([lwc-review.md](../reviews/lwc-review.md)): finding 10 (raw Apex errors). Each is
-  fixed and covered by the tests above. The re-reviews are pending.
+  fixed and covered by the tests above. The re-reviews confirm Apex findings 2, 7, 9 and 15
+  fixed, with small residuals noted below, and LWC finding 10 fixed inside the methods
+  ([apex-review-2.md](../reviews/apex-review-2.md), [lwc-review-2.md](../reviews/lwc-review-2.md)).
+  Both rate their layer "Ready with fixes" with no blockers. The agent re-review rates the agent
+  "Not ready" ([agent-review-2.md](../reviews/agent-review-2.md)); see [06](06-agent-routing-and-verbatim-relay.md).
 - **It runs live.** Studio preview cases 3, 4, 5 and 8 show NOT_FOUND and AMBIGUOUS relayed as the
   resolver wrote them ([studio-preview.md](../research/studio-preview.md)).
 
@@ -108,9 +112,20 @@ sequenceDiagram
 
 - Memory runs in system mode on purpose. The row key holds the running user's Id and the object is
   private. See [05](05-conversation-memory.md).
-- A query timeout in the resolver reads as NOT_FOUND, not ERROR.
+- Every query error in the resolver reads as NOT_FOUND, not ERROR, so a missing permission looks
+  like missing data (Apex re-review N7, [apex-review-2.md](../reviews/apex-review-2.md)).
 - A user without access to one field in a section, such as contact roles or event names, loses
-  the whole section rather than that field.
+  the whole section rather than that field, and the message reads like a passing fault (N2,
+  should-fix).
+- Two queries, for the prompt files and the agent's definition, run without an explicit access
+  mode. Whether a non-admin can read the prompt files from Apex has not been checked; if not, every
+  brief and question fails (N11).
+- Access needs two permission sets plus the standard Agentforce user set. Nothing groups them,
+  and no setup page lists all three (agent re-review N5, should-fix,
+  [agent-review-2.md](../reviews/agent-review-2.md)).
+- A number in a brief line that looks like a record Id becomes a drill button, and clicking it
+  can show platform error text instead of the fixed sentence (panel re-review N2,
+  [lwc-review-2.md](../reviews/lwc-review-2.md)).
 - Apex at API 68.0 is assumed to run plain static SOQL in user mode. The sections now state
   `WITH USER_MODE` explicitly, so they do not depend on that.
 

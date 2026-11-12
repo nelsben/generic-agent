@@ -2,6 +2,39 @@
 
 For whoever orchestrates next. Read this, then the four research write-ups it points to.
 
+## Status (2026-11-12, end of the overnight run)
+
+Finished tonight:
+- FE-6 (Esc keeps focus, brief lines carry a drillable Id), BE-13 and BE-14 (explorer date
+  handling and plain column labels) are merged.
+- OPS-20: `main` deployed for real to `experimental`: 60 components, 150 of 150 Apex tests, and the
+  Playwright panel suite 8 of 8 on the first run as an admin user (`docs/research/deploy-verify.md`).
+  The org matches `main` outside the agent bundle.
+- OPS-21: the publish spike. Every agent create in `experimental` returns
+  `401 "Error saving or updating agent graph"`; the CLI's `404` is its HTTP library resending.
+  The CLI publish, a new throwaway agent and Studio's Commit Version all failed. No version 2
+  exists and version 1 is still active (`docs/research/agent-publish-spike.md`). The morning notes
+  in `gtm-burn-plan.md` add that a minimal agent publishes in a fresh Developer Edition org.
+- OPS-16, OPS-17 and OPS-18: the re-reviews. Apex: ready with fixes, no blockers. Panel: ready
+  with fixes, no blockers. Agent: not ready, one blocker (version 1 live, nothing publishable).
+- FE-7: 11 of the 13 planned screenshots and GIFs captured. The two built-in panel shots were
+  dropped, because no version with the current script is active.
+- OPS-19 and OPS-22: the README and nine pattern pages, then a final truth, asset, link,
+  diagram and privacy pass over them.
+
+Still open:
+- Publishing in `experimental` (Ben's Salesforce case). Phase 2 moves to a fresh org, where the
+  agent is to be published, activated and tested.
+- The 12-case agent test run and the two-turn check: not run, because they need the fixed
+  version active. The org's test definition pins version 1 (agent-review-2 N2).
+- A run as a non-admin user (FE-5), a real MCP tool call, the panel calling the registered agent,
+  and a clean install from the README's five-minute steps.
+- The should-fix findings: apex-review-2 N1 to N4, lwc-review-2 N1 to N5, agent-review-2 N2 to N6,
+  plus earlier agent findings 6 and 12 and panel items 6 and 14f.
+- Real record Ids remain in `tests/agent/Account_Brief-testSpec.yaml` and the matching assertions
+  in `tests/test_agent_bundle.py`, and one in `docs/research/salesforce-mcp.md`. Those files were
+  outside the final pass's reach.
+
 ## Where things stand
 
 - `main` holds: the Apex engine, the Account_Brief agent (version 1, active in `experimental`),
