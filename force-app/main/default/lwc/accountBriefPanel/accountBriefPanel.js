@@ -6,7 +6,7 @@
  * DataExplorer). The panel never renders model text as HTML: answers are text in pre-line blocks.
  *
  * Requests: every entry point (composer, follow-up, candidate, brief button, drill, message
- * channel) goes through _request. The latest request wins: each carries a token, and a reply
+ * channel, Ask the agent) goes through _request. The latest request wins: each carries a token, and a reply
  * whose token is no longer the latest is dropped, never rendered. A repeat of the request
  * already in flight (a double click) is ignored.
  *
@@ -21,7 +21,6 @@ import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { subscribe, unsubscribe, MessageContext, APPLICATION_SCOPE } from 'lightning/messageService';
 import { EnclosingUtilityId, open as openUtility, minimize as minimizeUtility } from 'lightning/platformUtilityBarApi';
-import { open as openAgent, execute as executeAgent } from 'lightning/accApi';
 import ACCOUNT_OBJECT from '@salesforce/schema/Account';
 import ACCOUNT_BRIEF_OPEN from '@salesforce/messageChannel/AccountBriefOpen__c';
 import resolve from '@salesforce/apex/AccountBriefPanelController.resolve';
@@ -31,6 +30,7 @@ import drill from '@salesforce/apex/AccountBriefPanelController.drill';
 import history from '@salesforce/apex/AccountBriefPanelController.history';
 import sources from '@salesforce/apex/AccountBriefPanelController.sources';
 import agentId from '@salesforce/apex/AccountBriefPanelController.agentId';
+import askAgent from '@salesforce/apex/AccountBriefPanelController.askAgent';
 
 const BRIEF_COMMAND = /^\/brief\s+/i;
 const HISTORY_TURNS = 5;
@@ -46,6 +46,8 @@ const FOCUS_GUARD_POLL_MS = 50;
 const USER_INPUT_EVENTS = ['keydown', 'mousedown', 'pointerdown', 'touchstart'];
 // The controller's fixed ERROR line; shown when a failure carries no handled text.
 const ERROR_TEXT = "I couldn't finish that right now. Try again in a minute.";
+// AccountBriefAgentClient.FAILURE_TEXT: the only text an agent failure ever shows.
+const AGENT_FAILURE_TEXT = 'The agent could not answer right now. Try again in a minute.';
 
 /** The brief summary's collapsible rest: collapsed by default, so the sections show under the headline. */
 function summaryState(open) {
@@ -143,6 +145,9 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     _drillOrigin = null;
     _focusAfterRender = null;
     _scrollAfterRender = null;
+    // The Account_Brief agent session of this panel and account; a new account starts a new one.
+    _agentSessionId = null;
+    _agentEpoch = 0;
 
     @wire(MessageContext) messageContext;
 
@@ -381,6 +386,9 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
         }
         this._lastContextId = id;
         this.pageAccount = null;
+        // A new account starts a new agent session; a reply still in flight must not restore the old one.
+        this._agentSessionId = null;
+        this._agentEpoch += 1;
         // The account changed: an earlier account's briefs must not stay on screen.
         this.historyAccount = null;
         this.historyItems = [];
@@ -441,6 +449,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
      * Runs one request. The latest wins: work gets isCurrent() and checks it after every await,
      * so a superseded reply changes nothing and makes no further call. A repeat of the request
      * in flight (same key) is ignored. Resolves to the short line the live region announces.
+     * onError(text) handles a failure itself; a string it returns is announced in place of text.
      */
     _request({ key, label, loading, work, onError }) {
         if (this.pending && key === this._inFlightKey) {
@@ -465,12 +474,13 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
                     return;
                 }
                 const text = errorText(error);
+                let announced = text;
                 if (onError) {
-                    onError(text);
+                    announced = onError(text) || text;
                 } else {
                     this._push({ isText: true, isError: true, question: label, text });
                 }
-                this.liveMessage = text;
+                this.liveMessage = announced;
             })
             .finally(() => {
                 if (isCurrent()) {
@@ -895,23 +905,52 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
             });
     }
 
-    // ------------------------------------------------------------ agent bridge
+    // ------------------------------------------------------------ the agent
 
     get showAgentButton() {
         return !!this.botId;
     }
 
-    async handleAskAgent() {
-        const last = this.turns.length ? this.turns[this.turns.length - 1].question : '';
-        const question = (this.draft || '').trim() || last || '';
-        try {
-            await openAgent(this.botId);
-            if (question) {
-                await executeAgent(question, this.botId);
-            }
-        } catch (error) {
-            this.notice = 'Could not open the agent. ' + errorText(error);
+    /**
+     * Ask the agent: the composer text goes to the registered Account_Brief agent through Apex
+     * (askAgent), and the reply renders here as a text turn. The first turn of an agent session
+     * carries the open record; a follow-up carries the session instead. Any failure shows
+     * AGENT_FAILURE_TEXT and nothing else.
+     */
+    handleAskAgent() {
+        const question = (this.draft || '').trim();
+        if (!question) {
+            return Promise.resolve();
         }
+        this.draft = '';
+        this.drillStack = [];
+        const sessionId = this._agentSessionId;
+        const contextRecordId = sessionId ? null : this.contextRecordId || null;
+        const epoch = this._agentEpoch;
+        const failed = () => {
+            this._push({ isText: true, isError: true, isAgent: true, question, text: AGENT_FAILURE_TEXT });
+            return AGENT_FAILURE_TEXT;
+        };
+        return this._request({
+            key: 'agent:' + question,
+            label: question,
+            loading: 'Asking the agent',
+            onError: failed,
+            work: async (isCurrent) => {
+                const r = await askAgent({ message: question, sessionId, contextRecordId });
+                if (!isCurrent()) {
+                    return null;
+                }
+                if (!r || r.failed || !r.text) {
+                    return failed();
+                }
+                if (r.sessionId && epoch === this._agentEpoch) {
+                    this._agentSessionId = r.sessionId;
+                }
+                this._push({ isText: true, isAgent: true, question, text: r.text });
+                return 'Agent replied';
+            }
+        });
     }
 
     // ------------------------------------------------------------ message channel

@@ -12,7 +12,7 @@
                         onclick={handleBriefThisAccount}><span class="slds-truncate">{briefButtonLabel}</span></button>
                 </template>
                 <template lwc:if={showAgentButton}>
-                    <lightning-button class="abp-agent" label="Ask the agent" onclick={handleAskAgent}></lightning-button>
+                    <lightning-button class="abp-agent" label="Ask the agent" disabled={sendDisabled} onclick={handleAskAgent}></lightning-button>
                 </template>
             </div>
         </div>
@@ -140,9 +140,12 @@
                         <section key={turn.key} data-turn={turn.key} class="slds-m-vertical_small abp-turn">
                             <div class="abp-question slds-text-body_small">{turn.question}</div>
 
-                            <!-- Plain text: NOT_FOUND from the resolver, or an Apex error -->
+                            <!-- Plain text: NOT_FOUND from the resolver, an Apex error, or the agent's reply -->
                             <template lwc:if={turn.isText}>
                                 <div class="abp-pre slds-m-top_xx-small" data-error={turn.isError}>{turn.text}</div>
+                                <template lwc:if={turn.isAgent}>
+                                    <div class="abp-agent-source slds-text-body_small slds-text-color_weak slds-m-top_xx-small">Account Brief agent</div>
+                                </template>
                             </template>
 
                             <!-- AMBIGUOUS: candidates re-resolve by Id -->

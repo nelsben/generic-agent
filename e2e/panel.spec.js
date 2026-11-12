@@ -3,9 +3,9 @@
  * The Account Brief panel in a real org, one journey per test. Each test loads the record page of
  * Edge Communications fresh inside the Account Brief app (see support/panel.js).
  *
- * Model calls per full run (briefs and questions): (3) 1, (4) 2, (5) 1, (6) 0, (7) 1, (8) 1-2,
- * so 6 to 7. Spec 8 asks one question only when no brief section line is drillable; spec 7 fails
- * instead.
+ * Model calls per full run (briefs, questions and agent turns): (3) 1, (4) 2, (5) 1, (6) 0, (7) 1,
+ * (8) 1-2, (9) 2 agent turns, so 8 to 9. Spec 8 asks one question only when no brief section line
+ * is drillable; spec 7 fails instead.
  * Spec 5's second request and spec 6's send are '/brief' of a name that does not exist: the
  * resolver answers NOT_FOUND from SOQL alone, with no model call.
  */
@@ -18,6 +18,9 @@ const { ACCOUNT_NAME } = require('./support/env');
 const NO_SUCH_ACCOUNT = '/brief Qzxv Nonexistent E2E';
 // Asked only when no brief section line is drillable; its answer is a table of Contact rows.
 const DRILL_QUESTION = 'List the contacts at this account with their titles';
+// Spec 9: the probe's two turns. The follow-up only makes sense after the first.
+const AGENT_QUESTION = 'What are the open deals at this account?';
+const AGENT_FOLLOWUP = 'What about their open cases?';
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 /** A focusable element on the page outside the panel: the global header's Search button. */
@@ -268,4 +271,50 @@ test('8. axe finds no WCAG A/AA violations in the open panel: brief state and dr
 
     expect.soft(briefViolations, 'axe violations in the brief state').toEqual([]);
     expect.soft(drillViolations, 'axe violations in the drill state').toEqual([]);
+});
+
+test('9. Ask the agent answers in the panel, and a follow-up that needs the first turn reuses its agent session', async ({ panel }) => {
+    // Two agent turns: about 15 s each in agent-probe (docs/research/panel-agent-1.md).
+    await panel.open();
+    await expect(panel.agentButton).toBeVisible();
+    const before = await panel.turns.count();
+
+    // Turn 1: about the open account. The panel sends the record as context on the first turn only.
+    await panel.composer.fill(AGENT_QUESTION);
+    let call = panel.apexCall('askAgent');
+    await panel.agentButton.click();
+    await expect(panel.liveRegion).toHaveText('Asking the agent');
+    await expect(panel.spinner).toBeVisible();
+    const first = await call;
+    expect(first.state, 'askAgent returned').toBe('SUCCESS');
+    expect(first.params.contextRecordId === panel.run.accountId, 'turn 1 sent the open account as context').toBe(true);
+    expect(!first.params.sessionId, 'turn 1 started a new agent session').toBe(true);
+    expect(!!first.value && first.value.failed === false && !!first.value.sessionId, 'turn 1 is a reply with a session').toBe(true);
+    await expect(panel.liveRegion).toHaveText('Agent replied');
+    await expect(panel.spinner).toBeHidden();
+    await expect(panel.turns).toHaveCount(before + 1);
+    const turn1 = panel.turns.last();
+    await expect(turn1.locator('.abp-question')).toHaveText(AGENT_QUESTION);
+    await expect(turn1.locator('[data-error="true"]')).toHaveCount(0);
+    expect(/deal|opportunit/i.test(first.value.text), 'turn 1 answers about deals').toBe(true);
+
+    // Turn 2: names no account and carries no record, so only the first turn's session can answer it.
+    await panel.composer.fill(AGENT_FOLLOWUP);
+    call = panel.apexCall('askAgent');
+    await panel.agentButton.click();
+    await expect(panel.liveRegion).toHaveText('Asking the agent');
+    const second = await call;
+    expect(second.state, 'askAgent returned').toBe('SUCCESS');
+    expect(second.params.sessionId === first.value.sessionId, "turn 2 sent turn 1's agent session").toBe(true);
+    expect(!second.params.contextRecordId, 'turn 2 sent no record').toBe(true);
+    expect(!!second.value && second.value.failed === false, 'turn 2 is a reply').toBe(true);
+    expect(second.value.sessionId === first.value.sessionId, 'the agent kept the session').toBe(true);
+    expect(/case/i.test(second.value.text), 'turn 2 answers about cases').toBe(true);
+    expect(/which account|what account|specify (the|an) account/i.test(second.value.text), 'turn 2 did not ask which account').toBe(false);
+    await expect(panel.liveRegion).toHaveText('Agent replied');
+    await expect(panel.turns).toHaveCount(before + 2);
+    await expect(panel.turns.last().locator('.abp-question')).toHaveText(AGENT_FOLLOWUP);
+    await expect(panel.turns.last().locator('[data-error="true"]')).toHaveCount(0);
+    // Both replies stay on screen.
+    await expect(turn1.locator('.abp-question')).toHaveText(AGENT_QUESTION);
 });
