@@ -296,8 +296,121 @@ private class DataExplorerTest {
         Assert.areEqual(1, rs.shown);
         Assert.areEqual('Explore Acme', rs.rows[0].get('Name'));
         Assert.areEqual('Technology', rs.rows[0].get('Industry'));
-        Assert.isTrue(rs.columns.contains('Owner.Name'));
+        Assert.isTrue(rs.columns.contains('Owner'), 'Owner.Name is shown under its plain label: ' + rs.columns);
         Assert.isTrue(rs.soql.contains('LIMIT 1'));
+    }
+
+    /** A column that shows a record Id: Id itself, or a field ending in Id (AccountId, Account.OwnerId, WhoId). */
+    private static List<String> idColumns(ExploreQuery.ResultSet rs) {
+        List<String> out = new List<String>();
+        for (String c : rs.columns) {
+            String last = c.contains('.') ? c.substringAfterLast('.') : c;
+            if (last.endsWithIgnoreCase('Id')) {
+                out.add(c);
+            }
+        }
+        return out;
+    }
+
+    @IsTest
+    static void exploreNeverShowsAnIdColumnAndItsRowsStillDrill() {
+        Script s = script(new List<String>{
+            query('{"object":"Opportunity","fields":["Id","Name","Amount","AccountId","Account.Name","OwnerId"],'
+                + '"filters":[{"field":"Account.Name","op":"=","value":"Explore Acme"}],"orderBy":{"field":"Amount","dir":"DESC"}}'),
+            answer('Acme Three leads at 3000.')
+        });
+
+        DataExplorer.Result r = DataExplorer.explore('Which Acme deals are largest?', null, null);
+
+        ExploreQuery.ResultSet rs = r.resultSets[0];
+        Assert.areEqual(new List<String>(), idColumns(rs), 'no Id column is displayed');
+        Assert.areEqual(new List<String>{ 'Name', 'Amount', 'Account' }, rs.columns);
+        Assert.areEqual(rs.columns, rs.labels);
+        Opportunity top = [SELECT Id, Name FROM Opportunity WHERE Name = 'Acme Three' LIMIT 1];
+        // The model still saw the Ids, so a follow-up can query those records again.
+        Assert.isTrue(s.prompts[1].contains(String.valueOf(top.Id)), 'the model preview keeps the Ids');
+        // Rows keep their Id for drill-down, and the drill opens that record.
+        Assert.areEqual(top.Id, rs.rows[0].get('Id'));
+        ExploreQuery.ResultSet drilled = DataExplorer.drill((Id) rs.rows[0].get('Id'), null);
+        Assert.areEqual('Acme Three', drilled.rows[0].get('Name'));
+        Assert.areEqual(new List<String>(), idColumns(drilled), 'the drill view shows no Id column either');
+    }
+
+    @IsTest
+    static void relationshipColumnsShowPlainLabelsWithTheirValues() {
+        script(new List<String>{
+            query('{"object":"Opportunity","fields":["Name","Account.Name","Owner.Name"],'
+                + '"filters":[{"field":"Name","op":"=","value":"Acme One"}]}'),
+            answer('One deal.')
+        });
+
+        DataExplorer.Result r = DataExplorer.explore('Who owns Acme One?', null, null);
+
+        ExploreQuery.ResultSet rs = r.resultSets[0];
+        Assert.areEqual(new List<String>{ 'Name', 'Account', 'Owner' }, rs.columns);
+        for (String c : rs.columns) {
+            Assert.isFalse(c.contains('.'), 'dotted column: ' + c);
+        }
+        Assert.areEqual('Explore Acme', rs.rows[0].get('Account'));
+        Assert.areEqual(UserInfo.getName(), rs.rows[0].get('Owner'));
+        Assert.areEqual('Acme One', rs.rows[0].get('Name'));
+    }
+
+    @IsTest
+    static void aFollowUpQueriesTheEarlierIdsWithoutShowingThem() {
+        Script s = script(new List<String>{
+            query('{"object":"Opportunity","fields":["Id","Name","Amount"],"orderBy":{"field":"Amount","dir":"DESC"},"limit":2,'
+                + '"filters":[{"field":"Account.Name","op":"=","value":"Explore Acme"}]}'),
+            '{"action":"answer","text":"pending","followups":[]}'
+        });
+        DataExplorer.Result first = DataExplorer.explore('Top two Acme deals', null, null);
+        List<Object> ids = new List<Object>();
+        for (Map<String, Object> row : first.resultSets[0].rows) {
+            ids.add(row.get('Id'));
+        }
+        Assert.areEqual(2, ids.size());
+
+        s.prompts.clear();
+        s.replies = new List<String>{
+            query('{"object":"Opportunity","fields":["Id","Name","StageName"],'
+                + '"filters":[{"field":"Id","op":"IN","value":' + JSON.serialize(ids) + '},{"field":"StageName","op":"=","value":"Closed Won"}]}'),
+            answer('Of those 2 deals, 1 is won.')
+        };
+        DataExplorer.Result next = DataExplorer.explore('Which of those are won?', null, null);
+
+        ExploreQuery.ResultSet rs = next.resultSets[0];
+        Assert.areEqual(1, rs.shown);
+        Assert.areEqual('Acme Three', rs.rows[0].get('Name'));
+        Assert.areEqual(new List<String>{ 'Name', 'Stage' }, rs.columns);
+        Assert.isNotNull(rs.rows[0].get('Id'));
+        // The trail names how many records the follow-up filtered on, never their Ids.
+        Assert.areEqual('Opportunity | Id IN (2 records) AND StageName = Closed Won | 1 rows', next.trail[0]);
+    }
+
+    @IsTest
+    static void theTrailHidesRecordIdsOnly() {
+        Id acmeId = acme().Id;
+        Assert.areEqual('AccountId = a record', DataExplorer.withoutIds('AccountId = ' + acmeId));
+        Assert.areEqual('Id IN (1 record)', DataExplorer.withoutIds('Id IN (' + String.valueOf(acmeId).left(15) + ')'));
+        Assert.areEqual('Name IN (Acme, Beta)', DataExplorer.withoutIds('Name IN (Acme, Beta)'));
+        Assert.areEqual('Industry = Telecommunications', DataExplorer.withoutIds('Industry = Telecommunications'));
+        Assert.areEqual('no filters', DataExplorer.withoutIds('no filters'));
+        Assert.isNull(DataExplorer.withoutIds(null));
+    }
+
+    @IsTest
+    static void countsAndHandBuiltSetsKeepTheirOtherColumns() {
+        ExploreQuery.ResultSet rs = new ExploreQuery.ResultSet();
+        rs.objectName = 'Opportunity';
+        rs.columns = new List<String>{ 'StageName', 'COUNT(Id)', 'WhatId' };
+        rs.rows.add(new Map<String, Object>{ 'StageName' => 'Prospecting', 'COUNT(Id)' => 2, 'WhatId' => null });
+
+        DataExplorer.forDisplay(rs);
+
+        Assert.areEqual(new List<String>{ 'StageName', 'COUNT(Id)' }, rs.columns, 'a count of Ids is a number, not an Id');
+        Assert.areEqual(rs.columns, rs.labels);
+        Assert.areEqual(2, rs.rows[0].get('COUNT(Id)'));
+        Assert.isNull(DataExplorer.forDisplay(null));
     }
 
     @IsTest

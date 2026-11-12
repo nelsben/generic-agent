@@ -1,8 +1,10 @@
-"""Static checks for the explorer prompt, AgentPrompt_Explore (BE-17).
+"""Static checks for the explorer prompt, AgentPrompt_Explore (BE-17, BE-18).
 
-Rule 9 tells the model to open with a short answer and leave the rows to the table the system
-shows after the text. Every rule from 1 to 11 is still there, in order, and the reply format and
-the template variables are unchanged.
+Rule 9 caps the answer text at two short sentences that lead into the table the system shows
+after the text: at most one record named, no owner unless asked, a count stated first, and a
+follow-up about an earlier answer's records answered about exactly those records. Every rule
+from 1 to 11 is still there, in order, and the reply format and the template variables are
+unchanged.
 """
 import re
 import unittest
@@ -26,14 +28,22 @@ KEPT = {
 }
 
 RULE_9 = (
-    "9. The answer text is plain text, at most about 1,500 characters, and it names at most three "
-    "records. No markdown headers, tables or JSON inside it. The system shows the last result's rows as a"
-    " table right after your text, and when the question asks which records or for a list, that table is "
-    "the answer. So open with one or two short sentences that lead into it: the top item, the total or "
-    "the range, a count, or what stands out. Do not repeat the names and values of the table's rows, "
-    "whether in a sentence or as lines. Lines starting with \"- \" are allowed, but not to restate the "
-    "table's rows. A result that is one row of totals, such as a count, is the answer: state it in the "
-    "text. Facts from an earlier query are not in that table, so they belong in the text too."
+    "9. The answer text is plain text of at most two short sentences in all, with no markdown headers, "
+    "tables, lists or JSON. The system shows the last result's rows as a table right after your text, and "
+    "when the question asks which records or for a list, that table is the answer, so the text only leads "
+    "into it with a count, the total or the range, or what stands out. Name at most one record in the text, "
+    "even when the question asks which ones and several match: give how many match and the top one, and "
+    "never put a second name in the text, since the table shows the rest. An account "
+    "or contact counts as a record too, so when the question asks for a single record, such as the largest, "
+    "name only that record and its key value, not its account. Do not repeat the table's other rows, and do "
+    "not mention an owner or any user unless the question asks about owners. A result that is one row of "
+    "totals, such as a count, is the answer: state the number in the first sentence. Facts from an earlier "
+    "query are not in that table, so they belong in the text too. When the question points back to records "
+    "of an earlier answer (\"those\", \"them\") that it does not list, answer about exactly those records: "
+    "keep the earlier question's filters, and if it took only the top or first few, rerun it unchanged with "
+    "Id, then run one more query on those Ids with the new condition, so the table shows only the matches. "
+    "A good lead for a \"which of those\" follow-up: \"Of those 8 deals, 3 close next month. The largest is "
+    "Acme Renewal at $310,000.\""
 )
 
 
@@ -56,7 +66,7 @@ class TestExplorePrompt(unittest.TestCase):
     def test_rules_1_to_11_are_all_present_in_order(self):
         self.assertEqual(list(self.rules), list(range(1, 12)))
 
-    def test_rule_9_opens_with_a_short_answer_and_leaves_the_rows_to_the_table(self):
+    def test_rule_9_caps_the_answer_at_two_sentences_that_lead_into_the_table(self):
         self.assertEqual(self.rules[9], RULE_9)
 
     def test_rule_9_no_longer_only_asks_to_summarize(self):

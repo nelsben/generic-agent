@@ -5,7 +5,11 @@ run (verified) unless it says otherwise. Follows [explore-prompt-1.md](explore-p
 
 ## Outcome
 
-**Not shipped: the org and `main` keep BE-17's rule 9.** Three revisions of rule 9 reached the org.
+**Shipped in attempt 2: revision 3 of rule 9, with a DataExplorer change.** See
+[Attempt 2](#attempt-2-revision-3-shipped). Attempt 1, below, rolled revision 3 back under the
+card's spec rule.
+
+Attempt 1: **not shipped; the org and `main` kept BE-17's rule 9.** Three revisions of rule 9 reached the org.
 Revision 3 met the bar on the list (L), count (C) and follow-up (F) questions in 3 of 3 runs each.
 Two things still missed:
 
@@ -25,8 +29,8 @@ unevenly before: case 1 was rated 3 here and in BE-17.
 So the case 2 miss is very likely judge noise. The rollback follows the card's rule; it does not
 show that revision 3 broke the brief.
 
-What stays committed: this page, the pointer line in explore-prompt-1.md, and the capture file
-without BE-17's `console.log` of the answer text. The three explore assets are unchanged.
+At the end of attempt 1 the commit held only this page, the pointer line in explore-prompt-1.md,
+and the capture file without BE-17's `console.log` of the answer text.
 
 ## The rule 9 revisions
 
@@ -266,7 +270,10 @@ Org model use was well over the card's budget of about 40 calls:
 An explorer question is one call per query plus one for the answer: 2 for L, C and S, and 3 for F
 on revision 3. Run 1a's F answer was never read, so its call count is unknown (at most 5).
 
-## Left open
+## Left open after attempt 1
+
+Each point is settled in attempt 2 below.
+
 
 - **S names the account.** A fourth revision would need to say so more forcefully, perhaps with a
   single-record example, or the bar could accept the account as part of the record's description.
@@ -280,3 +287,143 @@ on revision 3. Run 1a's F answer was never read, so its call count is unknown (a
   capture guard masks but a live user would see.
 - **Header label.** The recaptured still shows a dotted header, "Account.Name", in the result table,
   although rule 10 and the plain-label tests expect plain labels. It is panel or Apex work.
+
+## Attempt 2: revision 3 shipped
+
+The coordinator settled the four open points:
+
+- Spec case 2 is not a regression from this card, because only `DataExplorer` loads the explore
+  prompt. The new spec rule: the explore cases (9, 10, 11, 13, 14) pass replies and actions, and
+  actions pass 16 of 16. A non-explore reply failure is a hand-back only if the same case fails two
+  runs in a row.
+- S may name the opportunity's account. It still names exactly one opportunity, mentions no owner
+  and has at most two sentences.
+- The Id column must never be displayed. The card's scope gained `DataExplorer.cls` and
+  `DataExplorerTest.cls` for this.
+- Ship revision 3's resource and the two classes to agent-probe.
+
+### The DataExplorer change
+
+`explore()` and `drill()` now return each result set through `forDisplay`:
+
+- **No Id columns.** Columns that hold a record Id are dropped: `Id`, any field whose name ends in
+  `Id`, or a catalog field of kind id. Rows keep their record Id under `Id`, so a row still drills.
+- **Plain labels.** Every other column is named by the plain label `ExploreCatalog` already gives it
+  (Account, not Account.Name; Stage, not StageName). The panel's table uses column names as its
+  headers. The panel code itself is out of scope, so the fix sits in Apex. Rows gain each label as
+  a key and keep their old keys, so the panel's name lookup still finds `Name`.
+- **The model still sees the Ids.** Its result preview keeps every column, so revision 3's follow-up
+  clause still works: rerun the earlier query with Id, then query those Ids.
+- **The trail hides Ids.** F's follow-up filters on the five earlier Ids, and the trail line would
+  have listed them. The trail now reads "Id IN (5 records)", and any other Id reads "a record".
+
+Tests, in `DataExplorerTest`:
+
+| Test | What it checks |
+|---|---|
+| `exploreNeverShowsAnIdColumnAndItsRowsStillDrill` | Covers both the explore table and the drill view. |
+| `relationshipColumnsShowPlainLabelsWithTheirValues` | Relationship columns show plain labels with their values. |
+| `aFollowUpQueriesTheEarlierIdsWithoutShowingThem` | Also checks the trail line. |
+| `countsAndHandBuiltSetsKeepTheirOtherColumns` | `COUNT(Id)` is kept. |
+| `theTrailHidesRecordIdsOnly` | Only record Ids are hidden in the trail. |
+| `drillByRecord` | Now expects `Owner`, not `Owner.Name`. |
+
+`tests/test_explore_prompt.py` asserts revision 3's rule 9 again.
+
+Red: before the class changed, the new tests ran against the org's DataExplorer in a validation
+that deployed nothing. Four failed, showing `Id`, `AccountId` and `OwnerId` displayed and
+`Account.Name` and `Owner.Name` dotted.
+
+### Deploy steps, in order
+
+| # | Step | Outcome |
+|---|---|---|
+| 17 | Red: validate `DataExplorerTest` alone with RunSpecifiedTests | 4 failures, nothing deployed |
+| 18 | Validate the resource (revision 3) and the two classes with RunLocalTests, then quick deploy with CONFIRM_PROD=1 under the standing approval | Succeeded, 3 components, 158 tests, 0 failures; Succeeded |
+| 19 | Run a2r1 | All four shapes met the bar. F's trail still listed the five Ids, masked as "Id hidden" by the capture guard |
+| 20 | Validate and quick deploy the same three components with the trail change | Succeeded, 3 components, 159 tests, 0 failures; Succeeded. This is the final org state |
+| 21 | Runs a2r2, a2r3, a2r4 | Table below |
+| 22 | e2e, 15:27:59Z to 15:30:56Z | 8 passed (2.9 m) |
+| 23 | Agent spec, 15:31:04Z to 15:33:37Z, after e2e | 16 of 16 replies, 16 of 16 actions |
+| 24 | Recapture, after the spec | Passed with its privacy checks |
+
+Nothing was published or activated, and no sign-in or sign-out was made.
+
+### Answers on the final org state
+
+| Run | Shape | S. | Opportunities named | Owner | Answer, word for word |
+|---|---|---|---|---|---|
+| a2r2 | L | 2 | 1 | no | The 5 largest open opportunities range from $255,040 to $293,920. The biggest is Juniper Project B at $293,920. |
+| a2r2 | C | 1 | 0 | no | There are 36 open opportunities. |
+| a2r2 | S | 1 | 1 | no | The largest open opportunity is Juniper Project B for $293,920, closing January 14, 2027. |
+| a2r2 | F | 2 | 1 | no | Of those 5 deals, 2 close in 2027. The largest is Juniper Project B at $293,920. |
+| a2r3 | L | 2 | 1 | no | The 5 largest open opportunities range from $255,040 to $293,920. The biggest is Juniper Project B at $293,920. |
+| a2r3 | C | 1 | 0 | no | There are 36 open opportunities. |
+| a2r3 | S | 1 | 1 | no | The largest open opportunity is Juniper Project B at $293,920 in the Needs Analysis stage. |
+| a2r3 | F | 2 | 1 | no | Of those 5 deals, 2 close in 2027. The largest is Juniper Project B at $293,920. |
+| a2r4 | L | 1 | 1 | no | The 5 largest open opportunities range from $255,040 to $293,920, with Juniper Project B at the top at $293,920. |
+| a2r4 | C | 1 | 0 | no | There are 36 open opportunities. |
+| a2r4 | S | 1 | 1 | no | The largest open opportunity is Juniper Project B at $293,920.00, closing January 14, 2027. |
+| a2r4 | F | 2 | 1 | no | Of those 5 deals, 2 close in 2027. The largest is Juniper Project B at $293,920. |
+
+All 12 answers meet the bar.
+
+- Every C answer states 36 in its first sentence.
+- None of the S answers named the account this time; the bar now allows it.
+- Each F answer ran two queries: the L query again (5 of 36 rows), then those five Ids with the
+  2027 condition. It returned 2 rows, Juniper Project B and Fernhollow Project C, both in L's five.
+- No table had an Id column. Headers read, for example, Name, Amount, Account, Stage, Close Date.
+- L fit: 158 px of 273 px in all three runs.
+
+Run a2r1, on the state before the trail change, gave the same results. Its L answer was "The 5
+largest open opportunities range from $255,040 to $293,920. The biggest is Juniper Project B at
+$293,920." (2 sentences, 158 px). Its S answer was "The largest open opportunity is Juniper
+Project B at $293,920, in the Needs Analysis stage and closing January 14, 2027."
+
+### No regression
+
+- **e2e:** 8 passed (2.9 m), with no rerun.
+- **Agent spec:** one run, after e2e. It passed 16 of 16 on replies and 16 of 16 on actions. Topic
+  was 15 of 16; the miss is case 12's expected false FAILURE.
+  - All explore cases (9, 10, 11, 13, 14) passed. Ratings were 5, except case 14 at 3.
+  - Case 2 passed with a rating of 4, and case 6 was also 4. No second run was needed.
+  - The explore replies carried no Id-like strings, and their tables had plain headers, such as
+    "Name | Amount | Account | Close Date | Stage".
+
+### Recapture
+
+- **explore-answer.png:** The question, then the two-sentence answer "The 5 largest open
+  opportunities total $1,372,400, led by Juniper Project B at $293,920. All five are in mid-to-late
+  stages with close dates between November 2026 and January 2027." Below it, the caption
+  "Opportunity · 5 of 36 rows", the Name, Amount and Stage headers, and the rows Juniper Project B
+  and Fernhollow Project C. The total matches the five rows' amounts. The question to the header
+  row needs 177 px of the 273 px box.
+- **explore-drill.gif,** at 1 fps:
+  - Frame 1: the answer with two rows.
+  - Frame 2: the panel dimmed under a spinner.
+  - Frames 3 to 5: the drill view of Juniper Project B.
+  - Frames 6 to 8: back in the conversation, with the end of the answer and three rows (Juniper
+    Project B, Fernhollow Project C, Pimble Project B).
+- **drill-view.png:** The record's fields under plain labels: Name, Stage, Amount, Close Date and
+  Probability (%). There is no Id field; in the old image, Id fields showed as "Id hidden".
+
+MANIFEST.md and the pattern page's alt text match these images.
+
+### Model calls in attempt 2
+
+| Source | Model calls |
+|---|---|
+| Four measurement runs, 9 each | 36 |
+| Recapture | 2 |
+| e2e run | not counted |
+| Spec cases | 16, each also graded |
+
+The red validation and the deploys made no model calls. The total is over the coordinator's
+"about 45" by roughly the e2e run's share.
+
+### Still open
+
+- The follow-up still depends on the model rerunning the earlier query. A structural fix would pass
+  the earlier result's Ids in the history (`DataExplorer` and the panel).
+- A group-by on an id field now shows only its counts, because the id column is hidden. No catalog
+  question in this run grouped by one.
