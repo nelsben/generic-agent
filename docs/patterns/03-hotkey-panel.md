@@ -1,0 +1,102 @@
+# 03. Hotkey panel
+
+## The outcome
+
+From any page in the Account Brief app, Cmd-K on a Mac or Ctrl-K elsewhere opens a small panel
+with the cursor already in the text box. Esc puts it away. The rep never leaves the record they
+were on.
+
+## The problem it removes
+
+Assistants that live on their own tab or behind a menu cost the rep their place, so they get used
+less. A panel that grabs the keyboard can also break the page: it can trap Tab, steal Lightning
+shortcuts, or show a stale answer when two requests race. This panel is one keystroke away, and
+it behaves like a good neighbour on the page.
+
+## How it works
+
+```mermaid
+sequenceDiagram
+    actor U as Rep
+    participant DOC as document keydown
+    participant P as accountBriefPanel
+    participant UB as platformUtilityBarApi
+    participant C as AccountBriefPanelController
+    participant LMS as AccountBriefOpen channel
+    U->>DOC: Cmd-K or Ctrl-K
+    DOC->>P: event.code KeyK, no Shift or Alt
+    P->>UB: open(utilityId)
+    P->>P: focus the composer, remember the previous focus
+    U->>P: type and press Enter
+    P->>C: resolve, getBrief or explore, with a request token
+    C-->>P: reply
+    P->>P: render only if the token is still the latest
+    P->>U: polite live region announces the result
+    LMS-->>P: prompt and recordId from another component
+    U->>P: Esc
+    P->>UB: minimize(utilityId)
+    P->>U: focus back where it was
+```
+
+1. **Always listening.** The panel sits in the `Account_Brief_UtilityBar` utility bar with
+   `eager` set, so the hotkey works before the utility was ever opened. It is 340 by 480 pixels.
+2. **One hotkey, narrowly matched.** A document `keydown` listener checks `event.code === 'KeyK'`
+   with no Shift or Alt. On a Mac it takes Cmd-K only and leaves Ctrl-K to text fields. It yields
+   if another component already handled the event.
+3. **Open and focus.** It records where focus was, opens the utility through
+   `lightning/platformUtilityBarApi` and focuses the composer.
+4. **Typing is safe.** The composer stops key events from reaching Lightning's single-key
+   shortcuts. Enter sends, Shift-Enter does not, and Enter during IME composition does not.
+5. **Latest request wins.** Every request carries a token. A reply whose token is no longer the
+   latest is dropped. A repeat click on the request already in flight is ignored.
+6. **Plain text only.** Answers render as text in pre-line blocks, never as HTML.
+7. **Accessible.** A polite live region announces loading and results. Tab is never trapped,
+   because the panel is not a modal. Esc from any control minimizes and returns focus.
+8. **Other components can drive it.** A message on the `AccountBriefOpen` channel opens the panel
+   and runs a prompt with that message's record as context, or briefs an Account Id sent alone.
+
+## See it
+
+![Cmd/Ctrl-K opens the Account Brief utility with the composer focused, and Esc closes it again](../assets/hotkey-open.gif)
+
+![The panel at 340 px wide with a brief and two of its sections expanded, composer pinned at the bottom](../assets/panel-sections-open.png)
+
+## Why you can trust it
+
+- **Jest covers the behaviour.** [accountBriefPanel.test.js](../../force-app/main/default/lwc/accountBriefPanel/__tests__/accountBriefPanel.test.js)
+  has tests for the hotkey by key code on and off Mac, Shift, Alt and Cmd being ignored off Mac,
+  yielding to an earlier handler, six latest-wins cases, Esc returning focus, Tab never trapped,
+  Enter and IME, the live region, markup rendered as text, and three axe checks.
+- **The metadata shape is tested.** [test_app.py](../../tests/test_app.py) checks the utility bar
+  has exactly one item, the panel, with its properties, and that the app references it.
+- **Review findings are fixed in code.** The LWC review ([lwc-review.md](../reviews/lwc-review.md))
+  found an inert hotkey until first open (finding 1), a bypassed one-request guard (2), no screen
+  reader output (4), lost focus (5), a Tab trap (6), a composer that scrolled away at 340 by 480
+  (8) and a hotkey that matched too broadly (11). Each is fixed and covered by the Jest tests
+  above. The re-review is pending.
+- **It runs in a real org.** The Playwright suite ([e2e/README.md](../../e2e/README.md)) has
+  8 specs. Six passed on the live org, including the hotkey before first open, the pinned
+  composer, latest wins, Enter to send, and axe.
+
+## Adopt it
+
+1. Copy `force-app/main/default/lwc/accountBriefPanel/` with its `__tests__/` folder, and the
+   Jest mocks it maps in `jest.config.js`.
+2. Copy `AccountBriefPanelController.cls` and its test, the `AccountBriefOpen` message channel,
+   the `Account_Brief_UtilityBar` flexipage and the `Account_Brief` app.
+3. **Change the back end.** The panel only calls `AccountBriefPanelController`. Point its methods
+   at your own engine and keep the reply shapes.
+4. **Change the hotkey** in `isHotkey` near the top of `accountBriefPanel.js` if K clashes with
+   something in your org.
+
+## Limits and open items
+
+- Live, the platform's minimize moved focus after the panel had restored it, so spec 2 of the
+  Playwright suite failed. Jest passes because it cannot see the platform's own focus move. The
+  fix is queued.
+- The hotkey works only inside an app whose utility bar holds the panel.
+- The panel needs a desktop browser. It is not built for the Salesforce mobile app.
+
+> [!WARNING]
+> **Not yet proven:** all 8 Playwright specs passing on the live org. The last live run was 6 of 8,
+> before the Esc focus and brief-line drill fixes.
