@@ -103,6 +103,16 @@ public with sharing class ExplorePlan {
          * [bindValue, bindValueEnd).
          */
         public Datetime bindValueEnd;
+        /**
+         * Set only for > or <= on a Datetime field with a date-only value: the operator to run (>= or <)
+         * against bindValue, which is then the start of the next day, so the whole day is covered.
+         */
+        public String bindOp;
+        /**
+         * Set only for IN on a Datetime field: one entry per bindValue item, the start of the next day when
+         * that item is date-only (the item matches [start, end)), or null when it is a full datetime.
+         */
+        public List<Datetime> bindValueEnds;
         /** For the trail only, never for the query. */
         public String display;
     }
@@ -371,15 +381,53 @@ public with sharing class ExplorePlan {
             rf.literal = dateLiteral(f, op, filter.value);
             if (rf.literal == null) {
                 rf.bindValue = bindValue(f, op, filter.value);
-                if (f.kind == ExploreCatalog.KIND_DATETIME && (op == '=' || op == '!=') && filter.value instanceof String
-                        && DATE_SHAPE.matcher(((String) filter.value).trim()).matches()) {
-                    rf.bindValueEnd = startOfDay(Date.valueOf(((String) filter.value).trim()).addDays(1));
+                if (f.kind == ExploreCatalog.KIND_DATETIME) {
+                    widenDateOnly(rf, filter.value);
                 }
             }
             rf.display = f.path + ' ' + op + ' ' + (rf.literal != null ? rf.literal : display(filter.value));
             r.filters.add(rf);
         } catch (PlanException e) {
             r.errors.add(e.getMessage());
+        }
+    }
+
+    private static Boolean isDateOnly(Object value) {
+        return value instanceof String && DATE_SHAPE.matcher(((String) value).trim()).matches();
+    }
+
+    /**
+     * A date-only value on a Datetime field means the whole local day. = and != become a range, > and <=
+     * move to the start of the next day, and each date-only IN item gets its own end.
+     */
+    private static void widenDateOnly(ResolvedFilter rf, Object value) {
+        String op = rf.op;
+        if (op == 'IN') {
+            List<Datetime> ends = new List<Datetime>();
+            Boolean hasDay = false;
+            for (Object item : (List<Object>) value) {
+                if (isDateOnly(item)) {
+                    ends.add(startOfDay(Date.valueOf(((String) item).trim()).addDays(1)));
+                    hasDay = true;
+                } else {
+                    ends.add(null);
+                }
+            }
+            rf.bindValueEnds = hasDay ? ends : null;
+            return;
+        }
+        if (!isDateOnly(value)) {
+            return;
+        }
+        Datetime nextDay = startOfDay(Date.valueOf(((String) value).trim()).addDays(1));
+        if (op == '=' || op == '!=') {
+            rf.bindValueEnd = nextDay;
+        } else if (op == '>') {
+            rf.bindOp = '>=';
+            rf.bindValue = nextDay;
+        } else if (op == '<=') {
+            rf.bindOp = '<';
+            rf.bindValue = nextDay;
         }
     }
 
