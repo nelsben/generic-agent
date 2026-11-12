@@ -130,6 +130,7 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
 | F63 | "we might want to think about the hotkey panel and other items we should add later" | `FE-17` (discovery: what the panel could add later, ranked, with proposed cards; the brain cuts the ones Ben picks) |
 | F64 | "the how it works also needs auto number with numbered suggestions down below" | `OPS-40`; rule in [fr2-design.md](fr2-design.md#diagrams) |
 | F65 | A further note, on the panel's answers: "whenever we display text inside of any of our services, it's richly formatted and we have a card architecture that we can display", and a spike on "what does our card architecture look like for richly formatted data that's easy to read and understand and feels best in class?" | [fr2-design.md](fr2-design.md#operating-principles) (principle 2); `FE-18` (card architecture spike: catalog, one typed contract, each surface, proposed build cards); `FE-12` and `BE-28` build on its contract; `OPS-40` tells it |
+| F66 | For the hotkey panel and every surface: "really articulate the why behind us bringing in a custom architecture and view to all of these panels and going custom instead of standard Salesforce and Agentforce". The standard launcher "doesn't scale", "there's soft limits for how many characters", and "teams decelerate when trying to incorporate lightning cards into the responses"; "a note that we need to make sure we communicate to our teams", with "the architecture of the why", drawing on the limits section of the reference guide he sent | Where it lives: decision below. `BE-32` (measures the character ceiling and checks the standard launcher and cards against public docs); `OPS-41` (chapter 00, "Why custom", with the architecture of the why); `OPS-36` links it from the top of the README and from ARCHITECTURE.md; `OPS-40` and the other surface pages link it |
 
 ## Decisions the brain made (Ben may overrule)
 
@@ -149,6 +150,11 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
 - **The hotkey panel is the way in we lead with** (F61). The README and the pattern pages open with Cmd/Ctrl-K and the
   rail. Agentforce's own panel stays a supported door for orgs that use it, shown on each pattern page's See it, but
   not as the first step.
+- **"Why custom" lives in one page, chapter 00** (F66): docs/patterns/00-why-custom.md, the first chapter of the
+  workbook, so a team reads the why before any pattern. The README links it in its first screen ("Why not just the
+  standard chat?"), ARCHITECTURE.md links it, and each surface page (03, the rail, the embedded surface) links it from
+  its business problem. Its numbers come from `BE-32`'s measurements and public docs, not from the reference guide,
+  which is never named.
 - **OPS-28** (README run in a new org) waits for the FR2 README pass, so it tests the README people will use.
 - **If `BE-21` says NO-GO** (labels only), API names stay `Account_Brief` / `AccountBrief` / `accountBrief`. About a
   dozen later cards name the new API names in their scope (the panel folder, the session object, the permission sets,
@@ -176,12 +182,13 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
 ## Order
 
 1. Done: `BE-20` (merged). On Ben's word, before any build: the plan review `OPS-37`.
-2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`, and the explorer discovery `BE-31`. After `OPS-29`, the
+2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`, the explorer discovery `BE-31`, and the
+   standard-chat measurements `BE-32`. After `OPS-29`, the
    card architecture spike `FE-18` and the panel discovery `FE-17` (docs only).
 3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
 4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`, `BE-30`.
 5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one
    publish) after `BE-27`.
-6. Close: `OPS-32`, the chapter cards (`OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03),
+6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03),
    `OPS-35`, `OPS-36`, then OPS-28.
 7. Parked: `OPS-33`, `OPS-34`.
