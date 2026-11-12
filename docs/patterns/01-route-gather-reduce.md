@@ -109,8 +109,8 @@ sequenceDiagram
 
 - The brief is for one Account. Other objects need their own resolver and registry.
 - Section lines in a brief cannot be drilled yet. The section classes write no record Id into
-  their lines. The live run found this, and the fix is queued
-  ([e2e/README.md](../../e2e/README.md)).
+  their lines. The live Playwright run found this, and the fix is queued
+  ([FE-4 card](../../agents/tasks/FE-4-playwright-end-to-end-suite-for.md), [gtm-burn-plan.md](../../docs/plans/gtm-burn-plan.md)).
 - Open notes from the Apex hygiene pass: a query timeout in the resolver reads as NOT_FOUND, and a
   user without access to contact roles or event names loses the whole section, not one field.
 

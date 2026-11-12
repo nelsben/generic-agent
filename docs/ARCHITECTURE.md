@@ -193,5 +193,5 @@ Browser: `npm run test:e2e`.
 ## Outside callers
 
 Pattern page: [09 outside door (MCP)](patterns/09-outside-door-mcp.md). Designed, not built: a
-Salesforce Hosted MCP server exposing the three actions and the agent as tools, as the
-signed-in user.
+Salesforce Hosted MCP server exposing `AccountBriefResolver` and `AccountBriefGetAction` as tools,
+run as the signed-in user. `ExploreAction` and the agent as a tool come later.
