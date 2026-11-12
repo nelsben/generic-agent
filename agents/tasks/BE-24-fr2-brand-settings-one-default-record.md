@@ -1,0 +1,29 @@
+---
+id: BE-24
+title: FR2: brand settings — one Default record sets the agent name, company name, logo, colours and tone; the panel and the Apex prompts read it; a swap guide shows a seller what to change
+domain: backend
+tier: frontier
+tier_reason: new metadata type, Apex, prompt change, LWC theming, deploy and a before/after capture in one card
+status: blocked
+blocked_by: [OPS-30]
+fixes: []
+scope: [force-app/main/default/objects/Brand_Setting__mdt/**, force-app/main/default/customMetadata/**, force-app/main/default/classes/BrandSettings*.cls, force-app/main/default/classes/BrandSettings*.cls-meta.xml, force-app/main/default/classes/CustomerSummary*.cls, force-app/main/default/classes/DataExplorer*.cls, force-app/main/default/staticresources/BrandLogo*, force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/patterns/10-brand-and-theming.md, docs/assets/brand-swap-*.png, docs/assets/MANIFEST.md, e2e/**, tests/**]
+forbid: [force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
+resources: [org-live]
+red_test: new BrandSettingsTest and the new Jest tests for the brand variables and the agent name fail on main and pass after
+gate: test, jest, org
+budget: 2-attempts
+spend: 25
+---
+## Why
+
+Feature revision 2 (FR2): a seller clones the repo and swaps the company name, agent name, logo, colours and tone for a prospect, and implementation teams pull in a prospect's styling easily. Nothing may hard-code a name, colour or font. Covers ledger rows F05, F06, F08 and F09 (tone in the agent itself is a later card) in docs/plans/feature-revision-2.md.
+
+## Done when
+
+- Read first: docs/plans/feature-revision-2.md, docs/plans/fr2-design.md (section 'Theming'), the customerSummaryPanel LWC and its CSS, the Apex that builds the summary synthesis and explorer prompts, and docs/patterns/04-model-provider-seam.md. Load the skills salesforce-development:platform-custom-metadata-type-generate, salesforce-development:platform-apex-generate, salesforce-development:platform-apex-test-generate, experience-lwc:experience-lwc-generate and salesforce-development:platform-metadata-deploy first
+- Metadata: a custom metadata type Brand_Setting__mdt with fields Agent_Name__c (default record value 'Customer Summary'), Company_Name__c (default 'Your Company'), Logo_Resource__c (a static resource name), Primary_Color__c, Accent_Color__c, Surface_Color__c, Ink_Color__c (hex values), Display_Font__c, Body_Font__c and Tone__c (long text, default: a short plain, warm, concise tone line). One record named Default. A neutral default logo static resource BrandLogo (an SVG with no company mark)
+- Apex: a BrandSettings class with one @AuraEnabled(cacheable=true) method returning the Default record as a small DTO, with safe fallbacks when a field is blank; tests with Assert.* cover the read and the fallbacks. Class access is granted in the Customer_Summary data-access permission set only. The summary synthesis and explorer prompts append one tone line from Tone__c; no other prompt text changes; tests assert the tone line is present
+- LWC: the panel reads BrandSettings and sets the fr2-design.md CSS variables (--cs-color-primary, --cs-color-accent, --cs-color-surface, --cs-color-ink, --cs-font-display, --cs-font-body, --cs-radius) as inline custom properties on its host; its stylesheet reads only those variables with neutral fallbacks; every visible use of the agent name comes from Agent_Name__c (the utility item label stays a static label and the swap guide says how to change it). No layout change. Jest covers the variables and the name, with zero accessibility violations
+- Swap guide: docs/patterns/10-brand-and-theming.md explains, in seller language, the exact file to edit (the Default record) or the Setup path, each field, how to swap the logo resource and the utility item label, how to redeploy, and what tone changes and does not change yet (the agent's own instructions follow in a later card). Include a before and after screenshot pair (docs/assets/brand-swap-before.png and docs/assets/brand-swap-after.png, using a made-up company such as 'Northwind Health'), captured with the e2e/capture kit, read by eye, with MANIFEST.md rows; the 'after' state is restored to Default in the org when done
+- Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1; npm run test:e2e still passes in full. Never publish or activate an agent, never sign in or out, never create a user, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames in any file or image. No tests/__pycache__, and git status --short is empty after the commit

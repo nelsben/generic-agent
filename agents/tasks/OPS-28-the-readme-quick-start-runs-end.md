@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: a new org created and driven end to end through deploy, publish, activate, access and e2e with judgement on each deviati
 status: blocked
-blocked_by: [BE-19]
+blocked_by: [OPS-36]
 scope: [config/project-scratch-def.json, README.md, docs/research/fresh-org-run.md, docs/research/org-migration.md, e2e/README.md]
 forbid: [force-app/**, mcp-door/**, scripts/**, data/**, tests/**, e2e/panel.spec.js, e2e/support/**, e2e/capture/**, docs/assets/**, docs/patterns/**, docs/plans/**, agents/**, .chassis-delegation.json, reference/**, sfdx-project.json]
 resources: [org-live]
@@ -14,6 +14,10 @@ gate: test
 budget: 2-attempts
 spend: 30
 ---
+## Waits for the FR2 README (2026-11-12)
+
+Re-blocked on OPS-36 so the new-org run tests the README people will actually use after feature revision 2. Every Account Brief name in this card reads as its Customer Summary name after BE-23.
+
 ## Why
 
 The README's clean-install row says "Not fully proven": main was stood up in agent-probe, but the README steps as written were never run end to end in a new org. Ben approved a scratch org from my-devhub now, and later a Developer Edition org he signs up for. A reader who copies the steps must land on a working panel and agent, and a reader with a Dev Hub should get a scratch-org path.

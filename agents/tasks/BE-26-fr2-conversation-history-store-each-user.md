@@ -1,0 +1,28 @@
+---
+id: BE-26
+title: FR2: conversation history — store each user's turns per account on the renamed session object, list past sessions for an account, and reopen one; visibility own-only until Ben decides
+domain: backend
+tier: frontier
+tier_reason: changes a live object and the memory path every surface uses; a sharing decision sits inside it
+status: blocked
+blocked_by: [OPS-30]
+fixes: []
+scope: [force-app/main/default/objects/Customer_Summary_Session__c/**, force-app/main/default/classes/CustomerSummaryHistory*.cls, force-app/main/default/classes/CustomerSummaryHistory*.cls-meta.xml, force-app/main/default/classes/CustomerSummaryMemory*.cls, force-app/main/default/classes/CustomerSummaryMemory*.cls-meta.xml, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/patterns/05-conversation-memory.md]
+forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
+resources: [org-live]
+red_test: new CustomerSummaryHistoryTest fails on main (the class does not exist) and passes after
+gate: test, jest, org
+budget: 2-attempts
+spend: 15
+---
+## Why
+
+Feature revision 2 (FR2): every surface keeps conversation history, and the rail "show[s] that this customer has had this interaction through history". Who may see another rep's history is open (Q7); the default is own-only, built so a later setting can widen it. Covers ledger rows F19 (history) and F32 in docs/plans/feature-revision-2.md.
+
+## Done when
+
+- Read first: docs/plans/feature-revision-2.md, docs/plans/fr2-design.md, docs/patterns/05-conversation-memory.md, the session object (Customer_Summary_Session__c after BE-23) and CustomerSummaryMemory. Load the skills salesforce-development:platform-custom-field-generate, salesforce-development:platform-apex-generate, salesforce-development:platform-apex-test-generate and salesforce-development:platform-metadata-deploy first
+- Extend the existing session object rather than adding a new one: each session belongs to one user and one account, has a title (the first question, trimmed to 80 characters), a started and last-active time, a turn count and the turns JSON the memory class already keeps (keep its ring-buffer limit; say in the doc what it is). Add only the fields that are missing; keep the field-level security in the Customer_Summary data-access permission set
+- Apex: CustomerSummaryHistory with @AuraEnabled methods listSessions(Id accountId, Integer limitSize) (newest first, default 10, max 50; title, last active, turn count, no turns) and getSession(Id sessionId) (turns in order). Both run in user mode and return only the running user's sessions (OwnerId = current user) by default; the filter sits in one place with a comment naming F32 so a later brand or permission setting can widen it. The existing memory path keeps working: a new question continues the current session within its timeout, otherwise it starts a new one
+- Tests with Assert.* cover listing order and limits, the own-only filter (runAs a second user created in the test sees none of the first user's sessions), reopening a session, the session timeout starting a new session, and an account with no sessions
+- Update docs/patterns/05-conversation-memory.md for history: what is stored, for how long, who can see it and why (own-only; open question F32), and the governor cost. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never create a user in the org, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
