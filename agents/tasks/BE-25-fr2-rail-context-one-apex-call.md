@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: user-mode reads across six objects with a live deploy and timing in a production-classified org
 status: blocked
-blocked_by: [OPS-30]
+blocked_by: [OPS-30, BE-37]
 fixes: []
 scope: [force-app/main/default/classes/CustomerSummaryContext*.cls, force-app/main/default/classes/CustomerSummaryContext*.cls-meta.xml, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/research/fr2-rail-context.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -21,7 +21,7 @@ Feature revision 2 (FR2): the large right rail shows prefetched context so a sel
 
 ## Done when
 
-- Read first: docs/plans/feature-revision-2.md, docs/plans/fr2-design.md, docs/patterns/01-route-gather-reduce.md, docs/patterns/07-trust-access-and-failure.md and the CustomerSummary*Section classes (open deals, activity, calls, cases), CustomerSummaryMemory and the session object. Load the skills salesforce-development:platform-apex-generate, salesforce-development:platform-apex-test-generate, salesforce-development:platform-soql-query and salesforce-development:platform-metadata-deploy first
+- Read first: docs/plans/feature-revision-2.md, docs/plans/fr2-design.md, docs/patterns/01-route-gather-reduce.md, docs/patterns/07-trust-access-and-failure.md (and principle 5 in docs/plans/fr2-design.md) and the CustomerSummary*Section classes (open deals, activity, calls, cases), CustomerSummaryMemory and the session object. Load the skills salesforce-development:platform-apex-generate, salesforce-development:platform-apex-test-generate, salesforce-development:platform-soql-query and salesforce-development:platform-metadata-deploy first
 - Apex: a CustomerSummaryContext class with one @AuraEnabled(cacheable=true) method getContext(Id accountId) returning a DTO with: openDeals (name, stage, amount, close date, up to 5, soonest close first), recentActivity (up to 10 newest across Tasks, Events, EmailMessage on the account and its contacts, call Tasks, and CaseComments on the account's cases; each with kind, subject or a 140-character excerpt, date and who), openCases (number, subject, status, priority, up to 5), and lastSummary (date and the first lines of the newest stored summary, or none). Reuse the existing section queries where they fit rather than writing new ones
 - Every query runs in user mode (WITH USER_MODE or AccessLevel.USER_MODE), so a user sees only what they can already see; a missing object or field (for example no EmailMessage access) leaves that list empty instead of failing. No record Ids are shown to people, but the DTO keeps Ids so the rail can open records. One call stays within 8 SOQL queries
 - Tests with Assert.* cover each list, ordering and limits, the empty account, an account with no access (runAs a minimum-access user created in the test), and the missing-object path. Class access goes in the Customer_Summary data-access permission set only

@@ -35,6 +35,15 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
    rep saves is a customer outcome: stored against the account, not inside one agent or one conversation, visible to
    whoever can see the account, kept for as long as its type says, and fed back as context the next time anyone opens
    a conversation on that account. `BE-35` builds the store (F75 to F79).
+5. **It sees what the rep sees.** Every door (the compact window, the rail, MCP and the optional agent) runs as the
+   signed-in user: every Apex class is `with sharing`, and every read of CRM data is in user mode, so object, field and
+   record access all apply. System context is used only where the product keeps its own records, and each use is named
+   in the code with its reason and checked by a test (`BE-37`): the conversation history (a rep's own rows, with access
+   to the account re-checked on read, `BE-26`), the text of customer outcomes (reps get no field access to it; the
+   outcome service returns it only to its author or for a type marked to share, `BE-35`), the outcome purge job, and
+   the product's own prompt files if a rep cannot read them in user mode (`BE-33`). Failures read as one plain
+   sentence that says what to do next, never raw error text. Granting access is one permission set group, an
+   implementation step in the quick start, not a chapter (F85 to F87).
 
 ## Surfaces
 
@@ -134,9 +143,10 @@ From Ben's notes on pattern 01 (F45, F53). Every pattern page follows it.
 2. **The business problem:** who has it, what it costs them today, and what changes. Plain words, no class names.
 3. **The architecture in a few steps:** three to five numbered steps a non-developer can follow, before any detail.
 4. **How it works:** the sequence diagram, then the steps in detail, each matching a diagram number.
-5. **See it:** a capture on each surface where the pattern runs (compact window, rail, Agentforce's panel; the MCP
-   door as a client transcript), a GIF where something moves, and alt text on each (F57).
-6. **Why you can trust it** and **how it scales**, each claim linked to a test, a review or a recorded run.
+5. **See it:** a capture on each surface where the pattern runs (compact window, rail; the MCP door as a client
+   transcript), a GIF where something moves, and alt text on each (F57).
+6. **Why you can trust it** and **how it scales**, each claim linked to a test, a review or a recorded run. The trust
+   part says what runs as the user and names any system-context use, per principle 5 (F87).
 7. **Adopt it** for a builder.
 8. **Limits and open items**, each linked to the card that owns it, or marked "no card yet".
 
