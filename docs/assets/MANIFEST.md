@@ -15,9 +15,9 @@ script is active.
 
 | File | What it must show | Used by | Status | Pixel size | File size |
 |---|---|---|---|---|---|
-| `brief-flow.gif` | Press Cmd/Ctrl-K, type "/brief Edge Communications", and the headline and sections arrive | [README](../../README.md), [01](../patterns/01-route-gather-reduce.md) | captured | 760x750 | 2.16 MB (14.2 s) |
+| `brief-flow.gif` | The panel opens, "/brief Edge Communications" is sent, the opening summary and then the section rows arrive | [README](../../README.md), [01](../patterns/01-route-gather-reduce.md) | captured | 760x750 | 2.16 MB (14.2 s) |
 | `panel-brief.png` | A finished brief with its sections collapsed | [01](../patterns/01-route-gather-reduce.md) | captured | 1520x1500 | 194 KB |
-| `explore-answer.png` | An org-wide question answered with a result table | [02](../patterns/02-ask-anything-explorer.md) | captured | 1520x1500 | 189 KB |
+| `explore-answer.png` | The result table for an org-wide question | [02](../patterns/02-ask-anything-explorer.md) | captured | 1520x1500 | 189 KB |
 | `explore-drill.gif` | Click a result row, the drill view opens, the breadcrumb goes back | [02](../patterns/02-ask-anything-explorer.md) | captured | 760x750 | 892 KB (7.7 s) |
 | `drill-view.png` | The drill view of one record | [02](../patterns/02-ask-anything-explorer.md) | captured | 1520x1500 | 194 KB |
 | `hotkey-open.gif` | Cmd/Ctrl-K opens the panel with the composer focused, and Esc closes it | [03](../patterns/03-hotkey-panel.md) | captured | 760x750 | 1.19 MB (8.4 s) |

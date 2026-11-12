@@ -65,9 +65,9 @@ sequenceDiagram
 
 ## See it
 
-![The panel showing the fixed NOT_FOUND line for an account name that matches nothing](../assets/not-found.png)
+![The panel after "/brief Zephyr Quartz Holdings": "No account matches" that name, with "Try the full name or open the account and ask again."](../assets/not-found.png)
 
-![The panel showing the AMBIGUOUS reply: "Several accounts match", then one candidate button per account with its city](../assets/ambiguous.png)
+![The panel after "/brief United Oil": "Several accounts match "United Oil". Which one?", then three candidate buttons, each with its city or "no city"](../assets/ambiguous.png)
 
 ## Why you can trust it
 

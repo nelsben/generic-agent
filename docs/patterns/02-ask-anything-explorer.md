@@ -65,11 +65,11 @@ sequenceDiagram
 
 ## See it
 
-![The panel answering an org-wide question: a one-line answer, a result table, the "Ran 1 query" trail and follow-up chips](../assets/explore-answer.png)
+![An explorer result in the panel: the table caption "Opportunity · 5 of 36 rows", the Name, Amount and StageName headers, and the top rows, each name a drill button](../assets/explore-answer.png)
 
-![Clicking a result row opens the drill view for that record, then the breadcrumb returns to the table](../assets/explore-drill.gif)
+![An Opportunity result table, then the drill view of one row under a "Conversation" breadcrumb, then the table again](../assets/explore-drill.gif)
 
-![The drill view of one record: its fields, related-object buttons and a View record link](../assets/drill-view.png)
+![The drill view of one Opportunity: the "Conversation" breadcrumb, the record name as a heading, and its first field, Name](../assets/drill-view.png)
 
 ## Why you can trust it
 
