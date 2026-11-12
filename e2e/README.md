@@ -137,8 +137,10 @@ starting on a settled frame. `brief-flow.gif` cuts most of the spinner wait betw
 answer. `panel-brief.png` frames the brief's question at the top of the scroll box, and the run
 fails if the headline and the first two section headers are not all inside it. `explore-answer.png`
 frames the question the same way, and the run fails if the table's header row is not inside it.
-Its question ends "Answer in one sentence." because the explorer otherwise tends to list every row
-in its text, which pushed the header row about 180 px below a 273 px scroll box.
+Its question is the plain "Which 5 open opportunities have the largest amounts?". Rule 9 of
+`AgentPrompt_Explore` keeps the answer to a short lead and leaves the rows to the table; before that
+rule (BE-17), the answer listed every row and the header row needed 470 px of a 273 px scroll box
+([explore-prompt-1.md](../docs/research/explore-prompt-1.md)).
 Raw videos stay in `test-results/capture/raw/` (gitignored). One frame per second of each
 GIF, and its last frame, are written outside the repo for review (`$TMPDIR/abp-capture-frames/`,
 or `CAPTURE_FRAMES_DIR`).
