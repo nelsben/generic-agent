@@ -249,6 +249,57 @@ private class AccountBriefPanelControllerTest {
         }
     }
 
+    /** Scripted agent for askAgent: one reply per call, records what the panel sent. */
+    private class AgentStub implements AccountBriefAgentClient.Transport {
+        List<String> messages = new List<String>();
+        List<String> sessions = new List<String>();
+
+        public Map<String, Object> send(String userMessage, String sessionId) {
+            messages.add(userMessage);
+            sessions.add(sessionId);
+            return new Map<String, Object>{
+                'agentResponse' => JSON.serialize(new Map<String, Object>{ 'type' => 'Text', 'value' => 'Agent reply ' + messages.size() + '.' }),
+                'sessionId' => 'panel-session-1'
+            };
+        }
+    }
+
+    @IsTest
+    static void askAgentSendsTheOpenRecordAndReturnsTheReplyAndSession() {
+        Account a = acme();
+        AgentStub agent = new AgentStub();
+        AccountBriefAgentClient.transport = agent;
+
+        Test.startTest();
+        AccountBriefAgentClient.Reply first = AccountBriefPanelController.askAgent('What are the open deals at this account?', null, a.Id);
+        AccountBriefAgentClient.Reply second = AccountBriefPanelController.askAgent('What about their open cases?', first.sessionId, null);
+        Test.stopTest();
+
+        Assert.areEqual('Agent reply 1.', first.text);
+        Assert.areEqual('panel-session-1', first.sessionId);
+        Assert.isFalse(first.failed);
+        Assert.areEqual('What are the open deals at this account?\n\nThe record I have open is ' + a.Id + '.', agent.messages[0]);
+        Assert.isNull(agent.sessions[0]);
+        Assert.areEqual('What about their open cases?', agent.messages[1]);
+        Assert.areEqual('panel-session-1', agent.sessions[1]);
+        Assert.areEqual('Agent reply 2.', second.text);
+        wire(first, new List<String>{ 'text', 'sessionId', 'failed' });
+    }
+
+    @IsTest
+    static void askAgentTurnsAnUnexpectedExceptionIntoTheAgentFailureText() {
+        AccountBriefAgentClient.transport = new AgentStub();
+        AccountBriefPanelController.failure = new PanelTestException('raw platform text');
+
+        Test.startTest();
+        AccountBriefAgentClient.Reply r = AccountBriefPanelController.askAgent('Hello', null, null);
+        Test.stopTest();
+
+        Assert.areEqual('The agent could not answer right now. Try again in a minute.', r.text);
+        Assert.isTrue(r.failed);
+        Assert.isNull(r.sessionId);
+    }
+
     @IsTest
     static void drillTurnsEveryExceptionIntoTheFixedText() {
         Account a = acme();

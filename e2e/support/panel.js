@@ -175,6 +175,27 @@ class Panel {
         );
     }
 
+    /**
+     * A promise for one AccountBriefPanelController call: the params the panel sent and the value
+     * Apex returned, parsed from the Aura request and response in memory. Callers compare them
+     * with booleans only, so no Id, session or reply text reaches an assertion message.
+     */
+    async apexCall(method, timeout = ANSWER_TIMEOUT) {
+        const response = await this.apexResponse(method, timeout);
+        const message = new URLSearchParams(response.request().postData() || '').get('message') || '{}';
+        const action = (JSON.parse(message).actions || []).find(
+            (a) => a.params && a.params.classname === 'AccountBriefPanelController' && a.params.method === method
+        );
+        const body = await response.text();
+        const parsed = JSON.parse(body.slice(body.indexOf('{')));
+        const returned = (parsed.actions || []).find((a) => action && a.id === action.id) || {};
+        let value = returned.returnValue;
+        if (value && Object.prototype.hasOwnProperty.call(value, 'returnValue')) {
+            value = value.returnValue;
+        }
+        return { params: (action && action.params.params) || {}, state: returned.state, value: value || null };
+    }
+
     /** Lets the page run the callbacks of a response that just arrived, and render: two frames. */
     async settle() {
         for (let i = 0; i < 2; i += 1) {

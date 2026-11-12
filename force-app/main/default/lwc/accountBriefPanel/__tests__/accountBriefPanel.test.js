@@ -10,6 +10,8 @@ import drill from '@salesforce/apex/AccountBriefPanelController.drill';
 import history from '@salesforce/apex/AccountBriefPanelController.history';
 import sources from '@salesforce/apex/AccountBriefPanelController.sources';
 import agentId from '@salesforce/apex/AccountBriefPanelController.agentId';
+import askAgent from '@salesforce/apex/AccountBriefPanelController.askAgent';
+import { open as openAgent, execute as executeAgent } from 'lightning/accApi';
 
 const mockNavigate = jest.fn();
 
@@ -31,6 +33,7 @@ jest.mock('@salesforce/apex/AccountBriefPanelController.getBrief', () => ({ defa
 jest.mock('@salesforce/apex/AccountBriefPanelController.explore', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/AccountBriefPanelController.drill', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/AccountBriefPanelController.history', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/AccountBriefPanelController.askAgent', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock(
     '@salesforce/apex/AccountBriefPanelController.sources',
     () => {
@@ -50,6 +53,8 @@ jest.mock(
 jest.mock('@salesforce/messageChannel/AccountBriefOpen__c', () => ({ default: 'AccountBriefOpen__c' }), { virtual: true });
 
 const FIXED_ERROR = "I couldn't finish that right now. Try again in a minute.";
+const AGENT_FAILURE = 'The agent could not answer right now. Try again in a minute.';
+const BOT = '0Xx000000000001AAA';
 const ACME = '001000000000001AAA';
 const BETA = '001000000000002AAA';
 const DEAL = '006000000000001AAA';
@@ -157,6 +162,7 @@ describe('c-account-brief-panel', () => {
         explore.mockReset();
         drill.mockReset();
         history.mockReset();
+        askAgent.mockReset();
     });
 
     // 1 (card finding 2): one request path, the latest request wins.
@@ -881,6 +887,183 @@ describe('c-account-brief-panel', () => {
             expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
             const turns = $$(el, '.abp-turn');
             expect(Element.prototype.scrollIntoView.mock.instances.pop()).toBe(turns[turns.length - 1]);
+        });
+    });
+
+    // BE-19: Ask the agent calls the registered agent through Apex; no hand-off to the built-in panel.
+    describe('ask the agent', () => {
+        function agentReply(text, sessionId) {
+            return { text, sessionId, failed: false };
+        }
+
+        async function mountOnAccount(id) {
+            resolve.mockResolvedValue({ status: 'RESOLVED', accountId: id, accountName: id === ACME ? 'Acme' : 'Beta' });
+            const el = await mount();
+            agentId.emit(BOT);
+            CurrentPageReference.emit(ACCOUNT_PAGE(id));
+            await flush();
+            return el;
+        }
+
+        async function askTheAgent(el, question) {
+            composer(el).dispatchEvent(new CustomEvent('change', { detail: { value: question } }));
+            await flush();
+            $(el, 'lightning-button.abp-agent').click();
+        }
+
+        it('sends the composer text with the open record, shows the typed question and the reply, and never opens the built-in panel', async () => {
+            const slow = deferred();
+            askAgent.mockReturnValueOnce(slow.promise);
+            const el = await mountOnAccount(ACME);
+
+            await askTheAgent(el, 'What are the open deals at this account?');
+            await flush();
+            expect(askAgent).toHaveBeenCalledWith({ message: 'What are the open deals at this account?', sessionId: null, contextRecordId: ACME });
+            expect(openAgent).not.toHaveBeenCalled();
+            expect(executeAgent).not.toHaveBeenCalled();
+            // The wait is announced and shown.
+            expect($(el, '[data-testid="abp-live-region"]').textContent).toBe('Asking the agent');
+            expect($(el, '[data-testid="abp-spinner"]')).not.toBeNull();
+            expect(composer(el).value).toBe('');
+
+            slow.resolve(agentReply('Five open deals.\nTwo are overdue.', 's1'));
+            await flush();
+            const turn = $$(el, '.abp-turn').pop();
+            expect(turn.querySelector('.abp-question').textContent).toBe('What are the open deals at this account?');
+            expect(turn.querySelector('.abp-pre').textContent).toBe('Five open deals.\nTwo are overdue.');
+            expect(turn.textContent).not.toContain(ACME);
+            expect($(el, '[data-testid="abp-live-region"]').textContent).toBe('Agent replied');
+            expect($(el, '[data-testid="abp-spinner"]')).toBeNull();
+            expect(explore).not.toHaveBeenCalled();
+        });
+
+        it('reuses the agent session for a follow-up, without the record again', async () => {
+            askAgent.mockResolvedValueOnce(agentReply('Five open deals.', 's1')).mockResolvedValueOnce(agentReply('Five open cases.', 's1'));
+            const el = await mountOnAccount(ACME);
+
+            await askTheAgent(el, 'What are the open deals at this account?');
+            await flush();
+            await askTheAgent(el, 'What about their open cases?');
+            await flush();
+
+            expect(askAgent).toHaveBeenNthCalledWith(2, { message: 'What about their open cases?', sessionId: 's1', contextRecordId: null });
+            expect(text(el)).toContain('Five open deals.');
+            expect(text(el)).toContain('Five open cases.');
+        });
+
+        it('starts a new agent session for a new account', async () => {
+            askAgent.mockResolvedValueOnce(agentReply('Acme deals.', 's1')).mockResolvedValueOnce(agentReply('Beta deals.', 's2'));
+            const el = await mountOnAccount(ACME);
+            await askTheAgent(el, 'Open deals?');
+            await flush();
+
+            CurrentPageReference.emit(ACCOUNT_PAGE(BETA));
+            await flush();
+            await askTheAgent(el, 'Open deals?');
+            await flush();
+
+            expect(askAgent).toHaveBeenNthCalledWith(2, { message: 'Open deals?', sessionId: null, contextRecordId: BETA });
+        });
+
+        it('starts a new agent session in a new panel session', async () => {
+            askAgent.mockResolvedValue(agentReply('Reply.', 's1'));
+            const first = await mountOnAccount(ACME);
+            await askTheAgent(first, 'Open deals?');
+            await flush();
+            document.body.removeChild(first);
+
+            const second = await mountOnAccount(ACME);
+            await askTheAgent(second, 'Open deals?');
+            await flush();
+
+            expect(askAgent).toHaveBeenNthCalledWith(2, { message: 'Open deals?', sessionId: null, contextRecordId: ACME });
+        });
+
+        it('does not keep the session of a reply that lands after the account changed', async () => {
+            const slow = deferred();
+            askAgent.mockReturnValueOnce(slow.promise).mockResolvedValueOnce(agentReply('Beta deals.', 's2'));
+            const el = await mountOnAccount(ACME);
+            await askTheAgent(el, 'Open deals?');
+            await flush();
+
+            CurrentPageReference.emit(ACCOUNT_PAGE(BETA));
+            await flush();
+            slow.resolve(agentReply('Acme deals.', 's1'));
+            await flush();
+            await askTheAgent(el, 'Open deals?');
+            await flush();
+
+            expect(askAgent).toHaveBeenNthCalledWith(2, { message: 'Open deals?', sessionId: null, contextRecordId: BETA });
+        });
+
+        it('shows only the fixed agent failure text when Apex rejects, whatever the error says', async () => {
+            askAgent.mockRejectedValueOnce({ body: { message: FIXED_ERROR } });
+            const el = await mountOnAccount(ACME);
+            await askTheAgent(el, 'Open deals?');
+            await flush();
+
+            expect($(el, '[data-error="true"]').textContent).toBe(AGENT_FAILURE);
+            expect(text(el)).not.toContain(FIXED_ERROR);
+            expect($(el, '[role="alert"]')).toBeNull();
+            expect($(el, '[data-testid="abp-live-region"]').textContent).toBe(AGENT_FAILURE);
+        });
+
+        it('shows only the fixed agent failure text for a failed reply, and keeps the session for the next try', async () => {
+            askAgent
+                .mockResolvedValueOnce(agentReply('Five open deals.', 's1'))
+                .mockResolvedValueOnce({ text: 'some other text', sessionId: null, failed: true })
+                .mockResolvedValueOnce(agentReply('Five open cases.', 's1'));
+            const el = await mountOnAccount(ACME);
+            await askTheAgent(el, 'Open deals?');
+            await flush();
+            await askTheAgent(el, 'Open cases?');
+            await flush();
+
+            expect($(el, '[data-error="true"]').textContent).toBe(AGENT_FAILURE);
+            expect(text(el)).not.toContain('some other text');
+
+            await askTheAgent(el, 'Open cases?');
+            await flush();
+            expect(askAgent).toHaveBeenNthCalledWith(3, { message: 'Open cases?', sessionId: 's1', contextRecordId: null });
+        });
+
+        it('drops an agent reply that a later request superseded (latest wins)', async () => {
+            const slow = deferred();
+            askAgent.mockReturnValueOnce(slow.promise);
+            explore.mockResolvedValueOnce(exploreResult('Explorer answer.'));
+            const el = await mountOnAccount(ACME);
+            await askTheAgent(el, 'Open deals?');
+            await flush();
+            expect(askAgent).toHaveBeenCalledTimes(1);
+            await ask(el, 'something else');
+            await flush();
+
+            slow.resolve(agentReply('Late agent reply.', 's1'));
+            await flush();
+
+            expect(text(el)).toContain('Explorer answer.');
+            expect(text(el)).not.toContain('Late agent reply.');
+            expect($(el, '[data-testid="abp-live-region"]').textContent).toBe('Answer ready');
+        });
+
+        it('is disabled until there is text to send', async () => {
+            const el = await mountOnAccount(ACME);
+            expect($(el, 'lightning-button.abp-agent').disabled).toBe(true);
+            composer(el).dispatchEvent(new CustomEvent('change', { detail: { value: 'Open deals?' } }));
+            await flush();
+            expect($(el, 'lightning-button.abp-agent').disabled).toBe(false);
+        });
+
+        it('is accessible with an agent reply and with the failure text', async () => {
+            askAgent.mockResolvedValueOnce(agentReply('Five open deals.', 's1')).mockRejectedValueOnce(new Error('x'));
+            const el = await mountOnAccount(ACME);
+            await askTheAgent(el, 'Open deals?');
+            await flush();
+            await askTheAgent(el, 'Open cases?');
+            await flush();
+            expect(text(el)).toContain('Five open deals.');
+            expect($(el, '[data-error="true"]').textContent).toBe(AGENT_FAILURE);
+            await expect(el).toBeAccessible();
         });
     });
 

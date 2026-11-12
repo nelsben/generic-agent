@@ -4,6 +4,7 @@
  * One engine, two front ends: every method delegates to the same classes the agent's actions
  * call (AccountBriefResolver, AccountBrief, AccountBriefMemory, DataExplorer). Nothing here
  * calls a model, writes prose or adds visibility: it runs with sharing and passes through.
+ * askAgent is the one door to the registered agent itself (AccountBriefAgentClient).
  * Engine failures that carry user-facing text come back as AuraHandledException with that text.
  * Anything unexpected is logged and comes back as AuraHandledException with ERROR_TEXT, the fixed
  * line the engine uses for ERROR: raw exception text never reaches the panel.
@@ -96,6 +97,24 @@ public with sharing class AccountBriefPanelController {
             return AccountBrief.sources();
         } catch (Exception e) {
             throw unexpected('sources', e);
+        }
+    }
+
+    /**
+     * Ask the agent: one user message to the registered Account_Brief agent, through
+     * AccountBriefAgentClient. sessionId continues an earlier turn's agent session; contextRecordId
+     * is the record the user has open (the panel sends it on a session's first turn only). Never
+     * throws: any failure comes back as AccountBriefAgentClient.FAILURE_TEXT with failed = true.
+     * Not cacheable: every call is a new agent turn.
+     */
+    @AuraEnabled
+    public static AccountBriefAgentClient.Reply askAgent(String message, String sessionId, Id contextRecordId) {
+        try {
+            failIfInjected();
+            return AccountBriefAgentClient.ask(message, sessionId, contextRecordId);
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'AccountBriefPanelController.askAgent: ' + e.getTypeName() + ': ' + e.getMessage());
+            return AccountBriefAgentClient.failure();
         }
     }
 
