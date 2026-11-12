@@ -4,8 +4,7 @@ title: Apex engine re-review: brief, sections, memory, model seam, explorer, per
 domain: ops
 tier: frontier
 tier_reason: architecture judgement across security, limits and adoption; cited as GTM evidence
-status: blocked
-blocked_by: [FE-6]
+status: queued
 scope: [docs/reviews/apex-review-2.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
 red_test: none

@@ -4,8 +4,7 @@ title: Deploy main to experimental and prove it: Apex tests green and the Playwr
 domain: ops
 tier: standard
 tier_reason: a scripted deploy and a test run with clear stop conditions
-status: blocked
-blocked_by: [FE-6]
+status: queued
 fixes: []
 scope: [docs/research/deploy-verify.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
