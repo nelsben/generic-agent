@@ -76,10 +76,10 @@ signed in to it, and at least one Account with some contacts, deals and cases.
    sf org assign permset -o <org-alias> -n Account_Brief_User
    ```
 
-   `CopilotSalesforceUser` is the name `agent-review-2.md` cites; the org-migration run did not
-   confirm it, so check it exists in your org (Setup, Permission Sets) before assigning it. Not yet
-   proven: use by a non-admin user (FE-5 is parked until Ben creates the end user). Assigning only
-   one of the two custom sets can make every agent turn fail, so assign the group, not the sets.
+   `CopilotSalesforceUser` is the name the [agent re-review](docs/reviews/agent-review-2.md) cites;
+   the org-migration run did not confirm it, so check it exists in your org (Setup, Permission Sets)
+   before assigning it. Assigning only one of the two custom sets can make every agent turn fail, so
+   assign the group, not the sets. Not yet proven: use by a non-admin user.
 
 3. Open the org with `sf org open -o <org-alias>` and pick **Account Brief** in the App Launcher.
 4. Press **Cmd-K** on a Mac or **Ctrl-K** elsewhere. Type `/brief <account name>` and press Enter.
