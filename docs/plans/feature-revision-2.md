@@ -118,6 +118,18 @@ Ben's notes on [02-ask-anything-explorer.md](../patterns/02-ask-anything-explore
 | F58 | "tackle limits and open items as our follow-up to this set of this feature, as especially as we expand it into more capability" | `BE-30` (Apex N4: the agent keeps tables read before a model failure; panel N1: drill headers as labels), `FE-12` (panel N3: show when a question is tied to the summarized account), `BE-28` (agent N3: follow-ups carry the question before; agent N6: table relay proven), `BE-31` (OR filters, deeper parent paths, long-text filters, model calls per question, catalog size); the non-admin run stays with `FE-5` |
 | F59 | "make sure cards are cut for that discovery" | `BE-31` (discovery spike; it proposes the build cards, and the brain cuts them) |
 
+### Chapter notes: pattern 03, hotkey panel
+
+Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
+
+| # | Feedback | Status |
+|---|----------|--------|
+| F60 | "being able to snap in, hide, display different chats brings us a level of visibility that that might not actually exist there today" | Direction kept: `FE-13` (launcher, minimize, expand), `FE-12` and `BE-26` (switching between past chats), `FE-15` (the rail); `OPS-40` tells it as the business outcome |
+| F61 | "I don't think anybody is dying to use the Astro button, so that makes sense" | Decision below: the hotkey panel is the way in we lead with; Agentforce's own panel stays a supported door. `OPS-40`, `OPS-36` |
+| F62 | "make sure limits and open items are covered" | `FE-12` (row 6: one Tab stop per result list; N5: drill-line target size; N9: Esc during IME composition), `FE-13` (N4: Esc returns focus from any starting point; 14f: the app's brand block), `FE-16` (both hotkey branches, the dark theme and its contrast, screen-reader output), `FE-5` (the non-admin run, "Ask the agent" included), `FE-17` (only in apps whose utility bar holds the panel; desktop only) |
+| F63 | "we might want to think about the hotkey panel and other items we should add later" | `FE-17` (discovery: what the panel could add later, ranked, with proposed cards; the brain cuts the ones Ben picks) |
+| F64 | "the how it works also needs auto number with numbered suggestions down below" | `OPS-40`; rule in [fr2-design.md](fr2-design.md#diagrams) |
+
 ## Decisions the brain made (Ben may overrule)
 
 - **Default agent name:** "Customer Summary". Internal API names become `Customer_Summary` / `CustomerSummary` /
@@ -133,6 +145,9 @@ Ben's notes on [02-ask-anything-explorer.md](../patterns/02-ask-anything-explore
 - **Every pattern page gets the same shape and diagram style** (F49, F53). Each chapter Ben comments on gets its own
   card, like `OPS-38` for pattern 01. Pages he has no notes on get the same treatment in one sweep card, cut after his
   last chapter note.
+- **The hotkey panel is the way in we lead with** (F61). The README and the pattern pages open with Cmd/Ctrl-K and the
+  rail. Agentforce's own panel stays a supported door for orgs that use it, shown on each pattern page's See it, but
+  not as the first step.
 - **OPS-28** (README run in a new org) waits for the FR2 README pass, so it tests the README people will use.
 - **If `BE-21` says NO-GO** (labels only), API names stay `Account_Brief` / `AccountBrief` / `accountBrief`. About a
   dozen later cards name the new API names in their scope (the panel folder, the session object, the permission sets,
@@ -152,15 +167,20 @@ Ben's notes on [02-ask-anything-explorer.md](../patterns/02-ask-anything-explore
   their own history.
 - Hold the MCP sign-in (runbook steps 9 and 10) until `OPS-31` lands, or it will be redone under the new name.
 - Try the microphone by hand in Chrome after `FE-12` lands. Automated browsers cannot speak to it.
+- Run the short VoiceOver script in docs/research/fr2-panel-proof.md after `FE-16` lands (about five minutes).
+  Automated browsers cannot hear a screen reader.
+- Pick from the list of later panel additions after `FE-17` lands. The brain cuts cards for the ones picked.
 - Say go for the spikes, and for `OPS-37`.
 
 ## Order
 
-1. Running: `BE-20`. On Ben's word, before any build: the plan review `OPS-37`.
-2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`, and the explorer discovery `BE-31`.
+1. Done: `BE-20` (merged). On Ben's word, before any build: the plan review `OPS-37`.
+2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`, and the explorer discovery `BE-31`. After `OPS-29`, the
+   panel discovery `FE-17` (docs only).
 3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
 4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`, `BE-30`.
-5. Surfaces: `FE-12`, then `FE-13`, then `FE-15`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one publish) after
-   `BE-27`.
-6. Close: `OPS-32`, the chapter cards (`OPS-38` for pattern 01, `OPS-39` for pattern 02), `OPS-35`, `OPS-36`, then OPS-28.
+5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one
+   publish) after `BE-27`.
+6. Close: `OPS-32`, the chapter cards (`OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03),
+   `OPS-35`, `OPS-36`, then OPS-28.
 7. Parked: `OPS-33`, `OPS-34`.

@@ -1,7 +1,7 @@
 # FR2 design brief: Customer Summary on three surfaces
 
 Read this before any `FR2:` card. The feedback it answers is in [feature-revision-2.md](feature-revision-2.md); row
-numbers (F01 to F43) point there. Where a card and this page disagree, the card wins and the worker says so.
+numbers (F01 onward) point there. Where a card and this page disagree, the card wins and the worker says so.
 
 ## The product
 

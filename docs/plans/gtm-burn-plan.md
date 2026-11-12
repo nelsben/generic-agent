@@ -72,7 +72,7 @@ approved skips it and reports. Only Ben changes a line; the brain records his an
 | Another explorer answer-length iteration in `agent-probe` | approved (Ben, 2026-11-12, in chat) |
 | Make the repo public | method chosen (Ben, 2026-11-12): a separate public snapshot repo built from one squashed commit after a whole-tree privacy pass; this repo's history is never rewritten. Each publish of the snapshot needs Ben's go |
 | Post on forcedotcom/cli issue 3634 | not approved; draft only |
-| Create the user `experimental-enduser` | Ben does this himself; FE-5 stays parked |
+| Create the user `agent-probe-enduser` (a Standard User in agent-probe with the user permission set group) | Ben does this himself; FE-5 stays parked |
 | Make the repo public | not approved |
 | Phase 2: migrate to the fresh Developer Edition org that publishes (deploy, publish, activate there), reusing the sibling session's existing CLI sign-in | approved (Ben, 2026-11-12, in chat: "your last step is to migrate to a fresh org where everything is working") |
 | Phase 2: cut and work new agent or design iteration cards in the new org; re-record screenshots where the brain judges it needed | approved (Ben, 2026-11-12, in chat) |
