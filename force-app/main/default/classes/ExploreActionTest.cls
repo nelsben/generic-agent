@@ -138,4 +138,58 @@ private class ExploreActionTest {
         Assert.isNull(dottedPath(seen), 'dotted path in the model preview: ' + seen);
         Assert.isTrue(seen.contains('Name | Account | Owner'), seen);
     }
+
+    @IsTest
+    static void withoutHistoryTheExplorerSeesNone() {
+        Script s = script(new List<String>{ '{"action":"answer","text":"There are 36 open opportunities.","followups":[]}' });
+        ExploreAction.Request req = request('How many open opportunities are there?', null);
+        req.history = '';
+
+        ExploreAction.explore(new List<ExploreAction.Request>{ req });
+
+        Assert.isTrue(s.prompts[0].contains('Earlier in this conversation:\n(none)\n'), s.prompts[0]);
+    }
+
+    @IsTest
+    static void historyFromOneTurnReachesTheNextTurnsPrompt() {
+        Script s = script(new List<String>{
+            '{"action":"answer","text":"There are 36 open opportunities.","followups":[]}',
+            '{"action":"answer","text":"Two close this quarter.","followups":[]}'
+        });
+
+        ExploreAction.Response first = ExploreAction.explore(new List<ExploreAction.Request>{
+            request('How many open opportunities are there?', null)
+        })[0];
+        ExploreAction.Request next = request('Which close this quarter?', null);
+        next.history = first.history;
+        ExploreAction.explore(new List<ExploreAction.Request>{ next });
+
+        Assert.isTrue(s.prompts[0].contains('Earlier in this conversation:\n(none)\n'), s.prompts[0]);
+        Assert.isTrue(
+            s.prompts[1].contains('Earlier in this conversation:\nQ: How many open opportunities are there?\nA: There are 36 open opportunities.\n'),
+            s.prompts[1]
+        );
+    }
+
+    @IsTest
+    static void historyOutputIsThisQuestionAndAnswerClipped() {
+        script(new List<String>{ '{"action":"answer","text":"' + 'w'.repeat(900) + '","followups":[]}' });
+
+        ExploreAction.Response res = ExploreAction.explore(new List<ExploreAction.Request>{ request('  Long one?  ', null) })[0];
+
+        List<Object> items = (List<Object>) JSON.deserializeUntyped(res.history);
+        Assert.areEqual(1, items.size(), res.history);
+        Map<String, Object> item = (Map<String, Object>) items[0];
+        Assert.areEqual('Long one?', item.get('question'));
+        String answer = (String) item.get('answer');
+        Assert.areEqual(ExploreAction.HISTORY_CHARS, answer.length());
+        Assert.isTrue(answer.endsWith('...'), answer.right(10));
+    }
+
+    @IsTest
+    static void blankQuestionOrNullRequestGivesNoHistory() {
+        List<ExploreAction.Response> out = ExploreAction.explore(new List<ExploreAction.Request>{ request('  ', null), null });
+        Assert.areEqual('', out[0].history);
+        Assert.areEqual('', out[1].history);
+    }
 }

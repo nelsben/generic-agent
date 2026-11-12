@@ -131,12 +131,12 @@ private class AccountBriefResolverTest {
         String term = token() + ' Nothing Here';
         AccountBriefResolver.Response r = AccountBriefResolver.resolve(term, null);
         Assert.areEqual('NOT_FOUND', r.status);
-        Assert.areEqual('No account matches "' + term + '". Try the full name or open the account and ask again.', r.message);
+        Assert.areEqual('No account matches "' + term + '". Try a fuller or different account name.', r.message);
     }
 
     @IsTest
     static void blankInputIsNotFound() {
-        String expected = 'Which account? Give me its name or open the account record.';
+        String expected = 'Which account? Give me the account\'s name.';
         for (String blank : new List<String>{ null, '', '   ' }) {
             AccountBriefResolver.Response r = AccountBriefResolver.resolve(blank, null);
             Assert.areEqual('NOT_FOUND', r.status);

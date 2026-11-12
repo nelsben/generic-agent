@@ -20,7 +20,7 @@ public with sharing class AccountBriefResolver {
     private static final Pattern ID_IN_TEXT = Pattern.compile('(?<![A-Za-z0-9])(001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?)(?![A-Za-z0-9])');
 
     public class Request {
-        @InvocableVariable(label='Account Name' description='The account name or words the user gave, copied character for character. May contain a pasted 001 Id.')
+        @InvocableVariable(label='Account Name' description='The account name or Id as the user wrote it, without the rest of the request. May contain a pasted 001 Id.')
         public String accountName;
         @InvocableVariable(label='Known Account Id' description='The Id of the open account record, when the user is on one. Skips the name search.')
         public String knownAccountId;
@@ -212,14 +212,14 @@ public with sharing class AccountBriefResolver {
     private static Response notFound(String term) {
         Response r = new Response();
         r.status = NOT_FOUND;
-        r.message = 'No account matches "' + term + '". Try the full name or open the account and ask again.';
+        r.message = 'No account matches "' + term + '". Try a fuller or different account name.';
         return r;
     }
 
     private static Response notFoundBlank() {
         Response r = new Response();
         r.status = NOT_FOUND;
-        r.message = 'Which account? Give me its name or open the account record.';
+        r.message = 'Which account? Give me the account\'s name.';
         return r;
     }
 }

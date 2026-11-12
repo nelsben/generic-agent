@@ -18,6 +18,7 @@ AGENT = BUNDLE / "Account_Brief.agent"
 SPEC = ROOT / "tests/agent/Account_Brief-testSpec.yaml"
 AGENT_CHECK = ROOT / "scripts/agent-check.sh"
 VALIDATE_ORG = ROOT / "scripts/validate-org.sh"
+RESOLVER = ROOT / "force-app/main/default/classes/AccountBriefResolver.cls"
 
 BUNDLE_META = (
     '<?xml version="1.0" encoding="UTF-8"?>'
@@ -27,6 +28,7 @@ BUNDLE_META = (
 
 ID_GATE = '@variables.briefed_account_id is not None and @variables.briefed_account_id != ""'
 OFF_TOPIC_LINE = "I can brief you on an account or answer questions about your CRM data."
+NOT_FOUND_TAIL = "Try a fuller or different account name."
 
 
 class Node:
@@ -226,7 +228,9 @@ class TestAgentStructure(unittest.TestCase):
             [n.line for n in run.children],
             [
                 "with question = @system_variables.user_input",
+                "with history = @variables.explore_history",
                 "set @variables.explore_answer = @outputs.answer",
+                "set @variables.explore_history = @outputs.history",
             ],
         )
         # The answer is cleared first, so a failed run never relays an earlier answer.
@@ -288,6 +292,53 @@ class TestAgentStructure(unittest.TestCase):
         self.assertIn("named most recently", unresolved)
         self.assertIn("never an account named before it", unresolved)
 
+    def test_explore_history_is_kept_bound_and_cleared_when_a_brief_starts(self):
+        # N3: the last explore question and answer reach the next explore run, and a brief clears them.
+        self.assertIn('explore_history: mutable string = ""', AGENT.read_text(encoding="utf-8"))
+        definitions = self.subagents["explore"].child("actions:").child("explore_data:")
+        field = definitions.child("inputs:").child("history:")
+        self.assertEqual(field.line, "history: string")
+        self.assertIsNotNone(field.child("is_required: False"))
+        self.assertEqual(definitions.child("outputs:").child("history:").line, "history: string")
+        run = [n for n in self.subagents["explore"].walk() if n.line == "run @actions.explore_data"][0]
+        brief_actions = reasoning_actions(self.subagents["account_brief"])
+        clear = 'set @variables.explore_history = ""'
+        writers = [n for n in self.tree.walk() if n.line.startswith("set @variables.explore_history =")]
+        self.assertEqual(
+            sorted((n.parent.line, n.line) for n in writers),
+            sorted(
+                [
+                    (run.line, "set @variables.explore_history = @outputs.history"),
+                    (brief_actions["resolve_account"].line, clear),
+                    (brief_actions["get_brief"].line, clear),
+                ]
+            ),
+        )
+        # The explore run never clears the history it is about to read.
+        before = self.subagents["explore"].child("before_reasoning:")
+        self.assertNotIn(clear, [n.line for n in before.children])
+
+    def test_rule_4_applies_only_after_an_account_brief_reply(self):
+        instructions = self.router.child("reasoning:").child("instructions:")
+        text = instructions.text()
+        rule4 = re.search(r"(?m)^4\) .*$", text).group(0)
+        self.assertIn("Only when the previous reply came from account_brief", rule4)
+        self.assertRegex(rule4, r"After an explore answer[^\n]*goes to explore")
+        # Once an explore answer is held, the router is told rule 4 does not apply.
+        gate = 'if @variables.explore_history is not None and @variables.explore_history != "":'
+        branch = instructions.child(gate)
+        self.assertIsNotNone(branch)
+        self.assertIn("rule 4 does not apply", branch.text())
+        hint = instructions.child("if %s:" % ID_GATE).text()
+        self.assertIn("only under rule 4", hint)
+        description = reasoning_actions(self.router)["go_to_account_brief"].child("description:").line
+        self.assertIn("right after an account_brief reply", description)
+        # explore keeps a pronoun follow-up about its own answer instead of handing it back.
+        explore = self.subagents["explore"].child("reasoning:").child("instructions:").text()
+        self.assertNotIn("refers to the account briefed earlier", explore)
+        self.assertIn("refers to the account briefed in the previous reply", explore)
+        self.assertIn("stays here", explore)
+
     def test_system_line_allows_the_router_off_topic_reply(self):
         system = self.tree.child("system:").child("instructions:").line
         self.assertIn(OFF_TOPIC_LINE, system)
@@ -296,9 +347,9 @@ class TestAgentStructure(unittest.TestCase):
 
 
 class TestAccountBriefSpec(unittest.TestCase):
-    def test_spec_has_twelve_utterances(self):
+    def test_spec_has_sixteen_utterances(self):
         text = SPEC.read_text(encoding="utf-8")
-        self.assertEqual(len(re.findall(r"^\s*-?\s*utterance:", text, re.M)), 12)
+        self.assertEqual(len(re.findall(r"^\s*-?\s*utterance:", text, re.M)), 16)
         self.assertIn("subjectType: AGENT", text)
         self.assertIn("subjectName: Account_Brief", text)
 
@@ -311,10 +362,11 @@ class TestAccountBriefSpec(unittest.TestCase):
         head = text.split("name:", 1)[0]
         self.assertRegex(head, r"(?m)^#.*must exist in the target org")
 
-    def test_off_topic_case_names_an_expected_topic(self):
-        text = SPEC.read_text(encoding="utf-8")
-        case = text.split("What is the weather in Paris today?", 1)[1]
-        self.assertRegex(case, r"expectedTopic:\s*\S+")
+    def test_off_topic_case_names_no_expected_topic(self):
+        # agentforce-test batch-testing.md: guardrail cases omit expectedTopic and assert on the outcome.
+        case = self.case("What is the weather in Paris today?")
+        self.assertNotIn("expectedTopic", case)
+        self.assertNotIn("topic_selector", SPEC.read_text(encoding="utf-8"))
 
     def case(self, utterance):
         found = [c for c in spec_cases() if c.startswith('utterance: "%s"' % utterance)]
@@ -380,6 +432,72 @@ class TestAccountBriefSpec(unittest.TestCase):
         self.assertIn("does not call get_brief", outcome)
         self.assertIn("Edge Communications", outcome)
 
+
+    def test_not_found_history_quotes_the_current_resolver_text(self):
+        text = SPEC.read_text(encoding="utf-8")
+        self.assertNotIn("open the account and ask again", text)
+        history = self.case("Show me their open cases").split("conversationHistory:", 1)[1]
+        self.assertIn(NOT_FOUND_TAIL, history)
+
+    def test_largest_opportunities_case_says_rows_are_unchanged(self):
+        outcome = self.case("List the five largest open opportunities").split("expectedOutcome:", 1)[1]
+        self.assertIn("table rows", outcome)
+        self.assertIn("unchanged", outcome)
+
+    def test_explore_follow_up_case(self):
+        case = self.case("Which close this quarter?")
+        history = case.split("conversationHistory:", 1)[1]
+        self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent"])
+        self.assertIn('message: "How many open opportunities are there?"', history)
+        self.assertIn("topic: explore", history)
+        self.assertRegex(case, r"expectedTopic:\s*explore\s*\n")
+        self.assertRegex(case, r"expectedActions:\s*\n\s*- explore_data\s*\n")
+
+    def test_pronoun_after_an_org_wide_count_stays_in_explore(self):
+        case = self.case("Which of them close this quarter?")
+        history = case.split("conversationHistory:", 1)[1]
+        self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent", "user", "agent"])
+        self.assertIn("Edge Communications", history)
+        self.assertIn('message: "How many open opportunities are there?"', history)
+        self.assertRegex(case, r"expectedTopic:\s*explore\s*\n")
+        self.assertRegex(case, r"expectedActions:\s*\n\s*- explore_data\s*\n")
+        outcome = case.split("expectedOutcome:", 1)[1].split("conversationHistory:", 1)[0]
+        self.assertIn("does not call get_brief", outcome)
+
+    def test_list_pick_after_ambiguous_case(self):
+        case = self.case("The Singapore one")
+        history = case.split("conversationHistory:", 1)[1]
+        self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent"])
+        self.assertIn('Several accounts match \\"United Oil\\". Which one?', history)
+        self.assertRegex(case, r"expectedTopic:\s*account_brief\s*\n")
+        self.assertRegex(case, r"expectedActions:\s*\n\s*- resolve_account\s*\n\s*- get_brief\s*\n")
+        outcome = case.split("expectedOutcome:", 1)[1].split("conversationHistory:", 1)[0]
+        self.assertIn("United Oil & Gas, Singapore", outcome)
+
+    def test_second_account_after_a_brief_case(self):
+        case = self.case("Now brief me on Brindlewick Hydroponics")
+        history = case.split("conversationHistory:", 1)[1]
+        self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent"])
+        self.assertIn("Edge Communications", history)
+        self.assertRegex(case, r"expectedTopic:\s*account_brief\s*\n")
+        self.assertRegex(case, r"expectedActions:\s*\n\s*- resolve_account\s*\n\s*- get_brief\s*\n")
+        outcome = case.split("expectedOutcome:", 1)[1].split("conversationHistory:", 1)[0]
+        self.assertIn("Brindlewick Hydroponics", outcome)
+        self.assertIn("not about Edge Communications", outcome)
+
+
+class TestResolverWording(unittest.TestCase):
+    """Finding 12 and finding 11's Apex label: the resolver's text matches what the script can do."""
+
+    def test_not_found_asks_for_a_name_not_an_open_record(self):
+        text = RESOLVER.read_text(encoding="utf-8")
+        self.assertFalse("open the account" in text, "the resolver still says to open the account")
+        self.assertTrue(NOT_FOUND_TAIL in text, "the resolver does not ask for a fuller or different name")
+
+    def test_account_name_label_matches_the_script(self):
+        text = RESOLVER.read_text(encoding="utf-8")
+        self.assertFalse("character for character" in text, "the Apex label still says character for character")
+        self.assertTrue("without the rest of the request" in text, "the Apex label does not match the script")
 
 class TestCheckScripts(unittest.TestCase):
     def test_agent_check_exists_and_is_executable(self):
