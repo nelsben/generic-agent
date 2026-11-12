@@ -58,7 +58,11 @@ not changed. A non-admin run is the open item.
   page context) or a new panel instance starts a new agent session, and a reply that lands after
   the account changed does not restore the old session. A failure shows only the fixed line. The
   button is disabled while the composer is empty, like Send. Layout, position, size and styling
-  did not change; the brief, explore and drill paths did not change.
+  did not change; the brief, explore and drill paths did not change. BE-19's unfinished work had
+  added a visible "Account Brief agent" source label under agent replies (`abp-agent-source`,
+  with an `isAgent` flag on each turn). This change removes it again to keep the touch light, so
+  compared with main the panel's visible markup is unchanged: `git diff` against main shows no
+  `abp-agent-source` line.
 
 ## Deploy steps, in order
 
