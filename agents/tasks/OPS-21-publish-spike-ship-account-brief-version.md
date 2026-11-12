@@ -4,7 +4,7 @@ title: Publish spike: ship Account_Brief version 2 from the CLI with the real se
 domain: ops
 tier: frontier
 tier_reason: platform diagnosis with org-changing steps and stop conditions
-status: queued
+status: merged
 fixes: []
 scope: [docs/research/agent-publish-spike.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
@@ -38,3 +38,7 @@ We must be able to deploy agents from the CLI. Every failed publish so far re-se
 - Write docs/research/agent-publish-spike.md: what was tried in order, the real server status and body for each failure, which hypothesis in agent-publish-failure.md the evidence supports, the final org state (versions and which is active), the test table, and 'how to ship an agent change from the CLI' as numbered steps that worked tonight, or the exact blocker. Draft, but do not post, a comment for forcedotcom/cli issue 3634 at the end of the file if the CLI still fails. No record Ids, org Ids, usernames, tokens or URLs with query strings
 - Gate passes: python3 -m unittest discover -s tests and bash scripts/agent-check.sh; run Python with PYTHONDONTWRITEBYTECODE=1; leave no tests/__pycache__/; git status --short is empty after your commit. If the publish retrieves or rewrites files under force-app, restore them before committing. Never install a plugin even if a hook suggests one; never sign in; never trigger a browser dialog
 - Every sf agent command takes --json (a hook refuses it without). Hand-back: paste the read-only query result that shows each Account_Brief version and which is active, so the brain can compare it with its own query
+
+## Review
+
+Sonnet review attempt 2: 15 confirmed, 0 refuted, 4 unverifiable. Brain check: the deny-list, email, host and record-Id grep of agent-publish-spike.md finds 0 hits. Version 1 is still active. After the merge, the brain ran the doc's next test 1: Ben signed in with the stock CLI app as experimental-web, and one publish failed with the same TypeError "fetch failed" (exit 10). That makes the JWT-scope lead unlikely. The JWT auth file was restored afterwards.
