@@ -4,7 +4,7 @@ title: Panel re-review: the accountBriefPanel LWC, its Jest tests and the Playwr
 domain: ops
 tier: frontier
 tier_reason: architecture judgement across security, limits and adoption; cited as GTM evidence
-status: queued
+status: merged
 scope: [docs/reviews/lwc-review-2.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
 red_test: none
@@ -24,3 +24,7 @@ The first peer reviews (docs/reviews/) were written before BE-10 to BE-13, FE-3,
 - Keep it under 250 lines. No record Ids, org Ids, usernames, tokens or URLs with query strings. Write only from this repo; never read or quote reference/
 - Gate passes: python3 -m unittest discover -s tests with PYTHONDONTWRITEBYTECODE=1; leave no tests/__pycache__/; git status --short is empty after your commit. Never touch the org beyond read-only sf commands, never install a plugin even if a hook suggests one
 - Layer: force-app/main/default/lwc/**, flexipages/**, applications/**, e2e/**, playwright.config.js. Earlier review: docs/reviews/lwc-review.md. Include accessibility (WCAG 2.2 AA) and the two open defects recorded in e2e/README.md and the FE-4 card
+
+## Review
+
+Sonnet review attempt 1: 28 confirmed, 3 refuted, 5 unverifiable; attempt 2: 34 confirmed, 0 refuted, 9 unverifiable. The row 7 cite was right at test:534 (the attempt-1 reviewer's :533 was wrong; brain checked by grep). Coverage 89.48% reproduced by the reviewer with the stated command. Open note: the verdict's "except two" does not list 14d (breadcrumb current-crumb, changed but unverified). Brain check: deny-list, Id-shape, email and host grep of the diff find 0 hits.
