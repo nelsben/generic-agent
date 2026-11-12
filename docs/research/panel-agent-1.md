@@ -103,6 +103,11 @@ this time it rated it 2 and failed it ("some of which are not open"). Testing Ce
 `explore_history`, so the explorer sees only the last question (N3). The agent did not change in
 this work. The other 15 replies were rated 3 to 5 and passed.
 
+The card asked for 16 of 16 on replies, so this target is not met. The review on 2026-11-12
+accepted the result as the known limit (N3 for case 14, the expected false failure for case 12),
+not as a regression from this change. Fixing case 14 means passing the question history to the
+explorer, which is an agent-bundle change outside this card.
+
 ## Model use
 
 About 31 agent turns in all: 2 in the probe, 1 in the red run of spec 9 (the hand-off, which
