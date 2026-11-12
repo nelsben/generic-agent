@@ -4,7 +4,7 @@ title: Apex engine re-review: brief, sections, memory, model seam, explorer, per
 domain: ops
 tier: frontier
 tier_reason: architecture judgement across security, limits and adoption; cited as GTM evidence
-status: queued
+status: merged
 scope: [docs/reviews/apex-review-2.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
 red_test: none
@@ -24,3 +24,7 @@ The first peer reviews (docs/reviews/) were written before BE-10 to BE-13, FE-3,
 - Keep it under 250 lines. No record Ids, org Ids, usernames, tokens or URLs with query strings. Write only from this repo; never read or quote reference/
 - Gate passes: python3 -m unittest discover -s tests with PYTHONDONTWRITEBYTECODE=1; leave no tests/__pycache__/; git status --short is empty after your commit. Never touch the org beyond read-only sf commands, never install a plugin even if a hook suggests one
 - Layer: force-app/main/default/classes/**, permissionsets/**, objects/**, staticresources/AgentPrompt_*. Earlier review: docs/reviews/apex-review.md
+
+## Review
+
+Four attempts, each reviewed by sonnet. Attempt 4: 11 confirmed, 0 refuted, 3 unverifiable. Attempt 1 was refuted on a clean-tree claim caused by the verifier's pycache. Attempt 2 was refuted on the memory-write query count (3), and attempt 3 on its correction (at most 4). The brain checked the code by hand: the all-or-none insert throws before purgeOverflow, so the memory write costs 1 or 2 queries, and at most 3 if the DUPLICATE_VALUE retry runs. Attempt 4 fixed that in f3cbf08. Verdict: ready with fixes. Should-fix N1 to N4, notes N5 to N12. Brain privacy check of the diff: 0 deny-list hits, 0 Salesforce-shaped Ids, 0 emails or my.salesforce.com hosts.
