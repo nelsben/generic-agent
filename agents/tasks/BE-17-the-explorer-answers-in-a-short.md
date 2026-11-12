@@ -4,7 +4,7 @@ title: The explorer answers in a short lead and leaves the rows to the table: th
 domain: backend
 tier: frontier
 tier_reason: prompt change shipped to a live org with a regression gate on the published agent and a by-eye recapture
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/staticresources/AgentPrompt_Explore.resource, tests/test_explore_prompt.py, e2e/capture/04-explore.capture.js, docs/assets/explore-answer.png, docs/assets/explore-drill.gif, docs/assets/drill-view.png, docs/assets/MANIFEST.md, docs/patterns/02-ask-anything-explorer.md, docs/research/explore-prompt-1.md]
 forbid: [force-app/main/default/classes/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, force-app/main/default/permissionsetgroups/**, scripts/**, data/**, agents/**, README.md, docs/plans/**, docs/reviews/**, e2e/panel.spec.js, e2e/support/**, playwright.config.js, playwright.capture.config.js, reference/**, .chassis-delegation.json]
@@ -29,3 +29,17 @@ FE-10 found that the explorer writes every row into its answer text, against its
 - Recapture only explore-answer.png, explore-drill.gif and drill-view.png, with that one capture file (SF_TARGET_ORG=agent-probe), keeping all the privacy machinery: masking, the 0.5 s checks, the all-frames checks and the 1 fps by-eye frame read. Every other file in docs/assets/ stays byte-identical (check with git diff --stat). Read each new PNG and every GIF frame at 1 fps by eye, and say in the hand-back what each one shows
 - MANIFEST.md rows and the alt text and captions in docs/patterns/02-ask-anything-explorer.md match the new images exactly, and quote the plain question. Write docs/research/explore-prompt-1.md: the rule 9 change, the before and after answers, the fit numbers, the e2e and spec results, and the deploy steps in order. No record Ids, org Ids, usernames, emails, tokens, instance hostnames or URLs with query strings in any file or image
 - Budget: about 30 model calls in the org (3 measured runs, the capture, e2e and the 16-case spec). Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Accepted after one attempt and one review pass: 17 confirmed, 0 refuted, 7 unverifiable.
+
+- AgentPrompt_Explore rule 9, revision 2: name at most three records; for a list question the table is the answer, so the text gives a short lead and does not restate rows. A one-row total and facts from earlier queries stay in the text. Only rule 9 changed. tests/test_explore_prompt.py (new, 7 tests) pins the rule text and the other rules, the reply format and the variables.
+- Red: on the old rule the capture answer listed all five rows and needed 470 px against the 273 px box.
+- Org, agent-probe only: two prompt revisions, each validated (RunLocalTests) and quick-deployed with CONFIRM_PROD=1. Only the static resource deployed; nothing was published or activated.
+- Fit: 3 of 3 runs fit (236, 255 and 216 px of 273). e2e passed 8 of 8 in 2.7 minutes. The agent spec on active v2 passed 16 of 16 on replies and actions, 15 of 16 on topic (case 12, the known false failure).
+- The capture question is now the plain "Which 5 open opportunities have the largest amounts?" (FE-10's "Answer in one sentence." tail is gone). explore-answer.png and explore-drill.gif were recaptured; drill-view.png is byte-identical.
+- Caveats, disclosed in docs/research/explore-prompt-1.md: the answers run to three sentences against the rule's "one or two", still name one or two rows, and mention the owner.
+- Scope amend granted: e2e/README.md, which quoted the old tailored question.
+- The brain read the 8-frame sheet of explore-drill.gif: sample data only, owner masked, emails hidden, no URL bars or Ids.
+- Gates: test, jest and org pass at the sha; check-docs reports 31 pages, 0 broken. Privacy grep of the 287 added lines: 0 deny-list hits, 0 Ids, 0 emails, 0 hosts, 0 query-string URLs, 0 home paths, 0 mentions of the first org.
