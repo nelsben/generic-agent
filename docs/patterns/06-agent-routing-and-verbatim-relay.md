@@ -106,7 +106,8 @@ sequenceDiagram
 - Version 1 is the active version. The fixed script is saved as a draft (version 2). The CLI
   publish fails with a server error ([agent-publish-failure.md](../research/agent-publish-failure.md)).
 - Explore through the agent gets no history, so an explorer follow-up there starts fresh.
-- Each agent turn takes several seconds more than the custom panel, which calls Apex directly.
+- Agent turns are slow. The Apex probe recorded 14 to 18 seconds per turn
+  ([agent-api.md](../research/agent-api.md)). The custom panel calls the same Apex directly.
 - The custom panel's "Ask the agent" button only opens the built-in panel and sends the question.
   The answer appears there, not in the custom panel.
 

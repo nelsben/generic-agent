@@ -115,8 +115,8 @@ sequenceDiagram
 - Parent paths go one level up, such as `Account.Name`. Long text fields are shown but cannot be
   filtered.
 - Drill-down from a brief's section lines is not possible yet: section lines carry no record Id.
-  The fix is queued ([e2e/README.md](../../e2e/README.md)).
-- One question can take up to 5 model calls, so a hard question takes longer than a brief.
+  The fix is queued ([FE-4 card](../../agents/tasks/FE-4-playwright-end-to-end-suite-for.md), [gtm-burn-plan.md](../../docs/plans/gtm-burn-plan.md)).
+- One question can take up to 5 model calls.
 
 > [!WARNING]
 > **Not yet proven:** the explorer run as a non-admin user in a live org. The catalog and query

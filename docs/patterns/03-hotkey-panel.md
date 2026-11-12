@@ -76,7 +76,8 @@ sequenceDiagram
   above. The re-review is pending.
 - **It runs in a real org.** The Playwright suite ([e2e/README.md](../../e2e/README.md)) has
   8 specs. Six passed on the live org, including the hotkey before first open, the pinned
-  composer, latest wins, Enter to send, and axe.
+  composer, latest wins, Enter to send, and axe ([FE-4 card](../../agents/tasks/FE-4-playwright-end-to-end-suite-for.md),
+  [gtm-burn-plan.md](../../docs/plans/gtm-burn-plan.md)).
 
 ## Adopt it
 

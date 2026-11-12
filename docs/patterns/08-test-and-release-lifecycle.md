@@ -51,11 +51,13 @@ sequenceDiagram
 5. **Preview the draft.** Save the script as a new draft version in Agentforce Studio and run
    every spec case in the live preview. The trace shows the route, each action's inputs and
    outputs, and the reply. Results are recorded, as in [studio-preview.md](../research/studio-preview.md).
-6. **Publish, then activate.** `sf agent publish authoring-bundle --api-name Account_Brief`
-   creates an inactive version. `sf agent activate --api-name Account_Brief --version <n>` makes
-   it live. The previous version stays for rollback.
-7. **Agent test.** `sf agent test create --spec tests/agent/Account_Brief-testSpec.yaml` then
-   `sf agent test run --api-name <test-name> --wait 5 --json`. It works only on an active version.
+6. **Publish, then activate.** Publish creates an inactive version, from Studio or with
+   `sf agent publish authoring-bundle --json --api-name Account_Brief -o <org-alias>`. Activate it
+   in Studio or with `sf agent activate --json --api-name Account_Brief --version <n> -o <org-alias>`.
+   The previous version stays for rollback.
+7. **Agent test.** `sf agent test create --spec tests/agent/Account_Brief-testSpec.yaml
+   --api-name <test-name> -o <org-alias>`, then `sf agent test run --api-name <test-name> --wait 5
+   --json -o <org-alias>`. It works only on an active version.
 8. **Browser.** `npm run test:e2e` signs in through the sf CLI session, runs 8 specs in Chromium
    against the deployed panel and writes an HTML report.
 
@@ -73,7 +75,8 @@ sequenceDiagram
 - **The preview ran.** 12 of 12 cases routed correctly in Studio preview, saved with 0 errors and
   1 deliberate warning ([studio-preview.md](../research/studio-preview.md)).
 - **The browser suite ran.** 6 of 8 specs passed on the live org. The two failures were real
-  panel defects, not test problems: Esc focus and brief-line drill ([e2e/README.md](../../e2e/README.md)).
+  panel defects, not test problems: Esc focus and brief-line drill ([FE-4 card](../../agents/tasks/FE-4-playwright-end-to-end-suite-for.md),
+  [gtm-burn-plan.md](../../docs/plans/gtm-burn-plan.md)).
 - **The lifecycle follows Salesforce's own skills.** The agent review found the earlier workflow
   skipped the documented draft-first order (finding 8 in [agent-review.md](../reviews/agent-review.md)).
   The order above follows the lifecycle table in [salesforce-skills.md](../research/salesforce-skills.md).
@@ -87,6 +90,8 @@ sequenceDiagram
 4. **Change the org.** `validate-org.sh` reads `SF_TARGET_ORG`, and the e2e suite reads
    `SF_E2E_ORG`. Set them to your alias.
 5. **Change the agent name** in `agent-check.sh` (`BUNDLE_NAME`) and in the test spec.
+6. `agent-check.sh` needs the Salesforce agentforce-generate skill installed locally (its local
+   compiler) and calls the `sf` CLI by a pinned absolute path. Adjust both to your machine.
 
 ## Limits and open items
 
@@ -99,6 +104,6 @@ sequenceDiagram
 - The org runs behind `main` until the next real deploy. The gates above are check-only.
 
 > [!WARNING]
-> **Not yet proven:** the agent test spec run with `sf agent test run`, and all 8 Playwright specs
-> passing. The first needs an active version with the fixed script. The second needs the Esc focus
-> and brief-line drill fixes deployed.
+> **Not yet proven:** publishing and activating version 2 by either route, the agent test spec run
+> with `sf agent test run`, and all 8 Playwright specs passing. The spec run needs an active version
+> with the fixed script. The Playwright run needs the Esc focus and brief-line drill fixes deployed.

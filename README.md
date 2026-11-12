@@ -22,7 +22,7 @@ metadata: prompts are plain-text static resources.
 | 6 | Agent routing and verbatim relay | The built-in Agentforce panel gives the same answers as the custom panel, word for word. | [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
 | 7 | Trust, access and failure | Users see only what they can already see. Failures read as one plain sentence, never a stack trace. | [07](docs/patterns/07-trust-access-and-failure.md) |
 | 8 | Test and release lifecycle | Every change passes local, org and agent checks before anyone relies on it. | [08](docs/patterns/08-test-and-release-lifecycle.md) |
-| 9 | Outside door (MCP) | Tools outside Salesforce can call the same actions under the same rules. Designed, not yet proven. | [09](docs/patterns/09-outside-door-mcp.md) |
+| 9 | Outside door (MCP) | AI clients outside Salesforce can ask for the same brief under the same rules. Designed, not yet proven. | [09](docs/patterns/09-outside-door-mcp.md) |
 
 ## System map
 
@@ -77,6 +77,10 @@ signed in to it, and at least one Account with some contacts, deals and cases.
 4. Press **Cmd-K** on a Mac or **Ctrl-K** elsewhere. Type `/brief <account name>` and press Enter.
    Any other text is a question for the explorer, such as "How many open opportunities are there?".
 
+`Account_Brief_Agent_Access` names the agent. On an org where the `Account_Brief` agent does not
+exist yet, that set may not deploy: leave it out of steps 1 and 2 and add it once the agent is
+published. The panel needs only `Account_Brief_Data_Access`.
+
 The agent in the built-in Agentforce panel needs one more step: save, preview and publish the
 `Account_Brief` bundle in Agentforce Studio. The CLI publish fails today with a server error
 ([agent-publish-failure.md](docs/research/agent-publish-failure.md)). The panel path above does
@@ -123,9 +127,10 @@ The method behind the layers is in [08: Test and release lifecycle](docs/pattern
 | Agent routing, 12 cases | Proven in Studio preview against the draft | [studio-preview.md](docs/research/studio-preview.md) |
 | Calling the agent from Apex | Proven by a two-turn probe | [agent-api.md](docs/research/agent-api.md) |
 | An MCP server lists and adds the actions as tools | Proven by a probe | [salesforce-mcp.md](docs/research/salesforce-mcp.md) |
-| Panel in a real org | Partly proven: 6 of 8 specs passed before the Esc focus and brief-line drill fixes | [e2e/README.md](e2e/README.md) |
+| Panel in a real org | Partly proven: 6 of 8 specs passed before the Esc focus and brief-line drill fixes | The FE-4 run, recorded in [the FE-4 card](agents/tasks/FE-4-playwright-end-to-end-suite-for.md) and [gtm-burn-plan.md](docs/plans/gtm-burn-plan.md) ("Known state at hand-over") |
 | A run as a non-admin user | **Not yet proven** | Only Apex `runAs` tests so far; see [07](docs/patterns/07-trust-access-and-failure.md) |
 | A real MCP tool call | **Not yet proven** | See [09](docs/patterns/09-outside-door-mcp.md) |
 | The panel calling the registered agent | **Not yet proven**, not built | See [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
 | Agent version 2 published and active | **Not yet proven** | The CLI publish fails; see [agent-publish-failure.md](docs/research/agent-publish-failure.md) |
 | Agent test spec run in the org | **Not yet proven** | Written and shape-tested in Python; it needs an active version |
+| A clean install from "See it in 5 minutes" | **Not yet proven** | The metadata has been deployed check-only so far, through `scripts/validate-org.sh` |
