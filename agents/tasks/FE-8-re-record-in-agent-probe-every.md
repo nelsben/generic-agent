@@ -5,7 +5,7 @@ domain: frontend
 tier: frontier
 tier_reason: live-browser capture with privacy masking, visual judgement and the built-in agent panel
 status: blocked
-blocked_by: [OPS-25]
+blocked_by: [OPS-25, FE-9]
 fixes: [FE-7]
 scope: [docs/assets/**, e2e/capture/**, README.md, docs/patterns/**]
 forbid: [force-app/**, tests/**, scripts/**, data/**, e2e/panel.spec.js, e2e/global-setup.js, e2e/support/**, playwright.config.js, playwright.capture.config.js, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, .chassis-delegation.json, reference/**]
