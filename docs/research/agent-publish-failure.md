@@ -9,7 +9,7 @@ the repo.
 
 - The cause is not proven. The best-supported reading is a server-side failure in the
   "create a new version" call, not a CLI bug. The CLI's own log shows that call
-  (`POST api.salesforce.com/.../authoring/agents/0XxgK000002WVtxSAG/versions`) returning 404
+  (`POST api.salesforce.com/.../authoring/agents/<agent id>/versions`) returning 404
   after about 6 seconds, then the CLI trying `test.api.salesforce.com`, which does not accept
   connections from outside Salesforce, which is what prints `TypeError: fetch failed` (verified).
 - So `fetch failed` is a symptom, not the cause. It hides the real 404 body. The only real
@@ -69,7 +69,7 @@ agents 2.3.1; 2.154.4 ships plugin-agent 2.2.2 and the same agents 2.3.1).
    rejecting non-JWT callers (unverified inference).
 
 The CLI's own log (`~/.sf/sf-2026-11-11.log`) for the failed runs shows, in order: scripts
-compile OK (twice), "Agent is already published, botId=0XxgK000002WVtxSAG", POST `.../versions`
+compile OK (twice), "Agent is already published, botId=<agent id>", POST `.../versions`
 on `api.` returning 404 after about 5.9 s, POST on `test.` failing with no status after about
 10 s (verified). The first, successful publish has no debug lines in the log, so a side-by-side
 comparison is not possible (verified absence).
@@ -78,7 +78,7 @@ comparison is not possible (verified absence).
 
 | Probe | Result |
 |---|---|
-| `sf data query` BotDefinition `DeveloperName='Account_Brief'` | One row 0XxgK000002WVtxSAG, Type InternalCopilot, AgentType AgentforceEmployeeAgent, BotUserId null, BotSource None, last modified 2026-11-11 04:34:35Z (unchanged since creation). verified |
+| `sf data query` BotDefinition `DeveloperName='Account_Brief'` | One row <agent id>, Type InternalCopilot, AgentType AgentforceEmployeeAgent, BotUserId null, BotSource None, last modified 2026-11-11 04:34:35Z (unchanged since creation). verified |
 | `sf data query` BotVersion for it | One row 0X9gK0000048xtRSAQ, v1, VersionNumber 1, Active, BillingMode ActionBased, language en_US. No draft or second version row. verified |
 | `sf org list metadata -m AiAuthoringBundle` | `Account_Brief_1` and `Account_Brief_2`, both 04:34:47Z. There is no bundle named plain `Account_Brief` in the org. verified |
 | Retrieve both into a scratch project | `_1` has `<target>Account_Brief.v1</target>` (locked to v1). `_2` has no target (the editable draft). Both `.agent` files are byte-identical to the repo's `Account_Brief.agent`. verified |
@@ -178,7 +178,7 @@ org that must be removed by hand. If it succeeds while `/versions` fails, hypoth
 for the versions route specifically.
 
 **C. Escalate.** Open a Salesforce Support case (Agentforce authoring) with: org id
-00DgK00000VGf8bUAD, agent 0XxgK000002WVtxSAG, endpoint `POST /einstein/ai-agent/v1.1/authoring/agents/<id>/versions`,
+<org id>, agent <agent id>, endpoint `POST /einstein/ai-agent/v1.1/authoring/agents/<id>/versions`,
 response `401 {"message":"Error saving or updating agent graph"}` with the named-user JWT and
 a 404 after about 6 s via the CLI, timestamps from `~/.sf/sf-2026-11-11.log`, and the fact that
 v1 published from the same script earlier that day. Comment on forcedotcom/cli#3634 with the

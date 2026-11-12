@@ -4,3 +4,4 @@
 .localdevserver/
 node_modules/
 .DS_Store
+**/lwc/jsconfig.json
