@@ -590,6 +590,34 @@ describe('c-account-brief-panel', () => {
             expect($(el, '.abp-drill-heading').textContent).toBe('Panel Deal');
         });
 
+        it('drills to the trailing record Id, never an Id-shaped number in the wording, which stays whole', async () => {
+            const NUMBER = '123456789012345678';
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            getBrief.mockResolvedValueOnce(
+                briefResult({
+                    sections: [
+                        {
+                            key: 'calls',
+                            title: 'Calls & meetings',
+                            status: 'OK',
+                            body: '- 2026-01-02 — Order ' + NUMBER + ' late — 30 min — with n/a — ' + DEAL + '\n notes: ref ' + NUMBER + ' kept',
+                            total: 1,
+                            shown: 1
+                        }
+                    ]
+                })
+            );
+            const el = await mount();
+            await ask(el, '/brief Acme');
+            await flush();
+
+            const lines = $$(el, '.abp-line-link');
+            expect(lines[0].dataset.id).toBe(DEAL);
+            expect(lines[0].textContent).toBe('- 2026-01-02 — Order ' + NUMBER + ' late — 30 min — with n/a');
+            expect(text(el)).not.toContain(DEAL);
+            expect(text(el)).toContain(' notes: ref ' + NUMBER + ' kept');
+        });
+
         it('View record navigates to the drilled record', async () => {
             explore.mockResolvedValueOnce(dealResult());
             drill.mockResolvedValueOnce(recordDrill);
