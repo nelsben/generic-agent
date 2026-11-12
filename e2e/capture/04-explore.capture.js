@@ -19,11 +19,23 @@ test('explore-answer.png, explore-drill.gif, drill-view.png', async ({ page, pan
     await expect(rows.first()).toBeVisible();
     await panel.composer.blur();
 
-    // explore-answer.png: the result table, its title and header row at the top of the panel.
-    await turn.locator('table').first().evaluate((el) => {
-        const block = el.closest('.abp-table-wrap');
-        (block && block.previousElementSibling ? block.previousElementSibling : el).scrollIntoView({ block: 'start' });
-    });
+    // explore-answer.png: the question at the top of the scroll box, then the one-line answer, the
+    // table's title and its header row. If the header row would not fit under the question, the
+    // table's title goes to the top instead (the header row and the top rows), and the run says so.
+    const question = turn.locator('.abp-question').first();
+    await question.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    await page.waitForTimeout(300);
+    const box = await panel.body.boundingBox();
+    const head = await turn.locator('table thead').first().boundingBox();
+    const fits = !!(box && head && head.y + head.height <= box.y + box.height);
+    console.log(`explore-answer.png: box ${box ? Math.round(box.height) : '?'} px, question to header row fits ${fits}`);
+    if (!fits) {
+        await turn.locator('table').first().evaluate((el) => {
+            const block = el.closest('.abp-table-wrap');
+            const title = block && block.parentElement ? block.parentElement : el;
+            title.scrollIntoView({ block: 'start' });
+        });
+    }
     await still(page, 'explore-answer.png');
 
     // explore-drill.gif: click a row, the drill view opens, the breadcrumb goes back.

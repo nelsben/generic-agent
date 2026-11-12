@@ -65,9 +65,9 @@ sequenceDiagram
 
 ## See it
 
-![The panel during "/brief Edge Communications": it opens empty, the request is typed and sent, a spinner runs, the opening summary appears, then the view ends on the collapsed section rows](../assets/brief-flow.gif)
+![The panel during "/brief Edge Communications": it opens empty, the request is typed and sent, the brief arrives, and the view ends on its headline, "Two deals are overdue, including the support plan renewal critical to the account relationship, while a high-priority router case is escalated today."](../assets/brief-flow.gif)
 
-![A finished brief in the panel, scrolled to its sections: "Sections: all", then Contacts, Recent activity, Calls & meetings and Deal history collapsed, each with an OK or EMPTY badge](../assets/panel-brief.png)
+![A finished brief in the panel, scrolled to its headline: "Two deals are overdue, including the support plan renewal critical to the account relationship, while a high-priority router case is escalated today.", then the first line of the Account summary; the section rows are further down, out of view](../assets/panel-brief.png)
 
 ## Why you can trust it
 
