@@ -1,0 +1,28 @@
+---
+id: BE-30
+title: FR2: follow-ups to the summary — the explorer answers the next question from the summary's context with no new build, keeps tables read before a model failure, and shows drill headers as labels; a live follow-up set proves it
+domain: backend
+tier: frontier
+tier_reason: changes the explorer's context contract that the panel, the agent and MCP share, measured live in a production-classified org
+status: blocked
+blocked_by: [OPS-30]
+fixes: []
+scope: [force-app/main/default/classes/DataExplorer.cls, force-app/main/default/classes/DataExplorerTest.cls, force-app/main/default/classes/ExploreAction.cls, force-app/main/default/classes/ExploreActionTest.cls, force-app/main/default/classes/ExplorePlan.cls, force-app/main/default/classes/ExplorePlanTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, force-app/main/default/staticresources/AgentPrompt_Explore.resource, scripts/follow-up-set.apex, docs/research/fr2-follow-ups.md]
+forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
+resources: [org-live]
+red_test: new DataExplorerTest cases fail on main (a follow-up after a summary loses the summary's account and deals; a model failure on the agent path drops the tables already read; drill child-row headers are API names) and pass after
+gate: test, org
+budget: 2-attempts
+spend: 12
+---
+## Why
+
+Feature revision 2 (FR2), Ben's chapter notes on pattern 02. In a typical Agentforce build, "each follow-up question needs to be a flow, repurposed or rebuilt with context shoved back through". Here, follow-ups to the summary should work "organically", and that is "a core operating principle". He also asked to tackle the page's limits. Covers ledger rows F55 and F58 in docs/plans/feature-revision-2.md and principle 1 in docs/plans/fr2-design.md.
+
+## Done when
+
+- Read first: docs/plans/feature-revision-2.md (rows F54 to F59), docs/plans/fr2-design.md ('Operating principles'), docs/patterns/01-route-gather-reduce.md, docs/patterns/02-ask-anything-explorer.md, docs/patterns/05-conversation-memory.md, docs/reviews/apex-review-2.md (N4) and docs/reviews/lwc-review-2.md (N1, N3). Load the skills salesforce-development:platform-apex-generate, salesforce-development:platform-apex-test-generate, salesforce-development:platform-soql-query and salesforce-development:platform-metadata-deploy first
+- **Summary context:** when a summary was the last turn, the explorer gets a compact summary context: the account, and the Ids and names behind each summary section, capped, never shown to people. With it, "which of those close this quarter?", "who there have we not called?" and "any open cases on the biggest deal?" resolve against the same records. The context travels in the existing history input, so the panel, the agent action and MCP all get it with no new action. The explore prompt gains one rule: a pronoun or "those" means the records in the last turn, and when that is unclear, it asks
+- **Apex N4:** on the agent path, a model failure after a query keeps the tables already read and returns them with the fixed failure line, as the panel path does. **Panel N1:** drill child rows return field labels and record names, not raw Ids or API names, and the DTO keeps Ids for opening records
+- Tests with Assert.* cover each of the three follow-ups above with a scripted model, the context cap, the pronoun rule's ask path, N4 and N1. Existing explorer tests still pass
+- **Live follow-up set:** scripts/follow-up-set.apex runs a summary and then 10 follow-ups for 2 sample accounts in agent-probe. It prints only pass or fail per question, the object queried and the model calls used (no names, no Ids). Record the results in docs/research/fr2-follow-ups.md, with every failure explained. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never sign in or out, never create a user in the org, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit

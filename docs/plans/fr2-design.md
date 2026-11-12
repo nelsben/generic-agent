@@ -16,6 +16,13 @@ numbers (F01 to F43) point there. Where a card and this page disagree, the card 
 - **Built to be swapped:** brand settings hold the agent name, company name, logo, colours and tone. No component
   hard-codes a name, a colour or a font.
 
+## Operating principles
+
+1. **A follow-up is never a new build.** After a summary, the next question ("which of those close this quarter?",
+   "who on their side have we not called?") is answered by the explorer from the same context, on any object the user
+   can read, in any combination. Nobody builds a flow or an action to answer a follow-up, and context is not passed
+   back by hand (F54, F55).
+
 ## Surfaces
 
 | | Compact window | Right rail | Embedded (later) |
@@ -114,9 +121,11 @@ From Ben's notes on pattern 01 (F45, F53). Every pattern page follows it.
 2. **The business problem:** who has it, what it costs them today, and what changes. Plain words, no class names.
 3. **The architecture in a few steps:** three to five numbered steps a non-developer can follow, before any detail.
 4. **How it works:** the sequence diagram, then the steps in detail, each matching a diagram number.
-5. **Why you can trust it** and **how it scales**, each claim linked to a test, a review or a recorded run.
-6. **Adopt it** for a builder.
-7. **Limits and open items**, each linked to the card that owns it, or marked "no card yet".
+5. **See it:** a capture on each surface where the pattern runs (compact window, rail, Agentforce's panel; the MCP
+   door as a client transcript), a GIF where something moves, and alt text on each (F57).
+6. **Why you can trust it** and **how it scales**, each claim linked to a test, a review or a recorded run.
+7. **Adopt it** for a builder.
+8. **Limits and open items**, each linked to the card that owns it, or marked "no card yet".
 
 ## Diagrams
 
