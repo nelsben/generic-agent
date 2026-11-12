@@ -82,9 +82,9 @@ Setup or through the API Catalog, not in this repo.
    `refresh_token` scopes.
 3. Create a custom server, add `AccountBriefResolver` and `AccountBriefGetAction` as tools, name
    and describe each, set the four hints, and activate it. Activation can take up to 2 minutes.
-4. Test a call in Postman first, then in your client. Check that a user without access to the
-   account gets NOT_FOUND.
-5. Add the server to your MCP client with your own OAuth client.
+4. Add the server to your MCP client with your own OAuth client.
+5. Test one call with a plain HTTP client first, to see the raw tool JSON, then in your MCP
+   client. Check that a user without access to the account gets NOT_FOUND.
 6. **Change the tools** by adding or removing Apex actions on the server. Tool names and
    descriptions are what the client model reads to choose a tool, so keep them task-specific.
 
