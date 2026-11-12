@@ -279,6 +279,16 @@ class TestAccountBriefSpec(unittest.TestCase):
         self.assertRegex(case, r"expectedActions:\s*\n\s*- resolve_account\s*\n\s*expectedOutcome")
         for name in ("United Oil & Gas Corp.", "United Oil & Gas, Singapore", "United Oil & Gas, UK"):
             self.assertIn(name, case)
+        # The outcome matches AccountBriefResolver.ambiguous(): "<Name> — <BillingCity or 'no city'> — <Id>".
+        outcome = case.split("expectedOutcome:", 1)[1]
+        self.assertNotIn("each with its city", outcome)
+        for line in (
+            "United Oil & Gas Corp. — New York — 001gK00001Fb9BKQAZ",
+            "United Oil & Gas, Singapore — Singapore — 001gK00001Fb9BOQAZ",
+            "United Oil & Gas, UK — no city — 001gK00001Fb9BNQAZ",
+        ):
+            self.assertIn(line, outcome)
+        self.assertIn('Several accounts match \\"United Oil\\". Which one?', outcome)
 
     def test_two_turn_follow_up_case(self):
         case = self.case("What about their open cases?")
