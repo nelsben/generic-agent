@@ -36,7 +36,7 @@ sequenceDiagram
     P->>C: getBrief(accountId)
     C->>B: run
     B->>S: build WITH USER_MODE
-    S-->>B: ERROR, "Couldn't load the section right now."
+    S-->>B: ERROR, "Couldn't load Cases right now."
     B-->>P: OK with that section marked, or ERROR fixed text
     C-->>P: any unexpected exception becomes AuraHandledException with fixed text
 ```
