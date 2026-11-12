@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: the public face of the repo, with live captures and Ben's page notes to judge
 status: blocked
-blocked_by: [OPS-35, OPS-32, OPS-31, BE-28, OPS-38]
+blocked_by: [OPS-35, OPS-32, OPS-31, BE-28, OPS-38, OPS-39, OPS-40]
 fixes: []
 scope: [README.md, docs/ARCHITECTURE.md, docs/assets/**, docs/patterns/**, e2e/capture/**, tests/test_readme_fr2.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, .chassis-delegation.json, reference/**, sfdx-project.json]
