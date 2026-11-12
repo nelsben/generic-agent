@@ -11,6 +11,9 @@
 
 ## Plain answer
 
+> This page records the move, when version 1 was the active version. Version 2 is now active in
+> agent-probe; see [agent-iteration-1.md](agent-iteration-1.md).
+
 - **`main` is deployed to agent-probe, and Account_Brief is published and active there (v1,
   verified).** Both permission sets are deployed and assigned to the running user. The org
   evaluation definition `Account_Brief_Test` exists and points at `subjectVersion v1`.
