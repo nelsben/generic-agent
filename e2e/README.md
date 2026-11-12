@@ -83,7 +83,9 @@ moves are over. Spec 5 waits on the Aura response of the panel's Apex method, ma
 name only.
 
 Every test closes the "Meet the new Guidance Center" walkthrough of a fresh org whenever it appears
-(`Panel.gotoAccount`), because it covers the page and takes focus from the element a test just focused.
+(`Panel.gotoAccount`), because it covers the page. It was on screen when spec 2 failed in agent-probe.
+Spec 2 has also failed there with no walkthrough, cause not found, so it can still be flaky in a fresh
+org ([org-migration.md](../docs/research/org-migration.md), "e2e after FE-9").
 
 Accessibility checks use `@axe-core/playwright` scoped to `c-account-brief-panel`, WCAG 2.0-2.2
 A and AA rules; the violations of each state are attached to the test as JSON.
