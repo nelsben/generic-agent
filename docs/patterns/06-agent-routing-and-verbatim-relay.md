@@ -98,9 +98,9 @@ sequenceDiagram
   on RESOLVED (2), no route out of a subagent (3), a null Id passing the gate (4), and a system
   rule that contradicted the off-topic reply (5). Each is fixed and covered by
   test_agent_bundle.py. The re-review ([agent-review-2.md](../reviews/agent-review-2.md)) confirms
-  1 to 5 fixed in the script on main, but none of it is live, and rates the agent **"Not ready"**.
-  Its one blocker is that reps still run version 1 and no version can be published. That review
-  was of the org it was first built in; the fixed script has since been published and activated
+  1 to 5 fixed in the script on main. It was a review of the org this was first built in, where
+  none of it was live, and it rated the agent **"Not ready"**: reps there still ran version 1
+  and no version could be published. The fixed script has since been published and activated
   in `agent-probe`.
 - **The agent can be called from Apex.** A probe called it twice through `generateAiAgentResponse`
   in one session. The second turn found the right account without naming it. Each turn took 14 to

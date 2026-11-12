@@ -132,7 +132,7 @@ The method behind the layers is in [08: Test and release lifecycle](docs/pattern
 | Calling the agent from Apex | Proven by a two-turn probe | [agent-api.md](docs/research/agent-api.md) |
 | An MCP server lists and adds the actions as tools | Proven by a probe | [salesforce-mcp.md](docs/research/salesforce-mcp.md) |
 | Real deploy of main to the org | Proven: 60 components, 150 of 150 Apex tests | [deploy-verify.md](docs/research/deploy-verify.md) |
-| Panel in a real org | Proven as an admin user: 8 of 8 Playwright specs, on the first run in the org this was built in, and again in `agent-probe` (3.0 minutes, the run in the e2e report) | [deploy-verify.md](docs/research/deploy-verify.md), [e2e report](docs/assets/e2e-report.png) |
+| Panel in a real org | Proven as an admin user: 8 of 8 Playwright specs, on the first run in the org this was built in, and in `agent-probe` (3.0 minutes, the run in the e2e report; the first run there passed 7 of 8, and spec 2 has failed now and then since, cause not found, see [e2e/README.md](e2e/README.md)) | [deploy-verify.md](docs/research/deploy-verify.md), [e2e report](docs/assets/e2e-report.png) |
 | Code reviews of main | Apex: ready with fixes. Panel: ready with fixes. Agent: **not ready**, one blocker (no fixed version can be published in the org this was built in; it has since been published in `agent-probe`) | [apex-review-2.md](docs/reviews/apex-review-2.md), [lwc-review-2.md](docs/reviews/lwc-review-2.md), [agent-review-2.md](docs/reviews/agent-review-2.md) |
 | A run as a non-admin user | **Not yet proven** | Only Apex `runAs` tests so far; see [07](docs/patterns/07-trust-access-and-failure.md) |
 | A real MCP tool call | **Not yet proven** | See [09](docs/patterns/09-outside-door-mcp.md) |

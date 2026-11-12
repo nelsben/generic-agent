@@ -81,7 +81,8 @@ sequenceDiagram
 - **The agent test ran on an active version.** In `agent-probe`, after the publish and
   activation, `sf agent test run` of the 12-case spec passed 12 of 12 cases and 36 of 36
   assertions against version 1, and the Playwright suite passed 8 of 8 there
-  ([org-migration.md](../research/org-migration.md)).
+  ([org-migration.md](../research/org-migration.md)). Its first run there passed 7 of 8; spec 2
+  has failed now and then since, cause not found.
 - **The lifecycle follows Salesforce's own skills.** The agent review found the earlier workflow
   skipped the documented draft-first order (finding 8 in [agent-review.md](../reviews/agent-review.md)).
   The order above follows the lifecycle table in [salesforce-skills.md](../research/salesforce-skills.md).
