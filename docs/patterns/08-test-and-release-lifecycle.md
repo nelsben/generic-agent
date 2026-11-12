@@ -63,7 +63,7 @@ sequenceDiagram
 
 ## See it
 
-![The Playwright HTML report for a full run of the 8 panel specs, each with its pass or fail mark and duration](../assets/e2e-report.png)
+![The Playwright HTML report: 8 of 8 panel specs passed in Chromium, each with a check mark and its duration, total time 2.4 minutes](../assets/e2e-report.png)
 
 ## Why you can trust it
 

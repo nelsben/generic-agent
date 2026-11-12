@@ -57,9 +57,9 @@ sequenceDiagram
 
 ## See it
 
-![Cmd/Ctrl-K opens the Account Brief utility with the composer focused, and Esc closes it again](../assets/hotkey-open.gif)
+![The Account Brief panel opens over an account page with typed text already in its composer, then minimizes back to the utility bar](../assets/hotkey-open.gif)
 
-![The panel at 340 px wide with a brief and two of its sections expanded, composer pinned at the bottom](../assets/panel-sections-open.png)
+![The panel with two brief sections expanded, Open deals with its one overdue deal and Service health with none, and the composer at the bottom](../assets/panel-sections-open.png)
 
 ## Why you can trust it
 

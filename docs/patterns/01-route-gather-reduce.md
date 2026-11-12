@@ -65,9 +65,9 @@ sequenceDiagram
 
 ## See it
 
-![The panel during "/brief Edge Communications": the hotkey opens it, the headline lands, then the section accordions fill in](../assets/brief-flow.gif)
+![The panel during "/brief Edge Communications": it opens empty, the request is typed and sent, a spinner runs, the opening summary appears, then the view ends on the collapsed section rows](../assets/brief-flow.gif)
 
-![A finished brief in the panel: the summary on top, each section collapsed under its title with a status badge](../assets/panel-brief.png)
+![A finished brief in the panel, scrolled to its sections: "Sections: all", then Contacts, Recent activity, Calls & meetings and Deal history collapsed, each with an OK or EMPTY badge](../assets/panel-brief.png)
 
 ## Why you can trust it
 

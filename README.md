@@ -3,7 +3,7 @@
 **One keystroke in Salesforce gives a rep a sourced account brief or an answer about their CRM
 data, using only the records that rep is allowed to see.**
 
-![A rep presses Cmd-K, types "/brief Edge Communications", and the headline and sections arrive in the panel](docs/assets/brief-flow.gif)
+![On an account page the Account Brief panel opens, "/brief Edge Communications" is typed and sent, a spinner runs, the opening summary appears, and the panel ends on the collapsed section rows with OK and EMPTY badges](docs/assets/brief-flow.gif)
 
 This repo is a working Salesforce DX project. It holds an Agentforce Employee agent, a Lightning
 utility-bar panel, and the Apex behind both. Each part is written up as a pattern you can copy

@@ -31,9 +31,11 @@ Still open:
   and a clean install from the README's five-minute steps.
 - The should-fix findings: apex-review-2 N1 to N4, lwc-review-2 N1 to N5, agent-review-2 N2 to N6,
   plus earlier agent findings 6 and 12 and panel items 6 and 14f.
-- Real record Ids remain in `tests/agent/Account_Brief-testSpec.yaml` and the matching assertions
-  in `tests/test_agent_bundle.py`, and one in `docs/research/salesforce-mcp.md`. Those files were
-  outside the final pass's reach.
+- Three real Account Ids remain in `tests/test_agent_bundle.py`. They must change together with
+  the same Ids in `tests/agent/Account_Brief-testSpec.yaml`, which OPS-22 was not allowed to
+  touch. Card OPS-24 (queued) replaces both.
+- One real Id remains in `docs/research/salesforce-mcp.md`, which OPS-22 was also not allowed to
+  touch. It is still open.
 
 ## Where things stand
 

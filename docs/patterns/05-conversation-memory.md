@@ -60,7 +60,7 @@ sequenceDiagram
 
 ## See it
 
-![A follow-up question after a brief, answered for the same account using what the earlier brief said](../assets/memory-followup.png)
+![The follow-up "In one sentence, what was the main risk in that brief?" answered about Edge Communications, with two suggested follow-up questions under it](../assets/memory-followup.png)
 
 ## Why you can trust it
 
