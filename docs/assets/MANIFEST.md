@@ -11,6 +11,8 @@ Pages 04 (model provider seam) and 09 (outside door, MCP) use diagrams only and 
 Page 06 (agent routing) has two slots for the built-in Agentforce panel. They were captured in
 the `agent-probe` org, where version 2 of Account_Brief, published from main with the current
 script, is the active version (see [agent-iteration-1](../research/agent-iteration-1.md)).
+`panel-ask-agent.png` shows the same agent answering inside the custom panel, through "Ask the
+agent", in the same org (see [panel-agent-1](../research/panel-agent-1.md)).
 
 | File | What it shows | Used by | Status | Pixel size | File size |
 |---|---|---|---|---|---|
@@ -24,6 +26,7 @@ script, is the active version (see [agent-iteration-1](../research/agent-iterati
 | `memory-followup.png` | A follow-up question answered from the earlier brief, then four suggested follow-ups | [05](../patterns/05-conversation-memory.md) | captured | 1520x1500 | 232 KB |
 | `agent-brief.png` | Version 2 of the agent in the built-in Agentforce panel in the Account Brief app, answering "Brief me on Edge Communications" | [06](../patterns/06-agent-routing-and-verbatim-relay.md) | captured | 1520x1500 | 288 KB |
 | `agent-explore.png` | Version 2 of the agent in the built-in Agentforce panel, answering an org-wide count question | [06](../patterns/06-agent-routing-and-verbatim-relay.md) | captured | 1520x1500 | 153 KB |
+| `panel-ask-agent.png` | "Ask the agent" in the custom panel on the Edge Communications page: the question "What are the open deals at this account?" at the top of the conversation and the start of the agent's reply ("Five open deals totaling $634,180 with two overdue opportunities requiring immediate attention." and the Open deals paragraph), with no built-in panel open | [03](../patterns/03-hotkey-panel.md), [06](../patterns/06-agent-routing-and-verbatim-relay.md) | captured | 1520x1500 | 241 KB |
 | `not-found.png` | The fixed NOT_FOUND line for an unknown account, "Try a fuller or different account name." | [07](../patterns/07-trust-access-and-failure.md) | captured | 1520x1500 | 187 KB |
 | `ambiguous.png` | The AMBIGUOUS reply with its three candidate buttons | [07](../patterns/07-trust-access-and-failure.md) | captured | 1520x1500 | 207 KB |
 | `e2e-report.png` | The Playwright HTML report for a full run: 8 of 8 passed, 3.1 minutes | [README](../../README.md), [03](../patterns/03-hotkey-panel.md), [08](../patterns/08-test-and-release-lifecycle.md) | captured | 1600x1800 | 274 KB |

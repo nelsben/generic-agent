@@ -4,6 +4,11 @@
  * on the Edge Communications page. The custom panel's "Ask the agent" button opens it and sends
  * the composer's text (lightning/accApi), so no text is typed into the built-in panel itself.
  * Two agent turns in one session: a brief, then an org-wide count.
+ *
+ * Skipped: since BE-20, "Ask the agent" asks the agent through Apex and shows the reply in the
+ * custom panel; it no longer opens the built-in panel, so this script cannot reach it. Point it at
+ * the built-in panel's own entry point before capturing these two stills again. The committed
+ * stills predate the change and still show the built-in panel as it is.
  */
 const { test, expect, watch, still, settle } = require('./kit');
 const { ANSWER_TIMEOUT } = require('../support/panel');
@@ -62,7 +67,7 @@ async function askAgent(panel, text) {
     await panel.host.getByRole('button', { name: 'Ask the agent', exact: true }).click();
 }
 
-test('agent-brief.png, agent-explore.png', async ({ page, panel }) => {
+test.skip('agent-brief.png, agent-explore.png', async ({ page, panel }) => {
     const popup = page.getByRole('dialog').filter({ hasText: MEMORY_POPUP });
     await page.addLocatorHandler(popup, async (shown) => {
         await shown.getByRole('button', { name: 'Cancel and close', exact: true }).click();

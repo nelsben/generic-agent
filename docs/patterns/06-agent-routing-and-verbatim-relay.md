@@ -4,7 +4,8 @@
 
 Reps who use the built-in Agentforce panel get the same brief and the same data answers as the
 custom panel. The agent decides which of two jobs a message is, then passes the Apex answer
-through without rewording it.
+through without rewording it. The custom panel's "Ask the agent" button talks to the same
+registered agent directly and shows its reply in the custom panel, so the rep stays in one panel.
 
 The current script runs live in `agent-probe`, a fresh Developer Edition org. There, version 2
 of `Account_Brief`, published from main with this script, is the active version. The
@@ -26,12 +27,21 @@ that text as it is.
 ```mermaid
 sequenceDiagram
     actor U as Rep
+    participant P as accountBriefPanel
+    participant AC as AccountBriefAgentClient
     participant R as agent_router
     participant AB as subagent account_brief
     participant RA as AccountBriefResolver
     participant GA as AccountBriefGetAction
     participant EX as subagent explore
     participant EA as ExploreAction
+    Note over U,R: From the built-in Agentforce panel, a message goes straight to the router.
+    U->>P: What are the open deals at this account? then Ask the agent
+    P->>AC: askAgent: message, open record, no session yet
+    AC->>R: generateAiAgentResponse(Account_Brief)
+    R-->>AC: reply envelope and sessionId
+    AC-->>P: reply text and sessionId
+    P-->>U: the reply in the custom panel
     U->>R: Brief me on Edge Communications
     R->>AB: go_to_account_brief
     AB->>RA: resolve_account(accountName)
@@ -65,10 +75,20 @@ sequenceDiagram
    subject is routed again.
 8. **Off topic.** The router replies "I can brief you on an account or answer questions about
    your CRM data." and calls nothing.
+9. **Two front doors, one agent.** The built-in Agentforce panel sends the rep's message as it is.
+   The custom panel's "Ask the agent" calls `AccountBriefPanelController.askAgent`, which runs the
+   agent's `generateAiAgentResponse` action through `AccountBriefAgentClient`. The first turn
+   adds the open record to the message (`The record I have open is <record Id>.`), later turns pass the
+   returned `sessionId`, and the client unwraps the `{"type":"Text","value":"..."}` envelope. Any
+   failure returns one fixed line, "The agent could not answer right now. Try again in a minute."
+   The action cannot run in an Apex test, so the call sits behind a `Transport` interface that the
+   tests replace ([panel-agent-1.md](../research/panel-agent-1.md)).
 
 ## See it
 
 ![Version 2 of the agent in the built-in Agentforce panel, titled Account Brief, docked over an account page: the question "Brief me on Edge Communications", then the reply, opening with "Two overdue deals and a high-priority escalated BGP case need immediate attention.", then an Account paragraph and an Open deals paragraph whose end is under a scroll-down button above the message box](../assets/agent-brief.png)
+
+![The custom Account Brief panel on the Edge Communications page after "Ask the agent": the question "What are the open deals at this account?" and the start of the agent's reply in the custom panel, with no built-in panel open](../assets/panel-ask-agent.png)
 
 ![The same built-in panel on version 2 after the question "How many open opportunities are there in the whole org?": the reply "There are 36 open opportunities in the whole org.", a paragraph explaining that these are opportunities where IsClosed is false, "Count 36", and the like, dislike and copy buttons](../assets/agent-explore.png)
 
@@ -108,7 +128,17 @@ sequenceDiagram
   in `agent-probe`.
 - **The agent can be called from Apex.** A probe called it twice through `generateAiAgentResponse`
   in one session. The second turn found the right account without naming it. Each turn took 14 to
-  18 seconds ([agent-api.md](../research/agent-api.md)).
+  18 seconds ([agent-api.md](../research/agent-api.md)). The probe was repeated in `agent-probe`
+  against version 2 before the panel was built on it: 15.4 and 10.1 seconds, same session, and the
+  follow-up answered about cases without asking which account
+  ([panel-agent-1.md](../research/panel-agent-1.md)).
+- **The custom panel calls it in a real org.** Playwright spec 9 asks "What are the open deals at
+  this account?" and then "What about their open cases?" from the custom panel. It failed on the
+  old panel, where the button handed off to the built-in panel, and passed after the deploy:
+  both replies show in the custom panel and the second turn reuses the first turn's agent
+  session ([panel-agent-1.md](../research/panel-agent-1.md)). Apex tests cover the unwrap, the
+  failure line, session reuse through the seam and the open record; Jest covers the send, the
+  follow-up, the failure line and latest wins.
 
 ## Adopt it
 
@@ -150,11 +180,18 @@ sequenceDiagram
   text (finding 6). Finding 12 is fixed in version 2: the NOT_FOUND reply now says "Try a fuller
   or different account name." instead of asking the rep to open the account, which the agent
   does not pass in.
-- Agent turns are slow. The Apex probe recorded 14 to 18 seconds per turn
-  ([agent-api.md](../research/agent-api.md)). The custom panel calls the same Apex directly.
-- The custom panel's "Ask the agent" button only opens the built-in panel and sends the question.
-  The answer appears there, not in the custom panel.
+- Agent turns are slow. The Apex probes recorded 10 to 18 seconds per turn
+  ([agent-api.md](../research/agent-api.md), [panel-agent-1.md](../research/panel-agent-1.md)).
+  The custom panel shows "Asking the agent" while it waits. Its brief and explorer paths call the
+  same Apex directly, without the agent.
+- The custom panel shows the agent's reply as plain text. The `AccountBriefAgentClient` lines
+  that only a live action reaches (the real `Transport`) are not covered by Apex tests, because
+  `generateAiAgentResponse` cannot run in a test.
+- The agent spec run after this change scored 15 of 16 replies: case 14, the known weak "Which of
+  them close this quarter?" case, got the same 27-opportunity answer as before and was graded 2 this time
+  (3 and a pass before). The agent itself did not change ([panel-agent-1.md](../research/panel-agent-1.md)).
 
 > [!WARNING]
-> **Not yet proven:** the custom panel calling the registered agent and showing its reply. The
-> Apex call is proven, but the `@AuraEnabled` wrapper and the panel view are not built.
+> **Not yet proven:** "Ask the agent" for a non-admin user. The runs so far were as a System
+> Administrator who holds `Account_Brief_Agent_Access` directly and through the
+> `Account_Brief_User` group, so which permission the call needs beyond agent access is not known.
