@@ -1,3 +1,5 @@
+> Next: [explore-prompt-2.md](explore-prompt-2.md) (BE-18) tried three shorter rule 9 revisions and records why the org still runs this one.
+
 # Explore prompt iteration 1 (BE-17)
 
 Org: agent-probe only. Date: 2026-11-12. Everything below was read from command output in this
