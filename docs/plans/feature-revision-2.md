@@ -187,7 +187,7 @@ Ben's notes on [08-test-and-release-lifecycle.md](../patterns/08-test-and-releas
 
 | # | Feedback | Status |
 |---|----------|--------|
-| F88 | "we have a really awesome opportunity to build out some really cool Agentforce Testing Center suite that we can incorporate into the run" and "how we communicate how to effectively test these agents as well as part of this bundle" | Decision below: the optional agent is the test bench. `BE-38` (a capped Testing Center suite and one script that runs it for the active version; waits for Ben's go in the Approvals table); `OPS-28` (runs it in the scratch org, after the run without the agent); `OPS-46` (the agent track of the ladder); `OPS-47` (the chapter) |
+| F88 | "we have a really awesome opportunity to build out some really cool Agentforce Testing Center suite that we can incorporate into the run" and "how we communicate how to effectively test these agents as well as part of this bundle" | Decision below: the optional agent is the test bench. `BE-38` (a capped Testing Center suite with no write actions, and one script that runs it for the active version; waits for Ben's go in the Approvals table); `OPS-28` (runs it in the scratch org, after the run without the agent); `OPS-46` (the agent track of the ladder); `OPS-47` (the chapter) |
 | F89 | "playwright tests for testing front-end changes" and "From a Chromium perspective, I'm assuming that this is UI UX tests, something similar to Playwright and like what Playwright ran" | Yes: Chromium is the browser Playwright drives. `FE-21` (spec 2's intermittent failure found and fixed, both hotkey branches, a smoke subset for front-end changes); each FR2 surface card already adds its own specs |
 | F90 | "any other test classes in Apex that we may have generated to like prove that this thing works well" | `OPS-47` (a "What the tests prove" table by area, and a first Apex test to copy, with the stubbed model) |
 | F91 | "testing adoption, I think, is really important because we're going to be bringing some of these programmatic testing concepts to Salesforce users who haven't historically done this type of testing. Meaningful and valuable. This is not ... A review board where you have to go and present everything and you're going to get graded" | Decision below on tone. `OPS-47` (written for people new to testing: a first test to copy for each kind, and turning a bad answer into a test); `OPS-46` (the ladder in one command, one line per rung) |
@@ -253,7 +253,8 @@ Ben also said "it's not that thing to use other resources in salesforce"; record
   is a finding for Ben. A run spends model calls, so it is a named rung, not part of every card's gate, and the suite
   is capped at 20 cases. Salesforce advises running Testing Center in a sandbox; `agent-probe` has none, so the
   functional suite runs there only with Ben's go, and the full run in the scratch org (`OPS-28`). A security suite is
-  not planned: it needs a non-production org and Ben's go.
+  not planned: it needs a non-production org and Ben's go. If Ben says no to the `agent-probe` run, the brain drops
+  `BE-38` from `OPS-46`, `OPS-47`, `OPS-36` and `OPS-28` before they are dispatched, so the close does not stall.
 - **Tests are a builder's tool, not a review board** (F91). Pages about testing use no grades, scorecards or sign-off
   language; they show what each check catches and give a first test to copy.
 - **"Why custom" lives in one page, chapter 00** (F66): docs/patterns/00-why-custom.md, the first chapter of the
@@ -298,7 +299,9 @@ Ben also said "it's not that thing to use other resources in salesforce"; record
   invocables ready for it.
 - Say go to schedule the outcome purge job in agent-probe after `BE-35` lands. Until then nothing expires.
 - Say go for the Testing Center suite in `agent-probe` (`BE-38`; the Approvals table). The brain recommends yes for the
-  functional suite: read-only cases, at most 20, the same kind of run that passed there before.
+  functional suite: at most 20 cases with no write actions, on one dedicated test account (a summary still records its
+  session and its customer outcome), the same kind of run that passed there before. It also covers the ladder's
+  `--agent` run (`OPS-46`).
 - Optional: install Java 11 or later on this Mac so the code scan's Java rules run (`OPS-46` runs the rest without it).
 - Optional: decide whether the checks should run automatically in GitHub Actions. That needs an org login stored as a
   GitHub secret, so no card is cut until you say so.
