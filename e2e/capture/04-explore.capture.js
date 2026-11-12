@@ -31,9 +31,6 @@ test('explore-answer.png, explore-drill.gif, drill-view.png', async ({ page, pan
         throw new Error('explore-answer.png: the scroll box or the table header row is not rendered.');
     }
     const needed = Math.ceil(head.y + head.height - box.y);
-    // The answer text as shown (masked by the privacy guard), for the record of each run.
-    const answer = await turn.locator('.abp-pre').first().innerText();
-    console.log(`explore-answer.png: answer ${JSON.stringify(answer)}`);
     if (needed > box.height) {
         throw new Error(`explore-answer.png: the question to the header row needs ${needed} px; the scroll box is ${Math.round(box.height)} px.`);
     }
