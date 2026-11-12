@@ -4,7 +4,7 @@ title: Agent iteration in agent-probe: explore follow-ups keep the previous ques
 domain: backend
 tier: frontier
 tier_reason: Apex plus agent script change shipped through publish, activate, test and rollback in a live org
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/classes/ExploreAction.cls, force-app/main/default/classes/ExploreActionTest.cls, force-app/main/default/classes/AccountBriefResolver.cls, force-app/main/default/classes/AccountBriefResolverTest.cls, force-app/main/default/aiAuthoringBundles/Account_Brief/**, tests/test_agent_bundle.py, tests/agent/Account_Brief-testSpec.yaml, docs/research/agent-iteration-1.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/permissionsets/**, force-app/main/default/classes/DataExplorer.cls, e2e/**, scripts/**, README.md, docs/patterns/**, docs/plans/**, docs/reviews/**, agents/**, .chassis-delegation.json, reference/**, .sf/**]
@@ -31,3 +31,23 @@ Agent re-review findings N3, N6 and earlier findings 6, 7 and 12 are the should-
 - Write docs/research/agent-iteration-1.md: each change and the finding it closes, commands and outcomes in order, the version table before and after, the spec table (case, result, judge note), the two-turn result and the N4 trace notes. No record Ids, org Ids, usernames, emails, tokens, instance hostnames or URLs with query strings
 - Budget: at most about 40 model calls in the org. Write no data except the evaluation definition and what the agent writes itself. Never touch experimental, never sign in or out, never create users, never install a plugin even if a hook suggests one
 - Gates pass: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/validate-org.sh and bash scripts/agent-check.sh; leave no tests/__pycache__/; git status --short is empty after your commit. In the hand-back paste the read-only BotVersion query result
+
+## Review
+
+Accepted after one attempt and one review pass: 28 confirmed, 0 refuted, 10 unverifiable.
+
+- What changed:
+  - N3: ExploreAction takes and returns a history item, and the script keeps it in explore_history. Router rule 4 now applies only after an account_brief reply.
+  - Finding 12: the not-found and blank-name messages are reworded.
+  - The spec gains four cases, reaching 16. Case 11's wording changes and expectedTopic is removed from the off-topic case.
+- The org steps ran in agent-probe:
+  - The Apex was validated and quick-deployed once each.
+  - Publish took two calls. The first was rejected for a 276-character variable description and created no version. The second used a changed bundle, and a unit test now enforces the 255-character limit.
+  - v2 was activated explicitly.
+  - The evaluation definition was recreated on v2, and the spec passed 16 of 16. Case 12's topic FAILURE is the runner's false failure once expectedTopic is removed.
+  - The two-turn check passed.
+- The brain checked the version state with a read-only BotVersion query: v1 Inactive, v2 Active.
+- The 10 unverifiable rows are org-side results (deploy jobs, spec run, two-turn, preview traces, N4) that leave nothing in the tree. The BotVersion row is now checked.
+- Left for FE-10, which owns docs/patterns: page 06 line 143 still quotes the old not-found text. The pattern pages should also say v2 is active in agent-probe.
+- Not proven: explore history on the published v2. It was checked only in a preview of the local bundle, which differs from v2 by one shortened description. Testing Center cannot fill the history input, so spec case 14 does not exercise it.
+- Gates: test (83), org (60 components, 154 Apex tests) and agent all pass at b1aa3e0. Privacy grep of the 457 added lines found nothing: no deny-list hits, Salesforce-shaped Ids, emails, instance hosts, query-string URLs or home paths.
