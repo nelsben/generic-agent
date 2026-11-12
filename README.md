@@ -19,7 +19,7 @@ metadata: prompts are plain-text static resources.
 | 3 | Hotkey panel | Cmd/Ctrl-K from any page in the app. No tab switching and no lost place. | [03](docs/patterns/03-hotkey-panel.md) |
 | 4 | Model provider seam | One class decides which model runs. You can swap it without touching the features. | [04](docs/patterns/04-model-provider-seam.md) |
 | 5 | Conversation memory | Follow-ups work, and earlier briefs of an account are listed when you come back. | [05](docs/patterns/05-conversation-memory.md) |
-| 6 | Agent routing and verbatim relay | The built-in Agentforce panel sends each ask to the same Apex as the custom panel. Previewed, but the current script is not live yet. | [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
+| 6 | Agent routing and verbatim relay | The built-in Agentforce panel sends each ask to the same Apex as the custom panel. The current script is live in `agent-probe`; the org it was first built in still runs the older version 1. | [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
 | 7 | Trust, access and failure | Users see only what they can already see. Failures read as one plain sentence, never a stack trace. | [07](docs/patterns/07-trust-access-and-failure.md) |
 | 8 | Test and release lifecycle | Every change passes local, org and agent checks before anyone relies on it. | [08](docs/patterns/08-test-and-release-lifecycle.md) |
 | 9 | Outside door (MCP) | AI clients outside Salesforce can ask for the same brief under the same rules. Designed, not yet proven. | [09](docs/patterns/09-outside-door-mcp.md) |
@@ -82,12 +82,12 @@ exist yet, that set may not deploy: leave it out of steps 1 and 2 and add it onc
 published. The panel needs only `Account_Brief_Data_Access`.
 
 The agent in the built-in Agentforce panel needs one more step: publish and activate the
-`Account_Brief` bundle. In the org this was built in, every CLI publish fails with a server
-`401`, and Studio's Commit Version fails too with a "couldn't commit a version" message; its
-network response was not captured, so whether it is the same `401` is not known
-([agent-publish-spike.md](docs/research/agent-publish-spike.md)). The plan's morning notes report,
-second-hand, that a minimal agent that failed there publishes in a fresh Developer Edition org, so
-the fault looks specific to that org ([gtm-burn-plan.md](docs/plans/gtm-burn-plan.md)). The panel
+`Account_Brief` bundle. In `agent-probe`, a fresh Developer Edition org, main's bundle published
+on the first try and its version 1 is active
+([org-migration.md](docs/research/org-migration.md)). In the org this was first built in, every
+CLI publish fails with a server `401`, and Studio's Commit Version fails too with a "couldn't
+commit a version" message; its network response was not captured, so whether it is the same
+`401` is not known ([agent-publish-spike.md](docs/research/agent-publish-spike.md)). The panel
 path above does not depend on it.
 
 ## How it is tested
@@ -128,15 +128,16 @@ The method behind the layers is in [08: Test and release lifecycle](docs/pattern
 |---|---|---|
 | Brief engine, explorer, memory, controller | Proven by Apex tests | The `*Test.cls` classes in `force-app/main/default/classes/`, run by `scripts/validate-org.sh` |
 | Panel behaviour | Proven by Jest | [accountBriefPanel.test.js](force-app/main/default/lwc/accountBriefPanel/__tests__/accountBriefPanel.test.js) |
-| Agent routing, 12 cases | Proven in Studio preview against the draft, before the last explorer fixes | [studio-preview.md](docs/research/studio-preview.md) |
+| Agent routing, 12 cases | Proven in Studio preview against the draft, before the last explorer fixes, and by the agent test run in `agent-probe` (below) | [studio-preview.md](docs/research/studio-preview.md), [org-migration.md](docs/research/org-migration.md) |
 | Calling the agent from Apex | Proven by a two-turn probe | [agent-api.md](docs/research/agent-api.md) |
 | An MCP server lists and adds the actions as tools | Proven by a probe | [salesforce-mcp.md](docs/research/salesforce-mcp.md) |
 | Real deploy of main to the org | Proven: 60 components, 150 of 150 Apex tests | [deploy-verify.md](docs/research/deploy-verify.md) |
-| Panel in a real org | Proven as an admin user: 8 of 8 Playwright specs on the first run | [deploy-verify.md](docs/research/deploy-verify.md), [e2e report](docs/assets/e2e-report.png) |
-| Code reviews of main | Apex: ready with fixes. Panel: ready with fixes. Agent: **not ready**, one blocker (no fixed version can be published) | [apex-review-2.md](docs/reviews/apex-review-2.md), [lwc-review-2.md](docs/reviews/lwc-review-2.md), [agent-review-2.md](docs/reviews/agent-review-2.md) |
+| Panel in a real org | Proven as an admin user: 8 of 8 Playwright specs, on the first run in the org this was built in, and again in `agent-probe` (3.0 minutes, the run in the e2e report) | [deploy-verify.md](docs/research/deploy-verify.md), [e2e report](docs/assets/e2e-report.png) |
+| Code reviews of main | Apex: ready with fixes. Panel: ready with fixes. Agent: **not ready**, one blocker (no fixed version can be published in the org this was built in; it has since been published in `agent-probe`) | [apex-review-2.md](docs/reviews/apex-review-2.md), [lwc-review-2.md](docs/reviews/lwc-review-2.md), [agent-review-2.md](docs/reviews/agent-review-2.md) |
 | A run as a non-admin user | **Not yet proven** | Only Apex `runAs` tests so far; see [07](docs/patterns/07-trust-access-and-failure.md) |
 | A real MCP tool call | **Not yet proven** | See [09](docs/patterns/09-outside-door-mcp.md) |
 | The panel calling the registered agent | **Not yet proven**, not built | See [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
-| Agent version 2 published and active | **Not yet proven** | Every CLI publish returns `401` and Studio's Commit Version also fails; version 1, the script before the fixes, is still active. See [agent-publish-spike.md](docs/research/agent-publish-spike.md) |
-| Agent test spec run in the org | **Not yet proven** | Written and shape-tested in Python; not run, because it needs the fixed version active |
+| The fixed script published and active | Proven in `agent-probe`: version 1, published from main, is active. In the org this was first built in, every CLI publish returns `401` and Studio's Commit Version also fails, and version 1 there is still the script before the fixes | [org-migration.md](docs/research/org-migration.md), [agent-publish-spike.md](docs/research/agent-publish-spike.md) |
+| A version 2 published over an active version | **Not yet proven** | Only version 1 has been published in `agent-probe` |
+| Agent test spec run in the org | Proven in `agent-probe`: 12 of 12 cases, 36 of 36 assertions, against the active version 1 | [org-migration.md](docs/research/org-migration.md) |
 | A clean install from "See it in 5 minutes" | **Not yet proven** | Main has been deployed to the org it was built in, not installed into a new org from these steps |

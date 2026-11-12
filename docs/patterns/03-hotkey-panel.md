@@ -78,10 +78,10 @@ sequenceDiagram
   panel "Ready with fixes" with no blockers, and its own Jest run passed 36 of 36 with 89.5% line
   coverage of the panel's JavaScript.
 - **It runs in a real org.** The Playwright suite ([e2e/README.md](../../e2e/README.md)) passed
-  8 of 8 on the first run against a real org, as an admin user: the hotkey before first open, Esc
-  returning focus, the live region, the pinned composer, latest wins, Enter to send, a drill and
-  back, and axe ([deploy-verify.md](../research/deploy-verify.md),
-  [e2e report](../assets/e2e-report.png)).
+  8 of 8 as an admin user: the hotkey before first open, Esc returning focus, the live region, the
+  pinned composer, latest wins, Enter to send, a drill and back, and axe. It passed on its first
+  run in the org this was built in ([deploy-verify.md](../research/deploy-verify.md)) and again in
+  `agent-probe`, where the [e2e report](../assets/e2e-report.png) was taken (3.0 minutes).
 
 ## Adopt it
 
