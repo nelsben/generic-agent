@@ -138,6 +138,16 @@ Developer Edition org (Morning notes). Ben's order:
 No Salesforce user is created by the brain or a worker in either org. `experimental` keeps
 version 1 active and is not changed while Ben's Salesforce case is open.
 
+**Outcome (2026-11-12):** done in `agent-probe`. OPS-24 and OPS-25 moved `main` there, FE-9 got
+e2e to 8 of 8, and FE-8 recaptured the assets. BE-16 published and activated Account_Brief
+version 2. OPS-26 added the access group, and FE-10 and BE-17 fixed the panel layout and the
+explorer's answer length. OPS-27 made the README quick-start match the order that worked.
+Still open:
+- BE-15 is parked, to be re-cut as one org-live card.
+- FE-5 waits on a non-admin user that Ben creates.
+- OPS-23 was not run.
+- The README quick-start has not been run end to end in a new org.
+
 ## Asset manifest (the workbook and the capture card both key off this)
 
 All under `docs/assets/`. OPS-19 writes `docs/assets/MANIFEST.md` from this table.
