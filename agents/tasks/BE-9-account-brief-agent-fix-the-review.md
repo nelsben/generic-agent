@@ -1,0 +1,38 @@
+---
+id: BE-9
+title: Account_Brief agent: fix the review's BE-8 findings, add the AMBIGUOUS and two-turn tests, and add a local compile + validate script
+domain: backend
+tier: frontier
+tier_reason: agent routing design across six interacting findings; a wrong fix ships to the live agent and the baseline
+status: merged
+fixes: []
+scope: [force-app/main/default/aiAuthoringBundles/Account_Brief/Account_Brief.agent, force-app/main/default/aiAuthoringBundles/Account_Brief/Account_Brief.bundle-meta.xml, tests/agent/Account_Brief-testSpec.yaml, tests/test_agent_bundle.py, scripts/agent-check.sh, scripts/validate-org.sh]
+forbid: [force-app/main/default/classes/**, force-app/main/default/lwc/**, force-app/main/default/staticresources/**, force-app/main/default/permissionsets/**, force-app/main/default/objects/**, force-app/main/default/flexipages/**, docs/**, reference/**, agents/**, .chassis-delegation.json]
+red_test: bash scripts/agent-check.sh (the script does not exist yet); plus the new structure checks in tests/test_agent_bundle.py, which fail on the BE-8 script
+gate: test, agent
+budget: 2-attempts
+spend: 25
+---
+## Why
+
+The agent peer review (docs/reviews/agent-review.md, merged in PR #23) found that the BE-8 version of the Account_Brief agent is not safe to publish: org-wide data questions can get scoped to the last briefed account, a RESOLVED account can stop at "Resolved: <name>", and the subagents cannot route back. This card fixes those findings on top of BE-8 so the next Agentforce Studio preview and publish (corrective plan step 1a) runs against a corrected script. It also adds the compile + validate step the review and plan step 3 call for.
+
+## Done when
+
+- Your worktree starts from the unmerged BE-8 head (8a8afb6), so BE-8's changes are already in it. Build on them; do not revert them. Read docs/reviews/agent-review.md fully first. Then read these skill files under ~/.claude/plugins/cache/salesforce/agentforce-adlc/0.14.0/skills/: agentforce-generate/SKILL.md, the router-first template it names (router-first.agent), references/architecture-patterns.md, references/agent-script-core-language.md, references/agent-audit-diagnostics-instructions-routing.md and references/agent-audit-diagnostics-actions-state.md; agentforce-test/SKILL.md and its references/batch-testing.md. Load agentforce-adlc:agentforce-generate and agentforce-adlc:agentforce-test with the Skill tool if it is available to you
+- Finding 1 (blocker) is fixed this way, in the .agent file only: after a brief, the unbound explore_data action stays available alongside explore_data_for_account. Instructions send a question to explore_data_for_account only when it refers to the briefed account (its name, 'this account', 'they', 'their'). Any question that names no account, or names a different one, goes to explore_data with no contextRecordId. Do not change Apex or the Explore prompt static resource
+- Finding 2 is fixed: on RESOLVED the agent calls get_brief in the same turn and replies with get_brief's answer verbatim. Only NOT_FOUND, AMBIGUOUS and ERROR replies relay the resolver's message text verbatim
+- Finding 3 is fixed: each non-router subagent has a reclassify transition back to the router, in the form the skill's router-first template uses. The router has a rule that a reply which picks an account from a candidate list (a name or an Id from that list) goes to the account route
+- Finding 4 is fixed: briefed_account_id is set only when the resolver's status is RESOLVED, and get_brief's availability is gated on the Id being neither None nor empty, using the null test the core-language reference documents
+- Finding 5 is fixed: the system instructions no longer contradict the router's one-line off-topic reply
+- Finding 6 is fixed: when the user names an account other than the briefed one, the agent resolves the new name before any get_brief call, and get_brief never runs on the previous account in that turn
+- Finding 7 is fixed in tests/agent/Account_Brief-testSpec.yaml. Add one AMBIGUOUS case: find two accounts that share a name fragment by a read-only query of the org alias `experimental` through the salesforce-development:platform-soql-query skill, and do not create, change or delete any record. If no such pair exists, leave the case out, put a comment in the spec saying why, and say so in your hand-back. Add a two-turn case using conversationHistory, where the follow-up asks about the briefed account. Make the off-topic case able to fail: per batch-testing.md, superset matching means an empty expectedActions list cannot fail, so assert on the outcome text instead. Make the fake-Id case expect one outcome, not either
+- The review's nits 9 to 13 are fixed where they touch the .agent file or tests/test_agent_bundle.py: remove the unused last_status; declare contextRecordId as the type that clears the compiler warning; replace 'character for character' with wording the skill uses; either bind knownAccountId or remove the resolver text that tells the user to 'open the account' (choose, and say which); make the new tests/test_agent_bundle.py checks test structure (which actions and transitions sit inside which subagent), not only that phrases are present. Leave nit 14 (spec location) alone: the spec stays in tests/agent/
+- scripts/agent-check.sh exists and is executable. It (a) runs the local Agent Script compiler from the agentforce-generate skill on the Account_Brief bundle, installing the compiler into a cache outside the repo if missing, and exits non-zero on any compile error; and (b) runs `sf agent validate authoring-bundle --json --api-name Account_Brief -o experimental` and exits non-zero unless it succeeds. It calls the CLI by the absolute path /usr/local/bin/sf (2.157.8), because /opt/homebrew/bin/sf (2.130.9) comes first on PATH and is too old. It never redirects stderr to /dev/null (generate SKILL.md rule 1). scripts/validate-org.sh no longer deploys aiAuthoringBundles in its routine check-only deploy (plan step 3), and its stderr is no longer discarded
+- Gates pass: `python3 -m unittest discover -s tests` and `bash scripts/agent-check.sh`. Run Python with PYTHONDONTWRITEBYTECODE=1 and leave no tests/__pycache__/. `git status --short` is empty when you report
+- Hard limits: do not publish, activate, deactivate or deploy the agent, do not run `sf agent preview` or `sf agent test`, do not create or delete any org metadata or records, do not install plugins, do not use the Chrome browser tools. The only org commands allowed are the validate in agent-check.sh and the read-only SOQL query above. A plugin hook may refuse a raw command or suggest a plugin install: load the named skill and retry; never install a plugin
+- Your hand-back lists, for each routing branch (no account, account named, ambiguous name, candidate picked, follow-up on the briefed account, different account named, org-wide question after a brief, off-topic), the exact preview message the brain should type in Agentforce Studio and the action and reply it should expect. The brain runs that preview before any publish
+
+## Review
+
+Sonnet review, attempt 2: 22 confirmed, 0 refuted, 6 unverifiable. Live Studio preview on 2026-11-11 found four defects this branch does not fix: Studio rejects `contextRecordId: string` (needs object + lightning__recordIdType); the conditional post-action set never stores the briefed account; explore answers counts without calling explore_data; after a brief, org-wide questions route to account_brief. Merged on Ben's go as the base for BE-11, which fixes them. Not published; the org's active version is still 1.
