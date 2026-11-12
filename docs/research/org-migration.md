@@ -401,3 +401,33 @@ Attempt 3, after the Agent Access deploy (verified):
 - e2e left `test-results/` and `playwright-report/` in the worktree; both are git-ignored.
 - The only lasting local change outside git is the project's default org setting in
   `.sf/config.json` (git-ignored).
+
+## e2e after FE-9
+
+Red: `SF_TARGET_ORG=agent-probe npx playwright test -g "2\. Esc"` (the card's `^2\.` matches no spec,
+because Playwright greps the full title path). Spec 2 failed at the first step, "Esc from the composer":
+`focus returned to the element focused before the hotkey, and stayed there`, `expect(locator).toBeFocused()
+failed`, locator `getByRole('button', { name: 'Search', exact: true }).first()`, `Expected: focused`,
+`Received: inactive`, at `e2e/support/panel.js:116` (after the 2.5 s wait). The failure screenshot shows
+the Edge Communications record page, normal and undimmed, with no walkthrough and no Guidance Center
+panel; the snapshot lists the Search button, so it was found but not focused.
+
+Change (`e2e/support/panel.js`, `Panel.gotoAccount` only): before the first goto it registers
+`page.addLocatorHandler` for a dialog containing "Meet the new Guidance Center", which clicks that
+dialog's button named exactly "Dismiss". With no walkthrough the handler never runs and adds no wait.
+The Dismiss name comes from OPS-25's failure snapshot; it was not seen again in this session.
+
+What was observed, plainly:
+
+- The walkthrough did not appear in any run in this session. The handler never fired in the instrumented
+  runs (a temporary log, removed). So the handler is unproven against a real walkthrough.
+- Spec 2 failed once with the handler in place, the same Search-not-focused error, again with no
+  walkthrough. The page held two hidden dialogs at that time (an error dialog and a start-of-dialog
+  region) and focus was no longer on Search; what took it was not identified. Spec 2 then passed in
+  5 further runs (3 of them instrumented). So spec 2 is intermittent here, and the walkthrough is
+  not shown to be its only cause.
+- Whether Dismiss keeps the walkthrough away on the next run: not run (no walkthrough was shown to dismiss).
+
+Green: one full `SF_TARGET_ORG=agent-probe npm run test:e2e` run, **8 passed (3.1 m)**, spec 2 in 10.4 s.
+One full run only; no repeat, so the intermittent spec 2 is not ruled out.
+

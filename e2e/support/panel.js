@@ -53,6 +53,13 @@ class Panel {
      * second full load, so the panel is constructed anew and has not been opened.
      */
     async gotoAccount() {
+        // A fresh org shows the admin onboarding walkthrough "Meet the new Guidance Center", at load or
+        // some seconds later, and it covers the page and takes focus. Dismiss it whenever it appears;
+        // when it is not shown the handler never runs and adds no wait.
+        const walkthrough = this.page.getByRole('dialog').filter({ hasText: 'Meet the new Guidance Center' });
+        await this.page.addLocatorHandler(walkthrough, async (shown) => {
+            await shown.getByRole('button', { name: 'Dismiss', exact: true }).click();
+        });
         await this.page.goto(this.run.origin + APP_PATH);
         await expect(this.host).toBeAttached({ timeout: 90_000 });
         await this.page.goto(this.recordUrl);
