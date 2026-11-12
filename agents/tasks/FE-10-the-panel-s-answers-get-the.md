@@ -4,8 +4,7 @@ title: The panel's answers get the room: the pinned bar above the conversation i
 domain: frontend
 tier: frontier
 tier_reason: UI layout judgement, a production-classified deploy, and a full privacy-masked recapture read by eye
-status: blocked
-blocked_by: [BE-16]
+status: queued
 fixes: []
 scope: [force-app/main/default/lwc/accountBriefPanel/**, e2e/panel.spec.js, e2e/support/panel.js, e2e/capture/**, e2e/README.md, docs/assets/**, README.md, docs/patterns/**]
 forbid: [force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, tests/**, scripts/**, data/**, agents/**, docs/plans/**, docs/research/**, .chassis-delegation.json, reference/**, playwright.config.js, playwright.capture.config.js]
@@ -29,5 +28,6 @@ FE-8 found that in the 340x480 utility panel the pinned bar takes about 185 CSS 
 - e2e: one full npm run test:e2e in agent-probe passes all specs, axe spec 8 included. If spec 2 flakes on focus, as FE-9 recorded, rerun it once and report both results
 - Recapture every asset in docs/assets/ with npm run capture (SF_TARGET_ORG=agent-probe), at most three full runs: the panel PNGs and GIFs, e2e-report.png and the two agent slots, so they match the build after BE-16. panel-brief.png shows the headline and at least the first two section headers. explore-answer.png shows the question, the one-line answer and the table header. Keep all the privacy machinery: masking, the 0.5 s checks, the all-frames checks and the 1 fps by-eye frame read. Read every PNG and GIF frame by eye, and list in the hand-back what each one shows
 - MANIFEST.md, README.md and docs/patterns/** captions and alt text match the new images exactly. Any sentence about the 139 px framing limit is removed
+- After BE-16 (#85; read docs/research/agent-iteration-1.md): docs/patterns/06-agent-routing-and-verbatim-relay.md still quotes the old not-found text ("open the account and ask again"); quote the new one ("Try a fuller or different account name."). README.md and docs/patterns/** say version 2 is active in agent-probe where they say version 1 is (v2 passed 16 of 16 spec cases; explore history checked only in a preview of the local bundle). The README row "A version 2 published over an active version" is now proven in agent-probe by agent-iteration-1.md. Every agent-slot caption names the version it was captured from
 - About 40 model calls at most. No Ids, usernames, emails, hostnames or tokens in any file or image
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
