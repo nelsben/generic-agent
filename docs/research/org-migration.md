@@ -156,8 +156,7 @@ memory test's own setup DML independent of the running user's field access.
   `sf agent validate authoring-bundle` passed on agent-probe even though none of the Apex its
   actions call is in the org yet (verified).
 - `bash scripts/validate-org.sh`: fail, with validate 1's component error (it uses the card's
-  scope). Run once at the first hand-back; not re-run, since the failure was not a timeout and
-  only this page changed since.
+  scope). Same result at the first hand-back and after validate 2.
 
 ## Cleanup
 
