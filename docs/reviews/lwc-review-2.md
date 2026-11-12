@@ -12,20 +12,7 @@ Tags: V = verified in the code, S = suspected (depends on runtime or platform be
 
 ## Verdict
 
-**Ready with fixes.** The panel now does what the first review asked for:
-- The shortcut works before anyone opens the panel, and only the newest request is ever shown.
-- Screen-reader users hear when an answer arrives, and keyboard users are never trapped.
-- Esc puts the cursor back where the user was.
-- Errors show one fixed sentence, not raw system text.
-
-Every earlier finding is fixed or reduced, and the live suite passed 8 of 8 as the admin user. Nothing found here is a blocker. Five things should be fixed before the panel is shown widely:
-- One drill view shows raw record Ids and technical field names.
-- A number in a note can become a button that fails when clicked.
-- A question asked after a brief is quietly tied to that account.
-- Focus return is proven for one kind of page element only.
-- Drill lines may be smaller click targets than WCAG 2.2 allows.
-
-Two gaps in the evidence remain: no one has run the panel as a non-admin user, and no real MCP call has been made.
+**Ready with fixes.** The panel now does what the first review asked for. The shortcut works before anyone opens the panel, and only the newest request is ever shown. Screen-reader users hear when an answer arrives, keyboard users are never trapped, and Esc puts the cursor back where the user was. Errors show one fixed sentence, not raw system text. Every earlier finding is fixed or reduced, and the live suite passed 8 of 8 as the admin user. Nothing found here is a blocker, but five things should be fixed before the panel is shown widely. Some drill views show raw record Ids and technical field names. A number in a note can become a button that fails when clicked. A question asked after a brief is quietly tied to that account. Focus return has been proven from one page element only. And some click targets may be smaller than WCAG 2.2 allows. Two gaps in the evidence remain: no one has run the panel as a non-admin user, and no real MCP call has been made.
 
 ## Earlier findings
 
@@ -34,16 +21,16 @@ Two gaps in the evidence remain: no one has run the panel as a non-admin user, a
 | 1 | Hotkey and channel inert until first open | fixed | flexipage:8-10 (`eager` true); live spec 1 pass (docs/research/deploy-verify.md:27) |
 | 2 | One-request guard bypassed | fixed (new design: latest wins, a repeat is ignored) | js:435-471; every entry point calls `_request` (js:495, 506, 526, 542, 781, 914); test:161-283; live spec 5 (deploy-verify.md:31) |
 | 3 | Two live instances via the RecordPage target | fixed | meta:7-9 (UtilityBar only) |
-| 4 | No screen-reader announcement | fixed | html:4 live region; js:445, 450, 463; test:746-760; live spec 3 (deploy-verify.md:29) |
-| 5 | Focus lost on Esc, close and drill | fixed for light-DOM anchors; see N4 | js:258-301, 753-767, 800; test:524-557, 636-718; live spec 2 (deploy-verify.md:28) |
-| 6 | Tab trap in a non-modal panel | changed: the trap is gone (js:223-229), but every result row is still a tab stop (html:112, 214) | test:720-728; live spec 2, Tab step |
-| 7 | Clickable rows with no role or name | fixed | a real button in the first cell (html:111-113, 213-215); no `tr[tabindex]` (test:534) |
+| 4 | No screen-reader announcement (WCAG 4.1.3) | fixed | html:4 live region; js:445, 450, 463; test:746-760; live spec 3 (deploy-verify.md:29) |
+| 5 | Focus lost on Esc, close and drill (WCAG 2.4.3) | fixed for the one anchor tested (spec:24-26); see N4 | js:258-301, 753-767, 800; test:524-557, 636-718; live spec 2 (deploy-verify.md:28) |
+| 6 | Tab trap in a non-modal panel (WCAG 2.1.2) | changed: the trap is gone (js:223-229), but every result row is still a tab stop (html:112, 214) | test:720-728; live spec 2, Tab step |
+| 7 | Clickable rows with no role or name (WCAG 4.1.2) | fixed | a real button in the first cell (html:111-113, 213-215); no `tr[tabindex]` (test:534) |
 | 8 | Composer scrolls away at 340x480 | fixed | css:2-5, 12, 41-47; scroll into view js:180-186; live spec 4 (deploy-verify.md:30) |
 | 9 | Another account's history shown | fixed | cleared on context change js:373-376; stale guard js:861-863; labelled js:845-848; test:476-510 |
 | 10 | Unexpected Apex errors reach the user raw | fixed inside the methods; residual in N2 | controller:28-33 and its siblings throw the fixed line; js:56-60 |
 | 11 | Hotkey matches too broadly | fixed | js:96-102 (`code`, no Shift or Alt, Cmd on Mac only); js:235-238 (inside the composer); dead branch removed; test:391-444 |
 | 12 | Hand-rolled controls | changed: see the note below the table | html:10-69, 98, 112, 148, 176, 180, 200, 214, 243, 262 |
-| 13 | Non-SLDS-2 hooks, dark-theme contrast | fixed (hooks); dark theme still unmeasured | css:67, 109, 113 use `--slds-g-color-error-1` and `--slds-g-color-border-1`, both in `styling_hooks.json` |
+| 13 | Non-SLDS-2 hooks, dark-theme contrast (WCAG 1.4.3) | fixed (hooks); dark theme still unmeasured | css:67, 109, 113 use `--slds-g-color-error-1` and `--slds-g-color-border-1`, both in `styling_hooks.json` |
 | 14a | apiVersion 64.0 | fixed | meta:3 (68.0) |
 | 14b | Enter submits mid-IME | fixed (Esc is still unguarded, N9) | js:244; test:730-741 |
 | 14c | Disclosure triangle removed | fixed | `lightning-accordion` replaces `<details>` (html:17, 31, 172, 229) |
@@ -71,12 +58,13 @@ There are no blockers.
 **N1. Drill views show raw record Ids and API field names.** Should-fix. V.
 - Where:
   - `_table` makes column 0 the drill button and uses `rs.columns` as headers (js:691-713).
-  - Every ExploreCatalog CURATED entry starts with `'Id'` (ExploreCatalog.cls:16-50), and a related-object drill selects every catalog path (DataExplorer.cls:227). So column 0 is `Id`.
-  - The record card drops only `Id` (js:827), so lookups such as `OwnerId` show raw values.
+  - Every ExploreCatalog CURATED entry starts with `'Id'` (ExploreCatalog.cls:16-50). A related-object drill selects every catalog path (DataExplorer.cls:226-228), and ExploreQuery keeps them in order as columns (ExploreQuery.cls:140-146). So column 0 is `Id`.
+  - The record card drops only `Id` (js:827), so lookups such as `AccountId` and `OwnerId` show raw values.
   - `ResultSet.labels` exists for display (ExploreQuery.cls:38-39), but the panel never reads it.
-- Scenario: a user drills a deal, then clicks the "Contact" chip.
-  - The first header reads "Id", and each row's button text is an 18-character record Id. Other headers read `Account.Name` or `StageName`.
-  - This breaks FE-6's rule that Ids are never visible text. It would also put Ids into FE-7's screenshots, which its privacy rule forbids.
+- Scenario: a user drills a deal from a brief line, then clicks the "Task" chip, which `relatedObjects` offers through `WhatId` (controller:118-130).
+  - The first header reads "Id", and each row's button text is an 18-character record Id. The `WhatId` and `OwnerId` cells hold raw Ids, and other headers read `What.Name` or `Owner.Name`.
+  - The deal's own card shows `AccountId` and `OwnerId` as raw Ids.
+  - This is at odds with FE-6, which kept Ids out of visible brief text, and with 14g. It would also put Ids into FE-7's screenshots, which its privacy rule forbids.
 - Why the tests miss it: the Jest related-drill fixture has only a `Name` column (test:519-521), and spec 7 drills a record, not a related list.
 - Fix:
   - In `_table`, hide `Id` and other Id-kind columns (the row keeps `row.id`), label the button from the first remaining column, and use `labels` for headers.
@@ -90,8 +78,9 @@ There are no blockers.
   - test:593-619 asserts only that the first line drills. It never checks that the second line is not a button.
 - Scenario:
   - A call note quotes an 18-digit order number, so that line renders as a button.
-  - A click sends the number as `drill`'s `Id` parameter (controller:64). The conversion happens before the method body runs, so the fixed-text catch (controller:66-76) never applies.
-  - `errorText` then shows whatever `body.message` the platform sends (js:56-60). The same path shows platform text for any failure before a method runs, such as missing class access.
+  - A click sends the number as `drill`'s `Id` parameter (controller:64), and the drill fails either way.
+  - I suspect the conversion to `Id` fails before the method body runs, so the fixed-text catch (controller:66-76) never applies. If the value does convert, the catch returns the fixed line instead.
+  - In the first case, `errorText` shows whatever `body.message` the platform sends (js:56-60). The same path shows platform text for any failure before a method runs, such as missing class access.
 - Fix: drill brief lines only on the trailing Id, which every one-record source now writes (AccountBriefSection.cls:62-74). Show `ERROR_TEXT` unless the error is a handled one.
 
 **N3. A question after a brief is silently scoped to that account.** Should-fix. V (the code); S (how far the model narrows its answer).
@@ -102,7 +91,7 @@ There are no blockers.
   - test:449-460 proves that the context clears after a message, but only because no brief ran first.
 - Fix: show the context as a removable chip ("About: Acme"), or use only the page's record.
 
-**N4. Focus return is proven for one kind of element only.** Should-fix. S.
+**N4. Focus return is proven from one element only (WCAG 2.4.3).** Should-fix. S.
 - Where:
   - `_openAndFocus` records `document.activeElement` (js:261-263). When focus is inside a shadow tree, that is the outermost shadow host, not the focused field.
   - `_close` focuses that host (js:292-294), and the guard re-focuses it every 50 ms for 2 s (js:312-318). `focus()` does nothing on a host that neither delegates focus nor has a tabindex.
@@ -149,7 +138,7 @@ There are no blockers.
 
 **N11. The e2e harness is tied to one machine and one user.** Note. V.
 - The sf path and the account name are hard-coded (e2e/support/env.js:7-8). On Apple Silicon Homebrew, Linux or CI, setup stops with "The sf CLI was not found" (e2e/global-setup.js:54-56).
-- The hotkey follows the platform (panel.js:69-76), so the Ctrl-K path has never run live: OPS-20 ran on a Mac.
+- The hotkey follows the platform (panel.js:69-76), so OPS-20's single run exercised only one of the two hotkey branches. deploy-verify.md does not record which.
 - There is no CI job, and each run spends money and leaves memory rows (e2e/README.md:36-55).
 
 ## Security and access
@@ -157,7 +146,8 @@ There are no blockers.
 - **Rendering:**
   - Model and record text is bound as text only: no `innerHTML`, no `lwc:dom` and no model-supplied URL.
   - test:286-304 proves that markup renders as text.
-- **LWS, rechecked:** the code added since OPS-12 passes experience-lwc-security-validate `references/security-analysis.md`.
+- **LWS, rechecked against experience-lwc-security-validate `references/security-analysis.md`:**
+  - A grep of the bundle's .js and .html for the catalog sinks finds nothing: `innerHTML`, `lwc:dom`, `eval`, `Function(`, `document.write`, `createElement`, `originalTarget`, `rangeParent`, and `window` or `globalThis` assignment.
   - The timers take function arguments (js:273, 312, 320), which the reference allows (:88).
   - The capture listeners go on `document`, not `document.body` (:170-186). `_stopFocusGuard` removes them, and `disconnectedCallback` calls it (js:190, 332).
 - **Visibility:** the panel adds none.
@@ -187,12 +177,12 @@ There are no blockers.
   - Not covered: the "Brief this account" handler (js:521-538), the include chips (js:413-418), Ask the agent (js:886-897), a superseded brief (js:615) and the history error path (js:874-875).
   - sa11y `toBeAccessible` passes in the empty, brief and drill states (test:794-823).
   - jsdom cannot measure layout, contrast or target size. The suite runs in jsdom, as experience-lwc-accessibility-jest-run `SKILL.md:120` requires.
-- **Playwright (OPS-20's run, not mine):** one admin run in Chromium on a Mac passed 8 of 8 (deploy-verify.md:23-36).
+- **Playwright (OPS-20's run, not mine):** one admin run in Chromium passed 8 of 8 (deploy-verify.md:23-36).
   - The layer has not changed since that deploy: `git diff feb0d7b` is empty for these paths.
   - The axe scans covered collapsed sections and the drill view only. They never saw expanded sections, result tables, candidates, follow-ups or error turns.
 - **Not proven:**
   - any run as a non-admin user (FE-5 is queued) and any real MCP call;
-  - the Ctrl-K path on Windows or Linux;
+  - both hotkey branches (Cmd-K on Mac, Ctrl-K elsewhere), since one run can exercise only one;
   - dark theme and its contrast;
   - focus return from inside an LWC (N4);
   - the agent bridge (N10);
@@ -219,10 +209,17 @@ The two cautions:
 
 All are under `~/.claude/plugins/cache/salesforce/`, read from that cache.
 - experience-lwc/0.3.0/skills/:
-  - experience-lwc-generate: `references/accessibility-guide.md`, `references/lms-guide.md`, `references/slds-blueprints.json` and `scripts/slds_data/styling_hooks.json`.
-  - experience-accessibility-validate: `reviewers/sc-1-3-1-ii-tables.md`, `reviewers/sc-2-4-6-headings-labels.md`, `vision/sc-1-4-1-use-of-color.md` and `scripts/contrast-ratio.py`. The drill line's default link blue measures 3.83:1 against body text. That is above the 3:1 sc-1-4-1 asks for, so it is not a finding.
-  - experience-lwc-security-validate: `references/security-analysis.md`.
-  - experience-lwc-accessibility-jest-run and experience-lwc-runtime-observe: `SKILL.md` of each.
+  - experience-lwc-generate:
+    - `references/accessibility-guide.md` (N4);
+    - `references/lms-guide.md`: its own example channel is exposed, so N7 is only a note;
+    - `references/slds-blueprints.json` (N5);
+    - `scripts/slds_data/styling_hooks.json` (row 13).
+  - experience-accessibility-validate:
+    - `reviewers/sc-1-3-1-ii-tables.md`: lines 23 and 59 accept a table with no accessible name, so the uncaptioned result tables are not a finding;
+    - `reviewers/sc-2-4-6-headings-labels.md` (N1);
+    - `vision/sc-1-4-1-use-of-color.md` and `scripts/contrast-ratio.py`: the drill line's default link blue measures 3.83:1 against body text, above the 3:1 sc-1-4-1 asks for, so it is not a finding.
+  - experience-lwc-security-validate: `references/security-analysis.md` (LWS).
+  - experience-lwc-accessibility-jest-run: `SKILL.md` (jsdom).
 - salesforce-development/2.7.0/skills/:
   - platform-flexipage-generate: `references/xml_rules.md` (`decorator` is valid only on UtilityBar pages).
   - platform-custom-application-generate: `SKILL.md` (the brand block, 14f).
