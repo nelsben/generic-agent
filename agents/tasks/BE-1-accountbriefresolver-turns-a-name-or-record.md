@@ -13,7 +13,7 @@ spend: 10
 ---
 ## Why
 
-The Account Brief agent uses a strict two-stage gate: resolve the account, then brief it, and never brief without a resolved Id. This card builds the resolve stage and the DTO every gather section returns, so the gather cards can run in parallel against one contract. The architecture reference is local and confidential; restate its patterns and never copy its client names: /Users/bennelsen/Documents/generic-agent/reference/agent-landscape-guide/guide.md. Read sections 2.1, 2.3, 4.2 and 5.1 first.
+The Account Brief agent uses a strict two-stage gate: resolve the account, then brief it, and never brief without a resolved Id. This card builds the resolve stage and the DTO every gather section returns, so the gather cards can run in parallel against one contract. The architecture reference is local and confidential; restate its patterns and never copy its client names: <repo>/reference/agent-landscape-guide/guide.md. Read sections 2.1, 2.3, 4.2 and 5.1 first.
 
 ## Done when
 

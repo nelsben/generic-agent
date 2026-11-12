@@ -84,7 +84,7 @@ Our ExploreAction overlaps with `sobject-reads`; the Account brief is unique to 
   - standard: `https://api.salesforce.com/platform/mcp/v1/platform/sobject-all` (HMS/server-urls.md)
   - custom: `https://api.salesforce.com/platform/mcp/v1/custom/<name>` (hxl guide, documented)
   - Connect API example response shows `https://<domain>.my.salesforce.com/services/mcp/<Name>` (documented; the live org did not return this form)
-  - Developer Edition (verified): the org returned `https://api.salesforce.com/platform/mcp/v1/d/lets-get-experimental-dev-ed/develop/custom/<name>`. Use the `serverUrl` the org returns.
+  - Developer Edition (verified): the org returned `https://api.salesforce.com/platform/mcp/v1/d/<my-domain>/develop/custom/<name>`. Use the `serverUrl` the org returns.
 
 ## Setup steps, in order
 
@@ -182,8 +182,8 @@ Run 2026-11-11 against `experimental` (Developer Edition, API 68.0) through
 One throwaway server `AccountBriefProbe`, never activated, deleted at the end. All verified.
 
 **Create (verified).** `POST` with `{"name","label","description","type":"PLATFORM"}` returned
-HTTP 201, `active:false`, `source:"CUSTOM"`, id `1g1gK0000000uztQAA`, and
-`serverUrl: https://api.salesforce.com/platform/mcp/v1/d/lets-get-experimental-dev-ed/develop/custom/AccountBriefProbe`.
+HTTP 201, `active:false`, `source:"CUSTOM"`, id `1g1000000000000AAA`, and
+`serverUrl: https://api.salesforce.com/platform/mcp/v1/d/<my-domain>/develop/custom/AccountBriefProbe`.
 So a Developer Edition org can create a custom hosted server, and the URL is the `api.salesforce.com`
 `/v1/d/<my-domain>/develop/custom/<name>` form, not the `my.salesforce.com/services/mcp` form.
 
