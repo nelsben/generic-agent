@@ -13,8 +13,12 @@
   check-only validate of `force-app` failed on one component (verified):
   `PermissionSet Account_Brief_Agent_Access: In field: botDefinition - no Bot named Account_Brief found`.
 - The permission set grants access to the agent `Account_Brief`. A fresh org has no agent until
-  the bundle is published, and the bundle cannot publish before the Apex its actions call is
-  deployed. So `force-app` as one deploy cannot land in a fresh org: the order is circular.
+  the bundle is published. The agentforce-generate skill documents that publish needs the
+  action targets in the org first: `deploy-reference.md` says to verify every Flow and Apex target
+  exists before publishing, and `agent-metadata-and-lifecycle.md` says `sf agent validate` can
+  pass while publish fails on missing action implementations (documented; not tried in this org).
+  If that holds, `force-app` as one deploy cannot land in a fresh org before the agent exists, and
+  the agent cannot publish before most of `force-app` is deployed.
 - The card says to stop on a deploy failure without changing `force-app`. Every later step was
   skipped: the quick deploy, the permission set assignments, the seed, the publish, activation,
   the 12-case test, the two-turn check and e2e.
@@ -103,7 +107,12 @@ brain's go):**
 7. The 12-case spec (`sf agent test create`, `run`, `results`), the two-turn
    `generateAiAgentResponse` check (`docs/research/agent-api.md`) and `npm run test:e2e`.
 
-An alternative that keeps one deploy, also unproven: move the agent access grant out of
+Publishing first and then running the card's deploy unchanged would avoid the split. The skill
+documents that publish fails without the Apex targets (see the plain answer), and the gate's
+`agent-check.sh` passing here does not contradict that, because validate does not check them.
+So publish-first is not recommended; it is also untried.
+
+Another alternative that keeps one deploy, also unproven: move the agent access grant out of
 `force-app`'s routine deploy (for example into its own package directory deployed after publish).
 That is a source change and belongs to its own card.
 
