@@ -12,7 +12,7 @@ Tags: V = verified in the code, S = suspected (depends on runtime or platform be
 
 ## Verdict
 
-**Ready with fixes.** The panel now does what the first review asked for. The shortcut works before anyone opens the panel, and only the newest request is ever shown. Screen-reader users hear when an answer arrives, keyboard users are never trapped, and Esc puts the cursor back where the user was. Errors show one fixed sentence, not raw system text. Every earlier finding is fixed or reduced, and the live suite passed 8 of 8 as the admin user. Nothing found here is a blocker, but five things should be fixed before the panel is shown widely. Some drill views show raw record Ids and technical field names. A number in a note can become a button that fails when clicked. A question asked after a brief is quietly tied to that account. Focus return has been proven from one page element only. And some click targets may be smaller than WCAG 2.2 allows. Two gaps in the evidence remain: no one has run the panel as a non-admin user, and no real MCP call has been made.
+**Ready with fixes.** The panel now does what the first review asked for. The shortcut works before anyone opens the panel, and only the newest request is ever shown. Screen-reader users hear when an answer arrives, keyboard users are never trapped, and Esc puts the cursor back where the user was. Errors show one fixed sentence, not raw system text. Every earlier finding is fixed or reduced except two: the app still has no brand block (14f, open), and every result row is still a tab stop (row 6). The live suite passed 8 of 8 as the admin user. Nothing found here is a blocker, but five things should be fixed before the panel is shown widely. Some drill views show raw record Ids and technical field names. A number in a note can become a button that fails when clicked. A question asked after a brief is quietly tied to that account. Focus return has been proven from one page element only. And some click targets may be smaller than WCAG 2.2 allows. Two gaps in the evidence remain: no one has run the panel as a non-admin user, and no real MCP call has been made.
 
 ## Earlier findings
 
@@ -112,7 +112,7 @@ There are no blockers.
   - Adjacent line buttons in an open "Open deals" section fail both the 24 px size test and the spacing test.
   - axe's `target-size` rule (`wcag22aa`, spec:21) never saw them. Spec 8 scans the brief with every section collapsed (spec:237-238), and the drill state with the conversation hidden (js:722-724).
 - Fix: give line buttons a 24 px minimum height or a gap, and scan once with a section open.
-- Skill: no installed reference covers 2.5.8; experience-lwc-generate `references/slds-blueprints.json` only says "adequate touch target size". This is reviewer judgement.
+- Skill: no installed reference cites 2.5.8. experience-lwc-generate `references/slds-blueprints.json` asks for "adequate touch targets for mobile" (:1482) and, for icons, "adequate touch target size (minimum 44x44px)" (:1909). Neither is a WCAG reference, so the 24 px test is reviewer judgement.
 
 **N6. Latest-wins is client-side only.** Note. V.
 - A superseded reply is never shown (js:449-470), but the server still finishes the work.
@@ -174,7 +174,8 @@ There are no blockers.
 ## What is proven, and what is not
 
 - **Jest (my own run):** 36 of 36 pass, with 89.5% line coverage of the panel's .js file.
-  - Not covered: the "Brief this account" handler (js:521-538), the include chips (js:413-418), Ask the agent (js:886-897), a superseded brief (js:615) and the history error path (js:874-875).
+  - The figure comes from `npx jest --coverage --coverageReporters=text`, run at the repo root (jest.config.js).
+  - Not covered: the "Brief this account" handler (js:522-535), the include chips (js:410-416), Ask the agent (js:887-895), a superseded brief (js:615) and the history error path (js:874-875).
   - sa11y `toBeAccessible` passes in the empty, brief and drill states (test:794-823).
   - jsdom cannot measure layout, contrast or target size. The suite runs in jsdom, as experience-lwc-accessibility-jest-run `SKILL.md:120` requires.
 - **Playwright (OPS-20's run, not mine):** one admin run in Chromium passed 8 of 8 (deploy-verify.md:23-36).
