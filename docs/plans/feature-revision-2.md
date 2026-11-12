@@ -87,6 +87,24 @@ Status values: a card id, **tabled** (Ben deferred it), **open** (waiting on Ben
 | F42 | Page-by-page notes, starting with the README | **open**: new rows go here, mostly into `OPS-36` |
 | F43 | The original goal still stands: "testing, playwright screenshots with frontend validation, architecture reviews" | `OPS-35`, `OPS-36` |
 
+### Chapter notes: pattern 01, route, gather, reduce
+
+Ben's notes on [01-route-gather-reduce.md](../patterns/01-route-gather-reduce.md), 2026-11-12. "[reference guide]" stands
+in for the confidential operating guide he sent; its name and client stay out of this repo.
+
+| # | Feedback | Status |
+|---|----------|--------|
+| F44 | "talk about the philosophy of route, gather, reduce ... this is going into Customer 360 a little bit and how we can use Agentforce without Data Cloud to shape customer context" | `OPS-38` |
+| F45 | "there's two parts of this. There's the business impact and then there's the architecture" | `OPS-38` |
+| F46 | "Everyone wants deal history, service history, and an insight into the customer they're speaking with or about to speak with ... articulate ... how easy it is, how there's a narrative overlaying customer summaries that's customizable by industry" | `OPS-38` (how to change the sections and the narrative today, with an industry example); a built industry switch is **open**, see F50 |
+| F47 | "how we scale that out architecturally. How do we make it super simple to build a graph of all of the data, pass it to an LLM, and make sure that the summary is accurate?" | `OPS-38` (the account's data graph, gathered as sections, and why the summary stays accurate); `BE-29` (an accuracy check that proves it) |
+| F48 | "Focused LLM callouts to summarize key information, like which was articulated in the [reference guide] ... is the design pattern that we want to communicate" | `OPS-38` (pre-reduce, restated in generic terms) |
+| F49 | Sequence diagrams: "incorporate auto number, colors, fonts, and build truly beautiful sequence diagrams"; auto number "so that each step can correspond with a specific number to allow the user to track"; colour "to make it look beautiful and break it up" | `OPS-38` for pattern 01; the rule for every diagram is in [fr2-design.md](fr2-design.md#diagrams), applied by `OPS-36` and each later chapter card |
+| F50 | "show from the document our reduction structure ... this might not be deal history, it might not be engagement history, but it might be case history, it might be order history" | `OPS-38` (the reduction structure as a diagram and a table of swappable sections, with case history and order history as worked examples). **Open:** whether to build an industry switch (a setting that picks the sections and the narrative), or leave it to the tabled `OPS-34` |
+| F51 | "talk about why you can trust this architecture and how you can scale it" | `OPS-38` |
+| F52 | "cover limits and open items as part of future cards to cut" | `BE-29` (N1, N2, N3, N7 and N8 from the Apex re-review, and the accuracy check); the non-admin run stays with `FE-5` and Ben's to-do; `OPS-38` links each limit to its card |
+| F53 | "having a simple header and articulating the business problem this solves and high architecture steps would be ideal" | `OPS-38` for pattern 01; the brain applies the same page shape to every pattern page ([fr2-design.md](fr2-design.md#pattern-page-shape)) |
+
 ## Decisions the brain made (Ben may overrule)
 
 - **Default agent name:** "Customer Summary". Internal API names become `Customer_Summary` / `CustomerSummary` /
@@ -99,6 +117,9 @@ Status values: a card id, **tabled** (Ben deferred it), **open** (waiting on Ben
 - **Write actions:** draft first, then Confirm. One Apex service serves the panel, the agent and MCP.
 - **Conversation history:** extend the existing session object and pattern 05 rather than add a new object.
 - **Agent publishes are batched:** one for the rename, one for tone plus actions.
+- **Every pattern page gets the same shape and diagram style** (F49, F53). Each chapter Ben comments on gets its own
+  card, like `OPS-38` for pattern 01. Pages he has no notes on get the same treatment in one sweep card, cut after his
+  last chapter note.
 - **OPS-28** (README run in a new org) waits for the FR2 README pass, so it tests the README people will use.
 - **If `BE-21` says NO-GO** (labels only), API names stay `Account_Brief` / `AccountBrief` / `accountBrief`. About a
   dozen later cards name the new API names in their scope (the panel folder, the session object, the permission sets,
@@ -112,6 +133,8 @@ Status values: a card id, **tabled** (Ben deferred it), **open** (waiting on Ben
   server and app (`OPS-31`), and tests that create and delete their own task in agent-probe. The brain recommends yes
   to each.
 - Answer F17 (Log a call: Task or Event). `BE-27` waits for it.
+- Answer F50: build an industry switch, or leave industry scenarios with the tabled `OPS-34`. The brain recommends
+  leaving it tabled: `OPS-38` shows how to change the sections and the narrative by hand, which is enough for a demo.
 - Answer F32 (who sees history) before `BE-26` is dispatched. Without an answer the default stands: each rep sees only
   their own history.
 - Hold the MCP sign-in (runbook steps 9 and 10) until `OPS-31` lands, or it will be redone under the new name.
@@ -123,8 +146,8 @@ Status values: a card id, **tabled** (Ben deferred it), **open** (waiting on Ben
 1. Running: `BE-20`. On Ben's word, before any build: the plan review `OPS-37`.
 2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`.
 3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
-4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`.
+4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`.
 5. Surfaces: `FE-12`, then `FE-13`, then `FE-15`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one publish) after
    `BE-27`.
-6. Close: `OPS-32`, `OPS-35`, `OPS-36`, then OPS-28.
+6. Close: `OPS-32`, the chapter cards (`OPS-38` for pattern 01), `OPS-35`, `OPS-36`, then OPS-28.
 7. Parked: `OPS-33`, `OPS-34`.

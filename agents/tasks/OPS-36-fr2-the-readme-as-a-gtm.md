@@ -5,9 +5,9 @@ domain: ops
 tier: frontier
 tier_reason: the public face of the repo, with live captures and Ben's page notes to judge
 status: blocked
-blocked_by: [OPS-35, OPS-32, OPS-31, BE-28]
+blocked_by: [OPS-35, OPS-32, OPS-31, BE-28, OPS-38]
 fixes: []
-scope: [README.md, docs/ARCHITECTURE.md, docs/assets/**, e2e/capture/**, tests/test_readme_fr2.py]
+scope: [README.md, docs/ARCHITECTURE.md, docs/assets/**, docs/patterns/**, e2e/capture/**, tests/test_readme_fr2.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, .chassis-delegation.json, reference/**, sfdx-project.json]
 resources: [org-live]
 red_test: none (docs and assets): before the card the README says Account Brief and has no FR2 surfaces; after, a test in tests/test_readme_fr2.py checks the sections, the privacy line, the diagrams and that every linked asset exists
@@ -26,3 +26,4 @@ Feature revision 2 (FR2): the repo is now an accelerator other teams "take ... t
 - Diagrams: Mermaid sequence diagrams for ask-from-the-rail, a write action with draft and confirm, and the MCP door; a component diagram of the shared core and its three frames. They render on GitHub (check with the GitHub markdown API or a local Mermaid render)
 - Assets: recapture in agent-probe with Playwright at 1440x900 the hero GIF, the compact window, the rail with context, a draft card, the brand swap before and after, and voice in its recording state (stubbed recognizer); read every GIF frame; old assets that no page links are removed. Alt text on every image
 - Run the full e2e suite and bash scripts/agent-check.sh once more and put the counts in the proof table. Org, agent-probe only, read-only apart from records the e2e suite creates and removes; never deploy, publish, create a user or touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+- Pattern pages: only their image links and alt text change here, to point at the recaptured assets. Their text and diagrams belong to the chapter cards (OPS-38 for pattern 01). Every diagram the README adds follows fr2-design.md 'Diagrams' and copies the theme block from docs/patterns/_diagram-theme.md
