@@ -4,7 +4,8 @@ title: Panel re-review: the accountBriefPanel LWC, its Jest tests and the Playwr
 domain: ops
 tier: frontier
 tier_reason: architecture judgement across security, limits and adoption; cited as GTM evidence
-status: queued
+status: blocked
+blocked_by: [FE-6, BE-14]
 scope: [docs/reviews/lwc-review-2.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
 red_test: none

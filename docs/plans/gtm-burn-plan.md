@@ -2,6 +2,20 @@
 
 For the brain that runs tonight (Opus). Read this whole file, then start at "Run order".
 
+## Before Ben sleeps (his items; nothing else needs him)
+
+1. This session stays in auto mode, so no tool call waits on a prompt.
+2. Lid open, on power, VS Code and this session left running.
+3. Chrome open with the Claude in Chrome extension connected and signed in to `experimental`.
+   If that session has expired when OPS-21 reaches Studio, the Studio step is skipped and
+   recorded; nothing signs in.
+4. Optional, if still up: `npx playwright install chromium` in the repo, in case the
+   installed Playwright wants a newer browser build than the cache holds. If it is not run
+   and the browser is missing, OPS-20 reports it and the e2e and capture steps wait for Ben.
+
+Already checked: the `sf` session for `experimental` is connected, `gh` is signed in with repo
+scope, and sleep on AC is off.
+
 ## The goal by morning
 
 1. The org `experimental` runs what is on `main`, and the Playwright panel suite passes 8 of 8.
@@ -20,11 +34,12 @@ approved skips it and reports. Only Ben changes a line; the brain records his an
 
 | Step | Status |
 |---|---|
-| Real deploy of `main` to `experimental` (never the agent bundle) | pending |
-| CLI publish of Account_Brief version 2; Studio "Commit Version" as the fallback | pending |
-| Create a throwaway agent `Publish_Probe` if the CLI publish fails, and delete it afterwards | approved (Ben, 2026-11-11, "go" on Test B) |
-| Activate version 2 once the 12-case test passes | pending |
-| Org setup for the MCP server and its External Client App (stretch) | pending |
+| Real deploy of `main` to `experimental` (never the agent bundle) | approved (Ben, 2026-11-11, answered in chat) |
+| CLI publish of Account_Brief version 2; Studio "Commit Version" as the fallback | approved (Ben, 2026-11-11, answered in chat) |
+| A second CLI publish of a comment-only change as an inactive version 3 (OPS-21 step 3) | pending: not asked; skip it |
+| Create a throwaway agent `Publish_Probe` if the CLI publish fails, and delete it afterwards | approved (Ben, 2026-11-11, answered in chat) |
+| Activate version 2 once the 12-case test passes | approved (Ben, 2026-11-11, answered in chat, on the condition that version 1 is reactivated if the check after activation fails) |
+| Org setup for the MCP server and its External Client App (stretch), up to the sign-in | approved (Ben, 2026-11-11, answered in chat) |
 | Post on forcedotcom/cli issue 3634 | not approved; draft only |
 | Create the user `experimental-enduser` | Ben does this himself; FE-5 stays parked |
 | Make the repo public | not approved |
@@ -51,15 +66,22 @@ user does not exist.
 
 ## Run order
 
-Two workers at a time (`maxWorkers` 2). `org-live` and `chrome-studio` are exclusive resources,
+At most two frontier workers at once (user options: `maxWorkers` 5, frontier 2). `org-live` and `chrome-studio` are exclusive resources,
 so a deploy never lands during a capture.
 
 1. Dispatch FE-6 and BE-14 together.
-2. As each hands back and merges, dispatch OPS-19, then OPS-16, OPS-17, OPS-18.
-3. When FE-6 and BE-14 are both merged, and the deploy line is approved, dispatch OPS-20 ahead
-   of any remaining review card.
-4. OPS-21 after OPS-20. FE-7 after OPS-21 and OPS-19. OPS-22 last.
-5. If time remains, BE-15 and OPS-23. A stretch card that needs a redeploy does not get one
+2. Dispatch OPS-19 as soon as a slot is free (no blocker). OPS-16, OPS-17, OPS-18 release
+   when FE-6 and BE-14 merge, so they review the fixed code.
+3. When FE-6 and BE-14 are both merged, dispatch OPS-20 ahead of any remaining review card.
+4. OPS-21 after OPS-20. FE-7 after OPS-20 and OPS-19: panel assets first; its two agent slots
+   need OPS-21, so resume FE-7 for them after OPS-21 merges. OPS-22 last.
+5. If OPS-20's deploy succeeded but e2e is below 8 of 8, merge OPS-20 anyway, cut a frontier
+   fix card for the failing specs (scope: the panel, its controller, `e2e/panel.spec.js`),
+   and resume OPS-20 to redeploy after it merges. Capture is held only if the failing spec
+   covers a captured screen.
+6. If FE-7 cannot run tonight, set OPS-22 to `status: queued` by hand so the final pass still
+   runs; it removes slots still marked 'not captured'.
+7. If time remains, BE-15 and OPS-23. A stretch card that needs a redeploy does not get one
    tonight unless everything above is done.
 
 If a Lane B approval is still pending when its card is next, keep Lane A moving, finish
@@ -111,16 +133,24 @@ Pattern pages: `01-route-gather-reduce`, `02-ask-anything-explorer`, `03-hotkey-
   line of the untracked file `reference/denylist.txt`, for 15 or 18 character record Ids, email
   addresses and `my.salesforce.com`. Any hit goes back to the worker. Never write the
   deny-list's contents into a card, a brief, a commit or this plan.
-- **Images:** look at every PNG and at frames of every GIF before merging FE-7. Reject any that
-  shows a name, username, Id, URL, error toast or `URL_Redacted`.
+- **Images:** look at every PNG and at one frame per second of every GIF before merging FE-7.
+  Reject any that shows the running user's name, a username, email, Id, URL bar, error toast
+  or `URL_Redacted`. Sample record names (Edge Communications and its contacts) are fine.
+- **Do not take Lane B hand-backs on trust** (their gates are only the Python tests):
+  - OPS-20: read `test-results/.last-run.json` in its worktree and the deploy result it quotes.
+  - OPS-21: run your own read-only query of the Account_Brief versions and which is active,
+    and compare it with the hand-back.
+  - FE-7: confirm the capture run's `.last-run.json` exists and every asset MANIFEST.md marks
+    captured is committed.
 - **Platform errors:** read the tool's code and log, state one hypothesis and the test that
   decides it, then act. No repeated retries (corrective plan, rules 1 to 4).
 - **Plugin hooks:** ignore every plugin-install suggestion.
 - **Never:** sign in or enter credentials, create users, print tokens or frontdoor URLs, post
   publicly, or do an org-changing step whose approval line is not "approved".
-- **Stop and leave a note for Ben** (top of this file, under a "Morning notes" heading, by PR)
-  when: a Lane B card fails twice, a re-review returns "not ready" with a blocker, or the
-  privacy grep finds a hit that is already on `main`.
+- **Leave a note for Ben** (top of this file, under a "Morning notes" heading, by PR) when a
+  Lane B card fails twice or a re-review returns "not ready" with a blocker, and keep going
+  with every card that does not depend on it. The known deny-list and Id hits already on
+  `main` are OPS-22's to scrub; they are not a stop.
 
 ## Known state at hand-over
 
@@ -131,11 +161,11 @@ Pattern pages: `01-route-gather-reduce`, `02-ask-anything-explorer`, `03-hotkey-
 - Studio preview: all 12 cases route correctly (`docs/research/studio-preview.md`). One reply
   showed `URL_Redacted` in table headers; BE-14 addresses it.
 - Playwright: 6 of 8 pass on the org as it is; FE-6 fixes the two defects.
-- Privacy grep, run at hand-over: the twelve new cards and this plan are clean. Eleven tracked
-  files already on `main` hit the deny-list (ten old cards under `agents/tasks/` and one Apex
-  class comment). None is a client name; they are Ben's other project names and one vendor
-  name. They do not block tonight while the repo is private. OPS-22 rewords them; do not stop
-  the burn for them.
+- Privacy grep, run at hand-over: the twelve new cards and this plan are clean. Ten tracked
+  files already on `main` hit the deny-list (nine old cards under `agents/tasks/` and one Apex
+  class comment), and real org-specific Ids sit in two research notes, one Python test and
+  the OPS-9 card. None is a client name. They do not block tonight while the repo is private;
+  OPS-22's scope covers each of these files and it scrubs them.
 - Review notes left open from BE-12: a query timeout in the resolver reads as NOT_FOUND; a user
   without access to contact roles or event names loses the whole section; a lock timeout drops
   one memory turn. The re-reviews will rank them.
