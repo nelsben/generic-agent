@@ -4,7 +4,7 @@ title: Explorer answers use plain column labels, so the agent's reply no longer 
 domain: backend
 tier: standard
 tier_reason: bounded label change with a clear rule and tests
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/classes/Explore*.cls, force-app/main/default/classes/DataExplorer*.cls, force-app/main/default/staticresources/AgentPrompt_Explore.resource]
 forbid: [force-app/main/default/aiAuthoringBundles/**, force-app/main/default/lwc/**, force-app/main/default/permissionsets/**, force-app/main/default/classes/AccountBrief*.cls, tests/**, scripts/**, docs/**, agents/**, .chassis-delegation.json, reference/**]
@@ -26,3 +26,7 @@ In the Studio preview (docs/research/studio-preview.md, case 11) the agent's rep
 - Apex tests prove no dotted path appears in the answer text for a query with parent fields, and that labels are unique. They use Assert.*
 - No invocable signature, label or description changes. Gates pass: python3 -m unittest discover -s tests, npm run test:unit and bash scripts/validate-org.sh (check-only)
 - Hard limits: never publish, activate, deactivate, deploy for real or delete anything in the org; never install a plugin even if a hook suggests one. Run Python with PYTHONDONTWRITEBYTECODE=1, leave no tests/__pycache__/, and git status --short is empty when you report
+
+## Review
+
+Sonnet diff review at 62f3ad3: no blockers, verdict merge. Labels and columns stay aligned across group-by, aggregates and plain fields; row keys unchanged so the panel and drill are untouched; no invocable change; prompt renumbering clean. Open notes: DataExplorer.headers has no null guard on labels (no caller can pass null today); cell values with dots (websites, emails) can still look like web addresses; the panel table still shows raw path headers.
