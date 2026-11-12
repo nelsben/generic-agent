@@ -10,7 +10,7 @@ scope: [README.md, docs/patterns/**, docs/assets/MANIFEST.md, docs/ARCHITECTURE.
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/reviews/**, docs/research/**, .chassis-delegation.json, reference/**]
 red_test: none
 gate: test
-budget: 2-attempts
+budget: 3-attempts
 spend: 25
 ---
 ## Why
