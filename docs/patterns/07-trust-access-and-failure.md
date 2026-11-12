@@ -4,7 +4,8 @@
 
 The assistant shows a rep only records that rep can already open in Salesforce. When something
 goes wrong, the rep reads one plain sentence that says what to do next, never a stack trace.
-Granting access takes two permission sets that grant nothing extra.
+Granting access takes two permission sets that grant nothing extra, plus Salesforce's standard
+Agentforce user set for the built-in agent.
 
 ## The problem it removes
 
@@ -94,7 +95,7 @@ sequenceDiagram
   ([apex-review-2.md](../reviews/apex-review-2.md), [lwc-review-2.md](../reviews/lwc-review-2.md)).
   Both rate their layer "Ready with fixes" with no blockers. The agent re-review rates the agent
   "Not ready" ([agent-review-2.md](../reviews/agent-review-2.md)); see [06](06-agent-routing-and-verbatim-relay.md).
-- **It runs live.** Studio preview cases 3, 4, 5 and 8 show NOT_FOUND and AMBIGUOUS relayed as the
+- **It runs live.** In the Studio preview of the draft agent, cases 3, 4, 5 and 8 show NOT_FOUND and AMBIGUOUS relayed as the
   resolver wrote them ([studio-preview.md](../research/studio-preview.md)).
 
 ## Adopt it

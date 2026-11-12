@@ -2,7 +2,7 @@
 
 For whoever orchestrates next. Read this, then the four research write-ups it points to.
 
-## Status (2026-11-12, end of the overnight run)
+## Status (2026-11-11, end of the overnight run)
 
 Finished tonight:
 - FE-6 (Esc keeps focus, brief lines carry a drillable Id), BE-13 and BE-14 (explorer date
@@ -10,7 +10,7 @@ Finished tonight:
 - OPS-20: `main` deployed for real to `experimental`: 60 components, 150 of 150 Apex tests, and the
   Playwright panel suite 8 of 8 on the first run as an admin user (`docs/research/deploy-verify.md`).
   The org matches `main` outside the agent bundle.
-- OPS-21: the publish spike. Every agent create in `experimental` returns
+- OPS-21: the publish spike. Every agent create from the CLI in `experimental` returns
   `401 "Error saving or updating agent graph"`; the CLI's `404` is its HTTP library resending.
   The CLI publish, a new throwaway agent and Studio's Commit Version all failed. No version 2
   exists and version 1 is still active (`docs/research/agent-publish-spike.md`). The morning notes

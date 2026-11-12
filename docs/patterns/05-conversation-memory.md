@@ -82,7 +82,7 @@ sequenceDiagram
   (earlier briefs of another account) is fixed ([lwc-review.md](../reviews/lwc-review.md)). The
   re-reviews confirm all three fixed ([apex-review-2.md](../reviews/apex-review-2.md),
   [lwc-review-2.md](../reviews/lwc-review-2.md)).
-- **It runs live.** Studio preview case 7 answers "What about their open cases?" from the stored
+- **It runs live.** In the Studio preview of the draft agent, case 7 answers "What about their open cases?" from the stored
   account, with no new resolve ([studio-preview.md](../research/studio-preview.md)).
 
 ## Adopt it

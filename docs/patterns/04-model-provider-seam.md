@@ -74,8 +74,9 @@ This pattern has no screen. The diagram above is the picture.
   ([apex-review-2.md](../reviews/apex-review-2.md)) confirms finding 14 fixed. It marks finding 13
   changed: every provider error is now wrapped and the output is capped, but there is still no
   timeout control and the cap cuts silently (N8).
-- **It runs live.** Every brief and explorer answer in the Studio preview went through this door
-  ([studio-preview.md](../research/studio-preview.md)).
+- **It runs live.** Every brief and question in the Playwright run on a real org went through
+  this door ([deploy-verify.md](../research/deploy-verify.md)), and so did every answer in the
+  Studio preview of the draft agent ([studio-preview.md](../research/studio-preview.md)).
 
 ## Adopt it
 
