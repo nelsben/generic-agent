@@ -2,6 +2,23 @@
 
 For the brain that runs tonight (Opus). Read this whole file, then start at "Run order".
 
+## Morning notes
+
+- **Agent re-review (OPS-18, merged) is "Not ready", with one blocker.** Version 1 (the pre-fix
+  script) is live, and no new version can be published. Every create call from the CLI returns
+  401 "Error saving or updating agent graph". Studio's Commit Version also fails; its network
+  response was not captured. The script on `main` would be "ready with fixes" on its own. See
+  `docs/reviews/agent-review-2.md`.
+- **The publish 401 is not caused by our agent.** A sibling session published a brand-new,
+  minimal agent (no actions, one start block) to `experimental` and got the same 401. It also
+  ruled out the two Account Brief permission sets: with both unassigned the publish still
+  failed, and both are reassigned now. The daily platform jobs also ran on the day version 1
+  published fine. Its read is a fault on the platform or tenant side. That is not proven.
+- **Your call:** open a Salesforce case with the endpoint, the request Ids the sibling session
+  holds and the timeline. The sibling session recommends it once one more check (capturing
+  Studio's commit response) comes back negative.
+- **Apex re-review (OPS-16, merged):** ready with fixes, no blockers. Should-fix: N1 to N4.
+
 ## Before Ben sleeps (his items; nothing else needs him)
 
 1. This session stays in auto mode, so no tool call waits on a prompt.
