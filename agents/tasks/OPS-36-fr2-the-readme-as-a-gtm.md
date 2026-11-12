@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: the public face of the repo, with live captures and Ben's page notes to judge
 status: blocked
-blocked_by: [OPS-35, OPS-32, OPS-31, BE-28, OPS-38, OPS-39, OPS-40, OPS-41, OPS-42, OPS-43]
+blocked_by: [OPS-35, OPS-32, OPS-31, FE-20, OPS-44, OPS-38, OPS-39, OPS-40, OPS-41, OPS-42, OPS-43]
 fixes: []
 scope: [README.md, docs/ARCHITECTURE.md, docs/assets/**, docs/patterns/**, e2e/capture/**, tests/test_readme_fr2.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -26,6 +26,7 @@ Feature revision 2 (FR2): the repo is now an accelerator other teams "take ... t
 - Diagrams: Mermaid sequence diagrams for ask-from-the-rail, a write action with draft and confirm, and the MCP door; a component diagram of the shared core and its three frames. They render on GitHub (check with the GitHub markdown API or a local Mermaid render)
 - Assets: recapture in agent-probe with Playwright at 1440x900 the hero GIF, the compact window, the rail with context, a draft card, the brand swap before and after, and voice in its recording state (stubbed recognizer); read every GIF frame; old assets that no page links are removed. Alt text on every image
 - Run the full e2e suite and bash scripts/agent-check.sh once more and put the counts in the proof table. Org, agent-probe only, read-only apart from records the e2e suite creates and removes; never deploy, publish, create a user or touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+- **Ways in (ledger F82 to F84):** the README never presents the built-in Agentforce panel or "Ask the agent" as a way in. The pattern list drops 06 from the patterns and lists it as an optional appendix; the diagram has no built-in panel edge. The quick start no longer needs an agent publish: move it to the appendix as an optional step, as OPS-44's hand-back proposes, and check the quick start still works without it. Say it plainly: this is Agentforce, with its own surfaces
 - **Why custom (ledger F66):** the README's first screen has a short "Why not just the standard chat?" with two or three lines and a link to docs/patterns/00-why-custom.md (OPS-41); ARCHITECTURE.md links it too. Chapter 00 comes first in the README's list of patterns
 - Pattern pages: only their image links and alt text change here, to point at the recaptured assets. Their text and diagrams belong to the chapter cards (OPS-38 for pattern 01). Every diagram the README adds follows fr2-design.md 'Diagrams' and copies the theme block from docs/patterns/_diagram-theme.md
 - See it on every pattern page (ledger F57, fr2-design.md 'Pattern page shape'): for each pattern, capture it on each surface where it runs (compact window, rail, Agentforce's panel; the MCP door as a client transcript image), a GIF where something moves, read every frame, and set alt text. The pattern pages' See it sections link these captures
