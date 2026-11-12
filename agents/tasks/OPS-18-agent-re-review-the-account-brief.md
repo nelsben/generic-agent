@@ -9,7 +9,7 @@ scope: [docs/reviews/agent-review-2.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
 red_test: none
 gate: test
-budget: 2-attempts
+budget: 3-attempts
 spend: 25
 ---
 ## Why
