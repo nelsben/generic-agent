@@ -7,8 +7,19 @@ as the rep. It goes through the same Apex, with the same access rules and the sa
 text. This pattern is designed and partly probed. It is not yet proven.
 
 > [!WARNING]
-> **Not yet proven:** a real MCP tool call. A probe created a custom server, added two Apex
-> actions and the agent as tools, then deleted the server. No client has called a tool yet.
+> **Not yet proven:** a real MCP tool call. The server and its client app now exist and are
+> active in agent-probe, but no client has called a tool yet. The first call waits on Ben's
+> sign-in.
+
+## Status in agent-probe
+
+As of 2026-11-12, agent-probe has an active custom server `AccountBriefMcp` with three tools:
+`resolve_account`, `get_account_brief` and `ask_account_brief` (the agent). Each tool has its own
+client-facing description, so the agent-facing "Relay it verbatim" wording is not the tool text.
+There is also a dedicated External Client App, `AccountBriefMcpClient`, with the `mcp_api` and
+`refresh_token` scopes, PKCE, and access limited to holders of `Account_Brief_Data_Access`. A call
+without a token gets HTTP 401. The first real tool call waits on Ben's OAuth sign-in. The
+[runbook](../research/mcp-door-runbook.md) lists each step, what it changed, and what is proven.
 
 ## The problem it removes
 
@@ -42,10 +53,11 @@ sequenceDiagram
    Catalog, MCP Servers.
 2. **One External Client App.** It has the `mcp_api` and `refresh_token` scopes. Sign-in is the
    OAuth authorization code flow with PKCE, per user. There is no machine-to-machine path.
-3. **Two tools first.** One custom server holds two `APEX_ACTION` tools: `resolve_account`
-   (`AccountBriefResolver`) and `get_account_brief` (`AccountBriefGetAction`). The brief needs a
-   resolved Id, so the resolver comes with it. `ExploreAction` and the agent itself (as a
-   `PLATFORM_AGENT` tool) are left for later, which keeps the first step deterministic.
+3. **Two deterministic tools, plus the agent.** One custom server holds two `APEX_ACTION` tools:
+   `resolve_account` (`AccountBriefResolver`) and `get_account_brief` (`AccountBriefGetAction`).
+   The brief needs a resolved Id, so the resolver comes with it. The agent itself is a third
+   tool, `ask_account_brief` (`PLATFORM_AGENT`), for questions in plain language. `ExploreAction`
+   is left out.
 4. **Annotate the tools.** An unannotated tool is treated as destructive, so set the hints
    explicitly. A brief writes one memory row, so `readOnlyHint` is false; `destructiveHint`,
    `idempotentHint` and `openWorldHint` are false too.
@@ -73,8 +85,10 @@ This pattern has no screen yet. The diagram above is the design.
 
 ## Adopt it
 
-There are no files to copy yet. The server, its tools and the External Client App are set up in
-Setup or through the API Catalog, not in this repo.
+The server definition and the External Client App are in `mcp-door/`, a package folder kept
+apart from `force-app`, so the normal install does not deploy them. The
+[runbook](../research/mcp-door-runbook.md) gives the one command that deploys them on purpose,
+and the API steps that build the server where that deploy is not enough.
 
 1. Deploy the actions and assign `Account_Brief_Data_Access`, as in the
    [README](../../README.md#see-it-in-5-minutes).
@@ -96,7 +110,8 @@ Setup or through the API Catalog, not in this repo.
 - Hosted MCP is documented for Enterprise Edition and above, and for customers with Flex Credits.
   Calls may be billed.
 - Whether a called action also needs class access through a permission set is not confirmed.
-- The server's metadata is not in this repo, so it cannot be deployed with the rest yet.
+- The server's metadata is in `mcp-door/`. Whether deploying it creates the server in a fresh
+  org is not yet tested, and activation is not in source.
 - Org-wide questions (`ExploreAction`) and the agent as a tool are not part of the first step.
 - All three re-reviews list a real MCP tool call as not yet made
   ([apex-review-2.md](../reviews/apex-review-2.md), [lwc-review-2.md](../reviews/lwc-review-2.md),
