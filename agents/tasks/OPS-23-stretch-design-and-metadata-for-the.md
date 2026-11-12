@@ -4,8 +4,7 @@ title: Stretch: design and metadata for the MCP outside door, built up to the po
 domain: ops
 tier: frontier
 tier_reason: new platform surface with org-changing steps and stop lines
-status: blocked
-blocked_by: [OPS-25]
+status: queued
 fixes: []
 scope: [docs/research/mcp-door-runbook.md, force-app/main/default/mcpServerDefinitions/**, force-app/main/default/externalClientApps/**, force-app/main/default/extlClntAppOauthSettings/**]
 forbid: [force-app/main/default/classes/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
