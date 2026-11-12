@@ -56,7 +56,7 @@ class TestUtilityBarFlexipage(unittest.TestCase):
         self.assertEqual(props["label"], "Account Brief")
         self.assertEqual(props["width"], "340")
         self.assertEqual(props["height"], "480")
-        self.assertEqual(props["eager"], "false")
+        self.assertEqual(props["eager"], "true")
         self.assertTrue(props["icon"])
 
 
