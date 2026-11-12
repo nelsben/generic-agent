@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Everything a user needs from this project to use Account Brief: talk to the agent (Account_Brief_Agent_Access) and open the app, run its Apex entry points and read their own brief memory (Account_Brief_Data_Access). It holds no standard Salesforce permission set.</description>
+    <description>Lets a user talk to the Account Brief agent, open the app, run its Apex entry points and read their own brief memory. Holds the two custom sets, no standard set.</description>
     <label>Account Brief User</label>
     <permissionSets>Account_Brief_Agent_Access</permissionSets>
     <permissionSets>Account_Brief_Data_Access</permissionSets>
