@@ -129,6 +129,7 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
 | F62 | "make sure limits and open items are covered" | `FE-12` (row 6: one Tab stop per result list; N5: drill-line target size; N9: Esc during IME composition), `FE-13` (N4: Esc returns focus from any starting point; 14f: the app's brand block), `FE-16` (both hotkey branches, the dark theme and its contrast, screen-reader output), `FE-5` (the non-admin run, "Ask the agent" included), `FE-17` (only in apps whose utility bar holds the panel; desktop only) |
 | F63 | "we might want to think about the hotkey panel and other items we should add later" | `FE-17` (discovery: what the panel could add later, ranked, with proposed cards; the brain cuts the ones Ben picks) |
 | F64 | "the how it works also needs auto number with numbered suggestions down below" | `OPS-40`; rule in [fr2-design.md](fr2-design.md#diagrams) |
+| F65 | A further note, on the panel's answers: "whenever we display text inside of any of our services, it's richly formatted and we have a card architecture that we can display", and a spike on "what does our card architecture look like for richly formatted data that's easy to read and understand and feels best in class?" | [fr2-design.md](fr2-design.md#operating-principles) (principle 2); `FE-18` (card architecture spike: catalog, one typed contract, each surface, proposed build cards); `FE-12` and `BE-28` build on its contract; `OPS-40` tells it |
 
 ## Decisions the brain made (Ben may overrule)
 
@@ -176,7 +177,7 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
 
 1. Done: `BE-20` (merged). On Ben's word, before any build: the plan review `OPS-37`.
 2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`, and the explorer discovery `BE-31`. After `OPS-29`, the
-   panel discovery `FE-17` (docs only).
+   card architecture spike `FE-18` and the panel discovery `FE-17` (docs only).
 3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
 4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`, `BE-30`.
 5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one
