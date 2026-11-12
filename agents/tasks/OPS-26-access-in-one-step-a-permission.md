@@ -4,7 +4,7 @@ title: Access in one step: a permission set group grants the agent and the panel
 domain: ops
 tier: standard
 tier_reason: one metadata file, one test and two doc paragraphs, plus a small deploy
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/permissionsetgroups/**, tests/test_access_group.py, README.md, docs/patterns/07-trust-access-and-failure.md]
 forbid: [force-app/main/default/permissionsets/**, force-app/main/default/classes/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, e2e/**, scripts/**, docs/plans/**, docs/reviews/**, docs/research/**, agents/**, .chassis-delegation.json, reference/**, .sf/**]
@@ -27,3 +27,15 @@ Agent re-review N5: access needs two custom permission sets plus a standard Agen
 - Org, agent-probe only, per the Approvals line 'Phase 2: cut and work new agent or design iteration cards in the new org': deploy the group with `sf project deploy validate` (RunLocalTests, scope the permissionsetgroups folder) then quick deploy with CONFIRM_PROD=1, once each. Assign the group to the running user (it already has both sets; record that the assignment succeeded). Confirm with a read-only query that the group's status is Updated, printing no Ids
 - Never touch experimental, never sign in or out, never create users, never install a plugin even if a hook suggests one
 - Gates pass: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/validate-org.sh; leave no tests/__pycache__/; git status --short is empty after your commit
+
+## Review
+
+Accepted on the verifier's verdict, with no review pass. The brain read the whole diff.
+
+- Account_Brief_User permission set group: it holds exactly Account_Brief_Agent_Access and Account_Brief_Data_Access, and no standard set. tests/test_access_group.py checks it. README step 2 and pattern 07's "Adopt it" are now one "Give a user access" step: the group plus CopilotSalesforceUser. That name is not confirmed in the org, so the docs say to check it first.
+- Org, agent-probe only:
+  - Validate ran twice. The first run failed on a description over 255 characters; the second, on the shortened file, passed 154 of 154.
+  - Quick deploy ran once.
+  - The first assign was refused while the group recalculated (Outdated). After the group reached Updated, the second assign succeeded.
+- Brain fix 5e2b782: the README and page 07 named an internal card and its owner in the not-yet-proven line. That note is removed, and the README now links the agent re-review.
+- Gates: test (86) and org (61 components, 154 tests) pass, and check-docs reports 30 pages, 0 broken. Privacy grep of the 74 added lines: 0 deny-list hits, 0 Ids, 0 emails, 0 query-string URLs and 0 home paths. The 2 host-pattern hits are the standard soap.sforce.com metadata namespace.
