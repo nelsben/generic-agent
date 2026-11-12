@@ -1,4 +1,4 @@
-# The account name "Edge Communications" (used in four cases) must exist in the target org and have
+# The account name "Edge Communications" (used in six cases) must exist in the target org and have
 # opportunities. It is a standard Developer Edition sample account. Change it if the org lacks it.
 # The AMBIGUOUS case uses "United Oil", which must match more than one account by name and none exactly.
 # A read-only query of the experimental org (2026-11-11) found three: "United Oil & Gas Corp." (New York),
@@ -53,6 +53,33 @@ testCases:
     expectedActions:
       - get_brief
     expectedOutcome: "The agent answers about the open cases of Edge Communications, the account briefed in the previous turn, from a get_brief call in this turn. It does not ask which account, does not run the data explorer, and does not answer from the earlier reply."
+    conversationHistory:
+      - role: user
+        message: "Give me a brief on Edge Communications"
+      - role: agent
+        topic: account_brief
+        message: "Edge Communications (Austin)\nOpen deals, cases, contacts and recent activity for Edge Communications follow."
+  - utterance: "Show me their open cases"
+    expectedTopic: account_brief
+    expectedActions:
+      - resolve_account
+    expectedOutcome: "The account named most recently, Zzqxv Nonexistent Holdings, matched no account, so the agent does not fall back to Edge Communications, the account briefed before it. It does not call get_brief and gives no brief or open cases for Edge Communications. Its reply is the resolver's message that no account matches, verbatim."
+    conversationHistory:
+      - role: user
+        message: "Give me a brief on Edge Communications"
+      - role: agent
+        topic: account_brief
+        message: "Edge Communications (Austin)\nOpen deals, cases, contacts and recent activity for Edge Communications follow."
+      - role: user
+        message: "Brief me on Zzqxv Nonexistent Holdings"
+      - role: agent
+        topic: account_brief
+        message: "No account matches \"Zzqxv Nonexistent Holdings\". Try the full name or open the account and ask again."
+  - utterance: "How many open opportunities are there in the whole org?"
+    expectedTopic: explore
+    expectedActions:
+      - explore_data
+    expectedOutcome: "The agent relays an org-wide count of open opportunities from the data explorer, verbatim. The count is not limited to Edge Communications, the account briefed in the previous turn, and the agent does not call resolve_account or get_brief."
     conversationHistory:
       - role: user
         message: "Give me a brief on Edge Communications"

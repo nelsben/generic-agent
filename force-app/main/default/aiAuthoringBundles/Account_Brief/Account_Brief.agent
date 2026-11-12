@@ -12,9 +12,11 @@ config:
 
 variables:
     briefed_account_id: mutable string = ""
-        description: "The Id of the account the last resolve returned as RESOLVED. Empty until then, and emptied again when a later resolve does not return RESOLVED."
+        description: "The Id of the account the last resolve returned as RESOLVED. Empty until then, and emptied again by a later resolve that does not return RESOLVED (the resolver returns a blank Id then)."
     briefed_account_name: mutable string = ""
         description: "The name of the account the last resolve returned as RESOLVED. Empty when briefed_account_id is empty."
+    explore_answer: mutable string = ""
+        description: "The answer text of the explore_data run in the current explore turn. Cleared before each run."
 
 language:
     default_locale: "en_US"
@@ -27,21 +29,25 @@ start_agent agent_router:
 
     reasoning:
         instructions: ->
-            | You are the router. Read the user's latest message and hand off to exactly one topic. Do not answer it yourself.
-              - The message names one specific account (by name or by a pasted 001 Id) and asks anything about that account -> account_brief. This includes narrow asks such as "just the open deals for X" and mixed asks such as "what is going on with X and which deals are slipping". These go to account_brief even when they read like a data question.
-              - A reply that picks an account from a candidate list the agent just showed, by its name, its city, its Id or its position (for example "the Singapore one" or "001..."), -> account_brief.
-              - A follow-up about the account already briefed, even when it does not name the account again (for example "what about its open cases?") -> account_brief.
-              - Questions that do not name one account, such as org-wide counts, lists, totals or lookups -> explore.
-              - Anything else that is not about CRM data: reply with exactly this one line and nothing more: "I can brief you on an account or answer questions about your CRM data."
+            # Rule 1 comes before rule 4 on purpose: an org-wide question after a brief went to the brief in the
+            # 2026-11-11 Studio preview. The model owns this semantic judgment (optimization-pattern-2-deterministic-logic.md,
+            # "Keep model-facing"), so the precedence is stated in the router's words, first rule first.
+            | You are the router. Read the user's latest message and hand off to exactly one topic. Do not answer it yourself. Apply these rules in order; the first one that matches wins.
+              1) A message that names no account and asks an org-wide count, list, total or comparison (for example "How many open opportunities are there?") -> explore. This holds even when an account has been briefed earlier in the conversation: such a question is not about that account.
+              2) The message names one specific account (by name or by a pasted 001 Id) and asks anything about that account -> account_brief. This includes narrow asks such as "just the open deals for X" and mixed asks such as "what is going on with X and which deals are slipping". These go to account_brief even when they read like a data question.
+              3) A reply that picks an account from a candidate list the agent just showed, by its name, its city, its Id or its position (for example "the Singapore one" or "001..."), -> account_brief.
+              4) A follow-up that refers to the account already briefed without naming it again, through words such as "it", "its", "they", "their" or "them" (for example "their open cases" or "what about them") -> account_brief.
+              5) Any other question about CRM data that does not name one account, such as a lookup -> explore.
+              6) Anything else that is not about CRM data: reply with exactly this one line and nothing more: "I can brief you on an account or answer questions about your CRM data."
 
             if @variables.briefed_account_id is not None and @variables.briefed_account_id != "":
-                | The account most recently briefed is {!@variables.briefed_account_name}. A message about it, including one that says "it", "its", "they" or "their", goes to account_brief. A question that names no account, or names a different one, is not about it.
+                | An account has been briefed in this conversation: {!@variables.briefed_account_name}. A message that names no account and asks an org-wide count, list, total or comparison still goes to explore; it is not about {!@variables.briefed_account_name}. Only a message that refers to {!@variables.briefed_account_name}, by name or as "it", "its", "they", "their" or "them", goes to account_brief.
 
         actions:
             go_to_account_brief: @utils.transition to @subagent.account_brief
-                description: "Any message that names one specific account (by name or pasted 001 Id) and asks anything about it, including narrow asks like just the open deals for X; a reply that picks an account from a candidate list; or a follow-up about the account already briefed."
+                description: "Any message that names one specific account (by name or pasted 001 Id) and asks anything about it, including narrow asks like just the open deals for X; a reply that picks an account from a candidate list; or a follow-up that refers to the account already briefed (it, its, they, their, them). Not for an org-wide count, list, total or comparison that names no account."
             go_to_explore: @utils.transition to @subagent.explore
-                description: "A question about CRM data that does not name one specific account: org-wide counts, lists, totals or lookups."
+                description: "A question about CRM data that names no account: org-wide counts, lists, totals, comparisons or lookups, even when an account has been briefed earlier in the conversation."
 
 subagent account_brief:
     label: "Account Brief"
@@ -56,25 +62,25 @@ subagent account_brief:
               4) If resolve_account returns AMBIGUOUS, NOT_FOUND or ERROR, your whole reply is the message text of resolve_account, verbatim, and you call nothing else.
               5) Pass include only when the user asks for specific areas. Use only these keys, comma-separated: profile, open_deals, cases, contacts, activity, calls, deal_history. Otherwise leave include empty.
               6) When get_brief returns, your whole reply is its answer text, verbatim, whatever its status: OK, EMPTY, NOT_FOUND or ERROR. Write no sentence before it and none after it. Keep every line break, label line and "- " bullet as returned; do not join, reflow, shorten or reformat it. Never end with a closing question or an offer of more help, such as "Would you like more details?". Never invent data.
-              7) If the latest message is not about one account (an org-wide data question, or anything else), use reclassify and do not answer it here.
+              7) If the latest message names no account and asks an org-wide count, list, total or comparison (for example "How many open opportunities are there?"), use reclassify and do not answer it here, even when an account is resolved: it is not about that account. Do the same for anything else that is not about one account.
 
             if @variables.briefed_account_id is not None and @variables.briefed_account_id != "":
                 | The account most recently resolved is {!@variables.briefed_account_name} (Id {!@variables.briefed_account_id}).
-                  - A follow-up about it (its name, "this account", "it", "its", "they", "their") calls get_brief again in this turn with the follow-up copied as userQuestion. Do not resolve again, and never answer from earlier turns or from memory.
+                  - A follow-up that refers to it (its name, "this account", "it", "its", "they", "their", "them") calls get_brief again in this turn with the follow-up copied as userQuestion. Do not resolve again, and never answer from earlier turns or from memory.
                   - A message that names a different account must call resolve_account for that new name first. Do not call get_brief in that turn until resolve_account has returned RESOLVED for the new account; get_brief must never run on {!@variables.briefed_account_name} in a turn that names another account.
             else:
-                | No account is resolved yet. If the message refers to an account named earlier in the conversation ("it", "they", "their"), call resolve_account with that account's name from the conversation, then follow the steps above.
+                | No account is resolved now: none has been named yet, or the last resolve did not return RESOLVED. If the message refers to an account without naming it ("it", "they", "their", "them"), call resolve_account with the name of the account named most recently in the conversation, even if that name found no account before, then follow the steps above. Use that most recent name only, never an account named before it. A pick from a candidate list follows step 2 instead.
 
         actions:
             resolve_account: @actions.resolve_account
                 description: "Resolve the user's words, or an Id picked from a candidate list, to exactly one account. Call this first for any account name that is not the one already resolved."
                 with accountName = ...
-                if @outputs.status == "RESOLVED":
-                    set @variables.briefed_account_id = @outputs.accountId
-                    set @variables.briefed_account_name = @outputs.accountName
-                else:
-                    set @variables.briefed_account_id = ""
-                    set @variables.briefed_account_name = ""
+                # Unconditional on purpose. The 2026-11-11 Studio preview never ran the `if @outputs.status == "RESOLVED":`
+                # form, although agent-script-core-language.md section 8 shows a post-action `if` on @outputs as valid.
+                # AccountBriefResolver returns a blank accountId and accountName unless RESOLVED, so NOT_FOUND and
+                # AMBIGUOUS clear the briefed account. @outputs is in scope here (production-gotchas.md, @inputs scope).
+                set @variables.briefed_account_id = @outputs.accountId
+                set @variables.briefed_account_name = @outputs.accountName
             get_brief: @actions.get_brief
                 description: "Build the brief for the account resolve_account last returned as RESOLVED. Never for an account the user has not had resolved."
                 available when @variables.briefed_account_id is not None and @variables.briefed_account_id != ""
@@ -124,29 +130,37 @@ subagent account_brief:
 
 subagent explore:
     label: "Explore Data"
-    description: "Answer any question about CRM data through the safe read-only data explorer."
+    description: "Answer any question about CRM data that names no account through the safe read-only data explorer."
+
+    # explore_data runs deterministically, once per explore entry, so no data answer can skip it: the 2026-11-11 Studio
+    # preview answered a count without calling it. Pattern: optimization-pattern-2-deterministic-logic.md ("Move
+    # requirement-backed procedural logic to explicit ... run"); before_reasoning runs once when the subagent starts
+    # (production-gotchas.md, Lifecycle Hooks; control-flow-lifecycle-side-effects.md). The question is the user's
+    # message itself: @system_variables.user_input, which the AgentScript SDK compiler maps to system.input_text
+    # (compiler/src/expressions/compile-expression.ts). The skill's references do not document it. No open record is
+    # passed, so an org-wide question is never scoped to the briefed account.
+    before_reasoning:
+        set @variables.explore_answer = ""
+        run @actions.explore_data
+            with question = @system_variables.user_input
+            set @variables.explore_answer = @outputs.answer
 
     reasoning:
+        # @outputs leaves scope after the run, so the answer reaches the reply through a variable
+        # (agent-script-core-language.md sections 1 and 8; optimization-pattern-2-deterministic-logic.md).
         instructions: ->
-            | The user has a question about CRM data. Call explore_data with the user's question unchanged. Do not rephrase, expand or narrow it.
-              Your whole reply is the action's answer text, verbatim, and nothing else. This holds for every status: OK, EMPTY and ERROR. Write no sentence before it and none after it. Keep every line break and table row as returned.
-              Never end with a closing question or an offer of more help. Never invent data. Never offer filters, exports or other options that the action does not provide.
-              If the latest message asks for a brief on an account, picks an account from a candidate list, or is not about CRM data at all, use reclassify and do not answer it here.
+            | If the latest message asks for a brief on an account, names an account, picks an account from a candidate list, refers to the account briefed earlier ("it", "its", "they", "their", "them"), or is not about CRM data at all, use reclassify and do not reply here.
+              Otherwise the data explorer has already answered the user's question in this turn. Do not answer it yourself. Write no sentence before the answer and none after it. Keep every line break and table row as returned. Never end with a closing question or an offer of more help. Never invent data, and never offer filters, exports or other options that the answer does not provide.
 
-            if @variables.briefed_account_id is not None and @variables.briefed_account_id != "":
-                | The account most recently briefed is {!@variables.briefed_account_name}. Use explore_data_for_account only when the question refers to that account: it names {!@variables.briefed_account_name}, or says "this account", "it", "its", "they" or "their" about it. Any question that names no account, or names a different account, goes to explore_data, which passes no open record; an org-wide count such as "How many open opportunities are there?" is never about {!@variables.briefed_account_name}.
+            if @variables.explore_answer is not None and @variables.explore_answer != "":
+                | Your whole reply is this answer text, verbatim:
+                  {!@variables.explore_answer}
+            else:
+                | The data explorer returned no answer. Your whole reply is exactly this one line: "Something went wrong pulling that. Please try again in a moment."
 
         actions:
-            explore_data: @actions.explore_data
-                description: "Answer a question about CRM data with safe, read-only queries and no open record. Use for every question that does not refer to the briefed account."
-                with question = ...
-            explore_data_for_account: @actions.explore_data
-                description: "Answer a question about CRM data with the briefed account as the open record. Only for a question that refers to the briefed account by name, or as this account, it, its, they or their."
-                available when @variables.briefed_account_id is not None and @variables.briefed_account_id != ""
-                with question = ...
-                with contextRecordId = @variables.briefed_account_id
             reclassify: @utils.transition to @subagent.agent_router
-                description: "Reclassify a message that asks for an account brief, picks an account from a candidate list, or is not about CRM data."
+                description: "Reclassify a message that asks for an account brief, names an account, picks an account from a candidate list, refers to the briefed account, or is not about CRM data."
 
     actions:
         explore_data:
@@ -156,8 +170,11 @@ subagent explore:
                 question: string
                     description: "The data question, in the user's words."
                     is_required: True
-                contextRecordId: string
+                # object + lightning__recordIdType: Studio backend validation rejected both `string` and `id` for this
+                # Apex Id input (2026-11-11). complex-data-types.md lists no Id mapping; Studio is the evidence.
+                contextRecordId: object
                     description: "The Id of the record the user has open, if any."
+                    complex_data_type_name: "lightning__recordIdType"
                     is_required: False
             outputs:
                 status: string

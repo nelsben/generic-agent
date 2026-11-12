@@ -165,10 +165,8 @@ class TestAgentStructure(unittest.TestCase):
             set(reasoning_actions(self.subagents["account_brief"])),
             {"resolve_account", "get_brief", "reclassify"},
         )
-        self.assertEqual(
-            set(reasoning_actions(self.subagents["explore"])),
-            {"explore_data", "explore_data_for_account", "reclassify"},
-        )
+        # explore_data runs deterministically, so the model is offered only the way back to the router.
+        self.assertEqual(set(reasoning_actions(self.subagents["explore"])), {"reclassify"})
 
     def test_router_sends_a_candidate_pick_to_the_account_route(self):
         instructions = self.router.child("reasoning:").child("instructions:").text()
@@ -180,22 +178,22 @@ class TestAgentStructure(unittest.TestCase):
         instructions = self.router.child("reasoning:").child("instructions:")
         self.assertIsNotNone(instructions.child("if %s:" % ID_GATE))
 
-    def test_briefed_id_is_set_only_on_resolved(self):
-        writers = [n for n in self.tree.walk() if n.line.startswith("set @variables.briefed_account_id =")]
-        self.assertTrue(writers)
+    def test_resolve_account_sets_the_briefed_account_unconditionally(self):
+        # Studio preview 2026-11-11: the conditional post-action set never fired. AccountBriefResolver returns a
+        # blank accountId and accountName unless RESOLVED, so an unconditional set also clears the briefed account
+        # on NOT_FOUND and AMBIGUOUS.
         resolve = reasoning_actions(self.subagents["account_brief"])["resolve_account"]
-        from_output = [n for n in writers if n.line == "set @variables.briefed_account_id = @outputs.accountId"]
-        self.assertEqual(len(from_output), 1)
-        for node in writers:
-            # Every writer of the Id lives in resolve_account's post-action block.
-            self.assertIn(resolve, list(node.ancestors()), node.line)
-        # The only copy of the resolver's Id sits directly under the RESOLVED branch.
-        self.assertEqual(from_output[0].parent.line, 'if @outputs.status == "RESOLVED":')
-        self.assertIs(from_output[0].parent.parent, resolve)
-        # Anything else written to it (the else branch) is the empty string.
-        for node in writers:
-            if node is not from_output[0]:
-                self.assertEqual(node.line, 'set @variables.briefed_account_id = ""')
+        expected = {
+            "briefed_account_id": "set @variables.briefed_account_id = @outputs.accountId",
+            "briefed_account_name": "set @variables.briefed_account_name = @outputs.accountName",
+        }
+        for name, line in expected.items():
+            writers = [n for n in self.tree.walk() if n.line.startswith("set @variables.%s =" % name)]
+            self.assertEqual([n.line for n in writers], [line], name)
+            # The one writer sits directly under the resolve_account binding, not under a branch.
+            self.assertIs(writers[0].parent, resolve, name)
+        self.assertFalse([n for n in resolve.walk() if n.line.startswith(("if ", "else"))])
+        self.assertNotIn("@outputs.status", resolve.text())
 
     def test_get_brief_is_gated_on_a_non_null_non_empty_id(self):
         get_brief = reasoning_actions(self.subagents["account_brief"])["get_brief"]
@@ -215,21 +213,80 @@ class TestAgentStructure(unittest.TestCase):
         self.assertRegex(text, r"RESOLVED[^\n]*call get_brief in this same turn")
         self.assertRegex(text, r"AMBIGUOUS, NOT_FOUND or ERROR[^\n]*message text of resolve_account")
 
-    def test_explore_keeps_the_unbound_action_available(self):
-        actions = reasoning_actions(self.subagents["explore"])
-        plain = actions["explore_data"]
-        self.assertEqual(action_value(plain), "@actions.explore_data")
-        self.assertFalse([n for n in plain.children if n.line.startswith("available when")])
-        self.assertFalse([n for n in plain.children if "contextRecordId" in n.line])
-        bound = actions["explore_data_for_account"]
-        self.assertEqual(action_value(bound), "@actions.explore_data")
-        self.assertIsNotNone(bound.child("available when %s" % ID_GATE))
-        self.assertIsNotNone(bound.child("with contextRecordId = @variables.briefed_account_id"))
+    def test_explore_runs_explore_data_deterministically(self):
+        explore = self.subagents["explore"]
+        before = explore.child("before_reasoning:")
+        self.assertIsNotNone(before)
+        runs = [n for n in explore.walk() if n.line.startswith("run @actions.")]
+        self.assertEqual([n.line for n in runs], ["run @actions.explore_data"])
+        run = runs[0]
+        self.assertIs(run.parent, before)
+        # The run gets the user's message itself, never a model-filled slot, and no open record.
+        self.assertEqual(
+            [n.line for n in run.children],
+            [
+                "with question = @system_variables.user_input",
+                "set @variables.explore_answer = @outputs.answer",
+            ],
+        )
+        # The answer is cleared first, so a failed run never relays an earlier answer.
+        siblings = before.children
+        self.assertEqual(siblings[siblings.index(run) - 1].line, 'set @variables.explore_answer = ""')
+        self.assertIn("explore_answer: mutable string = \"\"", AGENT.read_text(encoding="utf-8"))
+        # The reply is the stored answer, verbatim.
+        instructions = explore.child("reasoning:").child("instructions:").text()
+        self.assertIn("{!@variables.explore_answer}", instructions)
+        self.assertIn("verbatim", instructions)
+        # Nothing binds contextRecordId and nothing exposes explore_data to the model.
+        self.assertNotIn("with contextRecordId", explore.text())
+        self.assertNotIn("explore_data_for_account", AGENT.read_text(encoding="utf-8"))
 
-    def test_explore_context_record_id_is_a_string(self):
+    def test_explore_context_record_id_is_a_record_id_object(self):
+        # Studio backend validation rejects `string` and `id` for the Apex Id invocable input.
         definitions = self.subagents["explore"].child("actions:")
         inputs = definitions.child("explore_data:").child("inputs:")
-        self.assertIsNotNone(inputs.child("contextRecordId: string"))
+        self.assertIsNone(inputs.child("contextRecordId: string"))
+        field = inputs.child("contextRecordId:")
+        self.assertEqual(field.line, "contextRecordId: object")
+        self.assertEqual(
+            [n.line for n in field.children],
+            [
+                'description: "The Id of the record the user has open, if any."',
+                'complex_data_type_name: "lightning__recordIdType"',
+                "is_required: False",
+            ],
+        )
+
+    def test_router_sends_org_wide_questions_to_explore_before_briefed_follow_ups(self):
+        instructions = self.router.child("reasoning:").child("instructions:")
+        text = instructions.text()
+        org_wide = re.search(r"names no account and asks an org-wide count, list[^\n]*-> explore", text)
+        follow_up = re.search(r"refers to the account already briefed[^\n]*-> account_brief", text)
+        self.assertIsNotNone(org_wide)
+        self.assertIsNotNone(follow_up)
+        self.assertLess(org_wide.start(), follow_up.start())
+        self.assertIn("How many open opportunities are there?", text)
+        self.assertRegex(text, r"even when an account has been briefed earlier in the conversation")
+        self.assertIn('"their open cases"', text)
+        self.assertIn('"what about them"', text)
+        # The hint shown once an account is briefed keeps the same order.
+        hint = instructions.child("if %s:" % ID_GATE).text()
+        self.assertLess(hint.index("goes to explore"), hint.index("goes to account_brief"))
+        actions = reasoning_actions(self.router)
+        self.assertIn("even when an account has been briefed", actions["go_to_explore"].child("description:").line)
+        self.assertIn("Not for an org-wide", actions["go_to_account_brief"].child("description:").line)
+
+    def test_account_brief_hands_org_wide_questions_back(self):
+        text = self.subagents["account_brief"].child("reasoning:").child("instructions:").text()
+        self.assertRegex(text, r"names no account and asks an org-wide count[^\n]*use reclassify")
+
+    def test_account_brief_never_falls_back_to_an_earlier_account(self):
+        instructions = self.subagents["account_brief"].child("reasoning:").child("instructions:")
+        branch = instructions.child("if %s:" % ID_GATE)
+        siblings = instructions.children
+        unresolved = siblings[siblings.index(branch) + 1].text()
+        self.assertIn("named most recently", unresolved)
+        self.assertIn("never an account named before it", unresolved)
 
     def test_system_line_allows_the_router_off_topic_reply(self):
         system = self.tree.child("system:").child("instructions:").line
@@ -239,9 +296,9 @@ class TestAgentStructure(unittest.TestCase):
 
 
 class TestAccountBriefSpec(unittest.TestCase):
-    def test_spec_has_ten_utterances(self):
+    def test_spec_has_twelve_utterances(self):
         text = SPEC.read_text(encoding="utf-8")
-        self.assertEqual(len(re.findall(r"^\s*-?\s*utterance:", text, re.M)), 10)
+        self.assertEqual(len(re.findall(r"^\s*-?\s*utterance:", text, re.M)), 12)
         self.assertIn("subjectType: AGENT", text)
         self.assertIn("subjectName: Account_Brief", text)
 
@@ -297,6 +354,25 @@ class TestAccountBriefSpec(unittest.TestCase):
         self.assertEqual(roles, ["user", "agent"])
         self.assertIn("Edge Communications", history)
         self.assertRegex(case, r"expectedActions:\s*\n\s*- get_brief\s*\n")
+
+    def test_org_wide_count_after_a_brief_case(self):
+        case = self.case("How many open opportunities are there in the whole org?")
+        history = case.split("conversationHistory:", 1)[1]
+        self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent"])
+        self.assertIn("Edge Communications", history)
+        self.assertRegex(case, r"expectedTopic:\s*explore\s*\n")
+        self.assertRegex(case, r"expectedActions:\s*\n\s*- explore_data\s*\n")
+
+    def test_not_found_then_follow_up_case(self):
+        case = self.case("Show me their open cases")
+        history = case.split("conversationHistory:", 1)[1]
+        self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent", "user", "agent"])
+        self.assertIn("Edge Communications", history)
+        self.assertIn("Zzqxv Nonexistent Holdings", history)
+        self.assertRegex(case, r"expectedTopic:\s*account_brief\s*\n")
+        outcome = case.split("expectedOutcome:", 1)[1].split("conversationHistory:", 1)[0]
+        self.assertIn("does not call get_brief", outcome)
+        self.assertIn("Edge Communications", outcome)
 
 
 class TestCheckScripts(unittest.TestCase):
