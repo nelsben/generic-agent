@@ -17,6 +17,9 @@
  * drill() skips the model: the record's catalog fields, or its child rows in one catalog object with
  * a lookup to it, resolved by describe.
  *
+ * Both return result sets shaped for display (forDisplay): no column that holds a record Id, and plain
+ * labels as column names. Rows keep their record Id for drill-down. Only the model sees the Ids.
+ *
  * Read-only: no DML anywhere on this path.
  */
 public with sharing class DataExplorer {
@@ -69,6 +72,15 @@ public with sharing class DataExplorer {
      * historyJson (optional) is earlier turns as [{"question":"...","answer":"..."}]; anything else is ignored.
      */
     public static Result explore(String question, Id contextRecordId, String historyJson) {
+        Result r = run(question, contextRecordId, historyJson);
+        for (ExploreQuery.ResultSet rs : r.resultSets) {
+            forDisplay(rs);
+        }
+        return r;
+    }
+
+    /** The loop itself. The model sees every column, Ids included, so a follow-up can query those records again. */
+    private static Result run(String question, Id contextRecordId, String historyJson) {
         ExploreRun run = new ExploreRun();
         if (String.isBlank(question)) {
             run.result.status = EMPTY;
@@ -152,7 +164,7 @@ public with sharing class DataExplorer {
             return 'INVALID: ' + e.getMessage();
         }
         run.result.resultSets.add(rs);
-        run.result.trail.add(rs.objectName + ' | ' + rs.filters + ' | ' + rowCount(rs));
+        run.result.trail.add(rs.objectName + ' | ' + withoutIds(rs.filters) + ' | ' + rowCount(rs));
         return 'RESULT ' + rs.objectName + ' rows=' + rs.shown + ' total=' + rs.total + '\n' + preview(rs);
     }
 
@@ -212,7 +224,7 @@ public with sharing class DataExplorer {
             plan.fields = paths(entry);
             plan.filters.add(filter('Id', recordId));
             plan.rowLimit = 1;
-            return ExploreQuery.run(plan);
+            return forDisplay(ExploreQuery.run(plan));
         }
 
         ExploreCatalog.Entry child = ExploreCatalog.find(relatedObject);
@@ -232,7 +244,106 @@ public with sharing class DataExplorer {
             plan.orderBy.field = created.path;
             plan.orderBy.dir = 'DESC';
         }
-        return ExploreQuery.run(plan);
+        return forDisplay(ExploreQuery.run(plan));
+    }
+
+    // ---------------------------------------------------------------- display
+
+    /**
+     * The result set as callers show it. Columns that hold a record Id (Id, or a field ending in Id
+     * such as AccountId or WhoId) are dropped, and every other column is named by its plain label
+     * (Account, not Account.Name), because the panel shows column names as headers. Rows keep every
+     * key they had, the record Id under 'Id' included for drill-down, and gain each label as a key.
+     * A label that is already another column's key or 'Id' keeps its path, so no value is overwritten.
+     */
+    @TestVisible
+    private static ExploreQuery.ResultSet forDisplay(ExploreQuery.ResultSet rs) {
+        if (rs == null) {
+            return rs;
+        }
+        ExploreCatalog.Entry entry = String.isBlank(rs.objectName) ? null : ExploreCatalog.find(rs.objectName);
+        List<String> shown = headers(rs);
+        Set<String> keys = new Set<String>(rs.columns);
+        keys.add('Id');
+        List<String> columns = new List<String>();
+        for (Integer i = 0; i < rs.columns.size(); i++) {
+            String path = rs.columns[i];
+            if (holdsId(entry, path)) {
+                continue;
+            }
+            String label = String.isBlank(shown[i]) ? path : shown[i];
+            String key = label.equals(path) || !keys.contains(label) ? label : path;
+            if (!key.equals(path)) {
+                for (Map<String, Object> row : rs.rows) {
+                    row.put(key, row.get(path));
+                }
+            }
+            columns.add(key);
+        }
+        rs.columns = columns;
+        rs.labels = columns.clone();
+        return rs;
+    }
+
+    private static final Pattern ID_LIST = Pattern.compile('\\(([^()]*)\\)');
+    private static final Pattern ID_WORD = Pattern.compile('\\b[a-zA-Z0-9]{15}(?:[a-zA-Z0-9]{3})?\\b');
+
+    /**
+     * The trail's filter text with record Ids out of sight: a list made only of Ids becomes
+     * '(N records)' and any other Id 'a record'. A follow-up filters on the earlier rows' Ids.
+     */
+    @TestVisible
+    private static String withoutIds(String filters) {
+        if (String.isBlank(filters)) {
+            return filters;
+        }
+        String out = '';
+        Integer last = 0;
+        Matcher m = ID_LIST.matcher(filters);
+        while (m.find()) {
+            List<String> items = m.group(1).split(',');
+            Boolean allIds = true;
+            for (String item : items) {
+                allIds = allIds && isRecordId(item.trim());
+            }
+            if (allIds) {
+                out += filters.substring(last, m.start()) + '(' + items.size() + (items.size() == 1 ? ' record)' : ' records)');
+                last = m.end();
+            }
+        }
+        filters = out + filters.substring(last);
+        out = '';
+        last = 0;
+        m = ID_WORD.matcher(filters);
+        while (m.find()) {
+            if (isRecordId(m.group())) {
+                out += filters.substring(last, m.start()) + 'a record';
+                last = m.end();
+            }
+        }
+        return out + filters.substring(last);
+    }
+
+    /** A 15 or 18 character record Id. Words without a digit are never taken for one. */
+    private static Boolean isRecordId(String s) {
+        if (s == null || (s.length() != 15 && s.length() != 18) || !s.isAlphanumeric() || !s.containsAny('0123456789')) {
+            return false;
+        }
+        try {
+            return Id.valueOf(s) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** True when the column shows a record Id: Id, a field whose name ends in Id, or a catalog id field. */
+    private static Boolean holdsId(ExploreCatalog.Entry entry, String path) {
+        String last = path.contains('.') ? path.substringAfterLast('.') : path;
+        if (last.equalsIgnoreCase('Id') || last.endsWith('Id')) {
+            return true;
+        }
+        ExploreCatalog.Field f = entry == null ? null : entry.field(path);
+        return f != null && f.kind == ExploreCatalog.KIND_ID;
     }
 
     /** The child's lookup to parentName: single-object lookups first, then catalog order. */
