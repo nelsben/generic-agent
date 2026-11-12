@@ -78,6 +78,10 @@ sequenceDiagram
   150 of 150 Apex tests. The Playwright suite then passed 8 of 8 on the first run, as an admin
   user ([deploy-verify.md](../research/deploy-verify.md)). An earlier run passed 6 of 8, and its
   two failures were real panel defects, Esc focus and brief-line drill, fixed before this run.
+- **The agent test ran on an active version.** In `agent-probe`, after the publish and
+  activation, `sf agent test run` of the 12-case spec passed 12 of 12 cases and 36 of 36
+  assertions against version 1, and the Playwright suite passed 8 of 8 there
+  ([org-migration.md](../research/org-migration.md)).
 - **The lifecycle follows Salesforce's own skills.** The agent review found the earlier workflow
   skipped the documented draft-first order (finding 8 in [agent-review.md](../reviews/agent-review.md)).
   The order above follows the lifecycle table in [salesforce-skills.md](../research/salesforce-skills.md).
@@ -100,9 +104,9 @@ sequenceDiagram
   `401` "Error saving or updating agent graph" for every CLI publish, including a new throwaway agent.
   The `404` the CLI shows is its HTTP library resending after that `401`. Studio's Commit Version
   fails too, so there is no working path in that org today
-  ([agent-publish-spike.md](../research/agent-publish-spike.md)). The plan notes report that the
-  same minimal agent publishes in a fresh Developer Edition org
-  ([gtm-burn-plan.md](../plans/gtm-burn-plan.md), "Morning notes"; second-hand).
+  ([agent-publish-spike.md](../research/agent-publish-spike.md)). In `agent-probe`, a fresh
+  Developer Edition org, the CLI publish of main's bundle returned HTTP 200 on every call, and its
+  version 1 was activated ([org-migration.md](../research/org-migration.md)).
 - The org's existing agent test definition is pinned to version 1. Recreate it from the spec and
   check its subject version before crediting a pass to a new version (agent re-review N2,
   [agent-review-2.md](../reviews/agent-review-2.md)).
@@ -115,5 +119,6 @@ sequenceDiagram
   branches ([lwc-review-2.md](../reviews/lwc-review-2.md), N11).
 
 > [!WARNING]
-> **Not yet proven:** publishing and activating version 2 by either route, and the agent test spec
-> run with `sf agent test run`. The spec run needs an active version with the fixed script.
+> **Not yet proven:** publishing and activating a version 2 over an active version, by either
+> route. In `agent-probe` only version 1 has been published, and the org this was first built in
+> cannot publish at all.

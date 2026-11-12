@@ -109,13 +109,21 @@ under `force-app/`.
 What it needs:
 
 - Everything the e2e suite needs (above): the deployed panel, a signed-in sf CLI session for the
-  alias, and Edge Communications. Sign-in is the e2e global setup; capture never logs in itself.
+  alias, and the seeded sample account Edge Communications. Sign-in is the e2e global setup;
+  capture never logs in itself.
+- For `06-agent.capture.js` (`agent-brief.png`, `agent-explore.png`): the `Account_Brief` agent
+  published and active, with the running user granted it. The spec opens the built-in Agentforce
+  panel through the custom panel's "Ask the agent" button and sends two questions that way. On a
+  user's first use it closes the "Agentforce Learns from Your Conversations" pop-up with "Cancel
+  and close" (memory is not turned on) and accepts the generative AI notice with "Got It".
 - `playwright-report/index.html` from a full `npm run test:e2e` run, for `e2e-report.png`.
 - `/opt/homebrew/bin/ffmpeg` and `ffprobe`, which turn the recorded video into GIFs (two-pass
   palette, 12 fps, at most 900 px wide).
-- Model calls: one brief, one follow-up question and one explorer question per run (plus about
-  seven for the `test:e2e` run). The resolver stills (`not-found.png`, `ambiguous.png`) and
-  `hotkey-open.gif` make none. Nothing is written to the org beyond the panel's own memory rows.
+- Model calls per run: five. Three in the custom panel (one brief, one follow-up question and one
+  explorer question) and two agent turns in the built-in panel (a brief, then an org-wide count).
+  The `test:e2e` run adds about seven. The resolver stills (`not-found.png`, `ambiguous.png`) and
+  `hotkey-open.gif` make none. Nothing is written to the org by the capture itself beyond the
+  panel's own memory rows and what the platform keeps for the two agent turns.
 
 What it produces: stills at viewport 1440x900 and deviceScaleFactor 2, cropped to the panel and
 the record header (at most 1600 px wide); GIFs cut from the test's video, 6 to 20 seconds, each
@@ -130,18 +138,22 @@ or `CAPTURE_FRAMES_DIR`).
   browser URL is never in frame (Playwright captures the page, not the browser chrome).
 - **The running user is never shown.** At run time the script reads the user's Id and username
   with `sf org display user --target-org <alias> --json` and the name, email and nickname with one
-  User query. They stay in memory: never printed, logged, put in an error or written to disk. A
-  context init script replaces each of them, on every animation frame before paint and inside
-  every shadow root, with `Sample Owner`.
+  User query, which also reads the first and last name. They stay in memory: never printed,
+  logged, put in an error or written to disk. A context init script, which runs in every frame of
+  the page, iframes included, replaces each of them, on every animation frame before paint and
+  inside every shadow root, with `Sample Owner`. The first and last name are replaced only as
+  whole words (no letter or digit on either side), so an agent reply that greets the user by first
+  name is masked while a longer word that contains it is left alone.
 - **Masked everywhere:** any email address becomes `email hidden`, any 15 or 18 character record Id
   (letters and digits with at least one digit) becomes `Id hidden`, and injected CSS and inline
   styles hide the global header's avatar button and every round user photo.
 - **Checked, not trusted.** Before every still, and every 0.5 s of every recording, the script reads
-  all visible text on the page, shadow roots included, and fails the run if it finds the user's
-  identity, an email address, a 15 or 18 character Id, or `URL_Redacted`. The error names the asset
-  and the category only, never the text.
+  all visible text in every frame of the page, iframes and shadow roots included, and fails the run
+  if it finds the user's identity (the first or last name as a whole word included), an email
+  address, a 15 or 18 character Id, or `URL_Redacted`. The error names the asset and the category
+  only, never the text.
 - **Cropped.** Stills and GIFs show the panel and enough of the record page for context, not the
-  global header.
-- **Sample data only.** Captures use the demo account Edge Communications and other demo records.
-  Explorer questions in captures do not ask for owners.
+  global header. The two agent stills crop the right of the page, where the built-in panel docks.
+- **Sample data only.** Captures use the sample account Edge Communications and the other records
+  seeded from `data/sample/`. Explorer questions in captures do not ask for owners.
 - **Review by eye before committing:** every PNG, and the frames written for each GIF.

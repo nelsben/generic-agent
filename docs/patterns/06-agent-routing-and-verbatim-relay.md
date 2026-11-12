@@ -6,9 +6,12 @@ Reps who use the built-in Agentforce panel get the same brief and the same data 
 custom panel. The agent decides which of two jobs a message is, then passes the Apex answer
 through without rewording it.
 
-Today this is proven only in a Studio preview of the draft. The version reps reach is still
-version 1, the script from before the review fixes, and no newer version can be published in
-the org it was built in. See "Limits and open items".
+The current script runs live in `agent-probe`, a fresh Developer Edition org. There, version 1
+of `Account_Brief`, published from main with this script, is the active version. The
+screenshots below come from it, and the 12-case agent test passed against it
+([org-migration.md](../research/org-migration.md)). In the org it was first built in, version 1
+is still the script from before the review fixes, and every publish there fails. See "Limits and
+open items".
 
 ## The problem it removes
 
@@ -85,13 +88,20 @@ sequenceDiagram
   replies equalled the action's text, with one exception: in case 11 two table headers that were
   dotted field paths came back as `URL_Redacted`. The explorer now writes plain column labels
   instead (see [02](02-ask-anything-explorer.md)), and that change has not been previewed yet.
+- **It runs as the active version.** In `agent-probe`, `sf agent test run` of the 12-case spec
+  passed 12 of 12 cases and 36 of 36 assertions against the active version 1, and a two-turn
+  check passed both turns ([org-migration.md](../research/org-migration.md)). In case 7 the agent
+  called `resolve_account` before `get_brief`, where the spec expects `get_brief` alone, and the
+  runner still scored it a pass.
 - **Review findings are fixed in script.** The agent review ([agent-review.md](../reviews/agent-review.md))
   found org-wide questions scoped to the briefed account (finding 1), the resolve message relayed
   on RESOLVED (2), no route out of a subagent (3), a null Id passing the gate (4), and a system
   rule that contradicted the off-topic reply (5). Each is fixed and covered by
   test_agent_bundle.py. The re-review ([agent-review-2.md](../reviews/agent-review-2.md)) confirms
   1 to 5 fixed in the script on main, but none of it is live, and rates the agent **"Not ready"**.
-  Its one blocker is that reps still run version 1 and no version can be published.
+  Its one blocker is that reps still run version 1 and no version can be published. That review
+  was of the org it was first built in; the fixed script has since been published and activated
+  in `agent-probe`.
 - **The agent can be called from Apex.** A probe called it twice through `generateAiAgentResponse`
   in one session. The second turn found the right account without naming it. Each turn took 14 to
   18 seconds ([agent-api.md](../research/agent-api.md)).
@@ -105,19 +115,22 @@ sequenceDiagram
 4. **Change the jobs.** Point each subagent's actions at your own `apex://` classes. Keep each
    action's answer ready to relay, under about 6,000 characters.
 5. Run `bash scripts/agent-check.sh`, then preview, publish and activate the bundle (see
-   [08](08-test-and-release-lifecycle.md)). In the org this was built in, publishing fails; see
-   below.
+   [08](08-test-and-release-lifecycle.md)). In the org this was first built in, publishing
+   fails; in `agent-probe` it worked. See below.
 
 ## Limits and open items
 
-- **Blocker: version 1 is the active version.** The fixed script sits in an open draft, and no
-  version 2 exists. Every publish in the org returned `401` "Error saving or updating agent
-  graph": the CLI publish, the first publish of a new throwaway agent, and a comment-only
-  version 3. Studio's Commit Version also failed; whether with the same error was not captured
-  ([agent-publish-spike.md](../research/agent-publish-spike.md)). The plan notes report that a
-  minimal agent published in a fresh Developer Edition org, so the fault looks specific to that
-  one org ([gtm-burn-plan.md](../plans/gtm-burn-plan.md), "Morning notes"). This is second-hand
-  and not recorded in a probe file.
+- **Publishing fails in the org this was first built in.** There, version 1 is the script from
+  before the review fixes and is still the active version; the fixed script sits in an open
+  draft, and no version 2 exists. Every publish in that org returned `401` "Error saving or
+  updating agent graph": the CLI publish, the first publish of a new throwaway agent, and a
+  comment-only version 3. Studio's Commit Version also failed; whether with the same error was
+  not captured ([agent-publish-spike.md](../research/agent-publish-spike.md)). In `agent-probe`,
+  a fresh Developer Edition org, the same bundle from main published on its first try and its
+  version 1 is active ([org-migration.md](../research/org-migration.md)), so the fault is
+  specific to that one org.
+- Only version 1 exists in `agent-probe`. Publishing and activating a second version over an
+  active one has not been done in either org.
 - Should-fix from the agent re-review ([agent-review-2.md](../reviews/agent-review-2.md)):
   - N3: an explorer follow-up through the agent gets no history, so "Which close this quarter?"
     loses the question before it. A pronoun can also send the follow-up to the briefed account.
@@ -137,7 +150,3 @@ sequenceDiagram
 > [!WARNING]
 > **Not yet proven:** the custom panel calling the registered agent and showing its reply. The
 > Apex call is proven, but the `@AuraEnabled` wrapper and the panel view are not built.
-
-> [!WARNING]
-> **Not yet proven:** the 12-case agent test spec run with `sf agent test run`. It needs an active
-> version that holds the fixed script.
