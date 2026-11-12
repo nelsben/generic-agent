@@ -10,8 +10,8 @@ Labels: **read** (seen in a file), **preview** (seen in `studio-preview.md`), **
 
 ## Verdict
 
-**Ready with fixes**, for the script on main. **Not ready** as a release: none of it is in front of users yet.
-The script on main fixes the serious problems the first review found. An org-wide question after a brief is no longer
+**Not ready.** The script on main is close: on its own it would be ready once the fixes below are made. But the
+release lifecycle cannot ship it, so none of it is in front of users yet. The script on main fixes the serious problems the first review found. An org-wide question after a brief is no longer
 narrowed to that account. The brief no longer stops at "Resolved: ...". Each part of the agent can hand a question back
 to the router, and a failed lookup no longer leaves a stale account behind. A live Studio preview of these exact bytes
 passed all 12 test cases. But the version users talk to today is still version 1. That is the older script the first
@@ -51,7 +51,7 @@ follow the ship order at the end.
 | 11 | "Character for character" makes the model pass the whole request | fixed | The script says "without the rest of the request" (`.agent:59,99`). The Apex label at `AccountBriefResolver.cls:23` still says "character for character". The script's text should be what the model sees (suspected) |
 | 12 | NOT_FOUND says "open the account and ask again", but `knownAccountId` is unbound | open | `AccountBriefResolver.cls:215,222`. Unbound in `.agent:97-100`. It is Studio's one warning (`studio-preview.md:12`) |
 | 13 | The unit tests check phrases, not behaviour | changed | `test_agent_bundle.py:32-110` parses blocks by indentation and asserts where each action sits (`:138-296`). This is good structure evidence, still static |
-| 14 | Spec location | fixed (closed, no move) | Still `tests/agent/`, outside `force-app` (known-issues.md Issue 1) |
+| 14 | Spec location | fixed (closed, no move) | Still `tests/agent/Account_Brief-testSpec.yaml:13-16`, outside `force-app` (known-issues.md Issue 1) |
 
 The skill's four "Internal Error" causes are still clean: there is no `access:` block (correct for an Employee agent),
 `outputs:` is present on all three actions (`.agent:101,124,179`), validate passes, and the publish failure is now
@@ -80,14 +80,14 @@ captured as a server 401, not a script error (`agent-publish-spike.md:16-18`).
 **N3. Explore follow-ups lose the previous question, and a pronoun can jump to the briefed account.** Should-fix.
 The code path is read; the model outcome is suspected.
 - Where: `.agent:145` passes only the raw message. `ExploreAction.cls:38` passes `null` history, although
-  `DataExplorer.cls:69-84` accepts it. Router rule 4 (`.agent:39`) sends any "them/they/their" message to
-  account_brief, and rule 1 (`.agent:36`) excludes those words, whatever they refer to.
+  `DataExplorer.cls:69-84` accepts it. Router rules 1 and 4 (`.agent:36,39`) separate the two routes by whether
+  "it/they/them" refers to an account, a semantic call the model makes on keywords it is told to watch for.
 - Scenario A: "How many open opportunities are there?" then "Which close this quarter?". The explorer receives only
-  the second sentence, with history NONE, so "which" has nothing to refer to. It counts every opportunity closing this
-  quarter, open or not.
-- Scenario B: after briefing A, then an org-wide count, the user asks "Which of them close this quarter?". Rule 1
-  is ruled out by "them" and rule 4 can match it, so the reply can be a get_brief answer about A instead of the
-  opportunities just listed.
+  the second sentence, with history NONE, so "which" has nothing to refer to. It may count every opportunity closing
+  this quarter, open or not.
+- Scenario B: after briefing A, then an org-wide count, the user asks "Which of them close this quarter?". Here
+  "them" means the opportunities, so rule 1 applies on a literal read. But the model may read "them" as the briefed
+  account, as rule 4 and the hint at `.agent:44` invite, and reply with a get_brief answer about A instead.
 - Fix: add a history input to `ExploreAction` (Apex lane) bound from a variable holding the last explore question and
   answer. Limit rule 4 to follow-ups after an account_brief reply. Add both as preview cases.
 
@@ -124,17 +124,32 @@ the failure mode is the skill's, not seen here.
 **N7. Notes.**
 - `@system_variables.user_input` (`.agent:145`) is not documented in any `agentforce-generate` reference (grep finds no
   `system_variables`). It rests on SDK compiler source (`.agent:139-140`) and preview answer (a) (`studio-preview.md:44`).
-  Re-check it after each CLI or SDK upgrade.
-- The spec is tied to one org: sample account names (spec `:1-7`) and three record Ids in the AMBIGUOUS outcome
-  (spec `:44`, also asserted in `test_agent_bundle.py:342-347`). In a new org, case 5 and the Edge cases fail until edited.
-- `agent-check.sh` hard-codes the CLI path (`:17`), the skill version (`:18`, can be overridden by an environment
-  variable) and the org alias (`:71`), and may install the SDK over the network (`:39`). The `test` gate checks only
-  that the script exists (`test_agent_bundle.py:379-391`), so a new team must edit it and run it by hand.
+  Re-check it after each CLI or SDK upgrade. Scenario: a runtime change maps it to a blank or history-wrapped string,
+  the explorer gets no question, and every explore turn returns the fallback line (`.agent:159`) while the local gate
+  stays green.
 - The AMBIGUOUS list stops at 8 candidates plus "…and N more" (`AccountBriefResolver.cls:19,194-196`), so a 9th match
   can only be reached by refining the name.
+
+## Limits and adoption
+
+- Per-turn cost: a brief makes up to 3 model calls (two pre-reduces and the synthesis) on top of the section queries
+  (`ARCHITECTURE.md:9-14`). An explore turn makes up to 5 model calls and 4 queries (`ARCHITECTURE.md:84`). A pronoun
+  follow-up re-runs get_brief. The preview shows the model narrowing `include` (`studio-preview.md:28`), but that is
+  its choice, not a cap. N4 can add a wasted explore run to a misrouted turn.
 - Bulk: the agent sends one request per call, so this is safe. A Flow or MCP caller batching requests would hit limits
   at about 25 resolves (4 SOQL each, `AccountBriefResolver.cls:49-51`) or 20 explores (5 callouts each,
   `ExploreAction.cls:34-44`). `AccountBriefGetAction` batches its one memory write (`:33-39`).
+- Adoption: **yes, with conditions.** The pattern is sound and teachable: resolve-then-brief with the Id held in state,
+  a deterministic explorer run, a reclassify transition in every subagent, structural unit tests and a local compile
+  gate. A new team must first:
+  - make the spec portable: it depends on sample account names (spec `:1-7`) and on three record Ids in the AMBIGUOUS
+    outcome (spec `:44`, also asserted in `test_agent_bundle.py:342-347`). In a new org, case 5 and the Edge cases
+    fail until they are edited;
+  - edit `agent-check.sh`, which hard-codes the CLI path (`:17`), the skill version (`:18`, which an environment variable
+    can override) and the org alias (`:71`), and may install the SDK over the network (`:39`). The `test` gate checks
+    only that the script exists (`test_agent_bundle.py:379-391`), so someone must run it by hand;
+  - set up the permission set group (N5);
+  - have a publish path that works in its own org. This one has none today (N1).
 
 ## Security and access
 
@@ -155,7 +170,8 @@ the failure mode is the skill's, not seen here.
 
 | Path | Reply | Exercised? |
 |---|---|---|
-| Resolve NOT_FOUND / blank | Fixed resolver text (`AccountBriefResolver.cls:215,222`) | preview cases 3, 4, 8 |
+| Resolve NOT_FOUND | Fixed resolver text (`AccountBriefResolver.cls:215`) | preview cases 3, 4, 8 |
+| Resolve with a blank name | "Which account? ..." (`AccountBriefResolver.cls:222`) | no |
 | Resolve AMBIGUOUS | Candidate list (`:189-199`) | preview case 5 |
 | get_brief NOT_FOUND / ERROR / EMPTY | Fixed texts (`AccountBrief.cls:21-24`) | no |
 | Explorer returned nothing | Fixed line (`.agent:159`) | no |
