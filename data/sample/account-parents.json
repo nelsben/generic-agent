@@ -1,0 +1,19 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccQuill"
+      },
+      "Name": "Quillfeather Group",
+      "Type": "Customer - Direct",
+      "Industry": "Other",
+      "BillingCity": "Duluth",
+      "BillingState": "Minnesota",
+      "BillingCountry": "United States",
+      "Phone": "(555) 010-0100",
+      "Website": "www.example.com",
+      "Description": "Made-up holding group that owns Edge Communications in the sample data."
+    }
+  ]
+}

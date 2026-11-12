@@ -69,12 +69,18 @@ class TestSampleData(unittest.TestCase):
                 if isinstance(value, str) and value.startswith("@"):
                     self.assertIn(value[1:], seen, "%s.%s points at %s before it is defined" % (ref, key, value))
             seen.add(ref)
-        # A record may only point at a reference saved by a plan entry.
-        saved = {r["attributes"]["referenceId"] for e, _, r in self.records if e.get("saveRefs")}
-        for _, _, r in self.records:
-            for value in r.values():
-                if isinstance(value, str) and value.startswith("@"):
-                    self.assertIn(value[1:], saved)
+        # sf data import tree resolves a reference only from an earlier plan entry with saveRefs:
+        # one into the same file, or into an entry that does not save refs, is sent as literal text.
+        saved = set()
+        for entry in self.plan:
+            batch = [r for e, _, r in self.records if e is entry]
+            for r in batch:
+                for key, value in r.items():
+                    if isinstance(value, str) and value.startswith("@"):
+                        self.assertIn(value[1:], saved, "%s.%s points at %s, which no earlier plan entry saves"
+                                      % (r["attributes"]["referenceId"], key, value))
+            if entry.get("saveRefs"):
+                saved.update(r["attributes"]["referenceId"] for r in batch)
 
     def test_record_count_is_under_300(self):
         self.assertLess(len(self.records), 300)
