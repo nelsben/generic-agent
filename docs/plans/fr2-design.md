@@ -28,6 +28,10 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
 3. **API first for prompts.** Every model call goes through the Models API from Apex, with prompts kept as files a
    team can read, change, deploy and try in minutes, alone or with an AI coding assistant. A prompt template is an
    opt-in per prompt for teams that need one, never a required layer (F67 to F70).
+4. **What the product does for a customer is kept against the customer.** A summary, an action taken or an answer a
+   rep saves is a customer outcome: stored against the account, not inside one agent or one conversation, visible to
+   whoever can see the account, kept for as long as its type says, and fed back as context the next time anyone opens
+   a conversation on that account. `BE-35` builds the store (F75 to F79).
 
 ## Surfaces
 
