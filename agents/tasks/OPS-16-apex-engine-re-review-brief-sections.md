@@ -9,7 +9,7 @@ scope: [docs/reviews/apex-review-2.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
 red_test: none
 gate: test
-budget: 3-attempts
+budget: 4-attempts
 spend: 25
 ---
 ## Why
