@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: new Apex to agent integration with a seam, plus panel state changes
 status: blocked
-blocked_by: [OPS-22]
+blocked_by: [OPS-25]
 fixes: []
 scope: [force-app/main/default/classes/AccountBriefPanelController.cls, force-app/main/default/classes/AccountBriefPanelControllerTest.cls, force-app/main/default/classes/AccountBriefAgentClient*.cls, force-app/main/default/classes/AccountBriefAgentClient*.cls-meta.xml, force-app/main/default/lwc/accountBriefPanel/**, e2e/panel.spec.js, e2e/support/panel.js]
 forbid: [force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, tests/**, scripts/**, docs/**, agents/**, .chassis-delegation.json, reference/**]
