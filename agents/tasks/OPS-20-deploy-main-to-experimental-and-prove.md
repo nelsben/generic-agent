@@ -4,7 +4,7 @@ title: Deploy main to experimental and prove it: Apex tests green and the Playwr
 domain: ops
 tier: standard
 tier_reason: a scripted deploy and a test run with clear stop conditions
-status: queued
+status: merged
 fixes: []
 scope: [docs/research/deploy-verify.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
@@ -27,3 +27,7 @@ BE-12, BE-13, FE-6 and BE-14 were only check-only validated, so the org is behin
 - Run `npm ci` then `npm run test:e2e` against experimental once. Record per-spec pass or fail. The target is 8 of 8. If a spec fails, re-run that spec once to rule out timing, then record what you saw with the failure screenshot path; do not edit specs or source
 - Write docs/research/deploy-verify.md: date, the commit sha deployed, deploy result, Apex test counts, the e2e table, and a one-line verdict. No record Ids, org Ids, usernames, tokens or URLs with query strings
 - Gate passes: python3 -m unittest discover -s tests with PYTHONDONTWRITEBYTECODE=1; leave no tests/__pycache__/, no e2e/.auth/ or test-results/ in git; git status --short is empty after your commit. Never install a plugin even if a hook suggests one; never sign in; never print tokens or frontdoor URLs
+
+## Review
+
+Brain check: test-results/.last-run.json in the worktree reads status passed, failedTests []. The deploy is quoted as 60/60 components and Apex 150/150. The privacy grep of deploy-verify.md found no Ids, emails, URLs or deny-list hits. Accepted.
