@@ -64,22 +64,30 @@ signed in to it, and at least one Account with some contacts, deals and cases.
      --source-dir force-app/main/default/messageChannels \
      --source-dir force-app/main/default/flexipages \
      --source-dir force-app/main/default/applications \
-     --source-dir force-app/main/default/permissionsets
+     --source-dir force-app/main/default/permissionsets \
+     --source-dir force-app/main/default/permissionsetgroups
    ```
 
-2. Assign the two permission sets to yourself:
+2. **Give a user access.** Assign the group `Account_Brief_User` (it holds `Account_Brief_Data_Access`
+   and `Account_Brief_Agent_Access`) and, for the panel, Salesforce's standard Agentforce user
+   permission set `CopilotSalesforceUser`:
 
    ```sh
-   sf org assign permset -o <org-alias> -n Account_Brief_Data_Access -n Account_Brief_Agent_Access
+   sf org assign permset -o <org-alias> -n Account_Brief_User
    ```
+
+   `CopilotSalesforceUser` is the name `agent-review-2.md` cites; the org-migration run did not
+   confirm it, so check it exists in your org (Setup, Permission Sets) before assigning it. Not yet
+   proven: use by a non-admin user (FE-5 is parked until Ben creates the end user). Assigning only
+   one of the two custom sets can make every agent turn fail, so assign the group, not the sets.
 
 3. Open the org with `sf org open -o <org-alias>` and pick **Account Brief** in the App Launcher.
 4. Press **Cmd-K** on a Mac or **Ctrl-K** elsewhere. Type `/brief <account name>` and press Enter.
    Any other text is a question for the explorer, such as "How many open opportunities are there?".
 
 `Account_Brief_Agent_Access` names the agent. On an org where the `Account_Brief` agent does not
-exist yet, that set may not deploy: leave it out of steps 1 and 2 and add it once the agent is
-published. The panel needs only `Account_Brief_Data_Access`.
+exist yet, that set (and so the group) may not deploy: leave both out of steps 1 and 2 and add them
+once the agent is published. The panel needs only `Account_Brief_Data_Access`.
 
 The agent in the built-in Agentforce panel needs one more step: publish and activate the
 `Account_Brief` bundle. In `agent-probe`, a fresh Developer Edition org, main's bundle published
