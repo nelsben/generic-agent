@@ -3,8 +3,9 @@
  * The Account Brief panel in a real org, one journey per test. Each test loads the record page of
  * Edge Communications fresh inside the Account Brief app (see support/panel.js).
  *
- * Model calls per full run (briefs and questions): (3) 1, (4) 2, (5) 1, (6) 0, (7) 1-2, (8) 1-2,
- * so 6 to 8. Specs 7 and 8 ask one question only when no brief section line is drillable.
+ * Model calls per full run (briefs and questions): (3) 1, (4) 2, (5) 1, (6) 0, (7) 1, (8) 1-2,
+ * so 6 to 7. Spec 8 asks one question only when no brief section line is drillable; spec 7 fails
+ * instead.
  * Spec 5's second request and spec 6's send are '/brief' of a name that does not exist: the
  * resolver answers NOT_FOUND from SOQL alone, with no model call.
  */
@@ -26,15 +27,15 @@ function pageAnchor(page) {
 
 /**
  * Something to drill from, after a brief of the account: a section line that carries a record Id
- * (the panel's section drill). When no section line carries one, spec 7 records that as a soft
- * failure (a finding), and a result row of one question is used instead, so the drill view and
- * its breadcrumbs are still exercised. That fallback costs one model call.
+ * (the panel's section drill). Spec 7 requires one. Otherwise, when no section line carries one,
+ * a result row of one question is used instead, so the drill view is still reached. That
+ * fallback costs one model call.
  */
 async function drillOrigin(panel, { briefed = false, requireSectionDrill = true } = {}) {
     const brief = briefed ? panel.turns.last() : await panel.briefThisAccount();
     const line = await panel.firstDrillLine(brief);
     if (requireSectionDrill) {
-        expect.soft(line, 'a brief section line is drillable (it needs a record Id in the line)').not.toBeNull();
+        expect(line, 'a brief section line is drillable (it needs a record Id in the line)').not.toBeNull();
     }
     if (line) {
         return line;
@@ -81,8 +82,7 @@ test('2. Esc from the composer and from a button minimizes and returns focus; Ta
         await panel.open();
         await page.keyboard.press('Escape');
         await expect(panel.composer).toBeHidden();
-        // Soft: a failure here is reported and the remaining steps still run.
-        await expect.soft(anchor, 'focus returned to the element focused before the hotkey').toBeFocused();
+        await panel.expectFocusStays(anchor, 'focus returned to the element focused before the hotkey');
     });
 
     await test.step('Esc from a button in the panel', async () => {
@@ -92,7 +92,7 @@ test('2. Esc from the composer and from a button minimizes and returns focus; Ta
         await expect(panel.briefButton).toBeFocused();
         await page.keyboard.press('Escape');
         await expect(panel.composer).toBeHidden();
-        await expect.soft(anchor, 'focus returned to the element focused before the hotkey').toBeFocused();
+        await panel.expectFocusStays(anchor, 'focus returned to the element focused before the hotkey');
     });
 
     await test.step('Tab leaves the panel (no trap)', async () => {
@@ -116,8 +116,9 @@ test('3. a brief renders with its headline and collapsed accordions, announced b
     await expect(panel.spinner).toBeHidden();
 
     const turn = panel.turns.last();
-    // The summary card's heading; each accordion section header is an h2 as well.
-    const headline = turn.locator('article').getByRole('heading', { level: 2 });
+    // The summary card's heading, told apart from the accordion section headers by its test hook.
+    const headline = panel.headline(turn);
+    await expect(headline).toHaveCount(1);
     await expect(headline).toBeVisible();
     const headlineText = ((await headline.textContent()) || '').trim();
     expect(headlineText.length).toBeGreaterThan(0);

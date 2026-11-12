@@ -82,10 +82,12 @@ public with sharing class AccountBriefDealHistorySection implements AccountBrief
                 + ' — ' + (o.IsWon ? 'Won' : 'Lost')
                 + ' — ' + (o.Amount == null ? 'no amount' : AccountBriefSection.money(o.Amount))
                 + ' — closed ' + AccountBriefSection.fmtDate(o.CloseDate);
-            if (body.length() + 1 + line.length() > BODY_MAX - FOOTER_RESERVE) {
+            // The budget counts the line without its Id: what the rep reads and the model sees.
+            if (AccountBriefSection.withoutIds(body).length() + 1 + line.length() > BODY_MAX - FOOTER_RESERVE) {
                 break;
             }
-            body += '\n' + line;
+            // The Opportunity Id ends the line, for the panel's drill.
+            body += '\n' + AccountBriefSection.withId(line, o.Id);
             shown++;
         }
         if (shown < total) {

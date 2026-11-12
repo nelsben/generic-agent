@@ -38,6 +38,12 @@ const ACCOUNT_PREFIX = '001';
 // An 18-character record Id inside a line of text, e.g. an AMBIGUOUS candidate line.
 const ID_IN_LINE = /(^|[^A-Za-z0-9])([0-9][0-9A-Za-z]{17})(?![A-Za-z0-9])/;
 const NAME_FIELDS = ['Name', 'CaseNumber', 'Subject'];
+// After minimize resolves, the platform moves focus (utility header, bar button, body) for up to
+// about a second; the panel puts it back for this long, polling at FOCUS_GUARD_POLL_MS.
+const FOCUS_GUARD_MS = 2000;
+const FOCUS_GUARD_POLL_MS = 50;
+// Any of these from the user ends the guard: they have moved focus themselves.
+const USER_INPUT_EVENTS = ['keydown', 'mousedown', 'pointerdown', 'touchstart'];
 // The controller's fixed ERROR line; shown when a failure carries no handled text.
 const ERROR_TEXT = "I couldn't finish that right now. Try again in a minute.";
 
@@ -63,6 +69,12 @@ function cellText(value) {
 function idInLine(line) {
     const m = ID_IN_LINE.exec(line || '');
     return m ? m[2] : null;
+}
+
+/** A brief line as the rep reads it: the record Id and the ' — ' before it removed, indent kept. */
+function withoutId(line, id) {
+    const shown = line.replace(id, '').replace(/[\s—]+$/, '');
+    return shown.trim() ? shown : line;
 }
 
 function isMac() {
@@ -107,6 +119,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     _keyHandler;
     _subscription;
     _returnFocus = null;
+    _focusGuard = null;
     _drillOrigin = null;
     _focusAfterRender = null;
     _scrollAfterRender = null;
@@ -164,6 +177,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     }
 
     disconnectedCallback() {
+        this._stopFocusGuard();
         if (this._keyHandler) {
             document.removeEventListener('keydown', this._keyHandler);
             this._keyHandler = null;
@@ -232,6 +246,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     }
 
     async _openAndFocus() {
+        this._stopFocusGuard();
         // Record where focus was, unless it is already inside the panel.
         if (!this.template.activeElement) {
             const active = document.activeElement;
@@ -254,6 +269,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     }
 
     async _close() {
+        this._stopFocusGuard();
         const target = this._returnFocus;
         this._returnFocus = null;
         try {
@@ -265,12 +281,45 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
         }
         if (target && target.isConnected && typeof target.focus === 'function') {
             target.focus();
+            this._guardFocus(target);
             return;
         }
         const active = this.template.activeElement;
         if (active && active.blur) {
             active.blur();
         }
+    }
+
+    /**
+     * Keep focus on target while the platform finishes minimizing: it moves focus to the utility
+     * header, the bar button, then body, up to about a second after minimize resolves. Ends after
+     * FOCUS_GUARD_MS, when target leaves the page, or as soon as the user presses a key or a pointer.
+     */
+    _guardFocus(target) {
+        const stopOnInput = () => this._stopFocusGuard();
+        USER_INPUT_EVENTS.forEach((type) => document.addEventListener(type, stopOnInput, true));
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        const poll = setInterval(() => {
+            if (!target.isConnected) {
+                this._stopFocusGuard();
+            } else if (document.activeElement !== target) {
+                target.focus();
+            }
+        }, FOCUS_GUARD_POLL_MS);
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        const timeout = setTimeout(() => this._stopFocusGuard(), FOCUS_GUARD_MS);
+        this._focusGuard = { poll, timeout, stopOnInput };
+    }
+
+    _stopFocusGuard() {
+        const guard = this._focusGuard;
+        if (!guard) {
+            return;
+        }
+        this._focusGuard = null;
+        clearInterval(guard.poll);
+        clearTimeout(guard.timeout);
+        USER_INPUT_EVENTS.forEach((type) => document.removeEventListener(type, guard.stopOnInput, true));
     }
 
     _composer() {
@@ -576,8 +625,10 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
                 status: s.status,
                 badgeClass: BADGE_CLASS[s.status] || '',
                 lines: (s.body || '').split('\n').map((line, j) => {
+                    // A line that ends with a record Id drills to it; the Id stays in data-id, not the text.
                     const id = idInLine(line);
-                    return { key: 'l' + j, text: line === '' ? ' ' : line, drillId: id, isDrill: !!id, focusKey: key + '-' + sectionKey + '-l' + j };
+                    const text = id ? withoutId(line, id) : line;
+                    return { key: 'l' + j, text: text === '' ? ' ' : text, drillId: id, isDrill: !!id, focusKey: key + '-' + sectionKey + '-l' + j };
                 })
             };
         });

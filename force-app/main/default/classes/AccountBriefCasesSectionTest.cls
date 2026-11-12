@@ -43,9 +43,9 @@ private class AccountBriefCasesSectionTest {
         Assert.areEqual(7, s.total);
         Assert.areEqual(5, s.shown);
         Assert.isTrue(s.total > AccountBriefCasesSection.ROW_CAP);
-        Assert.isTrue(s.body.length() <= 1200);
+        Assert.isTrue(AccountBriefSection.withoutIds(s.body).length() <= 1200);
 
-        List<String> lines = s.body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual(7, lines.size());
         Assert.areEqual('7 open (2 high priority), 1 closed in last 90 days, oldest open 30 days', lines[0]);
         Assert.areEqual(line(high20, 'High', 20), lines[1]);
@@ -63,7 +63,7 @@ private class AccountBriefCasesSectionTest {
     static void subjectIsClippedToOneHundredCharacters() {
         Account a = mkAccount();
         Case c = mkCase(a, 'y'.repeat(150), 'High', 3);
-        List<String> lines = new AccountBriefCasesSection().build(a.Id).body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(new AccountBriefCasesSection().build(a.Id).body).split('\n');
         Assert.areEqual(2, lines.size());
         Assert.areEqual('1 open (1 high priority), 0 closed in last 90 days, oldest open 3 days', lines[0]);
         String num = [SELECT CaseNumber FROM Case WHERE Id = :c.Id].CaseNumber;

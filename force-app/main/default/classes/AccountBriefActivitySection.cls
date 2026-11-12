@@ -95,10 +95,11 @@ public with sharing class AccountBriefActivitySection implements AccountBriefSou
         lines.add('90d: ' + emails + ' emails, ' + calls + ' calls, ' + other + ' other; ' + overdue + ' open tasks overdue');
         for (Task t : recent) {
             String kind = !String.isBlank(t.TaskSubtype) ? t.TaskSubtype : (hasType && !String.isBlank((String) t.get('Type')) ? (String) t.get('Type') : 'Task');
-            lines.add('- ' + AccountBriefSection.fmtDate(t.ActivityDate)
+            // The Task Id ends the line, for the panel's drill.
+            lines.add(AccountBriefSection.withId('- ' + AccountBriefSection.fmtDate(t.ActivityDate)
                 + ' — ' + AccountBriefSection.clip(kind, 30)
                 + ' — ' + AccountBriefSection.clip(t.Subject, 120)
-                + ' — ' + (t.Who == null ? 'n/a' : AccountBriefSection.clip(t.Who.Name, 40)));
+                + ' — ' + (t.Who == null ? 'n/a' : AccountBriefSection.clip(t.Who.Name, 40)), t.Id));
         }
 
         s.status = AccountBriefSection.OK;

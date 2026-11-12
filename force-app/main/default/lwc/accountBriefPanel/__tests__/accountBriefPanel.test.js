@@ -556,6 +556,40 @@ describe('c-account-brief-panel', () => {
             expect(el.shadowRoot.activeElement).toBe($(el, '.abp-row-button'));
         });
 
+        it('a brief section line with a record Id drills through a button that does not show the Id', async () => {
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            getBrief.mockResolvedValueOnce(
+                briefResult({
+                    sections: [
+                        {
+                            key: 'open_deals',
+                            title: 'Open deals',
+                            status: 'OK',
+                            body: '1 open, $500 total pipeline, 0 overdue\n- Panel Deal — Prospecting — $500 — ' + DEAL,
+                            total: 1,
+                            shown: 1
+                        }
+                    ]
+                })
+            );
+            drill.mockResolvedValueOnce(recordDrill);
+            const el = await mount();
+            await ask(el, '/brief Acme');
+            await flush();
+
+            const lines = $$(el, '.abp-line-link');
+            expect(lines).toHaveLength(1);
+            expect(lines[0].dataset.id).toBe(DEAL);
+            expect(lines[0].textContent).toBe('- Panel Deal — Prospecting — $500');
+            expect(text(el)).not.toContain(DEAL);
+            expect(text(el)).toContain('1 open, $500 total pipeline, 0 overdue');
+
+            lines[0].click();
+            await flush();
+            expect(drill).toHaveBeenCalledWith({ recordId: DEAL, relatedObject: null });
+            expect($(el, '.abp-drill-heading').textContent).toBe('Panel Deal');
+        });
+
         it('View record navigates to the drilled record', async () => {
             explore.mockResolvedValueOnce(dealResult());
             drill.mockResolvedValueOnce(recordDrill);
@@ -584,6 +618,75 @@ describe('c-account-brief-panel', () => {
             await flush();
             expect(minimizeUtility).toHaveBeenCalledWith('u1');
             expect(document.activeElement).toBe(outside);
+        });
+
+        describe('after the platform moves focus late', () => {
+            // The real utility bar moves focus after minimize() resolves: to the utility header, then
+            // the bar button, then body, up to about 1 s later. These stand in for its elements.
+            function platformChrome() {
+                const header = document.createElement('button');
+                header.textContent = 'Minimize';
+                const bar = document.createElement('button');
+                bar.textContent = 'Account Brief';
+                document.body.append(header, bar);
+                return { header, bar };
+            }
+
+            async function openFrom(outside) {
+                const el = await mount();
+                outside.focus();
+                key(outside, { code: 'KeyK', key: 'k', ctrlKey: true });
+                await flush();
+                // Focus is inside the panel now (the composer stub cannot take it in jsdom).
+                outside.blur();
+                return el;
+            }
+
+            afterEach(() => {
+                jest.useRealTimers();
+            });
+
+            it('restores focus after the late steals and keeps it there', async () => {
+                const outside = document.createElement('input');
+                document.body.appendChild(outside);
+                const { header, bar } = platformChrome();
+                const el = await openFrom(outside);
+
+                jest.useFakeTimers();
+                minimizeUtility.mockImplementationOnce(() => {
+                    setTimeout(() => header.focus(), 100);
+                    setTimeout(() => bar.focus(), 400);
+                    setTimeout(() => document.activeElement.blur(), 900);
+                    return Promise.resolve(true);
+                });
+                key(composer(el), { key: 'Escape' });
+                await jest.advanceTimersByTimeAsync(1000);
+                expect(document.activeElement).toBe(outside);
+                await jest.advanceTimersByTimeAsync(4000);
+                expect(document.activeElement).toBe(outside);
+            });
+
+            it('stops restoring as soon as the user moves focus', async () => {
+                const outside = document.createElement('input');
+                const other = document.createElement('input');
+                document.body.append(outside, other);
+                const { header } = platformChrome();
+                const el = await openFrom(outside);
+
+                jest.useFakeTimers();
+                minimizeUtility.mockImplementationOnce(() => {
+                    setTimeout(() => header.focus(), 100);
+                    setTimeout(() => {
+                        // The user tabs on from where focus was restored.
+                        key(document.activeElement, { key: 'Tab' });
+                        other.focus();
+                    }, 300);
+                    return Promise.resolve(true);
+                });
+                key(composer(el), { key: 'Escape' });
+                await jest.advanceTimersByTimeAsync(5000);
+                expect(document.activeElement).toBe(other);
+            });
         });
 
         it('Esc from any control in the panel minimizes, and Tab is never trapped', async () => {
@@ -626,6 +729,27 @@ describe('c-account-brief-panel', () => {
             slow.resolve(briefResult());
             await flush();
             expect(live.textContent).toBe('Brief ready: Acme is healthy.');
+        });
+
+        it('exposes test hooks: a named scroll region, the spinner, the summary headline and the live region', async () => {
+            const slow = deferred();
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            getBrief.mockReturnValueOnce(slow.promise);
+            const el = await mount();
+            const body = $(el, '.abp-body');
+            expect(body.getAttribute('role')).toBe('region');
+            expect(body.getAttribute('aria-label')).toBe('Conversation');
+            expect($(el, '[data-testid="abp-live-region"]')).toBe($(el, '[aria-live="polite"]'));
+
+            await ask(el, '/brief Acme');
+            await flush();
+            expect($(el, '[data-testid="abp-spinner"] lightning-spinner')).not.toBeNull();
+            slow.resolve(briefResult());
+            await flush();
+            expect($(el, '[data-testid="abp-spinner"]')).toBeNull();
+            const headline = $(el, '[data-testid="abp-summary-headline"]');
+            expect(headline.textContent).toBe('Acme is healthy.');
+            expect($$(el, '[data-testid="abp-summary-headline"]')).toHaveLength(1);
         });
 
         it('scrolls the newest turn into view after an answer', async () => {

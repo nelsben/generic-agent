@@ -14,7 +14,11 @@ public with sharing class AccountBriefSection {
     @AuraEnabled public String title;
     /** One of OK, EMPTY, ERROR. */
     @AuraEnabled public String status;
-    /** Plain-text block. Never JSON, never null. EMPTY sections carry one human sentence. */
+    /**
+     * Plain-text block. Never JSON, never null. EMPTY sections carry one human sentence.
+     * A line that describes one record ends with ' — ' and its Id (withId), for the panel's drill;
+     * AccountBrief strips those Ids (withoutIds) before any text reaches a model prompt.
+     */
     @AuraEnabled public String body = '';
     /** Rows that matched. */
     @AuraEnabled public Integer total = 0;
@@ -52,6 +56,24 @@ public with sharing class AccountBriefSection {
             return t.substring(0, maxChars - 1) + '…';
         }
         return t;
+    }
+
+    /** What ends a line that describes one record: the separator, then the record's 18-character Id. */
+    @TestVisible private static final String ID_SEPARATOR = ' — ';
+    /** A record Id at the end of a line, with its separator. Multiline, so $ matches at each line end. */
+    private static final String LINE_ID = '(?m)' + ID_SEPARATOR + '[0-9][0-9A-Za-z]{17}$';
+
+    /**
+     * The line with the record's Id at its end, so the panel can drill it (the panel hides the Id).
+     * A null Id leaves the line as it is.
+     */
+    public static String withId(String line, Id recordId) {
+        return recordId == null ? line : line + ID_SEPARATOR + String.valueOf(recordId);
+    }
+
+    /** The text without the record Ids withId added: what a model prompt and every length budget see. */
+    public static String withoutIds(String text) {
+        return String.isEmpty(text) ? text : text.replaceAll(LINE_ID, '');
     }
 
     /** yyyy-MM-dd, or 'n/a' for a null date. */

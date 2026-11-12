@@ -139,7 +139,8 @@ public with sharing class AccountBriefContactsSection implements AccountBriefSou
             if (r.touches == 0) {
                 line += ' (quiet)';
             }
-            lines.add(line);
+            // The Contact Id ends the line, for the panel's drill.
+            lines.add(AccountBriefSection.withId(line, r.c.Id));
         }
 
         s.status = AccountBriefSection.OK;

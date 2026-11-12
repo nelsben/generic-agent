@@ -58,8 +58,8 @@ public with sharing class AccountBriefCallsSection implements AccountBriefSource
         String nextLine = null;
         if (!upcoming.isEmpty()) {
             Event nx = upcoming[0];
-            nextLine = 'Next: ' + AccountBriefSection.fmtDate(nx.StartDateTime.date())
-                + ' — ' + AccountBriefSection.clip(nx.Subject, 100);
+            nextLine = AccountBriefSection.withId('Next: ' + AccountBriefSection.fmtDate(nx.StartDateTime.date())
+                + ' — ' + AccountBriefSection.clip(nx.Subject, 100), nx.Id);
         }
 
         List<String> blocks = new List<String>();
@@ -72,18 +72,20 @@ public with sharing class AccountBriefCallsSection implements AccountBriefSource
                 ORDER BY StartDateTime DESC, Id DESC
                 LIMIT :CAP
             ];
-            // Keep room for the Next line, then add whole blocks while they fit.
-            Integer budget = MAX_BODY - (nextLine == null ? 0 : nextLine.length() + 1);
+            // Keep room for the Next line, then add whole blocks while they fit. The budget counts the
+            // text without record Ids: what the rep reads and the model sees.
+            Integer budget = MAX_BODY - (nextLine == null ? 0 : AccountBriefSection.withoutIds(nextLine).length() + 1);
             Integer used = 0;
             for (Event ev : past) {
-                String block = '- ' + AccountBriefSection.fmtDate(ev.StartDateTime.date())
+                // The Event Id ends the event's first line, for the panel's drill; the notes line carries none.
+                String block = AccountBriefSection.withId('- ' + AccountBriefSection.fmtDate(ev.StartDateTime.date())
                     + ' — ' + AccountBriefSection.clip(ev.Subject, 100)
                     + ' — ' + (ev.DurationInMinutes == null ? 'n/a' : String.valueOf(ev.DurationInMinutes)) + ' min'
-                    + ' — with ' + (ev.Who == null ? 'n/a' : AccountBriefSection.clip(ev.Who.Name, 40));
+                    + ' — with ' + (ev.Who == null ? 'n/a' : AccountBriefSection.clip(ev.Who.Name, 40)), ev.Id);
                 if (!String.isBlank(ev.Description)) {
                     block += '\n notes: ' + AccountBriefSection.clip(ev.Description, 300);
                 }
-                Integer cost = block.length() + (blocks.isEmpty() ? 0 : 1);
+                Integer cost = AccountBriefSection.withoutIds(block).length() + (blocks.isEmpty() ? 0 : 1);
                 if (used + cost > budget) {
                     break;
                 }

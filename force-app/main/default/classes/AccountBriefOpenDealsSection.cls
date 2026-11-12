@@ -79,7 +79,7 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
         Map<Id, List<OpportunityContactRole>> rolesByOpp = new Map<Id, List<OpportunityContactRole>>();
         if (!oppIds.isEmpty()) {
             for (OpportunityContactRole r : [
-                SELECT OpportunityId, Role, IsPrimary, Contact.Name
+                SELECT OpportunityId, ContactId, Role, IsPrimary, Contact.Name
                 FROM OpportunityContactRole
                 WHERE OpportunityId IN :oppIds
                 WITH USER_MODE
@@ -98,12 +98,16 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
 
         String body = total + ' open, ' + AccountBriefSection.money(pipeline) + ' total pipeline, ' + overdue + ' overdue';
         Integer shown = 0;
+        // The budget counts the text without record Ids: what the rep reads and the model sees.
+        Integer used = body.length();
         for (Opportunity o : rows) {
             String block = dealBlock(o, asOfDate, rolesByOpp.get(o.Id));
-            if (body.length() + 1 + block.length() > BODY_MAX - FOOTER_RESERVE) {
+            Integer cost = 1 + AccountBriefSection.withoutIds(block).length();
+            if (used + cost > BODY_MAX - FOOTER_RESERVE) {
                 break;
             }
             body += '\n' + block;
+            used += cost;
             shown++;
         }
         if (shown < total) {
@@ -117,21 +121,24 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
         return s;
     }
 
-    /** One deal line, then up to CONTACT_CAP indented contact lines, primary first. */
+    /**
+     * One deal line, then up to CONTACT_CAP indented contact lines, primary first. The deal line
+     * ends with the Opportunity Id and each contact line with the Contact Id, for the panel's drill.
+     */
     private static String dealBlock(Opportunity o, Date asOfDate, List<OpportunityContactRole> roles) {
         Boolean overdueDeal = o.CloseDate != null && o.CloseDate < asOfDate;
         String ownerName = o.Owner == null ? null : o.Owner.Name;
-        String block = '- ' + AccountBriefSection.clip(o.Name, 100)
+        String block = AccountBriefSection.withId('- ' + AccountBriefSection.clip(o.Name, 100)
             + ' — ' + AccountBriefSection.clip(o.StageName, 60)
             + ' — ' + (o.Amount == null ? 'no amount' : AccountBriefSection.money(o.Amount))
             + ' — closes ' + AccountBriefSection.fmtDate(o.CloseDate)
             + (overdueDeal ? ' (OVERDUE)' : '')
-            + ' — owner ' + AccountBriefSection.clip(ownerName, 60);
+            + ' — owner ' + AccountBriefSection.clip(ownerName, 60), o.Id);
         if (roles != null) {
             for (OpportunityContactRole r : roles) {
                 String contactName = r.Contact == null ? null : r.Contact.Name;
                 String role = String.isBlank(r.Role) ? 'no role' : AccountBriefSection.clip(r.Role, 60);
-                block += '\n • ' + AccountBriefSection.clip(contactName, 60) + ' (' + role + ')';
+                block += '\n' + AccountBriefSection.withId(' • ' + AccountBriefSection.clip(contactName, 60) + ' (' + role + ')', r.ContactId);
             }
         }
         return block;

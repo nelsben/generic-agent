@@ -40,9 +40,9 @@ private class AccountBriefOpenDealsSectionTest {
         Assert.areEqual(7, s.total);
         Assert.areEqual(5, s.shown);
         Assert.isTrue(s.total > AccountBriefOpenDealsSection.ROW_CAP);
-        Assert.isTrue(s.body.length() <= 1200);
+        Assert.isTrue(AccountBriefSection.withoutIds(s.body).length() <= 1200);
 
-        List<String> lines = s.body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual(7, lines.size());
         Assert.areEqual('7 open, $28,000 total pipeline, 1 overdue', lines[0]);
         Assert.areEqual(
@@ -77,7 +77,7 @@ private class AccountBriefOpenDealsSectionTest {
 
         AccountBriefSection s = new AccountBriefOpenDealsSection().build(a.Id);
         Assert.areEqual(AccountBriefSection.OK, s.status);
-        List<String> lines = s.body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual(4, lines.size());
         Assert.areEqual('1 open, $0 total pipeline, 0 overdue', lines[0]);
         Assert.areEqual(
