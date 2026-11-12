@@ -1,0 +1,27 @@
+---
+id: OPS-42
+title: FR2: pattern 04 as a workbook chapter — "API first" for prompts told plainly (why the Models API instead of prompt templates, the trade-off, when a template still fits), a restyled numbered diagram, limits linked to cards, and a builder's guide to changing context and tuning prompts
+domain: ops
+tier: frontier
+tier_reason: a chapter that argues a design choice to business readers and teaches builders a new way of working, from Ben's own notes
+status: blocked
+blocked_by: [OPS-38, BE-33]
+fixes: []
+scope: [docs/patterns/04-model-provider-seam.md, docs/guides/models-api-prompts.md, tests/test_pattern_04.py]
+forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
+red_test: tests/test_pattern_04.py fails on main (pattern 04 has no business problem on prompt templates, no autonumber, and the guide does not exist) and passes after
+gate: test
+budget: 2-attempts
+spend: 8
+---
+## Why
+
+Feature revision 2 (FR2), Ben's chapter notes on pattern 04. Prompt templates "require a lot of overhead"; the Models API lets a team "accelerate very fast and not be hung up on prompt template details". It "doesn't offer a UI, which is a kind of a trade-off". An "API-first approach of models API makes the most sense, especially since it's easier to vibe out" with Claude or another AI app, while teams that need a template can still use one. He wants that conversation on the page, a better numbered diagram, limits explored with cards, and a guide on "how to update context for your prompt call out", "what it means to use the models API, how to use it, how to tune your prompt", "since we're taking away prompt templates". Covers ledger rows F67 to F73 in docs/plans/feature-revision-2.md.
+
+## Done when
+
+- Read first: docs/plans/feature-revision-2.md (rows F67 to F73 and the decision on prompt templates), docs/plans/fr2-design.md ('Operating principles', 'Pattern page shape', 'Diagrams'), docs/patterns/01-route-gather-reduce.md as OPS-38 left it (match its voice and its theme block from docs/patterns/_diagram-theme.md), docs/research/fr2-model-door.md (BE-33), docs/research/fr2-summary-accuracy.md (BE-29) and the AgentLlm classes and prompt files as BE-33 left them
+- **The chapter**, following the page shape. **Header:** the pattern's name and one line: every model call through one door, prompts as files a team can change in minutes. **The business problem:** prompt templates add a build layer (the builder UI, versions, merge fields, activation) and what the builder sees is not the whole request that reaches the model; teams slow down. Use BE-33's research for exactly what the trust layer and template resolution do, so nothing is overstated. **The decision:** API first, as fr2-design.md principle 3 states it, with the trade-off said plainly (no point-and-click UI; prompts live in files and code) and **when a template still fits** (an admin team that edits prompts without deploys, a governance rule, an existing template library), with the per-prompt switch from BE-33 as the way to use one. **The architecture in steps:** name a prompt, load its settings, fill it, send it, cap and check, return
+- **How it works:** the diagram restyled per fr2-design.md 'Diagrams' (autonumber; phase blocks for prepare, call and return; one accent colour for the model call; both sources shown, the static resource path and the opt-in template path). The numbered steps under it use the same numbers. Every diagram renders on GitHub; check each with gh api markdown (read-only) and say so in the hand-back
+- **The builder's guide**, docs/guides/models-api-prompts.md, linked from the chapter's Adopt it: what the Models API is and how a call is made here; where a prompt's context comes from (the gather step) and how to add or change it (a field, a section, a cap) with a worked example; how to tune a prompt (the system and user parts, the tone line, rules, examples, length, the model) and try it in a minute with scripts/prompt-try.apex and the prompt trace; how to check accuracy (BE-29's check); what each call costs in usage; how to switch one prompt to a template and back; and how to work on prompts with Claude or another AI app (paste the file, the trace and a failing answer, ask for a change, try it)
+- **Why you can trust it** and **how it scales:** each claim links to a test, a review or a recorded run. **Limits and open items:** each linked to its card (BE-33, BE-29) or "no card yet", including what BE-33 leaves open. Uses Customer Summary names throughout. tests/test_pattern_04.py checks the chapter's parts in order, that every mermaid sequence diagram starts with autonumber, that the decision and "when a template still fits" are present, and that the guide exists with its sections and is linked. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit

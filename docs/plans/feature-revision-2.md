@@ -132,6 +132,20 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
 | F65 | A further note, on the panel's answers: "whenever we display text inside of any of our services, it's richly formatted and we have a card architecture that we can display", and a spike on "what does our card architecture look like for richly formatted data that's easy to read and understand and feels best in class?" | [fr2-design.md](fr2-design.md#operating-principles) (principle 2); `FE-18` (card architecture spike: catalog, one typed contract, each surface, proposed build cards); `FE-12` and `BE-28` build on its contract; `OPS-40` tells it |
 | F66 | For the hotkey panel and every surface: "really articulate the why behind us bringing in a custom architecture and view to all of these panels and going custom instead of standard Salesforce and Agentforce". The standard launcher "doesn't scale", "there's soft limits for how many characters", and "teams decelerate when trying to incorporate lightning cards into the responses"; "a note that we need to make sure we communicate to our teams", with "the architecture of the why", drawing on the limits section of the reference guide he sent | Where it lives: decision below. `BE-32` (measures the character ceiling and checks the standard launcher and cards against public docs); `OPS-41` (chapter 00, "Why custom", with the architecture of the why); `OPS-36` links it from the top of the README and from ARCHITECTURE.md; `OPS-40` and the other surface pages link it |
 
+### Chapter notes: pattern 04, model provider seam
+
+Ben's notes on [04-model-provider-seam.md](../patterns/04-model-provider-seam.md), 2026-11-12.
+
+| # | Feedback | Status |
+|---|----------|--------|
+| F67 | Why the Models API: "prompt templates require a lot of overhead. We want to be able to accelerate very fast and not be hung up on prompt template details, especially since they don't represent the entire context of the request that gets sent to Salesforce, because of things like the trust layer" | `OPS-42` (the business problem); `BE-33` settles from public docs exactly what the trust layer and template resolution do to each path, so the page states it precisely |
+| F68 | "The models API represents the direct call out to the LLM provider via Salesforce, but doesn't offer a UI, which is a kind of a trade-off" | `OPS-42` (the trade-off, said plainly) |
+| F69 | "maybe we take two approaches to our package. One where we have a commented out section where our Apex code passes in a prompt template, and another one where it doesn't ... having flexibility to use prompt templates depending on the context and the team could be important" | Decision below: one tested switch per prompt, not commented-out code. `BE-33` (per-prompt settings with a prompt template source); `OPS-42` ("when a template still fits") |
+| F70 | "going with an API-first approach of models API makes the most sense, especially since it's easier to vibe out. And accelerate on innovation with Claude or another AI application. Prompt templates introduce just another layer of complexity that may not need to be there" | [fr2-design.md](fr2-design.md#operating-principles) (principle 3); `OPS-42` |
+| F71 | "we need auto number, we need a better design that looks good for the how it works, sequence diagram" | `OPS-42`; rule in [fr2-design.md](fr2-design.md#diagrams) |
+| F72 | "limits and open items should also be explored in a little bit more detail, and cards cut" | `BE-33` (N12: the model per prompt in settings, not a constant; one provider for the whole org; the request's own maximum-token setting where the API takes one; callout time limits; the prompt template path as the second provider; a provider outside Salesforce, researched only); `BE-29` (N8: the cut marker); usage per call goes in `OPS-42`'s guide from `BE-33`'s research |
+| F73 | "how to update context for your prompt call out and like what it means to use the models API, how to use it, how to tune your prompt that gets sent to the models API, and all of those things, since we're taking away prompt templates" | `OPS-42` (a builder's guide, docs/guides/models-api-prompts.md); `BE-33` (the try-a-prompt script and the prompt trace it teaches) |
+
 ## Decisions the brain made (Ben may overrule)
 
 - **Default agent name:** "Customer Summary". Internal API names become `Customer_Summary` / `CustomerSummary` /
@@ -155,6 +169,10 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
   standard chat?"), ARCHITECTURE.md links it, and each surface page (03, the rail, the embedded surface) links it from
   its business problem. Its numbers come from `BE-32`'s measurements and public docs, not from the reference guide,
   which is never named.
+- **Prompt templates are a switch, not commented-out code** (F69). Each prompt has a settings record; its source is
+  the prompt file (the default, through the Models API) or a named prompt template. Commented-out code is never
+  compiled or tested and drifts from the code around it; a switch is tested both ways and a team flips it without a
+  code change. The chapter shows the switch where Ben imagined the commented section.
 - **OPS-28** (README run in a new org) waits for the FR2 README pass, so it tests the README people will use.
 - **If `BE-21` says NO-GO** (labels only), API names stay `Account_Brief` / `AccountBrief` / `accountBrief`. About a
   dozen later cards name the new API names in their scope (the panel folder, the session object, the permission sets,
@@ -186,9 +204,9 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
    standard-chat measurements `BE-32`. After `OPS-29`, the
    card architecture spike `FE-18` and the panel discovery `FE-17` (docs only).
 3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
-4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`, `BE-30`.
+4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`, `BE-30`, then `BE-33` (after `BE-29`).
 5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one
    publish) after `BE-27`.
-6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03),
+6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04),
    `OPS-35`, `OPS-36`, then OPS-28.
 7. Parked: `OPS-33`, `OPS-34`.

@@ -25,6 +25,9 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
 2. **Every answer is richly formatted and shown in cards.** Wherever the product shows text (the compact window, the
    rail, Agentforce's own panel, an MCP client), it is formatted for reading, not dumped as plain text, and structured
    data comes as a card from one typed card contract that every surface reads. `FE-18` designs the contract (F65).
+3. **API first for prompts.** Every model call goes through the Models API from Apex, with prompts kept as files a
+   team can read, change, deploy and try in minutes, alone or with an AI coding assistant. A prompt template is an
+   opt-in per prompt for teams that need one, never a required layer (F67 to F70).
 
 ## Surfaces
 
