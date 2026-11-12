@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Gate `org`: check-only deploy of force-app to the target org, running only our own Apex tests.
+# Gate `org`: check-only deploy of force-app (except aiAuthoringBundles) to the target org, running only
+# our own Apex tests. sf's stderr is left on the terminal.
 # With *Test.cls classes it uses `deploy validate` (RunSpecifiedTests). With none, sf rejects
 # NoTestRun for validate, so it uses `deploy start --dry-run` (still check-only, never saves).
 # Never deploys for real and never writes to the org.
@@ -23,6 +24,21 @@ if [ -z "$other_files" ]; then
   exit 0
 fi
 
+# The routine check-only deploy leaves out aiAuthoringBundles: the agent goes through
+# scripts/agent-check.sh (local compile + sf agent validate) and the preview-then-publish lifecycle.
+# Every other metadata folder (force-app/<package>/<dir>/<type>) that holds a file is a --source-dir.
+source_args=()
+while IFS= read -r dir; do
+  [ "$(basename "$dir")" = "aiAuthoringBundles" ] && continue
+  if [ -n "$(find "$dir" -type f ! -name .gitkeep)" ]; then
+    source_args+=(--source-dir "$dir")
+  fi
+done < <(find "$FORCE_APP_DIR" -mindepth 3 -maxdepth 3 -type d | sort)
+if [ "${#source_args[@]}" -eq 0 ]; then
+  echo "validate-org: skipped (no metadata in force-app outside aiAuthoringBundles)"
+  exit 0
+fi
+
 # Only our own Apex test classes gate the deploy: files named *Test.cls.
 test_args=()
 test_count=0
@@ -36,11 +52,11 @@ trap 'rm -f "$out"' EXIT
 
 sf_rc=0
 if [ "$test_count" -gt 0 ]; then
-  sf project deploy validate --source-dir "$FORCE_APP_DIR" --target-org "$TARGET_ORG" \
-    --wait 30 --json --test-level RunSpecifiedTests "${test_args[@]}" > "$out" 2>/dev/null || sf_rc=$?
+  sf project deploy validate "${source_args[@]}" --target-org "$TARGET_ORG" \
+    --wait 30 --json --test-level RunSpecifiedTests "${test_args[@]}" > "$out" || sf_rc=$?
 else
-  sf project deploy start --dry-run --source-dir "$FORCE_APP_DIR" --target-org "$TARGET_ORG" \
-    --wait 30 --json --test-level NoTestRun > "$out" 2>/dev/null || sf_rc=$?
+  sf project deploy start --dry-run "${source_args[@]}" --target-org "$TARGET_ORG" \
+    --wait 30 --json --test-level NoTestRun > "$out" || sf_rc=$?
 fi
 
 python3 - "$out" "$sf_rc" <<'PY'
