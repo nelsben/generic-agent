@@ -22,6 +22,9 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
    "who on their side have we not called?") is answered by the explorer from the same context, on any object the user
    can read, in any combination. Nobody builds a flow or an action to answer a follow-up, and context is not passed
    back by hand (F54, F55).
+2. **Every answer is richly formatted and shown in cards.** Wherever the product shows text (the compact window, the
+   rail, Agentforce's own panel, an MCP client), it is formatted for reading, not dumped as plain text, and structured
+   data comes as a card from one typed card contract that every surface reads. `FE-18` designs the contract (F65).
 
 ## Surfaces
 
@@ -52,7 +55,7 @@ This pattern is taken from a reference app Ben pointed to. Its name stays out of
   The words are the fixed plain-English failure text, never a stack trace.
 - **Cards inline:** summary sections, explorer tables ("Showing 50 of N rows"), a collapsible query trail, follow-up
   chips, action drafts and action results all render inside the agent's turn, 12 px below its text.
-- **Rich text:** parse answers into runs and render `<strong>`, `<em>` and `<span>`. Never use `lwc:inner-html` for
+- **Rich text:** the card contract from `FE-18` wins where it differs from this line. Parse answers into runs and render `<strong>`, `<em>` and `<span>`. Never use `lwc:inner-html` for
   answers; in the reference app it rendered every answer empty on record pages.
 - **Empty state:** a headline that names the page context ("Ask Customer Summary about <Account>"), one line on where
   answers come from, and full-width suggestion buttons (left aligned, hairline border, 6 px radius).
