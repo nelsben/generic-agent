@@ -4,6 +4,11 @@
  * Line 1 counts them by TaskSubtype (Email, Call, everything else) plus how many of them are
  * open and past due; then the 5 most recent, newest first. Counts come from aggregate SOQL.
  * Read-only: no DML. Runs with sharing, deterministic Apex, no LLM, plain text only.
+ * Every Task query runs in USER_MODE, like the other sections: the user's sharing, object and field
+ * access all apply, so the brief and the model prompt never show a Task field the user can't read.
+ * System mode is not needed here: a Standard User can read every Task field queried, and the
+ * optional Type field is selected only when the user can read it. A user missing read access to
+ * any other queried field gets an ERROR section (fail closed) rather than a brief built around it.
  * build() never throws: any failure comes back as an ERROR section.
  */
 public with sharing class AccountBriefActivitySection implements AccountBriefSource {
@@ -24,7 +29,7 @@ public with sharing class AccountBriefActivitySection implements AccountBriefSou
         try {
             return buildInternal(accountId);
         } catch (Exception e) {
-                       AccountBriefSection err = new AccountBriefSection();
+            AccountBriefSection err = new AccountBriefSection();
             err.key = KEY;
             err.title = TITLE;
             err.status = AccountBriefSection.ERROR;
@@ -51,6 +56,7 @@ public with sharing class AccountBriefActivitySection implements AccountBriefSou
             SELECT TaskSubtype st, COUNT(Id) cnt
             FROM Task
             WHERE AccountId = :accountId AND ActivityDate >= :since AND ActivityDate <= :today
+            WITH USER_MODE
             GROUP BY TaskSubtype
         ]) {
             Integer n = Integer.valueOf(ar.get('cnt'));
@@ -74,16 +80,20 @@ public with sharing class AccountBriefActivitySection implements AccountBriefSou
             SELECT COUNT()
             FROM Task
             WHERE AccountId = :accountId AND IsClosed = false AND ActivityDate >= :since AND ActivityDate < :today
+            WITH USER_MODE
         ];
-        // Task.Type is not present in every org, so it is only selected when the describe has it.
-        Boolean hasType = Schema.SObjectType.Task.fields.getMap().containsKey('type');
+        // Task.Type is not present in every org, and not every user can read it, so it is only selected
+        // when the describe has it and the user can read it. Under USER_MODE an unreadable field would
+        // fail the whole query.
+        Schema.SObjectField typeField = Schema.SObjectType.Task.fields.getMap().get('type');
+        Boolean hasType = typeField != null && typeField.getDescribe().isAccessible();
         String soql = 'SELECT Id, ActivityDate, TaskSubtype, ' + (hasType ? 'Type, ' : '') + 'Subject, Who.Name '
             + 'FROM Task WHERE AccountId = :accountId AND ActivityDate >= :since AND ActivityDate <= :today '
             + 'ORDER BY ActivityDate DESC, CreatedDate DESC, Id DESC LIMIT ' + CAP;
         List<Task> recent = (List<Task>) Database.queryWithBinds(
             soql,
             new Map<String, Object>{ 'accountId' => accountId, 'since' => since, 'today' => today },
-            AccessLevel.SYSTEM_MODE
+            AccessLevel.USER_MODE
         );
 
         List<String> lines = new List<String>();

@@ -46,6 +46,43 @@ private class AccountBriefResolverTest {
     }
 
     @IsTest
+    static void manyPastedIdsUseOneQuery() {
+        Account target = mk(token() + ' Bulk Target', 'Denver');
+        insert target;
+        // 150 well-formed Account Ids that match no record, then the visible one. The old per-Id loop
+        // would need 151 queries and hit the 100-query limit.
+        List<String> parts = new List<String>();
+        for (Integer i = 1; i <= 150; i++) {
+            parts.add('001' + String.valueOf(i).leftPad(12, '0'));
+        }
+        parts.add(String.valueOf(target.Id));
+
+        Test.startTest();
+        Integer before = Limits.getQueries();
+        AccountBriefResolver.Response r = AccountBriefResolver.resolve(String.join(parts, ' '), null);
+        Integer used = Limits.getQueries() - before;
+        Test.stopTest();
+
+        Assert.areEqual('RESOLVED', r.status, r.message);
+        Assert.areEqual(String.valueOf(target.Id), r.accountId);
+        Assert.areEqual(1, used, 'all pasted Ids are looked up in one query');
+    }
+
+    @IsTest
+    static void firstVisiblePastedIdInTextOrderWins() {
+        String t = token();
+        Account a = mk(t + ' Alpha', null);
+        Account b = mk(t + ' Beta', null);
+        insert new List<Account>{ a, b };
+        String text = '0010000000000Zz or ' + String.valueOf(b.Id) + ' or ' + String.valueOf(a.Id);
+
+        AccountBriefResolver.Response r = AccountBriefResolver.resolve(text, null);
+
+        Assert.areEqual('RESOLVED', r.status, r.message);
+        Assert.areEqual(String.valueOf(b.Id), r.accountId, 'the first visible Id in the text wins');
+    }
+
+    @IsTest
     static void exactNameBeatsPartialMatches() {
         String t = token();
         insert new List<Account>{ mk(t + ' Clinic', 'A'), mk(t + ' Clinic East', 'B'), mk(t + ' Clinic West', 'C') };

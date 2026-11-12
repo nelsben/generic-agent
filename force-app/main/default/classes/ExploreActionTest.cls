@@ -42,6 +42,21 @@ private class ExploreActionTest {
     }
 
     @IsTest
+    static void turnCapRelaysTheResultsWithANote() {
+        Account a = new Account(Name = 'Action Cap Acme');
+        insert a;
+        insert new Opportunity(AccountId = a.Id, Name = 'Cap Deal', StageName = 'Prospecting', Amount = 900, CloseDate = Date.today());
+        String q = '{"action":"query","plan":{"object":"Opportunity","fields":["Name","Amount"]}}';
+        script(new List<String>{ q, q, q, q, q });
+
+        List<ExploreAction.Response> out = ExploreAction.explore(new List<ExploreAction.Request>{ request('Keep looking', null) });
+
+        Assert.areEqual('OK', out[0].status, out[0].answer);
+        Assert.isTrue(out[0].answer.contains('ran out of steps'), out[0].answer);
+        Assert.isTrue(out[0].answer.contains('\n\nName | Amount\nCap Deal | 900'), out[0].answer);
+    }
+
+    @IsTest
     static void modelFailureRelaysTheErrorText() {
         script(new List<String>());
         List<ExploreAction.Response> out = ExploreAction.explore(new List<ExploreAction.Request>{ request('Anything?', null) });

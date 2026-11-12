@@ -63,6 +63,49 @@ private class ExploreQueryTest {
     }
 
     @IsTest
+    static void aggregateOverTheRowCapIsRefusedAfterACappedCount() {
+        ExploreQuery.rowCap = 2;
+        ExplorePlan plan = ExplorePlan.fromJson('{"object":"Opportunity","aggregates":[{"fn":"SUM","field":"Amount"}]}');
+
+        Test.startTest();
+        try {
+            ExploreQuery.run(plan);
+            Assert.fail('expected RowCapException: 4 opportunities, cap 2');
+        } catch (ExploreQuery.RowCapException e) {
+            Assert.isTrue(e.getMessage().contains('more than 2 rows'), e.getMessage());
+        }
+        Integer rows = Limits.getQueryRows();
+        Test.stopTest();
+
+        Assert.areEqual(1, rows, 'only the capped pre-count ran, and a COUNT() reads one query row');
+    }
+
+    @IsTest
+    static void groupedAggregateOverTheRowCapIsRefused() {
+        ExploreQuery.rowCap = 3;
+        try {
+            run('{"object":"Opportunity","groupBy":["StageName"],"aggregates":[{"fn":"COUNT"}]}');
+            Assert.fail('expected RowCapException: 4 opportunities, cap 3');
+        } catch (ExploreQuery.RowCapException e) {
+            Assert.isTrue(e.getMessage().contains('more than 3 rows'), e.getMessage());
+        }
+    }
+
+    @IsTest
+    static void aggregateWithinTheRowCapRuns() {
+        ExploreQuery.rowCap = 3;
+
+        Test.startTest();
+        ExploreQuery.ResultSet rs = run('{"object":"Opportunity","aggregates":[{"fn":"SUM","field":"Amount"}],'
+            + '"filters":[{"field":"Account.Name","op":"=","value":"Query Acme"}]}');
+        Integer rows = Limits.getQueryRows();
+        Test.stopTest();
+
+        Assert.areEqual(6000, ((Decimal) rs.rows[0].get('SUM(Amount)')).intValue());
+        Assert.areEqual(4, rows, 'pre-count (1 row) plus the aggregate (one row per record aggregated)');
+    }
+
+    @IsTest
     static void aggregateWithGroupBy() {
         ExploreQuery.ResultSet rs = run('{"object":"Opportunity","fields":["StageName"],"groupBy":["stagename"],'
             + '"aggregates":[{"fn":"COUNT","field":"Id"},{"fn":"SUM","field":"Amount"}],"orderBy":{"field":"sum(amount)","dir":"desc"}}');

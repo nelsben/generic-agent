@@ -8,6 +8,10 @@
  * 'INVALID: <reason>' so the model corrects itself. Caps: MAX_TURNS model calls and MAX_QUERIES
  * queries per question; the prompt tells the model to answer once queries_left is 0. The model sees
  * PREVIEW_ROWS rows of each result plus the total. All wording for the model lives in the prompt file.
+ * An aggregate over more than the ExploreQuery row cap is refused and fed back as INVALID too.
+ * When the turns run out with result sets in hand, they are kept: the status is OK (EMPTY when no
+ * set has rows) and the answer is TURN_CAP_TEXT, so the caller still shows the last result. Turns
+ * that run out with nothing read, and any model failure, are ERROR.
  *
  * drill() skips the model: the record's catalog fields, or its child rows in one catalog object with
  * a lookup to it, resolved by describe.
@@ -21,6 +25,8 @@ public with sharing class DataExplorer {
 
     @TestVisible private static final String ERROR_TEXT = 'I couldn\'t finish that right now. Try again in a minute.';
     @TestVisible private static final String NO_QUESTION_TEXT = 'Ask a question about your data.';
+    @TestVisible private static final String TURN_CAP_TEXT =
+        'I ran out of steps before I could write a full answer. Here is the last result I found; ask a narrower question for more.';
     @TestVisible private static final Integer MAX_TURNS = 5;
     @TestVisible private static final Integer MAX_QUERIES = 4;
     @TestVisible private static final Integer PREVIEW_ROWS = 20;
@@ -86,10 +92,15 @@ public with sharing class DataExplorer {
                 run.turns.add('[' + turn + '] reply: ' + clip(reply.replaceAll('\\s+', ' '), REPLY_ECHO_CHARS)
                     + '\n[' + turn + '] ' + outcome);
             }
+            // The turns ran out without an answer. Keep what was read rather than throw it away.
+            if (!run.result.resultSets.isEmpty()) {
+                answer(run.result, TURN_CAP_TEXT, null);
+                return run.result;
+            }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'DataExplorer.explore failed: ' + e.getMessage());
         }
-        // A model failure, or turns ran out without an answer.
+        // A model failure, or turns ran out with nothing read.
         run.result.status = ERROR;
         run.result.answer = ERROR_TEXT;
         run.result.followups.clear();
@@ -132,6 +143,8 @@ public with sharing class DataExplorer {
         } catch (QueryException e) {
             return 'INVALID: ' + e.getMessage();
         } catch (NoAccessException e) {
+            return 'INVALID: ' + e.getMessage();
+        } catch (ExploreQuery.RowCapException e) {
             return 'INVALID: ' + e.getMessage();
         }
         run.result.resultSets.add(rs);

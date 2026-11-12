@@ -96,6 +96,100 @@ private class AccountBriefActivitySectionTest {
         Assert.areEqual(0, s.shown);
     }
 
+    /** Answers every model call with a fixed text and records the prompts; never reaches a model. */
+    private class Stub implements AgentLlm.Provider {
+        List<String> prompts = new List<String>();
+        public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
+            prompts.add(userPrompt);
+            return 'Brief text.';
+        }
+    }
+
+    private static User newUser(String profileName, String alias) {
+        Profile p = [SELECT Id FROM Profile WHERE Name = :profileName LIMIT 1];
+        String uniq = alias + String.valueOf(Math.abs(Crypto.getRandomInteger()));
+        return new User(
+            Alias = alias,
+            Email = uniq + '@example.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'Activity ' + alias,
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            ProfileId = p.Id,
+            TimeZoneSidKey = 'America/New_York',
+            Username = uniq + '@example.com.activitytest'
+        );
+    }
+
+    /**
+     * A Minimum Access user who can read Accounts and Task.ActivityDate but has no read access to
+     * Task.WhoId. Setup DML runs as the test user so it does not mix with the record DML.
+     */
+    private static User restrictedUser() {
+        User u = newUser('Minimum Access - Salesforce', 'actmin');
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert u;
+            PermissionSet ps = new PermissionSet(Name = 'Zqx_Activity_Restricted', Label = 'Zqx Activity Restricted');
+            insert ps;
+            insert new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true);
+            insert new FieldPermissions(ParentId = ps.Id, SobjectType = 'Task', Field = 'Task.ActivityDate', PermissionsRead = true);
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        }
+        return u;
+    }
+
+    @IsTest
+    static void taskTheUserCannotReadIsNotInTheBrief() {
+        User u = restrictedUser();
+        Account a = new Account(Name = 'Zqx Restricted Activity', OwnerId = u.Id);
+        insert a;
+        insert mkTask(a.Id, null, 'Call', 'Hidden renewal call', 1, false);
+        Stub stub = new Stub();
+        AgentLlm.stub = stub;
+
+        AccountBriefSection s;
+        AccountBrief.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            s = new AccountBriefActivitySection().build(a.Id);
+            r = AccountBrief.run(a.Id, null, new Set<String>{ 'activity' });
+        }
+        Test.stopTest();
+
+        String seen = s.status + ': ' + s.body;
+        Assert.isFalse(s.body.contains('Hidden renewal call'), 'the section read Task fields the user lacks: ' + seen);
+        Assert.areEqual(AccountBriefSection.ERROR, s.status, seen);
+        Assert.areEqual(1, r.sections.size());
+        Assert.isFalse(r.sections[0].body.contains('Hidden renewal call'), r.sections[0].body);
+        for (String prompt : stub.prompts) {
+            Assert.isFalse(prompt.contains('Hidden renewal call'), 'the Task reached the model');
+        }
+        Assert.isFalse(r.answer.contains('Hidden renewal call'), r.answer);
+    }
+
+    @IsTest
+    static void standardUserReadsTasksInUserMode() {
+        User u = newUser('Standard User', 'actstd');
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert u;
+        }
+        Account a = new Account(Name = 'Zqx Standard Activity', OwnerId = u.Id);
+        insert a;
+        insert mkTask(a.Id, null, 'Call', 'Visible renewal call', 1, false);
+
+        AccountBriefSection s;
+        System.runAs(u) {
+            s = new AccountBriefActivitySection().build(a.Id);
+        }
+
+        Assert.areEqual(AccountBriefSection.OK, s.status, s.body);
+        Assert.areEqual(1, s.total);
+        Assert.areEqual(
+            '90d: 0 emails, 1 calls, 0 other; 0 open tasks overdue\n' + bullet(1, 'Call', 'Visible renewal call', 'n/a'),
+            s.body
+        );
+    }
+
     @IsTest
     static void failureReturnsErrorSectionInsteadOfThrowing() {
         AccountBriefSection s = new AccountBriefActivitySection().build(null);

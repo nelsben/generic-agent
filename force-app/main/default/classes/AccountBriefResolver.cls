@@ -6,7 +6,8 @@
  * Resolution order:
  *   1. knownAccountId is an Account Id the user can see: resolved, no name search.
  *   2. accountName contains a 15- or 18-char Id starting 001 (an Id pasted back after
- *      disambiguation): that Id wins.
+ *      disambiguation): the first one in the text the user can see wins. All pasted Ids are
+ *      looked up in one query, however many there are.
  *   3. Exact case-insensitive Name match that is unique wins.
  *   4. Name LIKE %term% (bind variable): 1 hit RESOLVED, many AMBIGUOUS, none NOT_FOUND.
  */
@@ -64,12 +65,9 @@ public with sharing class AccountBriefResolver {
         String term = accountName.trim();
 
         // 2. An Id pasted inside the text.
-        Matcher m = ID_IN_TEXT.matcher(term);
-        while (m.find()) {
-            Account byPasted = visibleAccount(m.group(1));
-            if (byPasted != null) {
-                return resolved(byPasted);
-            }
+        Account byPasted = firstVisiblePasted(term);
+        if (byPasted != null) {
+            return resolved(byPasted);
         }
 
         // 3. Exact name (SOQL equality is case-insensitive) when unique.
@@ -98,20 +96,49 @@ public with sharing class AccountBriefResolver {
 
     /** The Account with this Id if the string is a valid Account Id the user can see, else null. */
     private static Account visibleAccount(String rawId) {
-        if (String.isBlank(rawId)) {
-            return null;
-        }
-        Id parsed;
-        try {
-            parsed = Id.valueOf(rawId.trim());
-        } catch (Exception e) {
-            return null;
-        }
-        if (parsed.getSObjectType() != Account.SObjectType) {
+        Id parsed = accountId(rawId);
+        if (parsed == null) {
             return null;
         }
         List<Account> found = [SELECT Id, Name FROM Account WHERE Id = :parsed LIMIT 1];
         return found.isEmpty() ? null : found[0];
+    }
+
+    /** The first Account Id in the text that the user can see, or null. One query for all of them. */
+    private static Account firstVisiblePasted(String text) {
+        List<Id> pasted = new List<Id>();
+        Matcher m = ID_IN_TEXT.matcher(text);
+        while (m.find()) {
+            Id parsed = accountId(m.group(1));
+            if (parsed != null) {
+                pasted.add(parsed);
+            }
+        }
+        if (pasted.isEmpty()) {
+            return null;
+        }
+        Map<Id, Account> visible = new Map<Id, Account>(
+            [SELECT Id, Name FROM Account WHERE Id IN :pasted WITH USER_MODE]
+        );
+        for (Id candidate : pasted) {
+            if (visible.containsKey(candidate)) {
+                return visible.get(candidate);
+            }
+        }
+        return null;
+    }
+
+    /** The string as an Account Id, or null when it is not one. */
+    private static Id accountId(String rawId) {
+        if (String.isBlank(rawId)) {
+            return null;
+        }
+        try {
+            Id parsed = Id.valueOf(rawId.trim());
+            return parsed.getSObjectType() == Account.SObjectType ? parsed : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static Response resolved(Account a) {

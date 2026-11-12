@@ -4,7 +4,8 @@
  * Calls DataExplorer.explore and relays its status verbatim. The answer is the model's text plus a
  * compact plain-text table of the last result set, and the whole answer stays under MAX_CHARS so it
  * fits the chat relay. Table rows are dropped from the end first; the text is clipped only if it alone
- * is too long. Read-only: no DML.
+ * is too long. When the explorer ran out of turns, the status is OK (or EMPTY) and the text says the
+ * step cap was hit, so the last result still reaches the user. Read-only: no DML.
  */
 public with sharing class ExploreAction {
     @TestVisible private static final Integer MAX_CHARS = 5900;
