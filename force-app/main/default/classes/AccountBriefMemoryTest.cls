@@ -200,11 +200,13 @@ private class AccountBriefMemoryTest {
         }
         Assert.areEqual(3, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE]);
         // a2 is the stalest, then a1... make the order explicit.
-        update new List<Account_Brief_Session__c>{
+        // System mode, like AccountBriefMemory's own writes: in a fresh org the deploying user has no
+        // field access to this object, and a plain update failed there with "fields being inaccessible".
+        Database.update(new List<Account_Brief_Session__c>{
             new Account_Brief_Session__c(Id = rowFor(a2.Id).Id, Last_Activity__c = Datetime.now().addDays(-30)),
             new Account_Brief_Session__c(Id = rowFor(a1.Id).Id, Last_Activity__c = Datetime.now().addDays(-10)),
             new Account_Brief_Session__c(Id = rowFor(a3.Id).Id, Last_Activity__c = Datetime.now().addDays(-1))
-        };
+        }, true, AccessLevel.SYSTEM_MODE);
 
         Account a4 = makeAccount();
         AccountBriefMemory.record(a4.Id, 'OK', 'Q', 'Newest');
