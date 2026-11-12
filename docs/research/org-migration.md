@@ -1,7 +1,7 @@
 # Org move: main to agent-probe (OPS-25)
 
-- Date: 2026-11-12, 05:30 to 06:15 UTC. Target org alias `agent-probe`. Four attempts; this page
-  records all four, and attempt 4 is the current state.
+- Date: 2026-11-12, 05:30 to 06:30 UTC. Target org alias `agent-probe`. Five attempts; this page
+  records all five, and attempt 5 is the current state.
 - CLI: `@salesforce/cli` 2.158.7 at `/usr/local/bin/sf` (the spike used 2.157.8).
 - Approval: "Phase 2: migrate to the fresh Developer Edition org that publishes (deploy, publish,
   activate there)" in `docs/plans/gtm-burn-plan.md`, Approvals. The staged order and the rerun
@@ -14,24 +14,26 @@
 - **`main` is deployed to agent-probe, and Account_Brief is published and active there (v1,
   verified).** Both permission sets are deployed and assigned to the running user. The org
   evaluation definition `Account_Brief_Test` exists and points at `subjectVersion v1`.
-- **The seed failed twice, so the org has no sample data (0 records in all seven seeded objects,
-  verified after attempt 4).**
-  - Attempt 3: the org has State and Country Picklists turned on, and `data/sample/accounts.json`
-    wrote `BillingCountry` as `USA` and `UK`. PR #72 (the brain) changed those to `United States`
-    and `United Kingdom` and the state codes to state names.
-  - Attempt 4, with #72: the country errors are gone. The one error left is
-    `MALFORMED_ID` on `ParentId` for Edge Communications: "Parent Account ID: id value of incorrect
-    type: @AccQuill". Edge Communications points at its parent Quillfeather Group in the same file,
-    and `sf data import tree` does not resolve a reference to a record in the same file. The fix
-    is a split of `data/sample/accounts.json`, a forbidden path for this card. See "Seed" below.
-- **The agent answers in this org (verified, 1 model call).** One `generateAiAgentResponse` turn,
-  "Give me a brief on Edge Communications", returned success in 6.2 s with the resolver's reply,
-  verbatim: `No account matches "Edge Communications". Try the full name or open the account and
-  ask again.` That is the right answer for an org with no accounts.
-- **The 12-case agent test, the second turn of the two-turn check and e2e were not run.** The
-  brain's attempt-4 order stops at a failed seed. Seven of the 12 cases (1, 2, 5, 6, 7, 8, 9) and
-  all of e2e depend on seeded accounts and would fail on data, not on the agent. 1 model call was
-  made in the org in total (attempt 3's turn 1).
+- **The sample data is in (attempt 5, verified).** The seed imported 107 records: 14 Accounts,
+  14 Contacts, 47 Opportunities, 7 OpportunityContactRoles, 11 Tasks, 6 Events and 8 Cases. It took
+  three fixes on `main`:
+  - PR #72: `BillingCountry` and `BillingState` as names, because the org has State and Country
+    Picklists on (attempt 3's errors).
+  - PR #74: Quillfeather Group moved to `data/sample/account-parents.json`, an earlier plan entry,
+    because `sf data import tree` does not resolve a reference to a record in the same file
+    (attempt 4's error). `tests/test_sample_data.py` now checks for that.
+- **Agent test: 12 of 12 cases pass, 36 of 36 assertions (verified).** The quality ratings are 5
+  on nine cases, 4 on cases 2 and 6, and 3 on case 1. Case 7 called `resolve_account` before
+  `get_brief` where the spec expects `get_brief` alone, and the runner still scored it PASS.
+- **Two-turn check: both turns pass (verified).** Turn 2 reused turn 1's session and answered
+  about Edge Communications' open cases without the account being named.
+- **e2e: 7 of 8 pass; spec 2 fails (verified).** Its anchor, the global header's Search button,
+  was not found after Esc. At that moment the page showed the fresh org's "Guidance Center" panel
+  and its "Meet the new Guidance Center" pop-up, and the header's buttons were not in the
+  accessibility tree. The likely cause is that first-run pop-up, not the panel (unproven). See "e2e".
+- **Model calls in the org: about 21 agent or panel turns, plus 12 grader ratings** (1 turn in
+  attempt 3; 12 test cases, 2 two-turn turns and 6 e2e panel calls in attempt 5). That is within
+  the budget of about 40 even with the grader counted.
 - The memory test that failed validate 2 was fixed in `main` by PR #70 (the brain): the test's own
   setup `update` is now `Database.update(..., true, AccessLevel.SYSTEM_MODE)`. With that change,
   validate 3 passed 150 of 150 Apex tests (verified).
@@ -46,7 +48,8 @@
 
 ## What was done, in order
 
-Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28, attempt 4 rows 29 to 33.
+Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28, attempt 4 rows 29 to 33,
+attempt 5 rows 34 to 41.
 
 | # | Step | Command (abridged) | Outcome |
 |---|---|---|---|
@@ -83,6 +86,14 @@ Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28, attempt
 | 31 | Seed, attempt 4 | `SF_TARGET_ORG=agent-probe bash scripts/seed-sample-data.sh` (06:09:32 to 06:09:34Z) | **Failed:** "Data Import failed", 1 error: `MALFORMED_ID` on `ParentId` for reference `AccEdge`. No country or state errors (verified). Not retried |
 | 32 | Counts | `SELECT COUNT() FROM <object>` for Account, Contact, Opportunity, OpportunityContactRole, Task, Event and Case | 0 each (verified) |
 | 33 | 12-case run, two-turn check, e2e | not run | Stopped by the attempt-4 rule for a failed seed |
+| 34 | Brain's fix | PR #74 | Quillfeather Group in `data/sample/account-parents.json`, the first plan entry, `saveRefs` true; the unit test checks references against earlier plan entries only. Worktree rebased; budget 5 attempts. No redeploy, republish or reactivation |
+| 35 | Starting state | `SELECT COUNT() FROM Account` | 0 (verified) |
+| 36 | Seed, attempt 5 | `SF_TARGET_ORG=agent-probe bash scripts/seed-sample-data.sh` (06:19:35 to 06:19:42Z) | **Passed:** "107 records imported into agent-probe" (verified) |
+| 37 | Counts | `SELECT COUNT() FROM <object>`, and a read of the Edge Communications and United Oil accounts | Account 14, Contact 14, Opportunity 47, OpportunityContactRole 7, Task 11, Event 6, Case 8: 107, the same as the records in the eight files. Edge Communications is in Austin with parent Quillfeather Group; the three United Oil accounts are there with cities New York, Singapore and none (verified) |
+| 38 | 12-case run | `sf agent test run --api-name Account_Brief_Test --test-runner testing-center --wait 4 --result-format json -o agent-probe --json` (06:20:18 to 06:22:37Z on the server) | `COMPLETED`, 12 of 12 cases, 36 of 36 assertions PASS (verified). See "Agent test" |
+| 39 | Two-turn check | `sf apex run` twice: turn 1, then turn 2 with turn 1's session | Both `isSuccess` true; same session; turn 2 answered about the right account (verified). See "Two-turn check" |
+| 40 | e2e | `SF_TARGET_ORG=agent-probe npm run test:e2e` (06:24:04 to 06:27:21Z) | 7 passed, 1 failed (spec 2), 3.3 min (verified). See "e2e" |
+| 41 | Gates, tree | the three gate commands; `git status --short` | All pass; no `aiEvaluationDefinitions` written this time; tree clean (verified) |
 
 ## Deploy and test totals
 
@@ -104,6 +115,24 @@ Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28, attempt
 
 ## Seed
 
+### Attempt 5 (with PR #72 and PR #74)
+
+`SF_TARGET_ORG=agent-probe bash scripts/seed-sample-data.sh` ran once, after a read-only check
+that the org had 0 Accounts, and passed: "107 records imported into agent-probe" (verified).
+
+| Object | Count after the seed | Records in `data/sample/` |
+|---|---|---|
+| Account | 14 | 1 in `account-parents.json`, 13 in `accounts.json` |
+| Contact | 14 | 14 |
+| Opportunity | 47 | 47 |
+| OpportunityContactRole | 7 | 7 |
+| Task | 11 | 11 |
+| Event | 6 | 6 |
+| Case | 8 | 8 |
+
+Edge Communications has billing city Austin and parent Quillfeather Group, so the parent link
+resolved (verified).
+
 ### Attempt 4 (with PR #72)
 
 `SF_TARGET_ORG=agent-probe bash scripts/seed-sample-data.sh` ran once, after a read-only check
@@ -123,7 +152,7 @@ in Account, Contact, Opportunity, OpportunityContactRole, Task, Event and Case a
   `test_plan_parses_and_every_reference_resolves`, accepts a reference to any record defined
   earlier in the record order, including one earlier in the same file. The import only accepts
   one saved by an earlier plan entry.
-- Likely fix (unproven: every file after `accounts.json` has never run in this org): move the
+- Fix proposed here, and made by the brain as PR #74 (it worked in attempt 5): move the
   `AccQuill` record into its own file, for example `data/sample/account-parents.json`, and list it
   in `data/sample/sample-data-plan.json` as an `Account` entry with `saveRefs` true, before the
   `accounts.json` entry. Nothing in `tests/`, `e2e/` or `force-app` uses the parent link, so
@@ -184,35 +213,101 @@ BotDefinition had 0 rows before the publish.
 
 ## Agent test (12 cases)
 
-| Case | Utterance (short) | Result |
-|---|---|---|
-| 1 to 12 | `tests/agent/Account_Brief-testSpec.yaml` | not run in attempt 3 or 4: no sample data (the seed failed both times) |
+Attempt 5, one run of `Account_Brief_Test` (the spec unchanged, `subjectVersion v1`, the active
+version) against Account_Brief v1. Each case has three assertions: topic, action sequence and a
+graded reply (1 to 5). All results verified from the run's JSON.
 
-- The evaluation definition `Account_Brief_Test` is in the org, from the spec unchanged, with
-  `subjectVersion v1`, the active version (verified). `sf agent test run --api-name
-  Account_Brief_Test --wait 5 --result-format json -o agent-probe --json` can run it once the
-  seed lands.
-- Cases 1, 2, 6, 7, 8 and 9 name Edge Communications, and case 5 needs the three United Oil
-  accounts. Without the seed those cases would fail on data, not on the agent.
+| Case | Utterance (short) | Topic | Actions | Reply rating | Result |
+|---|---|---|---|---|---|
+| 1 | Give me a brief on Edge Communications | account_brief | resolve_account, get_brief | 3 | PASS |
+| 2 | What is going on with Edge Communications, and which deals are slipping? | account_brief | resolve_account, get_brief | 4 | PASS |
+| 3 | Brief me on Zzqxv Nonexistent Holdings | account_brief | resolve_account | 5 | PASS |
+| 4 | Brief me on a pasted Id that matches nothing | account_brief | resolve_account | 5 | PASS |
+| 5 | Brief me on United Oil | account_brief | resolve_account | 5 | PASS |
+| 6 | Just the open deals for Edge Communications | account_brief | resolve_account, get_brief | 4 | PASS |
+| 7 | What about their open cases? (after an Edge brief) | account_brief | resolve_account, get_brief (spec: get_brief) | 5 | PASS |
+| 8 | Show me their open cases (after a no-match) | account_brief | resolve_account | 5 | PASS |
+| 9 | How many open opportunities are there in the whole org? (after an Edge brief) | explore | explore_data | 5 | PASS |
+| 10 | How many open opportunities are there? | explore | explore_data | 5 | PASS |
+| 11 | List the five largest open opportunities | explore | explore_data | 5 | PASS |
+| 12 | What is the weather in Paris today? | topic_selector | none | 5 | PASS |
+
+Score: 12 of 12 cases, 36 of 36 assertions. No case failed, so there are no failure causes to
+give. Notes on the passes:
+
+- Case 1 rated 3: the grader said the reply is a full brief but "does not explicitly resolve the
+  account", though the action trace shows `resolve_account` ran first. The reply itself gives no
+  "Resolved:" line, which is what the spec asks for.
+- Cases 2 and 6 rated 4: the grader marked the extra brief sections as beyond what was asked.
+  Case 6's reply says "Not requested" for the account section and still includes others.
+- Case 7: the spec expects `get_brief` alone; the agent called `resolve_account` again before
+  `get_brief`, and the runner scored the action assertion PASS anyway. So this runner's
+  `actions_assertion` does not enforce an exact sequence (verified for this case only).
+- Case 5 relayed the resolver's three lines verbatim, with each account's 18-character Id.
+- Cases 9 and 10 both counted 36 open opportunities org-wide.
 
 ## Two-turn check
 
-Turn 1 ran once; turn 2 was not run. The check uses
-`Invocable.Action.createCustomAction('generateAiAgentResponse', 'Account_Brief')` with "Give me a
-brief on Edge Communications", then a second turn on the returned session (`docs/research/agent-api.md`).
+The check uses `Invocable.Action.createCustomAction('generateAiAgentResponse', 'Account_Brief')`
+with "Give me a brief on Edge Communications", then a second turn in a separate execution that
+passes turn 1's `sessionId` with "What about their open cases?" (`docs/research/agent-api.md`).
+The session Id was kept in a scratch file, never printed, and deleted afterwards.
+
+Attempt 5 (with the seed), both turns (verified):
 
 | Turn | Result |
 |---|---|
-| 1 | `isSuccess` true, no errors, 6182 ms, a session was returned. Reply: `{"type":"Text","value":"No account matches \"Edge Communications\". Try the full name or open the account and ask again."}` (verified) |
-| 2 | not run: with no Edge Communications account there is no brief for the follow-up to build on |
+| 1 | `isSuccess` true, no errors, 32588 ms, a session was returned. Reply 2916 characters, a full brief of Edge Communications. It starts: "A $125,540 support plan renewal and a $9,000 router refresh are both overdue, and a high-priority escalated case reports that the core router drops BGP sessions under load." |
+| 2 | `isSuccess` true, no errors, 9260 ms, the same session Id came back. The reply is a brief limited to service health, without the account being named: "Five open cases with one high-priority escalation. The core router is dropping BGP sessions under load and has been escalated. Four additional cases are open ..." **Pass** |
+
+Attempt 3 (no data), turn 1 only: `isSuccess` true, 6182 ms, the resolver's reply `No account
+matches "Edge Communications". Try the full name or open the account and ask again.` (verified).
 
 ## e2e
 
-Not run in attempt 3 or 4. Global setup needs the account Edge Communications.
+Attempt 5, one full run: `SF_TARGET_ORG=agent-probe npm run test:e2e`, 06:24:04 to 06:27:21Z,
+8 specs, 1 worker. **7 passed, 1 failed** (verified). Not run in attempts 3 and 4 (no data).
+
+| Spec | Result |
+|---|---|
+| 1. Cmd/Ctrl-K before the utility was ever opened | pass (7.2 s) |
+| 2. Esc returns focus; Tab can leave | **fail** (27.3 s) |
+| 3. Brief: headline, collapsed accordions, live region | pass (29.3 s) |
+| 4. Composer pinned at 340x480, newest answer in view | pass (38.4 s) |
+| 5. Latest wins | pass (13.7 s) |
+| 6. Typing enables Send; Enter sends | pass (5.8 s) |
+| 7. Drill and breadcrumb | pass (32.8 s) |
+| 8. axe in the brief and drill states | pass (29.9 s) |
+
+Spec 2's failure, verbatim: `focus returned to the element focused before the hotkey, and stayed
+there`, `expect(locator).toBeFocused() failed`, locator
+`getByRole('button', { name: 'Search', exact: true }).first()`, `element(s) not found`, at
+`e2e/support/panel.js:116` from `e2e/panel.spec.js:85`, the first step ("Esc from the composer").
+
+Cause:
+
+- The anchor was found and focused before the hotkey (lines 80 and 81 passed), and the panel
+  closed on Esc (line 84 passed). Then the Search button was no longer in the page.
+- The page snapshot at the failure shows two fresh-org dialogs over the record page: "Guidance
+  Center" (with "Just so you know" and "Selected for You") and "Meet the new Guidance Center",
+  an admin onboarding pop-up with "Close", "Dismiss", "Focus me" and "Next". The global header's
+  list items are still there but none exposes a button, so the dialogs probably hid the header
+  from the accessibility tree (verified from the snapshot; the cause is inference).
+- So the likely cause is the org's first-run Guidance Center pop-up, which opened during the
+  test, not the panel's focus handling (unproven).
+- Fix options, not made here: dismiss the Guidance Center pop-up once in agent-probe as the test
+  user (a UI click that stores a user preference), or have the e2e setup close a Guidance Center
+  dialog if one is open (an `e2e/` change, out of scope; listed, not made). Spec 2 makes no model
+  calls, so re-running it alone costs nothing; it was not re-run, to keep to one full run.
+
+Model calls: the README puts a full run at about seven. Specs 3, 4, 5, 7 and 8 make 1, 2, 1, 1
+and 1. Spec 7 found a drillable brief line, so neither 7 nor 8 needed the extra question: 6 in
+all (inference from the README's table and the passes).
 
 ## Stand the baseline up in a fresh org
 
-**The order that worked (verified in agent-probe, attempt 3):**
+**The order that worked (verified in agent-probe: steps 1 to 4 and 6 to 9 in attempt 3, step 5
+in attempt 5, steps 10 to 12 in attempt 5):**
 
 1. `sf org list --skip-connection-status --json`: find the alias and classify it from its record.
    Query `Organization` for `OrganizationType` and `IsSandbox`. If the deploy gate refuses with
@@ -225,10 +320,9 @@ Not run in attempt 3 or 4. Global setup needs the account Edge Communications.
    This needs PR #70 in the source.
 4. `sf org assign permset --name Account_Brief_Data_Access -o <alias> --json`.
 5. Seed: `SF_TARGET_ORG=<alias> bash scripts/seed-sample-data.sh`, then count each object
-   read-only. **Blocked here in agent-probe.** PR #72 cleared the State and Country Picklist
-   errors; the self-reference in `accounts.json` still needs the split under "Seed". The steps
-   after this one do not depend on the data, so they ran in attempt 3. With a fixed seed, it only
-   has to land before step 9's test run, not before the publish.
+   read-only. This needs PR #72 (country and state names) and PR #74 (the parent account in its
+   own, earlier plan entry). Steps 6 to 9 do not depend on the data, so the seed only has to land
+   before step 10. In agent-probe it ran after step 9.
 6. `bash scripts/agent-check.sh`, then publish once:
    `sf agent publish authoring-bundle --api-name Account_Brief -o <alias> --skip-retrieve --json`.
    Then `git checkout -- force-app/main/default/aiAuthoringBundles/Account_Brief` and `git status`.
@@ -240,10 +334,17 @@ Not run in attempt 3 or 4. Global setup needs the account Edge Communications.
    then delete the file it writes under `force-app/main/default/aiEvaluationDefinitions/`. Check
    that the org definition's `subjectVersion` is the active version.
 
-10. One `generateAiAgentResponse` turn shows the active agent answers (turn 1 above).
+10. `sf agent test run --api-name Account_Brief_Test --test-runner testing-center --wait 4 --result-format json -o <alias> --json`.
+    12 of 12 passed here.
+11. The two-turn `generateAiAgentResponse` check (turn 1, then turn 2 with turn 1's
+    `sessionId`). Both passed here.
+12. `SF_TARGET_ORG=<alias> npm run test:e2e`. 7 of 8 passed here. In a fresh org, first dismiss
+    the "Meet the new Guidance Center" pop-up as the test user, or spec 2 can fail on it
+    (unproven; see "e2e").
+13. The gates: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests`,
+    `bash scripts/validate-org.sh`, `bash scripts/agent-check.sh`.
 
-**Not yet shown (needs the seed):** `sf agent test run` and `results` for the 12 cases, turn 2 of
-the two-turn check and `npm run test:e2e`.
+**Not yet shown:** spec 2 passing in a fresh org.
 
 **What did not work, and why:**
 
@@ -259,6 +360,13 @@ the two-turn check and `npm run test:e2e`.
 
 ## Gate results
 
+Attempt 5, after the seed, the agent test, the two-turn check and e2e (verified):
+
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests`: 72 tests, OK.
+- `bash scripts/validate-org.sh`: pass (60 components, 150 tests).
+- `bash scripts/agent-check.sh`: pass.
+- None of the three gates runs e2e, so spec 2's failure does not show in them.
+
 Attempt 4, after the failed seed, with the same results as attempt 3 (verified): 72 unit tests
 OK, `validate-org.sh` pass (60 components, 150 tests), `agent-check.sh` pass.
 
@@ -273,10 +381,11 @@ Attempt 3, after the Agent Access deploy (verified):
 ## Cleanup
 
 - Nothing was rolled back. The org now holds `main` (60 components), the active Account_Brief v1,
-  both permission set assignments and the evaluation definition `Account_Brief_Test`. No sample
-  data.
-- No data was written except what the card allows: the permission set assignments, the
-  evaluation definition and whatever the agent itself stored for its one turn. The failed seed
-  wrote nothing.
+  both permission set assignments, the evaluation definition `Account_Brief_Test` and the 107
+  sample records.
+- No data was written except what the card allows: the seed, the permission set assignments, the
+  evaluation definition, and what the agent and the panel stored for their own turns (brief
+  memory rows). The two failed seeds wrote nothing.
+- e2e left `test-results/` and `playwright-report/` in the worktree; both are git-ignored.
 - The only lasting local change outside git is the project's default org setting in
   `.sf/config.json` (git-ignored).
