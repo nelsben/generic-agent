@@ -34,23 +34,23 @@ private class AccountBriefMemoryTest {
             FROM Account_Brief_Session__c
             WITH SYSTEM_MODE
         ];
-        System.assertEquals(1, rows.size());
-        System.assertEquals(String.valueOf(UserInfo.getUserId()) + '_' + String.valueOf(a.Id), rows[0].Session_Key__c);
-        System.assertEquals(UserInfo.getUserId(), rows[0].User__c);
-        System.assertEquals(a.Id, rows[0].Account__c);
-        System.assertEquals(1, rows[0].Brief_Count__c);
-        System.assertEquals('ok', rows[0].Last_Status__c);
-        System.assertEquals('What is the status?', rows[0].Last_Question__c);
-        System.assertEquals('Healthy account.\nMore detail below.', rows[0].Last_Brief__c);
-        System.assertNotEquals(null, rows[0].Last_Activity__c);
+        Assert.areEqual(1, rows.size());
+        Assert.areEqual(String.valueOf(UserInfo.getUserId()) + '_' + String.valueOf(a.Id), rows[0].Session_Key__c);
+        Assert.areEqual(UserInfo.getUserId(), rows[0].User__c);
+        Assert.areEqual(a.Id, rows[0].Account__c);
+        Assert.areEqual(1, rows[0].Brief_Count__c);
+        Assert.areEqual('ok', rows[0].Last_Status__c);
+        Assert.areEqual('What is the status?', rows[0].Last_Question__c);
+        Assert.areEqual('Healthy account.\nMore detail below.', rows[0].Last_Brief__c);
+        Assert.areNotEqual(null, rows[0].Last_Activity__c);
 
         List<AccountBriefMemory.Turn> turns = AccountBriefMemory.history(a.Id);
-        System.assertEquals(1, turns.size());
-        System.assertEquals('Healthy account.', turns[0].headline);
-        System.assertEquals('ok', turns[0].status);
-        System.assertEquals('What is the status?', turns[0].question);
-        System.assertNotEquals(null, turns[0].at);
-        System.assertEquals('Healthy account.\nMore detail below.', AccountBriefMemory.lastBrief(a.Id));
+        Assert.areEqual(1, turns.size());
+        Assert.areEqual('Healthy account.', turns[0].headline);
+        Assert.areEqual('ok', turns[0].status);
+        Assert.areEqual('What is the status?', turns[0].question);
+        Assert.areNotEqual(null, turns[0].at);
+        Assert.areEqual('Healthy account.\nMore detail below.', AccountBriefMemory.lastBrief(a.Id));
     }
 
     @IsTest
@@ -60,22 +60,22 @@ private class AccountBriefMemoryTest {
             AccountBriefMemory.record(a.Id, 'ok', 'Q' + i, 'Headline ' + i);
         }
 
-        System.assertEquals(1, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE]);
+        Assert.areEqual(1, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE]);
         Account_Brief_Session__c row = [SELECT Brief_Count__c FROM Account_Brief_Session__c WITH SYSTEM_MODE LIMIT 1];
-        System.assertEquals(12, row.Brief_Count__c);
+        Assert.areEqual(12, row.Brief_Count__c);
 
         List<AccountBriefMemory.Turn> turns = AccountBriefMemory.history(a.Id);
-        System.assertEquals(10, turns.size());
-        System.assertEquals('Headline 12', turns[0].headline);
-        System.assertEquals('Headline 3', turns[9].headline);
-        System.assertEquals('Headline 12', AccountBriefMemory.lastBrief(a.Id));
+        Assert.areEqual(10, turns.size());
+        Assert.areEqual('Headline 12', turns[0].headline);
+        Assert.areEqual('Headline 3', turns[9].headline);
+        Assert.areEqual('Headline 12', AccountBriefMemory.lastBrief(a.Id));
     }
 
     @IsTest
     static void longAnswerHeadlineIsClipped() {
         Account a = makeAccount();
         AccountBriefMemory.record(a.Id, 'ok', 'Q', 'x'.repeat(500) + '\nsecond line');
-        System.assertEquals(200, AccountBriefMemory.history(a.Id)[0].headline.length());
+        Assert.areEqual(200, AccountBriefMemory.history(a.Id)[0].headline.length());
     }
 
     @IsTest
@@ -88,19 +88,19 @@ private class AccountBriefMemoryTest {
         System.runAs(u2) {
             AccountBriefMemory.record(a.Id, 'partial', 'Other question', 'Other headline');
             List<AccountBriefMemory.Turn> mine = AccountBriefMemory.history(a.Id);
-            System.assertEquals(1, mine.size());
-            System.assertEquals('Other headline', mine[0].headline);
+            Assert.areEqual(1, mine.size());
+            Assert.areEqual('Other headline', mine[0].headline);
         }
 
         List<Account_Brief_Session__c> rows = [SELECT User__c FROM Account_Brief_Session__c WITH SYSTEM_MODE];
-        System.assertEquals(2, rows.size());
+        Assert.areEqual(2, rows.size());
         List<AccountBriefMemory.Turn> adminTurns = AccountBriefMemory.history(a.Id);
-        System.assertEquals(1, adminTurns.size());
-        System.assertEquals('Admin headline', adminTurns[0].headline);
+        Assert.areEqual(1, adminTurns.size());
+        Assert.areEqual('Admin headline', adminTurns[0].headline);
     }
 
     @IsTest
-    static void recordAllSavesSeveralTurnsWithOneQueryAndOneUpsert() {
+    static void recordAllSavesSeveralTurnsWithOneWrite() {
         Account a = makeAccount();
         Account b = makeAccount();
         List<AccountBriefMemory.Entry> entries = new List<AccountBriefMemory.Entry>{
@@ -117,8 +117,8 @@ private class AccountBriefMemoryTest {
         Integer dml = Limits.getDmlStatements();
         Test.stopTest();
 
-        Assert.areEqual(1, queries, 'one query for every existing row');
-        Assert.areEqual(1, dml, 'one upsert for every row');
+        Assert.areEqual(2, queries, 'one query for every existing row, one for the per-user row cap');
+        Assert.areEqual(1, dml, 'one write for every row');
         Assert.areEqual(2, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE], 'one row per account');
         List<AccountBriefMemory.Turn> turnsA = AccountBriefMemory.history(a.Id);
         Assert.areEqual(2, turnsA.size(), 'both turns for the same account land on one row');
@@ -146,32 +146,91 @@ private class AccountBriefMemoryTest {
     @IsTest
     static void unknownAccountReturnsEmpty() {
         Account a = makeAccount();
-        System.assertEquals(0, AccountBriefMemory.history(a.Id).size());
-        System.assertEquals(null, AccountBriefMemory.lastBrief(a.Id));
-        System.assertEquals(0, AccountBriefMemory.history(null).size());
+        Assert.areEqual(0, AccountBriefMemory.history(a.Id).size());
+        Assert.areEqual(null, AccountBriefMemory.lastBrief(a.Id));
+        Assert.areEqual(0, AccountBriefMemory.history(null).size());
+    }
+
+    private static Account_Brief_Session__c rowFor(Id accountId) {
+        return [
+            SELECT Id, Brief_Count__c, Turns_JSON__c, Last_Activity__c
+            FROM Account_Brief_Session__c
+            WHERE Account__c = :accountId AND User__c = :UserInfo.getUserId()
+            WITH SYSTEM_MODE
+        ];
     }
 
     @IsTest
-    static void invocablePathRecords() {
+    static void aRowSavedByAnotherTransactionIsKeptNotOverwritten() {
         Account a = makeAccount();
-        AccountBriefMemory.Request r = new AccountBriefMemory.Request();
-        r.accountId = a.Id;
-        r.status = 'ok';
-        r.question = 'Flow question';
-        r.answer = 'Flow headline\nbody';
-        AccountBriefMemory.recordFromFlow(new List<AccountBriefMemory.Request>{ r });
+        AccountBriefMemory.Turn rival = new AccountBriefMemory.Turn();
+        rival.at = '2026-01-01T00:00:00.000Z';
+        rival.status = 'OK';
+        rival.question = 'Rival question';
+        rival.headline = 'Rival headline';
+        // The rival row lands after our read found nothing and before our write: the lost-turn race.
+        AccountBriefMemory.racingRows = new List<Account_Brief_Session__c>{
+            new Account_Brief_Session__c(
+                Session_Key__c = String.valueOf(UserInfo.getUserId()) + '_' + String.valueOf(a.Id),
+                User__c = UserInfo.getUserId(),
+                Account__c = a.Id,
+                Brief_Count__c = 1,
+                Turns_JSON__c = JSON.serialize(new List<AccountBriefMemory.Turn>{ rival })
+            )
+        };
 
+        AccountBriefMemory.record(a.Id, 'OK', 'Our question', 'Our headline');
+
+        Assert.areEqual(1, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE], 'still one row for the key');
+        Assert.areEqual(2, rowFor(a.Id).Brief_Count__c, 'both briefs are counted');
         List<AccountBriefMemory.Turn> turns = AccountBriefMemory.history(a.Id);
-        System.assertEquals(1, turns.size());
-        System.assertEquals('Flow headline', turns[0].headline);
+        Assert.areEqual(2, turns.size(), 'neither turn is lost');
+        Assert.areEqual('Our headline', turns[0].headline);
+        Assert.areEqual('Rival headline', turns[1].headline);
     }
 
     @IsTest
-    static void invocableSwallowsFailures() {
-        // A request with no account (and a null request) is ignored and must never throw.
-        AccountBriefMemory.Request r = new AccountBriefMemory.Request();
-        r.status = 'ok';
-        AccountBriefMemory.recordFromFlow(new List<AccountBriefMemory.Request>{ r, null });
-        System.assertEquals(0, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE]);
+    static void rowsPerUserAreCappedAndTheOldestGoFirst() {
+        AccountBriefMemory.maxRowsPerUser = 3;
+        Account a1 = makeAccount();
+        Account a2 = makeAccount();
+        Account a3 = makeAccount();
+        for (Account a : new List<Account>{ a1, a2, a3 }) {
+            AccountBriefMemory.record(a.Id, 'OK', 'Q', 'Headline');
+        }
+        Assert.areEqual(3, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE]);
+        // a2 is the stalest, then a1... make the order explicit.
+        update new List<Account_Brief_Session__c>{
+            new Account_Brief_Session__c(Id = rowFor(a2.Id).Id, Last_Activity__c = Datetime.now().addDays(-30)),
+            new Account_Brief_Session__c(Id = rowFor(a1.Id).Id, Last_Activity__c = Datetime.now().addDays(-10)),
+            new Account_Brief_Session__c(Id = rowFor(a3.Id).Id, Last_Activity__c = Datetime.now().addDays(-1))
+        };
+
+        Account a4 = makeAccount();
+        AccountBriefMemory.record(a4.Id, 'OK', 'Q', 'Newest');
+
+        Assert.areEqual(3, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE], 'the cap holds');
+        Assert.areEqual(0, [SELECT COUNT() FROM Account_Brief_Session__c WHERE Account__c = :a2.Id WITH SYSTEM_MODE], 'the stalest row went');
+        Assert.areEqual(1, [SELECT COUNT() FROM Account_Brief_Session__c WHERE Account__c = :a4.Id WITH SYSTEM_MODE], 'the new row stays');
+        Assert.areEqual(1, [SELECT COUNT() FROM Account_Brief_Session__c WHERE Account__c = :a1.Id WITH SYSTEM_MODE]);
+        Assert.areEqual(1, [SELECT COUNT() FROM Account_Brief_Session__c WHERE Account__c = :a3.Id WITH SYSTEM_MODE]);
+    }
+
+    @IsTest
+    static void theCapNeverPurgesAnotherUsersRows() {
+        AccountBriefMemory.maxRowsPerUser = 1;
+        Account a = makeAccount();
+        Account b = makeAccount();
+        User other = makeUser('usrcap');
+        insert other;
+        System.runAs(other) {
+            AccountBriefMemory.record(a.Id, 'OK', 'Q', 'Other user');
+        }
+
+        AccountBriefMemory.record(a.Id, 'OK', 'Q', 'Mine one');
+        AccountBriefMemory.record(b.Id, 'OK', 'Q', 'Mine two');
+
+        Assert.areEqual(1, [SELECT COUNT() FROM Account_Brief_Session__c WHERE User__c = :UserInfo.getUserId() WITH SYSTEM_MODE]);
+        Assert.areEqual(1, [SELECT COUNT() FROM Account_Brief_Session__c WHERE User__c = :other.Id WITH SYSTEM_MODE]);
     }
 }

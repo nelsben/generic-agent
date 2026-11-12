@@ -27,12 +27,7 @@ public with sharing class AccountBriefCallsSection implements AccountBriefSource
         try {
             return buildInternal(accountId);
         } catch (Exception e) {
-            AccountBriefSection err = new AccountBriefSection();
-            err.key = KEY;
-            err.title = TITLE;
-            err.status = AccountBriefSection.ERROR;
-            err.body = 'Couldn\'t load ' + TITLE + ' right now.';
-            return err;
+            return AccountBriefSection.failed(KEY, TITLE, e);
         }
     }
 
@@ -45,11 +40,12 @@ public with sharing class AccountBriefCallsSection implements AccountBriefSource
         s.title = TITLE;
 
         DateTime nowDt = DateTime.now();
-        Integer total = [SELECT COUNT() FROM Event WHERE AccountId = :accountId AND StartDateTime <= :nowDt];
+        Integer total = [SELECT COUNT() FROM Event WHERE AccountId = :accountId AND StartDateTime <= :nowDt WITH USER_MODE];
         List<Event> upcoming = [
             SELECT Id, StartDateTime, Subject
             FROM Event
             WHERE AccountId = :accountId AND StartDateTime > :nowDt
+            WITH USER_MODE
             ORDER BY StartDateTime ASC, Id ASC
             LIMIT 1
         ];
@@ -72,6 +68,7 @@ public with sharing class AccountBriefCallsSection implements AccountBriefSource
                 SELECT Id, StartDateTime, Subject, DurationInMinutes, Description, Who.Name
                 FROM Event
                 WHERE AccountId = :accountId AND StartDateTime <= :nowDt
+                WITH USER_MODE
                 ORDER BY StartDateTime DESC, Id DESC
                 LIMIT :CAP
             ];

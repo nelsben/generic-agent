@@ -364,4 +364,19 @@ private class AccountBriefTest {
         Assert.areEqual(AccountBrief.NOT_FOUND, out[2].status);
         Assert.isTrue(AccountBriefGetAction.getBriefs(null).isEmpty());
     }
+
+    @IsTest
+    static void someErrorSectionsStillGiveAnOkBrief() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+        AccountBrief.registry.add(new AccountBrief.Source('broken', 'NoSuchBriefSourceZz'));
+
+        AccountBrief.Result r = AccountBrief.run(a.Id, null, new Set<String>{ 'profile', 'broken' });
+
+        Assert.areEqual(AccountBrief.OK, r.status, 'one section loaded, so the brief is OK');
+        Assert.areEqual(AccountBriefSection.OK, r.sections[0].status);
+        Assert.areEqual(AccountBriefSection.ERROR, r.sections[1].status, 'the failed section stays visible as ERROR');
+        Assert.isNotNull(stub.synthesisUser(), 'the model still writes the brief');
+        Assert.areEqual(1, memoryRows(), 'a brief that answered is remembered');
+    }
 }

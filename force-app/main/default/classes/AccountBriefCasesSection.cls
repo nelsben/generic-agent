@@ -28,14 +28,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
         try {
             return load(accountId);
         } catch (Exception e) {
-            AccountBriefSection s = new AccountBriefSection();
-            s.key = KEY;
-            s.title = TITLE;
-            s.status = AccountBriefSection.ERROR;
-            s.body = 'Couldn\'t load ' + TITLE + ' right now.';
-            s.total = 0;
-            s.shown = 0;
-            return s;
+            return AccountBriefSection.failed(KEY, TITLE, e);
         }
     }
 
@@ -57,6 +50,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
             SELECT Priority p, COUNT(Id) n, MIN(CreatedDate) oldest
             FROM Case
             WHERE AccountId = :accountId AND IsClosed = false
+            WITH USER_MODE
             GROUP BY Priority
         ]) {
             Integer n = (Integer) r.get('n');
@@ -80,11 +74,12 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
             SELECT COUNT(Id) n
             FROM Case
             WHERE AccountId = :accountId AND IsClosed = true AND ClosedDate >= :cutoff
+            WITH USER_MODE
         ];
         Integer closed90 = (Integer) closedAgg[0].get('n');
 
         if (open == 0 && closed90 == 0) {
-            AggregateResult[] anyAgg = [SELECT COUNT(Id) n FROM Case WHERE AccountId = :accountId];
+            AggregateResult[] anyAgg = [SELECT COUNT(Id) n FROM Case WHERE AccountId = :accountId WITH USER_MODE];
             if ((Integer) anyAgg[0].get('n') == 0) {
                 s.status = AccountBriefSection.EMPTY;
                 s.body = 'No cases on this account.';
@@ -114,6 +109,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
             rows.addAll([
                 SELECT CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
                 WHERE AccountId = :accountId AND IsClosed = false AND Priority = :PRIO_HIGH
+                WITH USER_MODE
                 ORDER BY CreatedDate ASC, Id LIMIT :room
             ]);
             room = ROW_CAP - rows.size();
@@ -122,6 +118,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
             rows.addAll([
                 SELECT CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
                 WHERE AccountId = :accountId AND IsClosed = false AND Priority = :PRIO_MEDIUM
+                WITH USER_MODE
                 ORDER BY CreatedDate ASC, Id LIMIT :room
             ]);
             room = ROW_CAP - rows.size();
@@ -130,6 +127,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
             rows.addAll([
                 SELECT CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
                 WHERE AccountId = :accountId AND IsClosed = false AND Priority = :PRIO_LOW
+                WITH USER_MODE
                 ORDER BY CreatedDate ASC, Id LIMIT :room
             ]);
             room = ROW_CAP - rows.size();
@@ -139,6 +137,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
                 SELECT CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
                 WHERE AccountId = :accountId AND IsClosed = false
                     AND (Priority = null OR Priority NOT IN :KNOWN_PRIORITIES)
+                WITH USER_MODE
                 ORDER BY CreatedDate ASC, Id LIMIT :room
             ]);
         }

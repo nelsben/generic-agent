@@ -23,14 +23,7 @@ public with sharing class AccountBriefDealHistorySection implements AccountBrief
         try {
             return load(accountId);
         } catch (Exception e) {
-            AccountBriefSection s = new AccountBriefSection();
-            s.key = KEY;
-            s.title = TITLE;
-            s.status = AccountBriefSection.ERROR;
-            s.body = 'Couldn\'t load ' + TITLE + ' right now.';
-            s.total = 0;
-            s.shown = 0;
-            return s;
+            return AccountBriefSection.failed(KEY, TITLE, e);
         }
     }
 
@@ -46,6 +39,7 @@ public with sharing class AccountBriefDealHistorySection implements AccountBrief
             SELECT IsWon, COUNT(Id) n, AVG(Amount) avgAmount
             FROM Opportunity
             WHERE AccountId = :accountId AND IsClosed = true
+            WITH USER_MODE
             GROUP BY IsWon
         ];
         for (AggregateResult a : byOutcome) {
@@ -70,12 +64,13 @@ public with sharing class AccountBriefDealHistorySection implements AccountBrief
         // Whole-number percent, rounded half up: floor((200 * won + total) / (2 * total)).
         Integer pct = (200 * won + total) / (2 * total);
         String summary = won + ' won / ' + lost + ' lost all-time, win rate ' + pct + '%, average won deal '
-            + (won == 0 || avgWon == null ? 'n/a' : money(avgWon));
+            + (won == 0 || avgWon == null ? 'n/a' : AccountBriefSection.money(avgWon));
 
         List<Opportunity> rows = [
             SELECT Id, Name, Amount, CloseDate, IsWon
             FROM Opportunity
             WHERE AccountId = :accountId AND IsClosed = true
+            WITH USER_MODE
             ORDER BY CloseDate DESC NULLS LAST, Id
             LIMIT :ROW_CAP
         ];
@@ -85,7 +80,7 @@ public with sharing class AccountBriefDealHistorySection implements AccountBrief
         for (Opportunity o : rows) {
             String line = '- ' + AccountBriefSection.clip(o.Name, 100)
                 + ' — ' + (o.IsWon ? 'Won' : 'Lost')
-                + ' — ' + (o.Amount == null ? 'no amount' : money(o.Amount))
+                + ' — ' + (o.Amount == null ? 'no amount' : AccountBriefSection.money(o.Amount))
                 + ' — closed ' + AccountBriefSection.fmtDate(o.CloseDate);
             if (body.length() + 1 + line.length() > BODY_MAX - FOOTER_RESERVE) {
                 break;
@@ -102,20 +97,5 @@ public with sharing class AccountBriefDealHistorySection implements AccountBrief
         s.total = total;
         s.shown = shown;
         return s;
-    }
-
-    /** Whole currency units with grouping and a '$' prefix, e.g. $2,500. Rounds half up. */
-    private static String money(Decimal amount) {
-        Decimal rounded = amount.setScale(0, System.RoundingMode.HALF_UP);
-        String digits = String.valueOf(rounded.abs().longValue());
-        String grouped = '';
-        Integer len = digits.length();
-        for (Integer i = 0; i < len; i++) {
-            if (i > 0 && Math.mod(len - i, 3) == 0) {
-                grouped += ',';
-            }
-            grouped += digits.substring(i, i + 1);
-        }
-        return (rounded < 0 ? '-' : '') + '$' + grouped;
     }
 }

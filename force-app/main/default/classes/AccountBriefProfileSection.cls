@@ -21,14 +21,7 @@ public with sharing class AccountBriefProfileSection implements AccountBriefSour
         try {
             return load(accountId);
         } catch (Exception e) {
-            AccountBriefSection s = new AccountBriefSection();
-            s.key = KEY;
-            s.title = TITLE;
-            s.status = AccountBriefSection.ERROR;
-            s.body = 'Couldn\'t load ' + TITLE + ' right now.';
-            s.total = 0;
-            s.shown = 0;
-            return s;
+            return AccountBriefSection.failed(KEY, TITLE, e);
         }
     }
 
@@ -42,6 +35,7 @@ public with sharing class AccountBriefProfileSection implements AccountBriefSour
                 BillingCity, BillingState, BillingCountry, Website, CreatedDate, Description
             FROM Account
             WHERE Id = :accountId
+            WITH USER_MODE
             LIMIT 1
         ];
         if (rows.isEmpty()) {
@@ -59,7 +53,7 @@ public with sharing class AccountBriefProfileSection implements AccountBriefSour
             'Industry: ' + AccountBriefSection.clip(a.Industry, 60),
             'Owner: ' + AccountBriefSection.clip(a.Owner == null ? null : a.Owner.Name, 80),
             'Parent: ' + AccountBriefSection.clip(a.Parent == null ? null : a.Parent.Name, 100),
-            'Annual revenue: ' + (a.AnnualRevenue == null ? 'n/a' : money(a.AnnualRevenue)),
+            'Annual revenue: ' + (a.AnnualRevenue == null ? 'n/a' : AccountBriefSection.money(a.AnnualRevenue)),
             'Employees: ' + (a.NumberOfEmployees == null ? 'n/a' : String.valueOf(a.NumberOfEmployees)),
             'Location: ' + location(a),
             'Website: ' + AccountBriefSection.clip(a.Website, 100),
@@ -83,20 +77,5 @@ public with sharing class AccountBriefProfileSection implements AccountBriefSour
             }
         }
         return parts.isEmpty() ? 'n/a' : String.join(parts, ', ');
-    }
-
-    /** Whole currency units with grouping and a '$' prefix, e.g. $1,250,000. Rounds half up. */
-    private static String money(Decimal amount) {
-        Decimal rounded = amount.setScale(0, System.RoundingMode.HALF_UP);
-        String digits = String.valueOf(rounded.abs().longValue());
-        String grouped = '';
-        Integer len = digits.length();
-        for (Integer i = 0; i < len; i++) {
-            if (i > 0 && Math.mod(len - i, 3) == 0) {
-                grouped += ',';
-            }
-            grouped += digits.substring(i, i + 1);
-        }
-        return (rounded < 0 ? '-' : '') + '$' + grouped;
     }
 }

@@ -99,4 +99,13 @@ private class ExploreActionTest {
         r.answer = null;
         Assert.areEqual('', ExploreAction.compose(r));
     }
+
+    @IsTest
+    static void nullRequestsAreHandled() {
+        Assert.isTrue(ExploreAction.explore(null).isEmpty());
+
+        List<ExploreAction.Response> out = ExploreAction.explore(new List<ExploreAction.Request>{ null });
+        Assert.areEqual(1, out.size(), 'a null request still gets its own response');
+        Assert.areEqual('EMPTY', out[0].status);
+    }
 }

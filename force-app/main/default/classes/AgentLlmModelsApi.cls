@@ -3,8 +3,8 @@
  * (chat generations) from Apex. The only class in the repo that touches that API.
  *
  * The chat generations request has no max-token setting, so maxTokens is accepted for the
- * Provider contract and not sent; output length is capped by each prompt's own rules.
- * No DML. Any failure is an AgentLlm.LlmException.
+ * Provider contract and not sent; AgentLlm.complete caps the reply length for every provider.
+ * No DML. Any failure is an AgentLlm.LlmException, with the original exception as its cause.
  */
 public with sharing class AgentLlmModelsApi implements AgentLlm.Provider {
     public static final String MODEL = 'sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet';
@@ -16,9 +16,20 @@ public with sharing class AgentLlmModelsApi implements AgentLlm.Provider {
     private static Object call(aiplatform.ModelsAPI.createChatGenerations_Request request) {
         try {
             return new aiplatform.ModelsAPI().createChatGenerations(request);
-        } catch (aiplatform.ModelsAPI.createChatGenerations_ResponseException e) {
-            throw new AgentLlm.LlmException('Models API error ' + e.responseCode + ': ' + e.getMessage());
+        } catch (Exception e) {
+            throw wrap(e);
         }
+    }
+
+    /** The seam's own error for any provider failure, with the original exception kept as its cause. */
+    @TestVisible
+    private static AgentLlm.LlmException wrap(Exception e) {
+        String detail = e instanceof aiplatform.ModelsAPI.createChatGenerations_ResponseException
+            ? 'Models API error ' + ((aiplatform.ModelsAPI.createChatGenerations_ResponseException) e).responseCode + ': ' + e.getMessage()
+            : 'Models API call failed: ' + e.getTypeName() + ': ' + e.getMessage();
+        AgentLlm.LlmException wrapped = new AgentLlm.LlmException(detail);
+        wrapped.initCause(e);
+        return wrapped;
     }
 
     @TestVisible

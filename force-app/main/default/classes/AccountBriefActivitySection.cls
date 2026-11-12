@@ -29,12 +29,7 @@ public with sharing class AccountBriefActivitySection implements AccountBriefSou
         try {
             return buildInternal(accountId);
         } catch (Exception e) {
-            AccountBriefSection err = new AccountBriefSection();
-            err.key = KEY;
-            err.title = TITLE;
-            err.status = AccountBriefSection.ERROR;
-            err.body = 'Couldn\'t load ' + TITLE + ' right now.';
-            return err;
+            return AccountBriefSection.failed(KEY, TITLE, e);
         }
     }
 

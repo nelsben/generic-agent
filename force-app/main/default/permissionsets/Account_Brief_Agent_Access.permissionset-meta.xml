@@ -4,6 +4,7 @@
         <agentName>Account_Brief</agentName>
         <enabled>true</enabled>
     </agentAccesses>
+    <description>Lets a user talk to the Account Brief agent; it grants nothing else.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Account Brief Agent Access</label>
 </PermissionSet>

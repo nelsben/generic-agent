@@ -81,7 +81,7 @@ public with sharing class AccountBrief {
             try {
                 info.title = ((AccountBriefSource) Type.forName(src.className).newInstance()).title();
             } catch (Exception e) {
-                System.debug(LoggingLevel.ERROR, 'AccountBrief source ' + src.key + ' has no title: ' + e.getMessage());
+                System.debug(LoggingLevel.ERROR, 'AccountBrief source ' + src.key + ' has no title: ' + e.getTypeName() + ': ' + e.getMessage());
             }
             out.add(info);
         }
@@ -136,7 +136,7 @@ public with sharing class AccountBrief {
             try {
                 AccountBriefMemory.recordAll(memory);
             } catch (Exception e) {
-                System.debug(LoggingLevel.ERROR, 'AccountBriefMemory.recordAll failed: ' + e.getMessage());
+                System.debug(LoggingLevel.ERROR, 'AccountBriefMemory.recordAll failed: ' + e.getTypeName() + ': ' + e.getMessage());
             }
         }
 
@@ -183,7 +183,7 @@ public with sharing class AccountBrief {
         try {
             answer = reduce(acct.Name, question, built);
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'AccountBrief reduce failed: ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, 'AccountBrief reduce failed: ' + e.getTypeName() + ': ' + e.getMessage());
             return finish(r, ERROR, ERROR_TEXT, ERROR_TEXT);
         }
         finish(r, anyOk ? OK : EMPTY, anyOk ? '' : EMPTY_TEXT, answer);
@@ -202,8 +202,14 @@ public with sharing class AccountBrief {
         if (accountId == null || accountId.getSObjectType() != Account.SObjectType) {
             return null;
         }
-        List<Account> rows = [SELECT Id, Name FROM Account WHERE Id = :accountId LIMIT 1];
-        return rows.isEmpty() ? null : rows[0];
+        try {
+            List<Account> rows = [SELECT Id, Name FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+            return rows.isEmpty() ? null : rows[0];
+        } catch (QueryException e) {
+            // No read access to Account or its Name: the account is not visible to this user.
+            System.debug(LoggingLevel.WARN, 'AccountBrief visibility check failed: ' + e.getTypeName() + ': ' + e.getMessage());
+            return null;
+        }
     }
 
     private static List<String> allKeys() {
@@ -236,19 +242,15 @@ public with sharing class AccountBrief {
 
     private static AccountBriefSection buildSource(Source src, Id accountId) {
         AccountBriefSection s;
+        Exception failure;
         try {
             AccountBriefSource impl = (AccountBriefSource) Type.forName(src.className).newInstance();
             s = impl.build(accountId);
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'AccountBrief source ' + src.key + ' failed: ' + e.getMessage());
-            s = null;
+            failure = e;
         }
         if (s == null) {
-            s = new AccountBriefSection();
-            s.key = src.key;
-            s.title = src.key;
-            s.status = AccountBriefSection.ERROR;
-            s.body = 'Couldn\'t load ' + src.key + ' right now.';
+            s = AccountBriefSection.failed(src.key, src.key, failure);
         }
         return s;
     }
