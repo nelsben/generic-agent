@@ -53,4 +53,13 @@ private class AgentLlmModelsApiTest {
             }
         }
     }
+
+    @IsTest
+    static void anyProviderFailureIsWrappedWithItsCause() {
+        CalloutException raw = new CalloutException('read timed out');
+        AgentLlm.LlmException wrapped = AgentLlmModelsApi.wrap(raw);
+        Assert.isTrue(wrapped.getMessage().contains('System.CalloutException'), wrapped.getMessage());
+        Assert.isTrue(wrapped.getMessage().contains('read timed out'), wrapped.getMessage());
+        Assert.areEqual(raw, wrapped.getCause());
+    }
 }

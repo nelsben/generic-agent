@@ -53,6 +53,16 @@ public with sharing class AccountBriefResolver {
     }
 
     public static Response resolve(String accountName, String knownAccountId) {
+        try {
+            return resolveChecked(accountName, knownAccountId);
+        } catch (QueryException e) {
+            // The user can't read Account (or Account.Name): nothing they can see matches.
+            System.debug(LoggingLevel.WARN, 'AccountBriefResolver query failed: ' + e.getTypeName() + ': ' + e.getMessage());
+            return String.isBlank(accountName) ? notFoundBlank() : notFound(accountName.trim());
+        }
+    }
+
+    private static Response resolveChecked(String accountName, String knownAccountId) {
         // 1. The open record.
         Account byKnown = visibleAccount(knownAccountId);
         if (byKnown != null) {
@@ -71,27 +81,52 @@ public with sharing class AccountBriefResolver {
         }
 
         // 3. Exact name (SOQL equality is case-insensitive) when unique.
-        List<Account> exact = [SELECT Id, Name FROM Account WHERE Name = :term ORDER BY Name, Id LIMIT 2];
+        List<Account> exact = [SELECT Id, Name FROM Account WHERE Name = :term WITH USER_MODE ORDER BY Name, Id LIMIT 2];
         if (exact.size() == 1) {
             return resolved(exact[0]);
         }
 
         // 4. Partial name. Escape LIKE wildcards in the term, then bind it.
+        // The leading wildcard stays on purpose. This step is a contains-search: a rep who types
+        // "Edge" for "The Edge Company" must find it, and a prefix-first search would resolve to
+        // an account that merely starts with the term and hide the others (RESOLVED instead of
+        // AMBIGUOUS). The cost is bounded: the exact-name step above is the indexed fast path,
+        // the candidate query has LIMIT, and the count is one extra query per name search.
         String pattern = '%' + term.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%';
-        Integer total = [SELECT COUNT() FROM Account WHERE Name LIKE :pattern];
+        Integer total = [SELECT COUNT() FROM Account WHERE Name LIKE :pattern WITH USER_MODE];
         if (total == 0) {
             return notFound(term);
         }
-        List<Account> hits = [
-            SELECT Id, Name, BillingCity FROM Account
-            WHERE Name LIKE :pattern
-            ORDER BY Name, Id
-            LIMIT :MAX_CANDIDATES
-        ];
+        List<Account> hits = partialHits(pattern);
         if (total == 1) {
             return resolved(hits[0]);
         }
         return ambiguous(term, hits, total);
+    }
+
+    /**
+     * The candidate accounts for a name pattern, with their city. A user who can't read
+     * Account.BillingCity still gets the candidates, without a city, instead of an error.
+     */
+    private static List<Account> partialHits(String pattern) {
+        try {
+            return [
+                SELECT Id, Name, BillingCity FROM Account
+                WHERE Name LIKE :pattern
+                WITH USER_MODE
+                ORDER BY Name, Id
+                LIMIT :MAX_CANDIDATES
+            ];
+        } catch (QueryException e) {
+            System.debug(LoggingLevel.WARN, 'AccountBriefResolver city not readable: ' + e.getTypeName() + ': ' + e.getMessage());
+            return [
+                SELECT Id, Name FROM Account
+                WHERE Name LIKE :pattern
+                WITH USER_MODE
+                ORDER BY Name, Id
+                LIMIT :MAX_CANDIDATES
+            ];
+        }
     }
 
     /** The Account with this Id if the string is a valid Account Id the user can see, else null. */
@@ -100,7 +135,7 @@ public with sharing class AccountBriefResolver {
         if (parsed == null) {
             return null;
         }
-        List<Account> found = [SELECT Id, Name FROM Account WHERE Id = :parsed LIMIT 1];
+        List<Account> found = [SELECT Id, Name FROM Account WHERE Id = :parsed WITH USER_MODE LIMIT 1];
         return found.isEmpty() ? null : found[0];
     }
 
@@ -153,7 +188,7 @@ public with sharing class AccountBriefResolver {
     private static Response ambiguous(String term, List<Account> hits, Integer total) {
         List<String> lines = new List<String>{ 'Several accounts match "' + term + '". Which one?' };
         for (Account a : hits) {
-            String city = String.isBlank(a.BillingCity) ? 'no city' : a.BillingCity;
+            String city = cityOf(a);
             lines.add(a.Name + ' — ' + city + ' — ' + String.valueOf(a.Id));
         }
         if (total > hits.size()) {
@@ -163,6 +198,15 @@ public with sharing class AccountBriefResolver {
         r.status = AMBIGUOUS;
         r.message = String.join(lines, '\n');
         return r;
+    }
+
+    /** The account's city, or 'no city' when it is blank or was not queried (no read access to it). */
+    private static String cityOf(Account a) {
+        try {
+            return String.isBlank(a.BillingCity) ? 'no city' : a.BillingCity;
+        } catch (SObjectException e) {
+            return 'no city';
+        }
     }
 
     private static Response notFound(String term) {

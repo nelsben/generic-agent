@@ -20,6 +20,23 @@ public with sharing class AccountBriefSection {
     @AuraEnabled public Integer total = 0;
     /** Rows rendered after the cap. */
     @AuraEnabled public Integer shown = 0;
+    /**
+     * For an ERROR section: the exception type and message that caused it. For logs and tests only:
+     * not AuraEnabled, never part of body, so it never reaches the rep or a model prompt.
+     */
+    public String cause;
+
+    /** An ERROR section for a failed build: the fixed user-facing body, the cause kept and logged. */
+    public static AccountBriefSection failed(String key, String title, Exception e) {
+        AccountBriefSection s = new AccountBriefSection();
+        s.key = key;
+        s.title = title;
+        s.status = ERROR;
+        s.body = 'Couldn\'t load ' + title + ' right now.';
+        s.cause = e == null ? null : e.getTypeName() + ': ' + e.getMessage();
+        System.debug(LoggingLevel.ERROR, 'AccountBrief section ' + key + ' failed: ' + s.cause);
+        return s;
+    }
 
     /**
      * Single-line, whitespace-collapsed, length-capped text. Blank input gives 'n/a'.
@@ -43,5 +60,20 @@ public with sharing class AccountBriefSection {
             return 'n/a';
         }
         return DateTime.newInstance(d, Time.newInstance(0, 0, 0, 0)).format('yyyy-MM-dd');
+    }
+
+    /** Whole currency units with grouping and a '$' prefix, e.g. $1,250,000. Rounds half up. */
+    public static String money(Decimal amount) {
+        Decimal rounded = amount.setScale(0, System.RoundingMode.HALF_UP);
+        String digits = String.valueOf(rounded.abs().longValue());
+        String grouped = '';
+        Integer len = digits.length();
+        for (Integer i = 0; i < len; i++) {
+            if (i > 0 && Math.mod(len - i, 3) == 0) {
+                grouped += ',';
+            }
+            grouped += digits.substring(i, i + 1);
+        }
+        return (rounded < 0 ? '-' : '') + '$' + grouped;
     }
 }

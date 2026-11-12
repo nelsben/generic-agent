@@ -21,6 +21,7 @@ public with sharing class AccountBriefGetAction {
     }
 
     @InvocableMethod(
+        callout=true
         label='Get Account Brief'
         description='Builds the account brief for one resolved account: gathers the requested sections and writes the brief. Relay the answer verbatim.'
     )

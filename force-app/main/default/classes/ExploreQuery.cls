@@ -149,6 +149,14 @@ public with sharing class ExploreQuery {
             ExplorePlan.ResolvedFilter f = r.filters[i];
             if (f.literal != null) {
                 conditions.add(f.field.path + ' ' + f.op + ' ' + f.literal);
+            } else if (f.bindValueEnd != null) {
+                // A whole day on a Datetime field: a range, never a match on the one instant of midnight.
+                b.binds.put('b' + i, f.bindValue);
+                b.binds.put('e' + i, f.bindValueEnd);
+                String p = f.field.path;
+                conditions.add(f.op == '='
+                    ? '(' + p + ' >= :b' + i + ' AND ' + p + ' < :e' + i + ')'
+                    : '(' + p + ' < :b' + i + ' OR ' + p + ' >= :e' + i + ' OR ' + p + ' = null)');
             } else {
                 b.binds.put('b' + i, f.bindValue);
                 conditions.add(f.field.path + ' ' + f.op + ' :b' + i);

@@ -25,11 +25,17 @@ public with sharing class ExploreAction {
         public String answer;
     }
 
-    @InvocableMethod(label='Explore Data' description='Answers a question about Salesforce data by running safe, read-only queries the user has access to.')
+    @InvocableMethod(callout=true label='Explore Data' description='Answers a question about Salesforce data by running safe, read-only queries the user has access to.')
     public static List<Response> explore(List<Request> requests) {
         List<Response> out = new List<Response>();
+        if (requests == null) {
+            return out;
+        }
         for (Request req : requests) {
-            DataExplorer.Result r = DataExplorer.explore(req.question, req.contextRecordId, null);
+            // A null request gets a response like any other (a blank question is EMPTY), so results line up.
+            DataExplorer.Result r = req == null
+                ? DataExplorer.explore(null, null, null)
+                : DataExplorer.explore(req.question, req.contextRecordId, null);
             Response res = new Response();
             res.status = r.status;
             res.answer = compose(r);

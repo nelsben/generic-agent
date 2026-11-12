@@ -58,12 +58,7 @@ public with sharing class AccountBriefContactsSection implements AccountBriefSou
         try {
             return buildInternal(accountId);
         } catch (Exception e) {
-            AccountBriefSection err = new AccountBriefSection();
-            err.key = KEY;
-            err.title = TITLE;
-            err.status = AccountBriefSection.ERROR;
-            err.body = 'Couldn\'t load ' + TITLE + ' right now.';
-            return err;
+            return AccountBriefSection.failed(KEY, TITLE, e);
         }
     }
 
@@ -75,7 +70,7 @@ public with sharing class AccountBriefContactsSection implements AccountBriefSou
         s.key = KEY;
         s.title = TITLE;
 
-        Integer total = [SELECT COUNT() FROM Contact WHERE AccountId = :accountId];
+        Integer total = [SELECT COUNT() FROM Contact WHERE AccountId = :accountId WITH USER_MODE];
         if (total == 0) {
             s.status = AccountBriefSection.EMPTY;
             s.body = 'No contacts on this account.';
@@ -86,6 +81,7 @@ public with sharing class AccountBriefContactsSection implements AccountBriefSou
             SELECT Id, Name, Title, LastActivityDate
             FROM Contact
             WHERE AccountId = :accountId
+            WITH USER_MODE
             ORDER BY LastActivityDate DESC NULLS LAST, Name
             LIMIT :SCAN_LIMIT
         ];
@@ -103,6 +99,7 @@ public with sharing class AccountBriefContactsSection implements AccountBriefSou
             SELECT WhoId w, TaskSubtype st, COUNT(Id) cnt
             FROM Task
             WHERE WhoId IN :ids AND ActivityDate >= :since AND ActivityDate <= :today
+            WITH USER_MODE
             GROUP BY WhoId, TaskSubtype
         ]) {
             Row r = rows.get((Id) ar.get('w'));
@@ -119,6 +116,7 @@ public with sharing class AccountBriefContactsSection implements AccountBriefSou
             SELECT WhoId w, COUNT(Id) cnt
             FROM Event
             WHERE WhoId IN :ids AND ActivityDate >= :since AND ActivityDate <= :today
+            WITH USER_MODE
             GROUP BY WhoId
         ]) {
             Row r = rows.get((Id) ar.get('w'));

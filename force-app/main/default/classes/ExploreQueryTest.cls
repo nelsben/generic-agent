@@ -190,4 +190,42 @@ private class ExploreQueryTest {
             Assert.isTrue(e.getMessage().contains('Unknown field "Nope" on Opportunity.'));
         }
     }
+
+    private static User kiritimatiUser() {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        String uniq = 'tz' + String.valueOf(Crypto.getRandomInteger()).replace('-', '');
+        User u = new User(
+            Alias = 'tzusr',
+            Email = uniq + '@example.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'Explore Zone',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            ProfileId = p.Id,
+            TimeZoneSidKey = 'Pacific/Kiritimati',
+            Username = uniq + '@example.com.exploretz'
+        );
+        insert u;
+        return u;
+    }
+
+    @IsTest
+    static void aDateOnlyValueOnADatetimeFieldIsReadInTheUsersTimeZone() {
+        System.runAs(kiritimatiUser()) {
+            Assert.areEqual('Pacific/Kiritimati', UserInfo.getTimeZone().getID(), 'the test needs a zone far from GMT');
+            Account acct = new Account(Name = 'Zone Account');
+            insert acct;
+            // Noon on 2026-01-05 where the user is (UTC+14) is 22:00 GMT on the 4th.
+            Test.setCreatedDate(acct.Id, Datetime.newInstance(Date.newInstance(2026, 1, 5), Time.newInstance(12, 0, 0, 0)));
+            String base = '{"object":"Account","fields":["Name"],"filters":[{"field":"Name","op":"=","value":"Zone Account"},';
+
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"=","value":"2026-01-05"}]}').shown, 'the day matches');
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":"=","value":"2026-01-04"}]}').shown, 'the GMT day does not');
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":"!=","value":"2026-01-05"}]}').shown);
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"!=","value":"2026-01-04"}]}').shown);
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":">=","value":"2026-01-05"}]}').shown, 'local midnight');
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":"<","value":"2026-01-05"}]}').shown, 'local midnight');
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"<","value":"2026-01-06"}]}').shown);
+        }
+    }
 }

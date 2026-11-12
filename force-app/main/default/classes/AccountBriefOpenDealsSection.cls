@@ -24,14 +24,7 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
         try {
             return load(accountId);
         } catch (Exception e) {
-            AccountBriefSection s = new AccountBriefSection();
-            s.key = KEY;
-            s.title = TITLE;
-            s.status = AccountBriefSection.ERROR;
-            s.body = 'Couldn\'t load ' + TITLE + ' right now.';
-            s.total = 0;
-            s.shown = 0;
-            return s;
+            return AccountBriefSection.failed(KEY, TITLE, e);
         }
     }
 
@@ -46,6 +39,7 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
             SELECT COUNT(Id) n, SUM(Amount) pipeline
             FROM Opportunity
             WHERE AccountId = :accountId AND IsClosed = false
+            WITH USER_MODE
         ];
         Integer total = (Integer) totals[0].get('n');
         Decimal pipeline = (Decimal) totals[0].get('pipeline');
@@ -65,6 +59,7 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
             SELECT COUNT(Id) n
             FROM Opportunity
             WHERE AccountId = :accountId AND IsClosed = false AND CloseDate < :asOfDate
+            WITH USER_MODE
         ];
         Integer overdue = (Integer) overdueAgg[0].get('n');
 
@@ -72,6 +67,7 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
             SELECT Id, Name, StageName, Amount, CloseDate, Owner.Name
             FROM Opportunity
             WHERE AccountId = :accountId AND IsClosed = false
+            WITH USER_MODE
             ORDER BY CloseDate ASC NULLS LAST, Id
             LIMIT :ROW_CAP
         ];
@@ -86,6 +82,7 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
                 SELECT OpportunityId, Role, IsPrimary, Contact.Name
                 FROM OpportunityContactRole
                 WHERE OpportunityId IN :oppIds
+                WITH USER_MODE
                 ORDER BY IsPrimary DESC, Id
             ]) {
                 List<OpportunityContactRole> bucket = rolesByOpp.get(r.OpportunityId);
@@ -99,7 +96,7 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
             }
         }
 
-        String body = total + ' open, ' + money(pipeline) + ' total pipeline, ' + overdue + ' overdue';
+        String body = total + ' open, ' + AccountBriefSection.money(pipeline) + ' total pipeline, ' + overdue + ' overdue';
         Integer shown = 0;
         for (Opportunity o : rows) {
             String block = dealBlock(o, asOfDate, rolesByOpp.get(o.Id));
@@ -126,7 +123,7 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
         String ownerName = o.Owner == null ? null : o.Owner.Name;
         String block = '- ' + AccountBriefSection.clip(o.Name, 100)
             + ' — ' + AccountBriefSection.clip(o.StageName, 60)
-            + ' — ' + (o.Amount == null ? 'no amount' : money(o.Amount))
+            + ' — ' + (o.Amount == null ? 'no amount' : AccountBriefSection.money(o.Amount))
             + ' — closes ' + AccountBriefSection.fmtDate(o.CloseDate)
             + (overdueDeal ? ' (OVERDUE)' : '')
             + ' — owner ' + AccountBriefSection.clip(ownerName, 60);
@@ -138,20 +135,5 @@ public with sharing class AccountBriefOpenDealsSection implements AccountBriefSo
             }
         }
         return block;
-    }
-
-    /** Whole currency units with grouping and a '$' prefix, e.g. $1,250,000. Rounds half up. */
-    private static String money(Decimal amount) {
-        Decimal rounded = amount.setScale(0, System.RoundingMode.HALF_UP);
-        String digits = String.valueOf(rounded.abs().longValue());
-        String grouped = '';
-        Integer len = digits.length();
-        for (Integer i = 0; i < len; i++) {
-            if (i > 0 && Math.mod(len - i, 3) == 0) {
-                grouped += ',';
-            }
-            grouped += digits.substring(i, i + 1);
-        }
-        return (rounded < 0 ? '-' : '') + '$' + grouped;
     }
 }

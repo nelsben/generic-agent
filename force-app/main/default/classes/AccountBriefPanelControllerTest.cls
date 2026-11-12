@@ -248,4 +248,24 @@ private class AccountBriefPanelControllerTest {
             Assert.areEqual(String.valueOf(bots[0].Id), id);
         }
     }
+
+    @IsTest
+    static void drillTurnsEveryExceptionIntoTheFixedText() {
+        Account a = acme();
+        List<Exception> raw = new List<Exception>{
+            new QueryException('No such column Secret_Field__c on entity Account'),
+            new NoAccessException(),
+            new ExplorePlan.PlanException('Plan problem about Hidden__c'),
+            new DmlException('Some DML detail')
+        };
+        for (Exception e : raw) {
+            AccountBriefPanelController.failure = e;
+            try {
+                AccountBriefPanelController.drill(a.Id, 'Opportunity');
+                Assert.fail('expected an AuraHandledException');
+            } catch (AuraHandledException h) {
+                Assert.areEqual(FIXED_ERROR, h.getMessage(), e.getTypeName());
+            }
+        }
+    }
 }

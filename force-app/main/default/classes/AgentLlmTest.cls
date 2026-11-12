@@ -5,8 +5,12 @@ private class AgentLlmTest {
         String userPrompt;
         Integer maxTokens;
         String reply = '  model text  ';
+        Exception toThrow;
 
         public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
+            if (toThrow != null) {
+                throw toThrow;
+            }
             this.systemPrompt = systemPrompt;
             this.userPrompt = userPrompt;
             this.maxTokens = maxTokens;
@@ -99,5 +103,42 @@ private class AgentLlmTest {
         Assert.isTrue(AgentLlm.provider() instanceof AgentLlmModelsApi);
         Stub stub = install();
         Assert.areEqual(stub, AgentLlm.provider());
+    }
+
+    @IsTest
+    static void anyProviderExceptionBecomesAnLlmException() {
+        Stub stub = install();
+        stub.toThrow = new CalloutException('socket closed');
+        String message = failure('BriefDealHistory', new Map<String, String>{ 'deal_history' => 'x' });
+        Assert.isNotNull(message, 'the provider exception must come back as an LlmException');
+        Assert.isTrue(message.contains('CalloutException'), message);
+        Assert.isTrue(message.contains('socket closed'), message);
+
+        stub.toThrow = new AgentLlm.LlmException('already ours');
+        Assert.areEqual('already ours', failure('BriefDealHistory', new Map<String, String>{ 'deal_history' => 'x' }));
+    }
+
+    @IsTest
+    static void replyLengthIsCappedFromMaxTokens() {
+        Stub stub = install();
+        stub.reply = 'word '.repeat(2000);
+        String out = AgentLlm.complete('BriefDealHistory', new Map<String, String>{ 'deal_history' => 'x' }, 50);
+        Assert.isTrue(out.length() <= 200, 'about four characters a token: ' + out.length());
+        Assert.isTrue(out.length() > 100, 'it is cut, not emptied: ' + out.length());
+
+        String uncapped = AgentLlm.complete('BriefDealHistory', new Map<String, String>{ 'deal_history' => 'x' }, null);
+        Assert.areEqual(('word '.repeat(2000)).trim().length(), uncapped.length(), 'no maxTokens means no cap');
+    }
+
+    @IsTest
+    static void aPromptIsLoadedOncePerTransaction() {
+        Integer before = Limits.getQueries();
+        String first = AgentLlm.loadPrompt('BriefDealHistory');
+        String second = AgentLlm.loadPrompt('BriefDealHistory');
+        Assert.areEqual(1, Limits.getQueries() - before, 'the second load is served from the cache');
+        Assert.areEqual(first, second);
+
+        AgentLlm.loadPrompt('BriefEngagement');
+        Assert.areEqual(2, Limits.getQueries() - before, 'another prompt is its own query');
     }
 }

@@ -9,7 +9,11 @@
  *
  * The active provider is the class named in PROVIDER_CLASS. A new model provider is one class that
  * implements Provider plus a change to that constant. Tests set `stub` so no test ever calls a model.
- * No DML. Every failure is an AgentLlm.LlmException.
+ * Output is capped at about CHARS_PER_TOKEN characters per requested token (the Models API request
+ * carries no max-token setting, so the cap is applied here, at the seam, to every provider). A prompt
+ * is read once per transaction and kept in a static cache.
+ * No DML. Every failure is an AgentLlm.LlmException: an exception from a provider is wrapped, with its
+ * type and message kept in the text.
  */
 public with sharing class AgentLlm {
     public interface Provider {
@@ -20,6 +24,8 @@ public with sharing class AgentLlm {
 
     @TestVisible private static final String PROMPT_PREFIX = 'AgentPrompt_';
     @TestVisible private static final String PROVIDER_CLASS = 'AgentLlmModelsApi';
+    /** Rough characters per token, used to turn maxTokens into a reply length cap. */
+    @TestVisible private static final Integer CHARS_PER_TOKEN = 4;
     private static final String SYSTEM_MARK = '---system---';
     private static final String USER_MARK = '---user---';
     private static final Pattern PLACEHOLDER = Pattern.compile('\\{\\{\\s*([A-Za-z0-9_]+)\\s*\\}\\}');
@@ -27,15 +33,32 @@ public with sharing class AgentLlm {
     /** When set, used instead of the real provider. Tests only. */
     @TestVisible private static Provider stub;
 
+    /** Prompt text by static resource name, filled on first load in a transaction. */
+    private static final Map<String, String> promptCache = new Map<String, String>();
+
     public static String complete(String promptName, Map<String, String> vars, Integer maxTokens) {
         String raw = loadPrompt(promptName);
         String systemPrompt = fill(part(raw, SYSTEM_MARK, USER_MARK, promptName), vars, promptName);
         String userPrompt = fill(part(raw, USER_MARK, null, promptName), vars, promptName);
-        String text = provider().complete(systemPrompt, userPrompt, maxTokens);
+        String text;
+        try {
+            text = provider().complete(systemPrompt, userPrompt, maxTokens);
+        } catch (LlmException e) {
+            throw e;
+        } catch (Exception e) {
+            LlmException wrapped = new LlmException('The model call for prompt ' + promptName + ' failed: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            wrapped.initCause(e);
+            throw wrapped;
+        }
         if (String.isBlank(text)) {
             throw new LlmException('The model returned no text for prompt ' + promptName + '.');
         }
-        return text.trim();
+        text = text.trim();
+        if (maxTokens != null && maxTokens > 0 && text.length() > maxTokens * CHARS_PER_TOKEN) {
+            text = text.left(maxTokens * CHARS_PER_TOKEN).trim();
+        }
+        return text;
     }
 
     @TestVisible
@@ -53,11 +76,17 @@ public with sharing class AgentLlm {
     @TestVisible
     private static String loadPrompt(String promptName) {
         String resourceName = PROMPT_PREFIX + (promptName == null ? '' : promptName.trim());
+        String cached = promptCache.get(resourceName);
+        if (cached != null) {
+            return cached;
+        }
         List<StaticResource> rows = [SELECT Body FROM StaticResource WHERE Name = :resourceName LIMIT 1];
         if (rows.isEmpty() || rows[0].Body == null) {
             throw new LlmException('Prompt not found: static resource ' + resourceName + ' does not exist.');
         }
-        return rows[0].Body.toString();
+        String body = rows[0].Body.toString();
+        promptCache.put(resourceName, body);
+        return body;
     }
 
     /** The text after startMark and before endMark (or the end), trimmed. */

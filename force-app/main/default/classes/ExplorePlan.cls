@@ -97,6 +97,12 @@ public with sharing class ExplorePlan {
         /** A DATE_LITERALS token rebuilt by this class, or null when the value is bound. */
         public String literal;
         public Object bindValue;
+        /**
+         * Set only for = or != on a Datetime field with a date-only value: the start of the next day in the
+         * running user's time zone. bindValue is then the start of that day, and the filter is the range
+         * [bindValue, bindValueEnd).
+         */
+        public Datetime bindValueEnd;
         /** For the trail only, never for the query. */
         public String display;
     }
@@ -365,6 +371,10 @@ public with sharing class ExplorePlan {
             rf.literal = dateLiteral(f, op, filter.value);
             if (rf.literal == null) {
                 rf.bindValue = bindValue(f, op, filter.value);
+                if (f.kind == ExploreCatalog.KIND_DATETIME && (op == '=' || op == '!=') && filter.value instanceof String
+                        && DATE_SHAPE.matcher(((String) filter.value).trim()).matches()) {
+                    rf.bindValueEnd = startOfDay(Date.valueOf(((String) filter.value).trim()).addDays(1));
+                }
             }
             rf.display = f.path + ' ' + op + ' ' + (rf.literal != null ? rf.literal : display(filter.value));
             r.filters.add(rf);
@@ -573,11 +583,17 @@ public with sharing class ExplorePlan {
         return kind == ExploreCatalog.KIND_INTEGER ? (Object) d.intValue() : (Object) d.longValue();
     }
 
+    /** Midnight at the start of the date in the running user's time zone. */
+    private static Datetime startOfDay(Date d) {
+        return Datetime.newInstance(d, Time.newInstance(0, 0, 0, 0));
+    }
+
     private static Object dateValue(ExploreCatalog.Field f, String s) {
         try {
             if (DATE_SHAPE.matcher(s).matches()) {
                 Date d = Date.valueOf(s);
-                return f.kind == ExploreCatalog.KIND_DATE ? (Object) d : (Object) Datetime.newInstanceGmt(d.year(), d.month(), d.day());
+                // A date-only value on a Datetime field means that day where the user is, not in GMT.
+                return f.kind == ExploreCatalog.KIND_DATE ? (Object) d : (Object) startOfDay(d);
             }
             if (f.kind == ExploreCatalog.KIND_DATETIME && DATETIME_SHAPE.matcher(s).matches()) {
                 return (Datetime) JSON.deserialize('"' + s + '"', Datetime.class);
