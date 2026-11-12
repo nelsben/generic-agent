@@ -17,24 +17,25 @@ const KEEP_BEFORE_ANSWER = 1;
 const HOLD_ON_HEADLINE = 3500;
 
 /**
- * Scrolls the conversation so the summary box, which opens with the headline sentence, sits at the
- * top of the scroll box. Returns the geometry in CSS px, and whether the first section header fits
- * under the summary too. In the 340x480 panel it does not when the summary is long, or when the
- * bar shows "Earlier briefs" (the scroll box is then about 140 px tall).
+ * Scrolls the conversation so the brief's question sits at the top of the scroll box, then checks
+ * that the summary's headline and the first two section headers are all inside the box. The
+ * summary's rest starts collapsed, so they fit in the 340x480 panel. Throws, naming the CSS px, when
+ * they do not: the still would not show what its caption says.
  */
-async function headlineAtTop(panel, turn, sections) {
-    const box = await panel.body.boundingBox();
-    const summary = await turn.locator('article.abp-summary').boundingBox();
-    const header = await sections.first().getByRole('button').first().boundingBox();
-    if (!box || !summary || !header) {
-        throw new Error('panel-brief.png: the scroll box, the summary or the first section is not rendered.');
-    }
-    const needed = Math.ceil(header.y + header.height - summary.y + 8);
-    await panel.body.evaluate((el, d) => {
-        el.scrollTop += d;
-    }, summary.y - box.y - 4);
+async function headlineAndSections(panel, turn, sections) {
+    await turn.locator('.abp-question').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
     await panel.page.waitForTimeout(300);
-    return { box: Math.round(box.height), needed, fits: needed <= box.height };
+    const box = await panel.body.boundingBox();
+    const headline = await panel.headline(turn).boundingBox();
+    const second = await sections.nth(1).getByRole('button').first().boundingBox();
+    if (!box || !headline || !second) {
+        throw new Error('panel-brief.png: the scroll box, the headline or the second section is not rendered.');
+    }
+    const bottom = Math.ceil(second.y + second.height - box.y);
+    if (headline.y < box.y || bottom > box.height) {
+        throw new Error(`panel-brief.png: the headline and two section headers need ${bottom} px; the scroll box is ${Math.round(box.height)} px.`);
+    }
+    return { box: Math.round(box.height), needed: bottom };
 }
 
 test('brief-flow.gif, panel-brief.png, panel-sections-open.png, memory-followup.png', async ({ page, panel, t0 }) => {
@@ -59,11 +60,11 @@ test('brief-flow.gif, panel-brief.png, panel-sections-open.png, memory-followup.
     await page.waitForTimeout(HOLD_ON_HEADLINE);
     const end = at(t0);
 
-    // panel-brief.png: the headline sentence at the top of the scroll box; the collapsed sections
-    // are in view under it only when the summary is short enough.
+    // panel-brief.png: the question at the top of the scroll box, the headline, the collapsed
+    // summary and at least the first two section headers.
     const sections = turn.locator('lightning-accordion-section');
-    const fit = await headlineAtTop(panel, turn, sections);
-    console.log(`panel-brief.png: box ${fit.box} px, headline to first section ${fit.needed} px, sections in view ${fit.fits}`);
+    const fit = await headlineAndSections(panel, turn, sections);
+    console.log(`panel-brief.png: box ${fit.box} px, question to second section header ${fit.needed} px`);
     await panel.composer.blur();
     await still(page, 'panel-brief.png');
 

@@ -47,6 +47,16 @@ const USER_INPUT_EVENTS = ['keydown', 'mousedown', 'pointerdown', 'touchstart'];
 // The controller's fixed ERROR line; shown when a failure carries no handled text.
 const ERROR_TEXT = "I couldn't finish that right now. Try again in a minute.";
 
+/** The brief summary's collapsible rest: collapsed by default, so the sections show under the headline. */
+function summaryState(open) {
+    return {
+        summaryOpen: open,
+        summaryExpanded: String(open),
+        summaryIcon: open ? 'utility:chevrondown' : 'utility:chevronright',
+        restClass: open ? 'abp-pre slds-m-top_xx-small' : 'abp-pre slds-m-top_xx-small slds-hide'
+    };
+}
+
 const BADGE_CLASS = {
     OK: 'slds-theme_success',
     ERROR: 'slds-theme_error'
@@ -652,11 +662,19 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
             showMessage: verbatim || (r.status === 'EMPTY' && !!r.message && r.message !== answer),
             header: verbatim ? '' : nl >= 0 ? answer.substring(0, nl).trim() : answer,
             rest: verbatim || nl < 0 ? '' : answer.substring(nl + 1).trim(),
+            restId: key + '-rest',
+            ...summaryState(false),
             hasSections: sections.length > 0,
             sections,
             ignoredText: r.ignored && r.ignored.length ? 'Not sections: ' + r.ignored.join(', ') : '',
             historyAnswer: verbatim ? r.message : answer
         };
+    }
+
+    /** Shows or hides the rest of a brief's summary. The text stays in the DOM either way. */
+    handleSummaryToggle(event) {
+        const key = event.currentTarget.dataset.key;
+        this.turns = this.turns.map((t) => (t.key === key ? { ...t, ...summaryState(!t.summaryOpen) } : t));
     }
 
     _historyJson() {
