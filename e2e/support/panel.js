@@ -34,6 +34,7 @@ class Panel {
         this.composer = this.host.getByRole('textbox', { name: COMPOSER_LABEL });
         this.send = this.host.getByRole('button', { name: 'Send', exact: true });
         this.briefButton = this.host.getByRole('button', { name: 'Brief ' + ACCOUNT_NAME, exact: true });
+        this.agentButton = this.host.getByRole('button', { name: 'Ask the agent', exact: true });
         // The panel's own live region; lightning-textarea renders a second, empty role=status.
         this.liveRegion = this.host.getByTestId('abp-live-region');
         this.spinner = this.host.getByTestId('abp-spinner');
@@ -41,6 +42,10 @@ class Panel {
         // The scroll box: the conversation and the drill view.
         this.body = this.host.getByRole('region', { name: 'Conversation', exact: true });
         this.breadcrumbs = this.host.locator('lightning-breadcrumbs');
+        // The utility panel's own header (title, Minimize, Pop-out), above the panel component.
+        this.panelHeader = this.dialog.locator('.slds-utility-panel__header').first();
+        // The header of the account's "Earlier briefs" list.
+        this.historyHeader = this.host.getByRole('button', { name: /^Earlier briefs/ });
     }
 
     get recordUrl() {

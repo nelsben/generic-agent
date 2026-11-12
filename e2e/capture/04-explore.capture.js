@@ -20,22 +20,21 @@ test('explore-answer.png, explore-drill.gif, drill-view.png', async ({ page, pan
     await panel.composer.blur();
 
     // explore-answer.png: the question at the top of the scroll box, then the one-line answer, the
-    // table's title and its header row. If the header row would not fit under the question, the
-    // table's title goes to the top instead (the header row and the top rows), and the run says so.
+    // table's title and its header row. The run fails, naming the CSS px, if the header row does not
+    // fit under the question: the still would not show what its caption says.
     const question = turn.locator('.abp-question').first();
     await question.evaluate((el) => el.scrollIntoView({ block: 'start' }));
     await page.waitForTimeout(300);
     const box = await panel.body.boundingBox();
     const head = await turn.locator('table thead').first().boundingBox();
-    const fits = !!(box && head && head.y + head.height <= box.y + box.height);
-    console.log(`explore-answer.png: box ${box ? Math.round(box.height) : '?'} px, question to header row fits ${fits}`);
-    if (!fits) {
-        await turn.locator('table').first().evaluate((el) => {
-            const block = el.closest('.abp-table-wrap');
-            const title = block && block.parentElement ? block.parentElement : el;
-            title.scrollIntoView({ block: 'start' });
-        });
+    if (!box || !head) {
+        throw new Error('explore-answer.png: the scroll box or the table header row is not rendered.');
     }
+    const needed = Math.ceil(head.y + head.height - box.y);
+    if (needed > box.height) {
+        throw new Error(`explore-answer.png: the question to the header row needs ${needed} px; the scroll box is ${Math.round(box.height)} px.`);
+    }
+    console.log(`explore-answer.png: box ${Math.round(box.height)} px, question to header row ${needed} px`);
     await still(page, 'explore-answer.png');
 
     // explore-drill.gif: click a row, the drill view opens, the breadcrumb goes back.

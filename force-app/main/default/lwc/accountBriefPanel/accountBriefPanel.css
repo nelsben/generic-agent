@@ -18,12 +18,38 @@
     flex: 0 0 auto;
 }
 
-.abp-bar-row,
 .abp-chips,
 .abp-candidates {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
+}
+
+/* The pinned bar is one row: the brief button's label truncates before the row wraps. */
+.abp-bar-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.abp-brief {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+
+.abp-brief .slds-truncate {
+    min-width: 0;
+}
+
+.abp-agent {
+    flex: 0 0 auto;
+}
+
+.abp-summary-toggle {
+    line-height: 1.5;
 }
 
 /* Native buttons that carry free text (candidates, follow-ups) wrap at 340px. */

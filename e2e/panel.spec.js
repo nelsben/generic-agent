@@ -107,7 +107,7 @@ test('2. Esc from the composer and from a button minimizes and returns focus; Ta
     });
 });
 
-test('3. a brief renders with its headline and collapsed accordions, announced by the live region', async ({ panel }) => {
+test('3. a brief renders with its headline and collapsed accordions, announced by the live region; the pinned bar leaves the conversation the room', async ({ panel }) => {
     await panel.open();
     await expect(panel.briefButton).toBeVisible();
     await panel.briefButton.click();
@@ -129,6 +129,29 @@ test('3. a brief renders with its headline and collapsed accordions, announced b
     for (const header of await headers.all()) {
         await expect(header).toHaveAttribute('aria-expanded', 'false');
     }
+
+    await test.step('the pinned bar is at most 80 CSS px and the scroll box at least 240 CSS px', async () => {
+        // The brief reloads the account's earlier briefs: measure with that list rendered.
+        await expect(panel.historyHeader).toBeAttached();
+        await panel.settle();
+        const box = await panel.dialog.boundingBox();
+        const header = await panel.panelHeader.boundingBox();
+        const body = await panel.body.boundingBox();
+        expect(box && header && body, 'the panel, its header and the scroll box are rendered').toBeTruthy();
+        if (!box || !header || !body) return;
+        expect(Math.round(box.width)).toBe(340);
+        expect(Math.round(box.height)).toBe(480);
+        const bar = body.y - (header.y + header.height);
+        expect(Math.round(bar), 'CSS px from the panel header to the top of the scroll box').toBeLessThanOrEqual(80);
+        expect(Math.round(body.height), 'the scroll box height in CSS px').toBeGreaterThanOrEqual(240);
+        // Brief and Ask the agent share the one row.
+        const brief = await panel.briefButton.boundingBox();
+        const agent = await panel.agentButton.boundingBox();
+        expect(brief && agent, 'both bar buttons are rendered').toBeTruthy();
+        if (!brief || !agent) return;
+        const overlap = Math.min(brief.y + brief.height, agent.y + agent.height) - Math.max(brief.y, agent.y);
+        expect(overlap, 'the two bar buttons are on one row').toBeGreaterThan(Math.min(brief.height, agent.height) / 2);
+    });
 });
 
 test('4. after two answers the composer stays pinned in the 340x480 panel and the newest answer is in view', async ({ panel }) => {

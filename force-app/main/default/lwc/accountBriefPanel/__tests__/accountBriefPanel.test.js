@@ -9,6 +9,7 @@ import explore from '@salesforce/apex/AccountBriefPanelController.explore';
 import drill from '@salesforce/apex/AccountBriefPanelController.drill';
 import history from '@salesforce/apex/AccountBriefPanelController.history';
 import sources from '@salesforce/apex/AccountBriefPanelController.sources';
+import agentId from '@salesforce/apex/AccountBriefPanelController.agentId';
 
 const mockNavigate = jest.fn();
 
@@ -256,7 +257,7 @@ describe('c-account-brief-panel', () => {
             lateA.resolve({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
             await flush();
 
-            expect($(el, '.abp-bar-row lightning-button').label).toBe('Brief Beta');
+            expect($(el, '.abp-bar-row .abp-brief').textContent).toBe('Brief Beta');
             expect(history).toHaveBeenCalledTimes(1);
             expect(history).toHaveBeenCalledWith({ accountId: BETA });
         });
@@ -778,6 +779,98 @@ describe('c-account-brief-panel', () => {
             const headline = $(el, '[data-testid="abp-summary-headline"]');
             expect(headline.textContent).toBe('Acme is healthy.');
             expect($$(el, '[data-testid="abp-summary-headline"]')).toHaveLength(1);
+        });
+
+        it('pins one bar row, the brief button and Ask the agent, whose accessible name stays Brief <Account name>', async () => {
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            const el = await mount();
+            agentId.emit('0Xx000000000001AAA');
+            CurrentPageReference.emit(ACCOUNT_PAGE(ACME));
+            await flush();
+
+            const bar = $(el, '.abp-bar');
+            const rows = bar.querySelectorAll('.abp-bar-row');
+            expect(rows).toHaveLength(1);
+            const brief = rows[0].querySelector('button.abp-brief');
+            // A native button named by its text: the label may truncate on screen, the name does not.
+            expect(brief.textContent).toBe('Brief Acme');
+            expect(brief.getAttribute('title')).toBe('Brief Acme');
+            expect(brief.querySelector('.slds-truncate')).not.toBeNull();
+            expect(rows[0].querySelector('lightning-button.abp-agent').label).toBe('Ask the agent');
+            // Nothing else is pinned: the include chips and the history list are not in the bar.
+            expect(bar.querySelector('lightning-accordion')).toBeNull();
+
+            getBrief.mockResolvedValueOnce(briefResult());
+            brief.click();
+            await flush();
+            expect(getBrief).toHaveBeenCalledWith(expect.objectContaining({ accountId: ACME }));
+        });
+
+        it('puts Sections and Earlier briefs at the top of the scroll box, before the conversation, and keeps them working', async () => {
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            history.mockResolvedValue([{ at: '2026-11-10T10:00:00.000Z', status: 'OK', question: 'Q1', headline: 'Acme headline' }]);
+            const el = await mount();
+            CurrentPageReference.emit(ACCOUNT_PAGE(ACME));
+            await flush();
+
+            const body = $(el, '.abp-body');
+            const tools = body.querySelector('.abp-tools');
+            expect(tools).not.toBeNull();
+            const sections = tools.querySelectorAll('lightning-accordion-section');
+            expect(Array.from(sections).map((s) => s.label)).toEqual(['Sections: all', 'Earlier briefs of Acme (1)']);
+            expect(tools.textContent).toContain('Acme headline');
+
+            // A chip still narrows the next brief.
+            tools.querySelector('lightning-button-stateful[data-key="open_deals"]').click();
+            await flush();
+            expect(sections[0].label).toBe('Sections: Open deals');
+            getBrief.mockResolvedValueOnce(briefResult());
+            $(el, '.abp-brief').click();
+            await flush();
+            expect(getBrief).toHaveBeenCalledWith(expect.objectContaining({ include: ['open_deals'] }));
+
+            // The turn comes after them, in the same scroll box, so they scroll away with it.
+            const turn = body.querySelector('.abp-turn');
+            expect(tools.compareDocumentPosition(turn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        });
+
+        it("starts a brief's summary collapsed under its headline, and the toggle shows and hides the rest", async () => {
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            getBrief.mockResolvedValueOnce(briefResult({ answer: 'Acme is healthy.\nAccount\nA long summary.' }));
+            const el = await mount();
+            await ask(el, '/brief Acme');
+            await flush();
+
+            const toggle = $(el, '.abp-summary button.abp-summary-toggle');
+            const rest = $(el, '.abp-summary .abp-pre');
+            expect(rest.id).toBeTruthy();
+            expect(toggle.getAttribute('aria-controls')).toBe(rest.id);
+            expect(toggle.textContent.trim()).toBe('Full summary');
+            expect(toggle.getAttribute('aria-expanded')).toBe('false');
+            expect(rest.textContent).toBe('Account\nA long summary.');
+            expect(rest.classList.contains('slds-hide')).toBe(true);
+            // The section headers follow the summary card.
+            expect($(el, 'lightning-accordion-section.abp-section')).not.toBeNull();
+
+            toggle.click();
+            await flush();
+            expect(toggle.getAttribute('aria-expanded')).toBe('true');
+            expect(rest.classList.contains('slds-hide')).toBe(false);
+
+            toggle.click();
+            await flush();
+            expect(toggle.getAttribute('aria-expanded')).toBe('false');
+            expect(rest.classList.contains('slds-hide')).toBe(true);
+        });
+
+        it('shows no summary toggle when the brief answer is its headline alone', async () => {
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            getBrief.mockResolvedValueOnce(briefResult({ answer: 'Acme is healthy.' }));
+            const el = await mount();
+            await ask(el, '/brief Acme');
+            await flush();
+            expect($(el, '[data-testid="abp-summary-headline"]').textContent).toBe('Acme is healthy.');
+            expect($(el, '.abp-summary-toggle')).toBeNull();
         });
 
         it('scrolls the newest turn into view after an answer', async () => {

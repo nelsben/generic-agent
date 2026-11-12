@@ -3,49 +3,18 @@
         <!-- Announces each request's start and its result to screen readers (WCAG 4.1.3). -->
         <div class="slds-assistive-text" role="status" aria-live="polite" data-testid="abp-live-region">{liveMessage}</div>
 
-        <!-- Brief bar -->
+        <!-- Brief bar: one row, pinned. Sections and Earlier briefs sit at the top of the scroll box. -->
         <div class="slds-p-around_x-small abp-bar">
             <div class="abp-bar-row">
                 <template lwc:if={isAccountPage}>
-                    <lightning-button variant="brand" label={briefButtonLabel} onclick={handleBriefThisAccount}></lightning-button>
+                    <!-- A native button: its text truncates when the row is short, and stays its accessible name. -->
+                    <button class="slds-button slds-button_brand abp-brief" title={briefButtonLabel}
+                        onclick={handleBriefThisAccount}><span class="slds-truncate">{briefButtonLabel}</span></button>
                 </template>
                 <template lwc:if={showAgentButton}>
-                    <lightning-button label="Ask the agent" onclick={handleAskAgent}></lightning-button>
+                    <lightning-button class="abp-agent" label="Ask the agent" onclick={handleAskAgent}></lightning-button>
                 </template>
             </div>
-            <template lwc:if={hasSources}>
-                <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
-                    <lightning-accordion-section name="include" label={includeSummary}>
-                        <div class="abp-chips">
-                            <template for:each={includeChips} for:item="chip">
-                                <lightning-button-stateful key={chip.key} data-key={chip.key} selected={chip.selected}
-                                    label-when-off={chip.title} label-when-on={chip.title} label-when-hover={chip.title}
-                                    icon-name-when-off="utility:add" icon-name-when-on="utility:check"
-                                    icon-name-when-hover="utility:close" onclick={handleChip}></lightning-button-stateful>
-                            </template>
-                        </div>
-                    </lightning-accordion-section>
-                </lightning-accordion>
-            </template>
-            <template lwc:if={hasHistory}>
-                <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
-                    <lightning-accordion-section name="history" label={historyLabel} class="abp-history-section">
-                        <ul>
-                            <template for:each={historyItems} for:item="h">
-                                <li key={h.key} class="slds-p-vertical_xx-small abp-history">
-                                    <div class="slds-text-body_small slds-text-color_weak">
-                                        <lightning-formatted-date-time value={h.at} year="numeric" month="short" day="numeric"
-                                            hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
-                                        · {h.status}
-                                    </div>
-                                    <div class="slds-text-body_small">{h.headline}</div>
-                                    <div class="slds-text-body_small slds-text-color_weak">{h.question}</div>
-                                </li>
-                            </template>
-                        </ul>
-                    </lightning-accordion-section>
-                </lightning-accordion>
-            </template>
         </div>
 
         <template lwc:if={notice}>
@@ -130,6 +99,42 @@
             </template>
 
             <div class={conversationClass}>
+                <!-- What the next brief includes, and the account's earlier briefs: they scroll away with the conversation. -->
+                <div class="abp-tools">
+                    <template lwc:if={hasSources}>
+                        <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
+                            <lightning-accordion-section name="include" label={includeSummary}>
+                                <div class="abp-chips">
+                                    <template for:each={includeChips} for:item="chip">
+                                        <lightning-button-stateful key={chip.key} data-key={chip.key} selected={chip.selected}
+                                            label-when-off={chip.title} label-when-on={chip.title} label-when-hover={chip.title}
+                                            icon-name-when-off="utility:add" icon-name-when-on="utility:check"
+                                            icon-name-when-hover="utility:close" onclick={handleChip}></lightning-button-stateful>
+                                    </template>
+                                </div>
+                            </lightning-accordion-section>
+                        </lightning-accordion>
+                    </template>
+                    <template lwc:if={hasHistory}>
+                        <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
+                            <lightning-accordion-section name="history" label={historyLabel} class="abp-history-section">
+                                <ul>
+                                    <template for:each={historyItems} for:item="h">
+                                        <li key={h.key} class="slds-p-vertical_xx-small abp-history">
+                                            <div class="slds-text-body_small slds-text-color_weak">
+                                                <lightning-formatted-date-time value={h.at} year="numeric" month="short" day="numeric"
+                                                    hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                                · {h.status}
+                                            </div>
+                                            <div class="slds-text-body_small">{h.headline}</div>
+                                            <div class="slds-text-body_small slds-text-color_weak">{h.question}</div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </lightning-accordion-section>
+                        </lightning-accordion>
+                    </template>
+                </div>
                 <template lwc:if={hasTurns}>
                     <template for:each={turns} for:item="turn">
                         <section key={turn.key} data-turn={turn.key} class="slds-m-vertical_small abp-turn">
@@ -162,7 +167,14 @@
                                 <template lwc:if={turn.header}>
                                     <article class="slds-box slds-box_x-small slds-m-top_xx-small abp-summary">
                                         <h2 class="slds-text-heading_small" data-testid="abp-summary-headline">{turn.header}</h2>
-                                        <div class="abp-pre slds-m-top_xx-small">{turn.rest}</div>
+                                        <!-- The rest of the summary starts collapsed, so the sections are in view under the headline. -->
+                                        <template lwc:if={turn.rest}>
+                                            <button class="slds-button abp-summary-toggle slds-m-top_xx-small" aria-expanded={turn.summaryExpanded}
+                                                aria-controls={turn.restId} data-key={turn.key} onclick={handleSummaryToggle}>
+                                                <lightning-icon icon-name={turn.summaryIcon} size="xx-small"
+                                                    class="slds-m-right_x-small abp-summary-icon"></lightning-icon>Full summary</button>
+                                            <div id={turn.restId} class={turn.restClass}>{turn.rest}</div>
+                                        </template>
                                     </article>
                                 </template>
                                 <template lwc:if={turn.ignoredText}>
