@@ -177,6 +177,20 @@ each publish adds a version; retrieving the bundle after publish sets `<target>`
 inactive; "Internal Error" on publish is usually the access user, a missing `outputs:` block on an
 action, or structural drift; retry once after 60 seconds.
 
+## What the local agent gate cannot see
+
+The local gate (`scripts/agent-check.sh`: the skill's local compile plus `sf agent validate
+authoring-bundle` in the org) passed two forms of the Account_Brief script that failed in Agentforce
+Studio on 2026-11-11 (verified, BE-9 then BE-11):
+- `contextRecordId: string` on ExploreAction's Apex `Id` input. Studio backend validation rejected it,
+  and `id` too; `object` with `complex_data_type_name: "lightning__recordIdType"` was accepted.
+  `complex-data-types.md` lists no Id mapping.
+- A post-action `if @outputs.status == "RESOLVED":` / `else:` around the `set`s on resolve_account. It
+  compiled and validated, but in the live preview the variables were never set, so the brief never ran.
+  An unconditional `set` worked.
+So a green gate is not enough: Studio backend validation (paste the script) and a live Studio preview
+of every routing branch are still required before publish.
+
 ## Gap list: skill says / we do / source
 
 | # | Skill says | We do | Source | Status |
