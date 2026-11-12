@@ -3,7 +3,7 @@
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const ORG = process.env.SF_E2E_ORG || 'experimental';
+const ORG = process.env.SF_E2E_ORG || process.env.SF_TARGET_ORG || 'agent-probe';
 const SF = '/usr/local/bin/sf';
 const ACCOUNT_NAME = 'Edge Communications';
 // Account_Brief.app-meta.xml: a custom app, so its Lightning URL name is c__<API name>.

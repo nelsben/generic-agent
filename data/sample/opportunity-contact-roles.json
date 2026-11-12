@@ -1,0 +1,74 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "OpportunityContactRole",
+        "referenceId": "Ocr0"
+      },
+      "OpportunityId": "@OppE1",
+      "ContactId": "@ConMarlowe",
+      "Role": "Decision Maker",
+      "IsPrimary": true
+    },
+    {
+      "attributes": {
+        "type": "OpportunityContactRole",
+        "referenceId": "Ocr1"
+      },
+      "OpportunityId": "@OppE1",
+      "ContactId": "@ConTessaly",
+      "Role": "Economic Buyer",
+      "IsPrimary": false
+    },
+    {
+      "attributes": {
+        "type": "OpportunityContactRole",
+        "referenceId": "Ocr2"
+      },
+      "OpportunityId": "@OppE2",
+      "ContactId": "@ConIsolde",
+      "Role": "Economic Buyer",
+      "IsPrimary": true
+    },
+    {
+      "attributes": {
+        "type": "OpportunityContactRole",
+        "referenceId": "Ocr3"
+      },
+      "OpportunityId": "@OppE3",
+      "ContactId": "@ConMarlowe",
+      "Role": "Business User",
+      "IsPrimary": true
+    },
+    {
+      "attributes": {
+        "type": "OpportunityContactRole",
+        "referenceId": "Ocr4"
+      },
+      "OpportunityId": "@OppE3",
+      "ContactId": "@ConPercival",
+      "Role": "Technical Evaluator",
+      "IsPrimary": false
+    },
+    {
+      "attributes": {
+        "type": "OpportunityContactRole",
+        "referenceId": "Ocr5"
+      },
+      "OpportunityId": "@OppE4",
+      "ContactId": "@ConTessaly",
+      "Role": "Decision Maker",
+      "IsPrimary": true
+    },
+    {
+      "attributes": {
+        "type": "OpportunityContactRole",
+        "referenceId": "Ocr6"
+      },
+      "OpportunityId": "@OppE5",
+      "ContactId": "@ConAmbrose",
+      "Role": "Business User",
+      "IsPrimary": true
+    }
+  ]
+}

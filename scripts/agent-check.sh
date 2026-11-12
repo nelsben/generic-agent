@@ -3,7 +3,7 @@
 #   (a) The agentforce-generate skill's local compiler (index-agent.mjs). The AgentScript SDK is installed into
 #       the skill's cache under the home directory (never into this repo) when it is missing. Any severity-1
 #       diagnostic fails the gate; warnings are printed.
-#   (b) `sf agent validate authoring-bundle` against the experimental org. Read-only: it compiles the bundle
+#   (b) `sf agent validate authoring-bundle` against the target org (SF_TARGET_ORG, default agent-probe). Read-only: it compiles the bundle
 #       in the org and saves nothing.
 # Uses /usr/local/bin/sf (2.157.8) by absolute path: /opt/homebrew/bin/sf (2.130.9) is first on PATH and too old.
 # stderr is never discarded, so CLI and compiler errors stay visible.
@@ -15,6 +15,7 @@ cd "$ROOT"
 BUNDLE_NAME="Account_Brief"
 AGENT_FILE="force-app/main/default/aiAuthoringBundles/$BUNDLE_NAME/$BUNDLE_NAME.agent"
 SF="/usr/local/bin/sf"
+TARGET_ORG="${SF_TARGET_ORG:-agent-probe}"
 SKILL_DIR="${AGENTFORCE_GENERATE_SKILL_DIR:-$HOME/.claude/plugins/cache/salesforce/agentforce-adlc/0.14.0/skills/agentforce-generate}"
 
 fail() {
@@ -26,7 +27,7 @@ fail() {
 [ -f "$SKILL_DIR/scripts/index-agent.mjs" ] || fail "agentforce-generate skill not found: $SKILL_DIR"
 [ -x "$SF" ] || fail "sf CLI not found at $SF"
 NODE="$(command -v node)" || fail "node not found on PATH"
-echo "agent-check: node $NODE ($("$NODE" --version)), sf $SF"
+echo "agent-check: node $NODE ($("$NODE" --version)), sf $SF, org $TARGET_ORG"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -68,31 +69,31 @@ PY
 
 # (b) Org validate of the authoring bundle.
 validate_rc=0
-"$SF" agent validate authoring-bundle --json --api-name Account_Brief -o experimental > "$work/validate.json" || validate_rc=$?
+"$SF" agent validate authoring-bundle --json --api-name Account_Brief -o "$TARGET_ORG" > "$work/validate.json" || validate_rc=$?
 
-python3 - "$work/validate.json" "$validate_rc" <<'PY'
+python3 - "$work/validate.json" "$validate_rc" "$TARGET_ORG" <<'PY'
 import json
 import re
 import sys
 
-path, rc = sys.argv[1], int(sys.argv[2])
+path, rc, org = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 try:
     with open(path, encoding="utf-8") as f:
         raw = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", f.read())
     payload = json.loads(raw)
 except (OSError, ValueError):
-    print("agent-check: fail (sf agent validate produced no JSON, exit %d)" % rc)
+    print("agent-check: fail (sf agent validate produced no JSON for org %s, exit %d)" % (org, rc))
     sys.exit(1)
 
 result = payload.get("result") or {}
 ok = rc == 0 and payload.get("status") == 0 and result.get("success") is True
 if not ok:
     print(json.dumps(payload, indent=2))
-    print("agent-check: fail (sf agent validate authoring-bundle, exit %d)" % rc)
+    print("agent-check: fail (sf agent validate authoring-bundle on %s, exit %d)" % (org, rc))
     sys.exit(1)
 for warning in payload.get("warnings") or []:
     print("  warning: %s" % warning)
-print("agent-check: org validate ok (Account_Brief on experimental)")
+print("agent-check: org validate ok (Account_Brief on %s)" % org)
 PY
 
 echo "agent-check: pass"

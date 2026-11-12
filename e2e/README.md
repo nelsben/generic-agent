@@ -8,8 +8,9 @@ real Lightning base components, focus, layout and the live region.
 
 ```bash
 npm ci
-npm run test:e2e                         # org alias "experimental"
-SF_E2E_ORG=my-alias npm run test:e2e     # any other signed-in alias
+npm run test:e2e                         # org alias from SF_TARGET_ORG, default "agent-probe"
+SF_TARGET_ORG=my-alias npm run test:e2e  # any other signed-in alias
+SF_E2E_ORG=my-alias npm run test:e2e     # same, and wins over SF_TARGET_ORG for e2e only
 npx playwright test -g "6. typing"       # one spec
 ```
 
@@ -22,11 +23,13 @@ one worker, no parallelism. A full run takes about four minutes.
   (`Account_Brief.app-meta.xml`), its utility bar with `accountBriefPanel` (eager, 340x480) and the
   Apex behind it. The suite never deploys anything.
 - **A signed-in sf CLI session** for the alias (`sf org login web -a <alias>`). The global setup
-  asks `/usr/local/bin/sf org open --url-only --json -o $SF_E2E_ORG` for a one-time frontdoor URL,
+  asks `/usr/local/bin/sf org open --url-only --json -o <alias>` for a one-time frontdoor URL,
   opens it in an untraced browser context and saves the session to `e2e/.auth/` (gitignored).
   It never asks for or types a password. If the session is missing or expired it stops with one
   line telling you to run `sf org login web -a <alias>`.
-- **The account Edge Communications** in that org. It is looked up by name at run time.
+- **The sample data**, including the account Edge Communications, which is looked up by name at run time.
+  Load it with `bash scripts/seed-sample-data.sh` (it targets `SF_TARGET_ORG`, default `agent-probe`, and
+  stops if Edge Communications already exists). It is not Developer Edition demo data.
 
 The frontdoor URL and the session it opens are secrets: they are never printed or written
 anywhere but `e2e/.auth/`. For the same reason tracing, video and HAR are off in

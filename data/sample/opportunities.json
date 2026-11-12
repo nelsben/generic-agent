@@ -1,0 +1,536 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE1"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Core Router Refresh",
+      "StageName": "Negotiation/Review",
+      "CloseDate": "$day:-12",
+      "Amount": 9000,
+      "Type": "Existing Customer - Upgrade",
+      "LeadSource": "Partner Referral"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE2"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Support Plan Renewal",
+      "StageName": "Proposal/Price Quote",
+      "CloseDate": "$day:-3",
+      "Amount": 125540,
+      "Type": "Existing Customer - Replacement",
+      "LeadSource": "Web"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE3"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Fiber Backhaul Expansion",
+      "StageName": "Value Proposition",
+      "CloseDate": "$day:21",
+      "Amount": 242080,
+      "Type": "Existing Customer - Upgrade",
+      "LeadSource": "Trade Show"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE4"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Training Bundle",
+      "StageName": "Qualification",
+      "CloseDate": "$day:45",
+      "Amount": 70510,
+      "Type": "New Customer",
+      "LeadSource": "Web"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE5"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Spare Parts Depot",
+      "StageName": "Prospecting",
+      "CloseDate": "$day:75",
+      "Amount": 187050,
+      "Type": "Existing Customer - Upgrade",
+      "LeadSource": "Phone Inquiry"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE6"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Switch Rollout Phase 1",
+      "StageName": "Closed Won",
+      "CloseDate": "$day:-40",
+      "Amount": 15480,
+      "Type": "Existing Customer - Upgrade"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE7"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Wireless Survey",
+      "StageName": "Closed Won",
+      "CloseDate": "$day:-120",
+      "Amount": 132020,
+      "Type": "New Customer"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE8"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Legacy PBX Replacement",
+      "StageName": "Closed Lost",
+      "CloseDate": "$day:-200",
+      "Amount": 248560,
+      "Type": "Existing Customer - Replacement"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE9"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Satellite Uplink Pilot",
+      "StageName": "Closed Lost",
+      "CloseDate": "$day:-70",
+      "Amount": 76990,
+      "Type": "New Customer"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppE10"
+      },
+      "AccountId": "@AccEdge",
+      "Name": "Edge Field Tools Order",
+      "StageName": "Closed Won",
+      "CloseDate": "$day:-300",
+      "Amount": 193530,
+      "Type": "Existing Customer - Upgrade"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppU1"
+      },
+      "AccountId": "@AccUO1",
+      "Name": "United Oil Pipeline Monitoring",
+      "StageName": "Needs Analysis",
+      "CloseDate": "$day:30",
+      "Amount": 21960
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppU2"
+      },
+      "AccountId": "@AccUO1",
+      "Name": "United Oil Rig Telemetry",
+      "StageName": "Prospecting",
+      "CloseDate": "$day:60",
+      "Amount": 138500
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppU3"
+      },
+      "AccountId": "@AccUO2",
+      "Name": "United Oil Singapore Terminal Link",
+      "StageName": "Proposal/Price Quote",
+      "CloseDate": "$day:14",
+      "Amount": 255040
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppU4"
+      },
+      "AccountId": "@AccUO3",
+      "Name": "United Oil UK Depot Network",
+      "StageName": "Qualification",
+      "CloseDate": "$day:40",
+      "Amount": 83470
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF0_0"
+      },
+      "AccountId": "@AccF0",
+      "Name": "Brindlewick Project A",
+      "StageName": "Prospecting",
+      "CloseDate": "$day:-20",
+      "Amount": 200010
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF0_1"
+      },
+      "AccountId": "@AccF0",
+      "Name": "Brindlewick Project B",
+      "StageName": "Value Proposition",
+      "CloseDate": "$day:21",
+      "Amount": 28440
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF0_2"
+      },
+      "AccountId": "@AccF0",
+      "Name": "Brindlewick Project C",
+      "StageName": "Proposal/Price Quote",
+      "CloseDate": "$day:32",
+      "Amount": 144980
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF0_c"
+      },
+      "AccountId": "@AccF0",
+      "Name": "Brindlewick Earlier Order",
+      "StageName": "Closed Won",
+      "CloseDate": "$day:-30",
+      "Amount": 261520
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF1_0"
+      },
+      "AccountId": "@AccF1",
+      "Name": "Tamsin Project A",
+      "StageName": "Qualification",
+      "CloseDate": "$day:16",
+      "Amount": 89950
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF1_1"
+      },
+      "AccountId": "@AccF1",
+      "Name": "Tamsin Project B",
+      "StageName": "Id. Decision Makers",
+      "CloseDate": "$day:27",
+      "Amount": 206490
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF1_2"
+      },
+      "AccountId": "@AccF1",
+      "Name": "Tamsin Project C",
+      "StageName": "Negotiation/Review",
+      "CloseDate": "$day:38",
+      "Amount": 34920
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF1_c"
+      },
+      "AccountId": "@AccF1",
+      "Name": "Tamsin Earlier Order",
+      "StageName": "Closed Lost",
+      "CloseDate": "$day:-55",
+      "Amount": 151460
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF2_0"
+      },
+      "AccountId": "@AccF2",
+      "Name": "Oddfellow Project A",
+      "StageName": "Needs Analysis",
+      "CloseDate": "$day:22",
+      "Amount": 268000
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF2_1"
+      },
+      "AccountId": "@AccF2",
+      "Name": "Oddfellow Project B",
+      "StageName": "Perception Analysis",
+      "CloseDate": "$day:33",
+      "Amount": 96430
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF2_2"
+      },
+      "AccountId": "@AccF2",
+      "Name": "Oddfellow Project C",
+      "StageName": "Prospecting",
+      "CloseDate": "$day:44",
+      "Amount": 212970
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF2_c"
+      },
+      "AccountId": "@AccF2",
+      "Name": "Oddfellow Earlier Order",
+      "StageName": "Closed Won",
+      "CloseDate": "$day:-80",
+      "Amount": 41400
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF3_0"
+      },
+      "AccountId": "@AccF3",
+      "Name": "Pimble Project A",
+      "StageName": "Value Proposition",
+      "CloseDate": "$day:28",
+      "Amount": 157940
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF3_1"
+      },
+      "AccountId": "@AccF3",
+      "Name": "Pimble Project B",
+      "StageName": "Proposal/Price Quote",
+      "CloseDate": "$day:39",
+      "Amount": 274480
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF3_2"
+      },
+      "AccountId": "@AccF3",
+      "Name": "Pimble Project C",
+      "StageName": "Qualification",
+      "CloseDate": "$day:50",
+      "Amount": 102910
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF3_c"
+      },
+      "AccountId": "@AccF3",
+      "Name": "Pimble Earlier Order",
+      "StageName": "Closed Lost",
+      "CloseDate": "$day:-105",
+      "Amount": 219450
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF4_0"
+      },
+      "AccountId": "@AccF4",
+      "Name": "Fernhollow Project A",
+      "StageName": "Id. Decision Makers",
+      "CloseDate": "$day:34",
+      "Amount": 47880
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF4_1"
+      },
+      "AccountId": "@AccF4",
+      "Name": "Fernhollow Project B",
+      "StageName": "Negotiation/Review",
+      "CloseDate": "$day:45",
+      "Amount": 164420
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF4_2"
+      },
+      "AccountId": "@AccF4",
+      "Name": "Fernhollow Project C",
+      "StageName": "Needs Analysis",
+      "CloseDate": "$day:56",
+      "Amount": 280960
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF4_c"
+      },
+      "AccountId": "@AccF4",
+      "Name": "Fernhollow Earlier Order",
+      "StageName": "Closed Won",
+      "CloseDate": "$day:-130",
+      "Amount": 109390
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF5_0"
+      },
+      "AccountId": "@AccF5",
+      "Name": "Gallowglass Project A",
+      "StageName": "Perception Analysis",
+      "CloseDate": "$day:40",
+      "Amount": 225930
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF5_1"
+      },
+      "AccountId": "@AccF5",
+      "Name": "Gallowglass Project B",
+      "StageName": "Prospecting",
+      "CloseDate": "$day:51",
+      "Amount": 54360
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF5_2"
+      },
+      "AccountId": "@AccF5",
+      "Name": "Gallowglass Project C",
+      "StageName": "Value Proposition",
+      "CloseDate": "$day:-20",
+      "Amount": 170900
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF5_c"
+      },
+      "AccountId": "@AccF5",
+      "Name": "Gallowglass Earlier Order",
+      "StageName": "Closed Lost",
+      "CloseDate": "$day:-155",
+      "Amount": 287440
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF6_0"
+      },
+      "AccountId": "@AccF6",
+      "Name": "Harrowgate Project A",
+      "StageName": "Proposal/Price Quote",
+      "CloseDate": "$day:46",
+      "Amount": 115870
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF6_1"
+      },
+      "AccountId": "@AccF6",
+      "Name": "Harrowgate Project B",
+      "StageName": "Qualification",
+      "CloseDate": "$day:-20",
+      "Amount": 232410
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF6_2"
+      },
+      "AccountId": "@AccF6",
+      "Name": "Harrowgate Project C",
+      "StageName": "Id. Decision Makers",
+      "CloseDate": "$day:68",
+      "Amount": 60840
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF7_0"
+      },
+      "AccountId": "@AccF7",
+      "Name": "Juniper Project A",
+      "StageName": "Negotiation/Review",
+      "CloseDate": "$day:-20",
+      "Amount": 177380
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF7_1"
+      },
+      "AccountId": "@AccF7",
+      "Name": "Juniper Project B",
+      "StageName": "Needs Analysis",
+      "CloseDate": "$day:63",
+      "Amount": 293920
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF7_2"
+      },
+      "AccountId": "@AccF7",
+      "Name": "Juniper Project C",
+      "StageName": "Perception Analysis",
+      "CloseDate": "$day:74",
+      "Amount": 122350
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF8_0"
+      },
+      "AccountId": "@AccF8",
+      "Name": "Kestrel Project A",
+      "StageName": "Prospecting",
+      "CloseDate": "$day:58",
+      "Amount": 238890
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF8_1"
+      },
+      "AccountId": "@AccF8",
+      "Name": "Kestrel Project B",
+      "StageName": "Value Proposition",
+      "CloseDate": "$day:69",
+      "Amount": 67320
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "referenceId": "OppF8_2"
+      },
+      "AccountId": "@AccF8",
+      "Name": "Kestrel Project C",
+      "StageName": "Proposal/Price Quote",
+      "CloseDate": "$day:80",
+      "Amount": 183860
+    }
+  ]
+}

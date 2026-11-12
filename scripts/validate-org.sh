@@ -10,7 +10,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 FORCE_APP_DIR="${FORCE_APP_DIR:-force-app}"
-TARGET_ORG="${SF_TARGET_ORG:-experimental}"
+TARGET_ORG="${SF_TARGET_ORG:-agent-probe}"
 
 if [ ! -d "$FORCE_APP_DIR" ]; then
   echo "validate-org: fail (force-app not found: $FORCE_APP_DIR)"

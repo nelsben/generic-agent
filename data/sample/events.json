@@ -1,0 +1,72 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Event",
+        "referenceId": "Evt0"
+      },
+      "Subject": "Router refresh kickoff meeting",
+      "StartDateTime": "$datetime:-4@10:00",
+      "DurationInMinutes": 60,
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConMarlowe",
+      "Description": "Agreed scope for the core router refresh; waiting on revised pricing."
+    },
+    {
+      "attributes": {
+        "type": "Event",
+        "referenceId": "Evt1"
+      },
+      "Subject": "Security review call",
+      "StartDateTime": "$datetime:-15@15:00",
+      "DurationInMinutes": 30,
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConPercival"
+    },
+    {
+      "attributes": {
+        "type": "Event",
+        "referenceId": "Evt2"
+      },
+      "Subject": "Renewal discussion",
+      "StartDateTime": "$datetime:-33@14:00",
+      "DurationInMinutes": 45,
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConIsolde",
+      "Description": "Finance wants a three-year price lock."
+    },
+    {
+      "attributes": {
+        "type": "Event",
+        "referenceId": "Evt3"
+      },
+      "Subject": "Onsite network survey",
+      "StartDateTime": "$datetime:-58@09:00",
+      "DurationInMinutes": 120,
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConAmbrose"
+    },
+    {
+      "attributes": {
+        "type": "Event",
+        "referenceId": "Evt4"
+      },
+      "Subject": "Pricing review meeting",
+      "StartDateTime": "$datetime:6@11:00",
+      "DurationInMinutes": 45,
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConTessaly"
+    },
+    {
+      "attributes": {
+        "type": "Event",
+        "referenceId": "Evt5"
+      },
+      "Subject": "Fiber expansion demo",
+      "StartDateTime": "$datetime:20@13:00",
+      "DurationInMinutes": 60,
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConMarlowe"
+    }
+  ]
+}
