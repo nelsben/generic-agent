@@ -146,6 +146,21 @@ Ben's notes on [04-model-provider-seam.md](../patterns/04-model-provider-seam.md
 | F72 | "limits and open items should also be explored in a little bit more detail, and cards cut" | `BE-33` (N12: the model per prompt in settings, not a constant; one provider for the whole org; the request's own maximum-token setting where the API takes one; callout time limits; the prompt template path as the second provider; a provider outside Salesforce, researched only); `BE-29` (N8: the cut marker); usage per call goes in `OPS-42`'s guide from `BE-33`'s research |
 | F73 | "how to update context for your prompt call out and like what it means to use the models API, how to use it, how to tune your prompt that gets sent to the models API, and all of those things, since we're taking away prompt templates" | `OPS-42` (a builder's guide, docs/guides/models-api-prompts.md); `BE-33` (the try-a-prompt script and the prompt trace it teaches) |
 
+### Chapter notes: pattern 05, conversation memory
+
+Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md), 2026-11-12.
+
+| # | Feedback | Status |
+|---|----------|--------|
+| F74 | "I believe Agentforce just released Agentforce Memories, now I think we need to research what Agentforce Memories are to see if that impacts our design at all. Maybe it's partial coverage" | `BE-34` (discovery from Salesforce's own docs, a read-only check in agent-probe, and a covered/partial/not-covered table against F75 to F78) |
+| F75 | "account brief session is specific to one agent interaction. I think what we want to be able to do is create these memory records, so to speak, and history records in a more agnostic way. So whether I create a task, whether I generate a brief" | Decision below: two memories. `BE-35` (one generic outcome store against the account); `BE-27` writes an outcome for each confirmed action |
+| F76 | "that brief for a customer or an account is a build artifact and an outcome that has happened that should persist against that customer for a period of time, potentially for forever" | `BE-35` (retention set per outcome type, forever for summaries by default; the purge job's schedule waits for Ben); `FE-19` (the outcomes timeline) |
+| F77 | "we also want to be able to show a graph of change in customer sentiment over time" | `BE-36` (a focused model call scores sentiment at each summary, checked for accuracy); `FE-19` (the chart) |
+| F78 | "we need to make sure that our past outcomes are reusable" | `BE-35` (the outcome context every surface adds when a rep opens a conversation, and "what changed since" in the next summary); `BE-26` (conversation history) |
+| F79 | "this memories Agentforce feature doesn't supersede our ability to store briefs and have context and history for an agent when the rep opens up the conversation" | `BE-34` (what the platform covers and what we keep); decision below; `OPS-43` (the page says it plainly) |
+| F80 | "limits and open items should be rechecked and verified that we don't need new additional work" | Rechecked. Only the summary is remembered, not the explorer: `BE-26` keeps every turn, and pinning an answer is a candidate in `FE-17`. Earlier summaries are stored but never fed to the model: `BE-35` (what changed since). Memory outlives access (N6): `BE-35` (sharing follows the account) and `BE-26` (re-checked on read). How long an agent conversation keeps its variables: `BE-34` measures it. Accepted, with reasons on the page: system mode for the session object, a lock timeout that drops one turn, and a superseded summary that is stored (it is a real outcome and now shows in the timeline). `OPS-43` lists each |
+| F81 | "Same feedback as always regarding the sequence diagrams. We want auto number with explanations. We want to work on the formatting of the sequence diagram to make it look really good" | `OPS-43`; rule in [fr2-design.md](fr2-design.md#diagrams) |
+
 ## Decisions the brain made (Ben may overrule)
 
 - **Default agent name:** "Customer Summary". Internal API names become `Customer_Summary` / `CustomerSummary` /
@@ -156,7 +171,12 @@ Ben's notes on [04-model-provider-seam.md](../patterns/04-model-provider-seam.md
   both reach the page and collide with nothing; if one does, it picks a replacement and records why.
 - **One shared conversation component**, inside two frames now and a third later.
 - **Write actions:** draft first, then Confirm. One Apex service serves the panel, the agent and MCP.
-- **Conversation history:** extend the existing session object and pattern 05 rather than add a new object.
+- **Two memories** (F75, F79). The conversation stays on the existing session object (`BE-26`): short, per rep and
+  per account, own-only until Ben answers F32. What the product did for a customer is a customer outcome (`BE-35`):
+  one generic object in a master-detail to the account, so it persists, belongs to no single agent or session, and is
+  visible to whoever can see the account. The brain recommends that rule for outcomes, since a summary or a logged call
+  is account information, not a private chat. Agentforce's Agent Memory remembers things about a user for one agent;
+  it does not replace an account's history, so we keep ours and use the platform's where `BE-34` shows it helps.
 - **Agent publishes are batched:** one for the rename, one for tone plus actions.
 - **Every pattern page gets the same shape and diagram style** (F49, F53). Each chapter Ben comments on gets its own
   card, like `OPS-38` for pattern 01. Pages he has no notes on get the same treatment in one sweep card, cut after his
@@ -195,18 +215,22 @@ Ben's notes on [04-model-provider-seam.md](../patterns/04-model-provider-seam.md
 - Run the short VoiceOver script in docs/research/fr2-panel-proof.md after `FE-16` lands (about five minutes).
   Automated browsers cannot hear a screen reader.
 - Pick from the list of later panel additions after `FE-17` lands. The brain cuts cards for the ones picked.
+- Confirm that customer outcomes are visible to whoever can see the account (the brain's recommendation; F32's
+  own-only default stays for conversations). `BE-35` builds it that way unless Ben says otherwise.
+- Say go to schedule the outcome purge job in agent-probe after `BE-35` lands. Until then nothing expires.
 - Say go for the spikes, and for `OPS-37`.
 
 ## Order
 
 1. Done: `BE-20` (merged). On Ben's word, before any build: the plan review `OPS-37`.
 2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`, the explorer discovery `BE-31`, and the
-   standard-chat measurements `BE-32`. After `OPS-29`, the
+   standard-chat measurements `BE-32`, and the agent memory discovery `BE-34`. After `OPS-29`, the
    card architecture spike `FE-18` and the panel discovery `FE-17` (docs only).
 3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
-4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`, `BE-30`, then `BE-33` (after `BE-29`).
-5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one
+4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-29`, `BE-30`, then `BE-33` (after `BE-29`), the customer
+   outcome store `BE-35`, sentiment `BE-36`, then `BE-27` (after `BE-35`).
+5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-19` (history and sentiment) after `FE-15` and `BE-36`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one
    publish) after `BE-27`.
-6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04),
+6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04, `OPS-43` for pattern 05),
    `OPS-35`, `OPS-36`, then OPS-28.
 7. Parked: `OPS-33`, `OPS-34`.

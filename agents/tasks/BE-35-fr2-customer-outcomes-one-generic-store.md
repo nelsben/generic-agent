@@ -1,0 +1,30 @@
+---
+id: BE-35
+title: FR2: customer outcomes — one generic store of what the product did for a customer (summaries, actions taken, saved answers), kept against the account with retention by type, visible to whoever can see the account, and reused as context when a rep opens a conversation
+domain: backend
+tier: frontier
+tier_reason: a new durable object every skill writes to, with sharing, retention and a context contract the panel, the agent and MCP share, in a production-classified org
+status: blocked
+blocked_by: [OPS-30, BE-29, BE-34]
+fixes: []
+scope: [force-app/main/default/objects/Customer_Outcome__c/**, force-app/main/default/objects/Customer_Outcome_Type__mdt/**, force-app/main/default/customMetadata/Customer_Outcome_Type.*, force-app/main/default/classes/CustomerOutcome*.cls, force-app/main/default/classes/CustomerOutcome*.cls-meta.xml, force-app/main/default/classes/CustomerSummary.cls, force-app/main/default/classes/CustomerSummaryTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, force-app/main/default/reportTypes/**, scripts/schedule-outcome-retention.apex, docs/research/fr2-customer-outcomes.md]
+forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/staticresources/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
+resources: [org-live]
+red_test: new CustomerOutcomesTest cases fail on main (the object and class do not exist) and pass after
+gate: test, org
+budget: 2-attempts
+spend: 15
+---
+## Why
+
+Feature revision 2 (FR2), Ben's chapter notes on pattern 05. The session object is "specific to one agent interaction"; he wants "memory records ... and history records in a more agnostic way. So whether I create a task, whether I generate a brief", it is "a build artifact and an outcome that has happened that should persist against that customer for a period of time, potentially for forever". Past outcomes must be "reusable", and there must be "context and history for an agent when the rep opens up the conversation". Covers ledger rows F75, F76, F78 and F80 in docs/plans/feature-revision-2.md.
+
+## Done when
+
+- Read first: docs/plans/feature-revision-2.md (rows F74 to F80 and the decisions on customer outcomes), docs/plans/fr2-design.md, docs/patterns/05-conversation-memory.md, docs/research/fr2-agent-memory.md (BE-34; follow its recommendation, and say where you differ), docs/reviews/apex-review-2.md (N6) and the cards BE-26, BE-27, BE-30 and BE-36. Load the skills salesforce-development:platform-custom-object-generate, salesforce-development:platform-custom-field-generate, salesforce-development:platform-custom-metadata-type-generate, salesforce-development:platform-apex-generate, salesforce-development:platform-apex-test-generate, salesforce-development:platform-custom-report-type-generate and salesforce-development:platform-metadata-deploy first
+- **The object:** Customer_Outcome__c in a master-detail to Account, so sharing follows the account (whoever can see the account sees its outcomes; this also closes N6, memory outliving access). Fields: type (from Customer_Outcome_Type__mdt: Summary, Action, Saved answer, with room for more), title, body (the summary text or the action's plain-English result), the related record's Id as text (a task, case or opportunity), the skill and surface that made it, the model used, sentiment score, label and reason (written by BE-36), and an expiry date. Nothing is specific to one agent or one session
+- **Retention:** each type's record in Customer_Outcome_Type__mdt sets how long its outcomes live (blank means forever; Summary defaults to forever, others to 2 years). A batch class deletes expired outcomes; scripts/schedule-outcome-retention.apex schedules it, but scheduling it in agent-probe waits for Ben's go
+- **Writing:** CustomerOutcomes.record(...) in user mode, called once at the end of a summary (after every model call, as the memory write is today; a failed write is logged and the summary still returns) and exposed as an invocable for the agent and MCP. Write actions (BE-27) call it after a confirmed commit. A saved answer is written only when a rep asks to keep one
+- **Reuse:** listOutcomes(accountId, types, limitSize) in user mode, newest first, and a compact outcome context (the last summary's headline and date, the last few actions) that the panel, the agent and MCP add to the conversation context BE-30 defined, so a rep who opens a conversation starts with the account's history. A new summary receives the last summary's headline and date, so it can say what changed since then
+- A report type Customer Outcomes with Account, so teams can build reports and charts with no code. Tests with Assert.* cover each type, retention by type and the batch, sharing through the account (runAs a second user created in the test who cannot see the account sees no outcomes), the summary write and its failure path, the invocable, listing and the outcome context's size cap. The existing session memory keeps working
+- docs/research/fr2-customer-outcomes.md records the design, storage per outcome, the governor cost, and the live check: two summaries and one saved answer for a sample account, then listOutcomes, printing types and counts only. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never sign in or out, never create a user in the org, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit
