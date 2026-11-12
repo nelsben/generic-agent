@@ -95,4 +95,20 @@ private class ExploreCatalogTest {
             Assert.isTrue(errs[0].startsWith('Unknown object "Opportunity"'), errs[0]);
         }
     }
+
+    @IsTest
+    static void parentLabelsAreDotFree() {
+        Assert.areEqual('Account', ExploreCatalog.parentLabel('Account ID', 'Account', 'Account Name', 'Name'));
+        Assert.areEqual('Owner', ExploreCatalog.parentLabel('Owner ID', 'Owner', 'Full Name', 'Name'));
+        Assert.areEqual('Account Industry', ExploreCatalog.parentLabel('Account ID', 'Account', 'Industry', 'Industry'));
+        Assert.areEqual('Acme Co', ExploreCatalog.parentLabel('Acme.Co ID', 'Acme__r', 'Name', 'Name'));
+        Assert.areEqual('Rel', ExploreCatalog.plainLabel('  ', 'Rel'));
+        Assert.areEqual('a b', ExploreCatalog.plainLabel('a.b', 'x'));
+        for (ExploreCatalog.Entry e : ExploreCatalog.entries()) {
+            for (ExploreCatalog.Field f : e.fields) {
+                Assert.isFalse(String.isBlank(f.label), e.name + '.' + f.path);
+                Assert.isFalse(f.label.contains('.'), e.name + '.' + f.path + ' -> ' + f.label);
+            }
+        }
+    }
 }

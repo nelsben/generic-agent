@@ -35,6 +35,8 @@ public with sharing class ExploreQuery {
     public class ResultSet {
         @AuraEnabled public String objectName;
         @AuraEnabled public List<String> columns = new List<String>();
+        /** A plain label per column (no dots), same order, unique. For text shown to people and the model; rows stay keyed by columns. */
+        @AuraEnabled public List<String> labels = new List<String>();
         /** One map per row, keyed by column. Plain (non-aggregate) rows also carry the record Id under 'Id'. */
         @AuraEnabled public List<Map<String, Object>> rows = new List<Map<String, Object>>();
         /** Rows matching the filters (a COUNT() when the limit was reached), or groups returned. */
@@ -54,6 +56,7 @@ public with sharing class ExploreQuery {
         String countSoql;
         Map<String, Object> binds = new Map<String, Object>();
         List<String> columns = new List<String>();
+        List<String> labels = new List<String>();
         /** Aggregate queries: the alias each column is read from. */
         List<String> aliases = new List<String>();
         Boolean aggregate = false;
@@ -81,6 +84,7 @@ public with sharing class ExploreQuery {
         ResultSet rs = new ResultSet();
         rs.objectName = r.entry.name;
         rs.columns = b.columns;
+        rs.labels = b.labels;
         rs.soql = b.soql;
         rs.filters = b.filters;
         rs.plan = plan;
@@ -121,6 +125,7 @@ public with sharing class ExploreQuery {
             for (Integer i = 0; i < r.groupBy.size(); i++) {
                 selects.add(r.groupBy[i].path + ' g' + i);
                 b.columns.add(r.groupBy[i].path);
+                b.labels.add(r.groupBy[i].label);
                 b.aliases.add('g' + i);
             }
             b.countOnly = !r.aggregates.isEmpty();
@@ -128,6 +133,7 @@ public with sharing class ExploreQuery {
                 b.countOnly = b.countOnly && r.aggregates[i].expr == 'COUNT(Id)';
                 selects.add(r.aggregates[i].expr + ' a' + i);
                 b.columns.add(r.aggregates[i].expr);
+                b.labels.add(aggregateLabel(r.aggregates[i]));
                 b.aliases.add('a' + i);
             }
         } else {
@@ -135,6 +141,7 @@ public with sharing class ExploreQuery {
             for (ExploreCatalog.Field f : r.fields) {
                 if (seen.add(f.path)) {
                     b.columns.add(f.path);
+                    b.labels.add(f.label);
                     selects.add(f.path);
                 }
             }
@@ -195,8 +202,31 @@ public with sharing class ExploreQuery {
             soql += ' LIMIT ' + String.valueOf(r.rowLimit);
         }
         b.soql = soql;
+        b.labels = uniqueLabels(b.labels);
         b.countSoql = 'SELECT COUNT()' + fromWhere;
         return b;
+    }
+
+    /** Count, Sum of Amount, Average of Account Industry: no dots, no parentheses. */
+    private static String aggregateLabel(ExplorePlan.ResolvedAggregate a) {
+        String fn = a.fn == 'AVG' ? 'Average' : a.fn.left(1) + a.fn.substring(1).toLowerCase();
+        return a.fn == 'COUNT' && a.field.path == 'Id' ? fn : fn + ' of ' + a.field.label;
+    }
+
+    /** The labels with repeats numbered (Owner, Owner 2), so two columns never share one. Case-insensitive. */
+    @TestVisible
+    private static List<String> uniqueLabels(List<String> labels) {
+        Set<String> taken = new Set<String>();
+        List<String> out = new List<String>();
+        for (String l : labels) {
+            String candidate = l;
+            Integer n = 2;
+            while (!taken.add(candidate.toLowerCase())) {
+                candidate = l + ' ' + n++;
+            }
+            out.add(candidate);
+        }
+        return out;
     }
 
     /** A field or one-level parent path off a record; null when the parent lookup is empty. */

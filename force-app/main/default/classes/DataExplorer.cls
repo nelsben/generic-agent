@@ -329,10 +329,15 @@ public with sharing class DataExplorer {
         return lines.isEmpty() ? NONE : String.join(lines, '\n');
     }
 
-    /** Columns, then up to PREVIEW_ROWS rows, pipe-separated, each cell clipped. */
+    /** The column labels, or the columns themselves when a hand-built result set has none. */
+    public static List<String> headers(ExploreQuery.ResultSet rs) {
+        return rs.labels.size() == rs.columns.size() ? rs.labels : rs.columns;
+    }
+
+    /** Column labels, then up to PREVIEW_ROWS rows, pipe-separated, each cell clipped. Rows are read by column path. */
     @TestVisible
     private static String preview(ExploreQuery.ResultSet rs) {
-        List<String> lines = new List<String>{ String.join(rs.columns, ' | ') };
+        List<String> lines = new List<String>{ String.join(headers(rs), ' | ') };
         for (Integer i = 0; i < Math.min(PREVIEW_ROWS, rs.rows.size()); i++) {
             List<String> cells = new List<String>();
             for (String c : rs.columns) {

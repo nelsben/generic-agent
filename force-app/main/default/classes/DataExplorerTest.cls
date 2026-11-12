@@ -70,7 +70,7 @@ private class DataExplorerTest {
         Assert.isTrue(s.prompts[0].contains('Queries left: 4'));
         Assert.isTrue(s.prompts[0].contains('Opportunity: Id(id)'), 'catalog reaches the model');
         Assert.isTrue(s.prompts[1].contains('RESULT Opportunity rows=3 total=3'));
-        Assert.isTrue(s.prompts[1].contains('Name | Amount | StageName'));
+        Assert.isTrue(s.prompts[1].contains('Name | Amount | Stage'));
         Assert.isTrue(s.prompts[1].contains('Acme Three | 3000'));
         Assert.isTrue(s.prompts[1].contains('Queries left: 3'));
     }

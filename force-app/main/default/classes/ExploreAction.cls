@@ -58,7 +58,7 @@ public with sharing class ExploreAction {
         if (rs.rows.isEmpty()) {
             return text;
         }
-        String header = String.join(rs.columns, ' | ');
+        String header = String.join(DataExplorer.headers(rs), ' | ');
         String body = text + '\n\n' + header;
         Integer shown = 0;
         for (Map<String, Object> row : rs.rows) {
