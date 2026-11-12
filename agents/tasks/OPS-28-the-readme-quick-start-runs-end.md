@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: a new org created and driven end to end through deploy, publish, activate, access and e2e with judgement on each deviati
 status: blocked
-blocked_by: [BE-18, BE-19, OPS-23]
+blocked_by: [BE-19, OPS-23]
 scope: [config/project-scratch-def.json, README.md, docs/research/fresh-org-run.md, docs/research/org-migration.md, e2e/README.md]
 forbid: [force-app/**, mcp-door/**, scripts/**, data/**, tests/**, e2e/panel.spec.js, e2e/support/**, e2e/capture/**, docs/assets/**, docs/patterns/**, docs/plans/**, agents/**, .chassis-delegation.json, reference/**, sfdx-project.json]
 resources: [org-live]

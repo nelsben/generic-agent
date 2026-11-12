@@ -4,8 +4,7 @@ title: The panel's "Ask the agent" talks to the registered Account_Brief agent d
 domain: backend
 tier: frontier
 tier_reason: new Apex to agent integration with a seam, panel state changes, a live deploy and a recapture in one card
-status: blocked
-blocked_by: [BE-18]
+status: queued
 scope: [force-app/main/default/classes/AccountBriefPanelController.cls, force-app/main/default/classes/AccountBriefPanelControllerTest.cls, force-app/main/default/classes/AccountBriefAgentClient*.cls, force-app/main/default/classes/AccountBriefAgentClient*.cls-meta.xml, force-app/main/default/lwc/accountBriefPanel/**, force-app/main/default/permissionsets/Account_Brief_Agent_Access.permissionset-meta.xml, e2e/panel.spec.js, e2e/support/**, e2e/capture/**, e2e/README.md, docs/assets/**, docs/patterns/03-hotkey-panel.md, docs/patterns/06-agent-routing-and-verbatim-relay.md, docs/research/panel-agent-1.md, README.md, tests/**]
 forbid: [force-app/main/default/aiAuthoringBundles/**, force-app/main/default/staticresources/**, force-app/main/default/permissionsetgroups/**, scripts/**, data/**, agents/**, docs/plans/**, docs/reviews/**, .chassis-delegation.json, reference/**, sfdx-project.json]
 resources: [org-live]
