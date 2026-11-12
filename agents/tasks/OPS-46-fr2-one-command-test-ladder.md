@@ -17,7 +17,7 @@ spend: 5
 ---
 ## Why
 
-Feature revision 2 (FR2), Ben's chapter notes on pattern 08: "we're going to be bringing some of these programmatic testing concepts to Salesforce users who haven't historically done this type of testing. Meaningful and valuable." One command with one line per rung is the easiest first step for someone new to testing. Covers ledger row F91, and two open items on page 08: the code scan needs Java (this machine has none, so it does not run at all), and nothing says whether the org still matches main.
+Feature revision 2 (FR2), Ben's chapter notes on pattern 08: "we're going to be bringing some of these programmatic testing concepts to Salesforce users who haven't historically done this type of testing." One command with one line per rung is the easiest first step for someone new to testing. Covers ledger row F91, and two open items on page 08: the code scan needs Java (this machine has none, so it does not run at all), and nothing says whether the org still matches main.
 
 ## Done when
 
