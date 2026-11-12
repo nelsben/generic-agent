@@ -45,7 +45,7 @@ follow the ship order at the end.
 | 4 | A null Id from a failed resolve passes the `!= ""` gate | fixed | The gate is `is not None and != ""` (`.agent:43,67,86`). The id and name are set unconditionally (`.agent:82-83`). Preview case 8 is consistent (`studio-preview.md:29`) |
 | 5 | "Every answer comes from an action" contradicts the off-topic line | fixed | The exception is in `.agent:2`. Preview case 12 passed |
 | 6 | A brief on the wrong account is stopped only by prose | open | `.agent:70` is still instruction text. The gate at `.agent:86` cannot tell which account is meant. Preview case 8 and spec `:62-77` name a second account after a brief, but one that does not resolve. Untested: a second account that resolves, where get_brief could fire on the old Id |
-| 7 | The spec misses branches and cannot assert negatives | changed | Added: AMBIGUOUS (spec `:40-44`), three history cases (`:51-88`), a single-outcome fake-Id case (`:35-39`), and "calls no other action" (`:34,39,44`). Still missing: a list pick, RESOLVED by pasted Id, and a second account. `expectedTopic: topic_selector` stays on the off-topic case (`:100`), against `agentforce-test/references/batch-testing.md:84` |
+| 7 | The spec misses branches and cannot assert negatives | changed | Added: AMBIGUOUS (spec `:40-44`), three history cases (`:51-88`), a single-outcome fake-Id case (`:35-39`), and "calls no other action" (`:34,39,44`). Still missing: a list pick, RESOLVED by pasted Id, and a second account that resolves after a brief. `expectedTopic: topic_selector` stays on the off-topic case (`:100`), against `agentforce-test/references/batch-testing.md:84` |
 | 8 | The repo workflow skips the skill lifecycle | changed | `agent-check.sh` adds the local compile and org validate with the CLI pinned and stderr kept (`:8-9,17,36,71`). `validate-org.sh` no longer deploys bundles (`test_agent_bundle.py:426-443`). The exact bytes were previewed. Still open: the spec never ran as a test run, and publish is blocked |
 | 9 | `last_status` has writers and no reader | fixed | Removed (`test_agent_bundle.py:131-132`) |
 | 10 | `contextRecordId: id` gives compiler diagnostics | changed | Now `object` with `lightning__recordIdType` (`.agent:173-178`), because Studio rejected `string` and `id`. This is not the fix proposed. Compile shows 0 warnings |
@@ -139,10 +139,11 @@ the failure mode is the skill's, not seen here.
   follow-up re-runs get_brief. The preview shows the model narrowing `include` (`studio-preview.md:28`), but that is
   its choice, not a cap. N4 can add a wasted explore run to a misrouted turn.
 - Bulk: the agent sends one request per call, so this is safe. The resolver loops once per request
-  (`AccountBriefResolver.cls:49-51`). A name search that is not a unique exact match runs 3 queries: exact `:84`, COUNT
-  `:96` and partial `:113`. It adds 1 when that query fails on the city (fallback `:122`), 1 for a pasted Id (`:156`) and
-  1 for a known Id (`:138`). So 3 to 6 per resolve, or 1 for a unique exact match. A Flow or MCP caller batching
-  requests would reach the 100-SOQL limit at about 16 to 33 name-search resolves, or about 20 explores (5 callouts
+  (`AccountBriefResolver.cls:49-51`). A name search that is not a unique exact match runs exact `:84` and COUNT `:96`. A
+  COUNT of 0 returns NOT_FOUND at once (`:97-99`), so a name that matches nothing costs 2 queries. A name with hits adds
+  the partial query `:113`, for 3. It adds 1 more when that query fails on the city (fallback `:122`), 1 for a pasted Id
+  (`:156`) and 1 for a known Id (`:138`). So 2 to 6 per name search, or 1 for a unique exact match. A Flow or MCP caller
+  batching requests would reach the 100-SOQL limit at about 16 to 50 name-search resolves, or about 20 explores (5 callouts
   each, `ExploreAction.cls:34-44`). `AccountBriefGetAction` batches its one memory write (`:33-39`).
 - Adoption: **yes, with conditions.** The pattern is sound and teachable: resolve-then-brief with the Id held in state,
   a deterministic explorer run, a reclassify transition in every subagent, structural unit tests and a local compile
@@ -213,7 +214,7 @@ see routing, relay, permissions or the published version. In order:
 3. Preview the exact bytes before publishing. Use Studio Live Test on the draft, or
    `sf agent preview start --authoring-bundle Account_Brief --use-live-actions`
    (`agentforce-test/references/preview-testing.md:138-145`). Cover every spec case plus the missing ones: list pick,
-   pasted Id, second account, explore follow-up, reclassify out of explore, and one failure path. Read the traces, not
+   pasted Id, a second account that resolves after a brief, explore follow-up, reclassify out of explore, and one failure path. Read the traces, not
    only the chat. Live actions write memory rows, so use a non-production org and test data (generate SKILL.md Rule 3).
    Do not `sf project deploy start` the bundle (`agent-publish-spike.md:158`; `deploy-reference.md:12-14` suggests it,
    and the repo deliberately differs).
