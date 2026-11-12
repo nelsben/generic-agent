@@ -80,8 +80,10 @@ sequenceDiagram
 - **It runs in a real org.** The Playwright suite ([e2e/README.md](../../e2e/README.md)) passed
   8 of 8 as an admin user: the hotkey before first open, Esc returning focus, the live region, the
   pinned composer, latest wins, Enter to send, a drill and back, and axe. It passed on its first
-  run in the org this was built in ([deploy-verify.md](../research/deploy-verify.md)) and again in
-  `agent-probe`, where the [e2e report](../assets/e2e-report.png) was taken (3.0 minutes).
+  run in the org this was built in ([deploy-verify.md](../research/deploy-verify.md)) and in
+  `agent-probe`, where the [e2e report](../assets/e2e-report.png) was taken (3.0 minutes). The first
+  run in `agent-probe` passed 7 of 8, and spec 2 (Esc returning focus) has failed now and then since,
+  cause not found ([e2e/README.md](../../e2e/README.md)).
 
 ## Adopt it
 
