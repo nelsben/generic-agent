@@ -4,8 +4,7 @@ title: Final GTM pass: the workbook matches tonight's evidence, every link, imag
 domain: ops
 tier: frontier
 tier_reason: final truth and privacy check of the public face of the repo
-status: blocked
-blocked_by: [FE-7]
+status: queued
 release_note: the brain may set this card queued if FE-7 cannot run tonight
 fixes: []
 scope: [README.md, docs/patterns/**, docs/ARCHITECTURE.md, docs/assets/MANIFEST.md, docs/plans/corrective-plan.md, scripts/check-docs.sh, docs/research/agent-api.md, docs/research/agent-publish-failure.md, tests/test_agent_bundle.py, force-app/main/default/classes/AccountBriefCallsSection.cls, agents/tasks/BE-2-three-flex-prompt-templates-for-the.md, agents/tasks/BE-3-deals-open-deals-with-who-s.md, agents/tasks/BE-4-people-and-engagement-contacts-task-activity.md, agents/tasks/BE-5-account-profile-and-service-health-cases.md, agents/tasks/BE-7-account-brief-employee-agent-in-agent.md, agents/tasks/CRO-2-ask-anything-drill-into-anything-a.md, agents/tasks/FE-1-custom-panel-cmd-ctrl-k-utility.md, agents/tasks/OPS-6-live-probe-call-the-account-brief.md, agents/tasks/OPS-7-live-probe-create-an-inactive-custom.md, agents/tasks/OPS-9-find-why-sf-agent-publish-authoring.md]
