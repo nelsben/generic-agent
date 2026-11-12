@@ -6,16 +6,25 @@
  * fits the chat relay. Table rows are dropped from the end first; the text is clipped only if it alone
  * is too long. When the explorer ran out of turns, the status is OK (or EMPTY) and the text says the
  * step cap was hit, so the last result still reaches the user. Read-only: no DML.
+ *
+ * History (N3): the History output is this question and its answer as one string, in the shape
+ * DataExplorer reads ([{"question":"...","answer":"..."}], each part clipped to HISTORY_CHARS). The agent
+ * keeps it and passes it back as the History input on the next explore turn, so a follow-up such as
+ * "Which close this quarter?" reaches the explorer with the question it follows. Empty means none.
  */
 public with sharing class ExploreAction {
     @TestVisible private static final Integer MAX_CHARS = 5900;
     private static final Integer CELL_CHARS = 40;
+    /** DataExplorer shows the model at most 600 characters of each earlier question and answer. */
+    @TestVisible private static final Integer HISTORY_CHARS = 600;
 
     public class Request {
         @InvocableVariable(label='Question' description='The data question, in the user\'s words.' required=true)
         public String question;
         @InvocableVariable(label='Context Record Id' description='The record the user has open, if any.')
         public Id contextRecordId;
+        @InvocableVariable(label='History' description='The previous explore question and answer as one string: the History output of the previous explore run. Empty for none.' required=false)
+        public String history;
     }
 
     public class Response {
@@ -23,6 +32,8 @@ public with sharing class ExploreAction {
         public String status;
         @InvocableVariable(label='Answer' description='The answer text and a compact table of the last result. Relay it verbatim.')
         public String answer;
+        @InvocableVariable(label='History' description='This question and its answer as one string, to pass as History on the next explore turn. Not for the user.')
+        public String history;
     }
 
     @InvocableMethod(callout=true label='Explore Data' description='Answers a question about Salesforce data by running safe, read-only queries the user has access to.')
@@ -35,13 +46,35 @@ public with sharing class ExploreAction {
             // A null request gets a response like any other (a blank question is EMPTY), so results line up.
             DataExplorer.Result r = req == null
                 ? DataExplorer.explore(null, null, null)
-                : DataExplorer.explore(req.question, req.contextRecordId, null);
+                : DataExplorer.explore(req.question, req.contextRecordId, String.isBlank(req.history) ? null : req.history);
             Response res = new Response();
             res.status = r.status;
             res.answer = compose(r);
+            res.history = historyOf(req?.question, res.answer);
             out.add(res);
         }
         return out;
+    }
+
+    /**
+     * This turn as the history DataExplorer reads: one item, question and answer each clipped to
+     * HISTORY_CHARS. Empty for a blank question, which the explorer does not run.
+     */
+    @TestVisible
+    private static String historyOf(String question, String answer) {
+        if (String.isBlank(question)) {
+            return '';
+        }
+        return JSON.serialize(new List<Object>{
+            new Map<String, Object>{
+                'question' => clipHistory(question.trim()),
+                'answer' => clipHistory(answer == null ? '' : answer)
+            }
+        });
+    }
+
+    private static String clipHistory(String text) {
+        return text.length() > HISTORY_CHARS ? text.left(HISTORY_CHARS - 3) + '...' : text;
     }
 
     /** The answer text, then the last result set as a table, kept under MAX_CHARS. */
