@@ -65,11 +65,11 @@ sequenceDiagram
 
 ## See it
 
-![An explorer result in the panel: the question "Which 5 open opportunities have the largest amounts? Answer in one sentence.", a one-sentence answer over five lines naming Juniper Project B ($293,920), Fernhollow Project C ($280,960), Pimble Project B ($274,480), Oddfellow Project A ($268,000) and United Oil Singapore Terminal Link ($255,040), then the caption "Opportunity · 5 of 36 rows", the Name, Amount and StageName headers, the first row, Juniper Project B, and the top of a second, Fernhollow](../assets/explore-answer.png)
+![An explorer result in the panel: the plain question "Which 5 open opportunities have the largest amounts?", then a short answer over six lines, "The 5 open opportunities with the largest amounts total nearly $1.4 million, ranging from $255,040 to $293,920. All five are owned by Sample Owner, with most in Needs Analysis stage and two at Proposal/Price Quote. The top opportunity is Juniper Project B at $293,920, closing in January 2027.", then the caption "Opportunity · 5 of 36 rows", the Name, Amount and StageName headers and the first row, Juniper Project B](../assets/explore-answer.png)
 
-![The explorer result, then the drill view of Juniper Project B under a "Conversation > Juniper Project B" breadcrumb, then the conversation again, showing the end of the answer and the table's first three rows](../assets/explore-drill.gif)
+![The answer to "Which 5 open opportunities have the largest amounts?" with the table's first row, then a click on Juniper Project B dims the panel under a spinner and opens its drill view under a "Conversation > Juniper Project B" breadcrumb, then the breadcrumb goes back to the conversation, showing the end of the answer and the table's first three rows: Juniper Project B, Fernhollow Project C and Pimble Project B](../assets/explore-drill.gif)
 
-![The drill view of one Opportunity: the breadcrumb "Conversation > Juniper Project B", the record name with its type, Opportunity, and its fields Name, StageName, Amount, CloseDate and the top of Probability](../assets/drill-view.png)
+![The drill view of Juniper Project B, the top row of "Which 5 open opportunities have the largest amounts?": the breadcrumb "Conversation > Juniper Project B", the record name with its type, Opportunity, and its fields Name, StageName, Amount, CloseDate and Probability, the last cut off at the bottom of the scroll box](../assets/drill-view.png)
 
 ## Why you can trust it
 

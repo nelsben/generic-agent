@@ -6,9 +6,7 @@
 const { test, expect, watch, still, gif, at, settle, savedVideo } = require('./kit');
 const { ANSWER_TIMEOUT } = require('../support/panel');
 
-// The explorer tends to list every row in its text, which pushes the table out of a 340x480 panel;
-// asking for one sentence keeps the question, the answer and the table's header row in one view.
-const QUESTION = 'Which 5 open opportunities have the largest amounts? Answer in one sentence.';
+const QUESTION = 'Which 5 open opportunities have the largest amounts?';
 
 test('explore-answer.png, explore-drill.gif, drill-view.png', async ({ page, panel, t0 }) => {
     const guard = watch(page, 'the explorer');
@@ -21,7 +19,7 @@ test('explore-answer.png, explore-drill.gif, drill-view.png', async ({ page, pan
     await expect(rows.first()).toBeVisible();
     await panel.composer.blur();
 
-    // explore-answer.png: the question at the top of the scroll box, then the one-sentence answer, the
+    // explore-answer.png: the question at the top of the scroll box, then the short answer, the
     // table's title and its header row. The run fails, naming the CSS px, if the header row does not
     // fit under the question: the still would not show what its caption says.
     const question = turn.locator('.abp-question').first();
@@ -33,6 +31,9 @@ test('explore-answer.png, explore-drill.gif, drill-view.png', async ({ page, pan
         throw new Error('explore-answer.png: the scroll box or the table header row is not rendered.');
     }
     const needed = Math.ceil(head.y + head.height - box.y);
+    // The answer text as shown (masked by the privacy guard), for the record of each run.
+    const answer = await turn.locator('.abp-pre').first().innerText();
+    console.log(`explore-answer.png: answer ${JSON.stringify(answer)}`);
     if (needed > box.height) {
         throw new Error(`explore-answer.png: the question to the header row needs ${needed} px; the scroll box is ${Math.round(box.height)} px.`);
     }
