@@ -68,6 +68,8 @@ approved skips it and reports. Only Ben changes a line; the brain records his an
 | Post on forcedotcom/cli issue 3634 | not approved; draft only |
 | Create the user `experimental-enduser` | Ben does this himself; FE-5 stays parked |
 | Make the repo public | not approved |
+| Phase 2: migrate to the fresh Developer Edition org that publishes (deploy, publish, activate there), reusing the sibling session's existing CLI sign-in | approved (Ben, 2026-11-12, in chat: "your last step is to migrate to a fresh org where everything is working") |
+| Phase 2: cut and work new agent or design iteration cards in the new org; re-record screenshots where the brain judges it needed | approved (Ben, 2026-11-12, in chat) |
 
 ## Cards
 
@@ -114,6 +116,27 @@ so a deploy never lands during a capture.
 
 If a Lane B approval is still pending when its card is next, keep Lane A moving, finish
 OPS-19 and the reviews, and leave the workbook with its asset slots marked "not captured".
+
+## Phase 2: move to a fresh org (Ben, 2026-11-12)
+
+`experimental` returns 401 on every agent create; the same minimal agent publishes in a fresh
+Developer Edition org (Morning notes). Ben's order:
+
+1. Finish the cards above (FE-7, OPS-22, and the stretch cards if time allows) and merge them.
+2. Then ask the sibling session for the new org's details and cut the migration card. It reuses
+   the CLI sign-in that already exists on this machine; nothing signs in again.
+3. The migration card makes the org alias a setting everywhere (scripts, e2e, docs), deploys
+   `main`, checks the sample data, publishes and activates Account_Brief, and runs the Apex
+   tests, the 12-case agent test, the two-turn check and e2e there.
+4. New agent or design iterations found on the way (for example the agent review's
+   should-fix N2 to N6) become their own cards and are worked in the new org.
+5. The brain decides which assets to re-record. The two agent slots are re-recorded once a
+   version with the current script is active; the panel assets are re-recorded only if the
+   new org's data or UI makes them differ from what the workbook says.
+6. A short final truth and privacy pass over the README and pattern pages closes it.
+
+No Salesforce user is created by the brain or a worker in either org. `experimental` keeps
+version 1 active and is not changed while Ben's Salesforce case is open.
 
 ## Asset manifest (the workbook and the capture card both key off this)
 
