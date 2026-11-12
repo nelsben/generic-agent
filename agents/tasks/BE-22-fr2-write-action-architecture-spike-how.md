@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: architecture decision across panel, agent and MCP doors from live-org probes
 status: blocked
-blocked_by: [BE-20, OPS-29]
+blocked_by: [OPS-29]
 fixes: []
 scope: [spikes/actions/**, docs/research/fr2-actions-spike.md]
 forbid: [sfdx-project.json, tests/**, force-app/**, mcp-door/**, spikes/surface/**, spikes/rename/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
