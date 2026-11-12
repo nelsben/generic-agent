@@ -36,11 +36,12 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
    whoever can see the account, kept for as long as its type says, and fed back as context the next time anyone opens
    a conversation on that account. `BE-35` builds the store (F75 to F79).
 5. **It sees what the rep sees.** Every door (the compact window, the rail, MCP and the optional agent) runs as the
-   signed-in user: every Apex class is `with sharing`, and every read of CRM data is in user mode, so object, field and
+   signed-in user: every Apex class is `with sharing` unless it carries a named exception, and every read of CRM data is in user mode, so object, field and
    record access all apply. System context is used only where the product keeps its own records, and each use is named
    in the code with its reason and checked by a test (`BE-37`): the conversation history (a rep's own rows, with access
    to the account re-checked on read, `BE-26`), the text of customer outcomes (reps get no field access to it; the
-   outcome service returns it only to its author or for a type marked to share, `BE-35`), the outcome purge job, and
+   outcome service returns it, and adds it to a model prompt, only for its author or a type marked to share, `BE-35`),
+   the outcome purge job, and
    the product's own prompt files if a rep cannot read them in user mode (`BE-33`). Failures read as one plain
    sentence that says what to do next, never raw error text. Granting access is one permission set group, an
    implementation step in the quick start, not a chapter (F85 to F87).
