@@ -29,7 +29,7 @@ Findings are from `docs/reviews/agent-review-2.md`.
 | 5 | Quick deploy | `CONFIRM_PROD=1 sf project deploy quick --job-id <validation> -o agent-probe --wait 4 --json` | Succeeded, 60 components |
 | 6 | N4 and N3 preview | `sf agent preview start --authoring-bundle Account_Brief --use-live-actions`, six `send`s, `end` (all `--json`) | See "N4 trace notes" and "Explore two-turn result" |
 | 7 | Commit | `git commit` | before the publish, so the bundle checkout cannot lose edits |
-| 8 | Publish, first | `sf agent publish authoring-bundle --api-name Account_Brief -o agent-probe --skip-retrieve --json` | **Failed**: "Description: data value too large ... (max length=255)". The new `explore_history` description was 276 characters. Nothing was published (BotVersion still showed v1 only) |
+| 8 | Publish, first | `sf agent publish authoring-bundle --api-name Account_Brief -o agent-probe --skip-retrieve --json` | **Failed**: "Description: data value too large ... (max length=255)". The new `explore_history` description was 276 characters. It created no version: the next BotVersion query (step 11) shows only v1 and the v2 from the second publish |
 | 9 | Fix | shortened the description to 225 characters; added `test_variable_descriptions_fit_the_publish_limit`; tests and agent-check green; commit | |
 | 10 | Publish, second (changed bundle, not the same call) | same command | `success` true, 3 deployed. `git checkout -- force-app/main/default/aiAuthoringBundles/Account_Brief` left the tree clean |
 | 11 | Version table | read-only BotVersion query | v1 Active, v2 Inactive |
@@ -39,7 +39,7 @@ Findings are from `docs/reviews/agent-review-2.md`.
 | 15 | Check the definition | read-only `sf project retrieve start --metadata AiEvaluationDefinition:Account_Brief_Test --target-metadata-dir <scratch> --unzip` | `subjectName Account_Brief`, `subjectType AGENT`, `subjectVersion v2`, 16 test cases |
 | 16 | Spec run | `sf agent test run --api-name Account_Brief_Test --test-runner testing-center --wait 4 --result-format json -o agent-probe --json` | COMPLETED, 07:52:50Z to 07:56:00Z. 16 of 16 (table below) |
 | 17 | Two-turn brief check | `sf apex run --file <scratch>/turn1.apex`, then `turn2.apex` with turn 1's session | Pass (below) |
-| 18 | Gates | unit tests, `bash scripts/validate-org.sh`, `bash scripts/agent-check.sh` | see the hand-back |
+| 18 | Gates | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests`, `bash scripts/validate-org.sh`, `bash scripts/agent-check.sh` | 83 tests OK; validate-org pass (60 components, 154 tests); agent-check pass (local compile ok, 0 warnings; org validate ok) |
 
 Org model use: 6 preview turns, 16 spec cases (each also graded) and 2 two-turn turns, 24 agent
 turns in all. The explorer makes several model calls inside one turn. No data was written except
@@ -111,7 +111,7 @@ was never printed, and was deleted.
 
 ## Explore two-turn result (local bundle, live actions)
 
-Turns 1 and 2 of the preview session (the same script content that was then published as v2):
+Turns 1 and 2 of the preview session. The previewed script differs from the published v2 only in the shorter `explore_history` description (step 9):
 
 | Turn | Utterance | Route | `explore_data` inputs | Reply |
 |---|---|---|---|---|
