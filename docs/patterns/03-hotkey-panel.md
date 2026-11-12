@@ -54,19 +54,25 @@ sequenceDiagram
    because the panel is not a modal. Esc from any control minimizes and returns focus.
 8. **Other components can drive it.** A message on the `AccountBriefOpen` channel opens the panel
    and runs a prompt with that message's record as context, or briefs an Account Id sent alone.
+9. **The answer gets the room.** Only one row is pinned above the conversation: the Brief button,
+   whose label truncates when it is long but keeps "Brief <Account name>" as its accessible name,
+   and "Ask the agent". "Sections" and "Earlier briefs" sit at the top of the scroll box and
+   scroll away. A brief's summary shows its headline, with the rest behind a "Full summary"
+   toggle, so the section headers are in view under it.
 
 ## See it
 
-![The Account Brief panel opens over an account page with an empty composer, "Which cases are still open?" is typed into it, then the panel minimizes back to the utility bar](../assets/hotkey-open.gif)
+![The Account Brief panel opens over an account page with the Sections and Earlier briefs rows and an empty composer, "Which cases are still open?" is typed into it, then the panel minimizes back to the utility bar](../assets/hotkey-open.gif)
 
-![The panel with the Open deals section expanded: "Open deals · 5 of 5" with an OK badge, "5 open, $634,180 total pipeline, 2 overdue", and the first deal, Edge Core Router Refresh, marked OVERDUE, above the composer](../assets/panel-sections-open.png)
+![The panel with the Open deals section expanded under the one-row bar: "Open deals · 5 of 5" with an OK badge, "5 open, $634,180 total pipeline, 2 overdue", then Edge Core Router Refresh and Edge Support Plan Renewal, each marked OVERDUE with its contacts, and the start of Edge Fiber Backhaul Expansion, above the composer](../assets/panel-sections-open.png)
 
 ## Why you can trust it
 
 - **Jest covers the behaviour.** [accountBriefPanel.test.js](../../force-app/main/default/lwc/accountBriefPanel/__tests__/accountBriefPanel.test.js)
   has tests for the hotkey by key code on and off Mac, Shift, Alt and Cmd being ignored off Mac,
   yielding to an earlier handler, six latest-wins cases, Esc returning focus, Tab never trapped,
-  Enter and IME, the live region, markup rendered as text, and three axe checks.
+  Enter and IME, the live region, markup rendered as text, the one-row bar, the "Full summary"
+  toggle, and three axe checks.
 - **The metadata shape is tested.** [test_app.py](../../tests/test_app.py) checks the utility bar
   has exactly one item, the panel, with its properties, and that the app references it.
 - **Review findings are fixed in code.** The LWC review ([lwc-review.md](../reviews/lwc-review.md))
@@ -78,10 +84,10 @@ sequenceDiagram
   panel "Ready with fixes" with no blockers, and its own Jest run passed 36 of 36 with 89.5% line
   coverage of the panel's JavaScript.
 - **It runs in a real org.** The Playwright suite ([e2e/README.md](../../e2e/README.md)) passed
-  8 of 8 as an admin user: the hotkey before first open, Esc returning focus, the live region, the
-  pinned composer, latest wins, Enter to send, a drill and back, and axe. It passed on its first
+  8 of 8 as an admin user: the hotkey before first open, Esc returning focus, the live region, a
+  pinned bar of at most 80 px over a scroll box of at least 240 px, the pinned composer, latest wins, Enter to send, a drill and back, and axe. It passed on its first
   run in the org this was built in ([deploy-verify.md](../research/deploy-verify.md)) and in
-  `agent-probe`, where the [e2e report](../assets/e2e-report.png) was taken (3.0 minutes). The first
+  `agent-probe`, where the [e2e report](../assets/e2e-report.png) was taken (3.1 minutes). The first
   run in `agent-probe` passed 7 of 8, and spec 2 (Esc returning focus) has failed now and then since,
   cause not found ([e2e/README.md](../../e2e/README.md)).
 

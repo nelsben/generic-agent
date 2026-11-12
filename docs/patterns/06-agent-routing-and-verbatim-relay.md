@@ -6,10 +6,11 @@ Reps who use the built-in Agentforce panel get the same brief and the same data 
 custom panel. The agent decides which of two jobs a message is, then passes the Apex answer
 through without rewording it.
 
-The current script runs live in `agent-probe`, a fresh Developer Edition org. There, version 1
+The current script runs live in `agent-probe`, a fresh Developer Edition org. There, version 2
 of `Account_Brief`, published from main with this script, is the active version. The
-screenshots below come from it, and the 12-case agent test passed against it
-([org-migration.md](../research/org-migration.md)). In the org it was first built in, version 1
+screenshots below come from it, and the 16-case agent test passed against it
+([agent-iteration-1.md](../research/agent-iteration-1.md)). Version 1 was published there first
+and passed the 12-case test ([org-migration.md](../research/org-migration.md)). In the org it was first built in, version 1
 is still the script from before the review fixes, and every publish there fails. See "Limits and
 open items".
 
@@ -67,9 +68,9 @@ sequenceDiagram
 
 ## See it
 
-![The built-in Agentforce panel, titled Account Brief, docked over an account page: the question "Brief me on Edge Communications", then the agent's reply, opening with "Two deals are overdue and a high-priority escalated case reports BGP sessions dropping under load.", then an Account paragraph, an Open deals paragraph and the start of a People & engagement paragraph, partly under a scroll-down button above the message box](../assets/agent-brief.png)
+![Version 2 of the agent in the built-in Agentforce panel, titled Account Brief, docked over an account page: the question "Brief me on Edge Communications", then the reply, opening with "Two overdue deals and a high-priority escalated BGP case need immediate attention.", then an Account paragraph and an Open deals paragraph whose end is under a scroll-down button above the message box](../assets/agent-brief.png)
 
-![The same built-in panel after the question "How many open opportunities are there in the whole org?": the reply "There are 36 open opportunities in the whole org.", a line explaining that these are opportunities where IsClosed is false, "Count 36", and the like, dislike and copy buttons](../assets/agent-explore.png)
+![The same built-in panel on version 2 after the question "How many open opportunities are there in the whole org?": the reply "There are 36 open opportunities in the whole org.", a paragraph explaining that these are opportunities where IsClosed is false, "Count 36", and the like, dislike and copy buttons](../assets/agent-explore.png)
 
 ## Why you can trust it
 
@@ -80,7 +81,7 @@ sequenceDiagram
   (`test_explore_runs_explore_data_deterministically`), rule 1 coming before the follow-up rule,
   and the off-topic line.
 - **The spec is checked for shape.** The same file checks that
-  [Account_Brief-testSpec.yaml](../../tests/agent/Account_Brief-testSpec.yaml) has 12 utterances,
+  [Account_Brief-testSpec.yaml](../../tests/agent/Account_Brief-testSpec.yaml) has 16 utterances,
   including AMBIGUOUS, a two-turn follow-up, an org-wide count after a brief, and NOT_FOUND then
   a follow-up.
 - **It ran live.** All 12 cases routed correctly in Studio preview against the draft version
@@ -88,11 +89,14 @@ sequenceDiagram
   replies equalled the action's text, with one exception: in case 11 two table headers that were
   dotted field paths came back as `URL_Redacted`. The explorer now writes plain column labels
   instead (see [02](02-ask-anything-explorer.md)), and that change has not been previewed yet.
-- **It runs as the active version.** In `agent-probe`, `sf agent test run` of the 12-case spec
-  passed 12 of 12 cases and 36 of 36 assertions against the active version 1, and a two-turn
-  check passed both turns ([org-migration.md](../research/org-migration.md)). In case 7 the agent
-  called `resolve_account` before `get_brief`, where the spec expects `get_brief` alone, and the
-  runner still scored it a pass.
+- **It runs as the active version.** In `agent-probe`, `sf agent test run` of the 16-case spec
+  passed 16 of 16 cases against the active version 2, and a two-turn brief check passed both
+  turns ([agent-iteration-1.md](../research/agent-iteration-1.md)). Explore history across turns
+  was checked only in a preview of the local bundle, because the test runner does not set it.
+  Version 1 passed the earlier 12 cases and 36 of 36 assertions
+  ([org-migration.md](../research/org-migration.md)). In case 7 the agent called
+  `resolve_account` before `get_brief`, where the spec expects `get_brief` alone, and the runner
+  still scored it a pass.
 - **Review findings are fixed in script.** The agent review ([agent-review.md](../reviews/agent-review.md))
   found org-wide questions scoped to the briefed account (finding 1), the resolve message relayed
   on RESOLVED (2), no route out of a subagent (3), a null Id passing the gate (4), and a system
@@ -129,19 +133,23 @@ sequenceDiagram
   a fresh Developer Edition org, the same bundle from main published on its first try and its
   version 1 is active ([org-migration.md](../research/org-migration.md)), so the fault is
   specific to that one org.
-- Only version 1 exists in `agent-probe`. Publishing and activating a second version over an
-  active one has not been done in either org.
+- In `agent-probe`, version 2 was published while version 1 was active and then activated in its
+  place ([agent-iteration-1.md](../research/agent-iteration-1.md)). The first publish of it failed
+  on a variable description over 255 characters and created no version.
 - Should-fix from the agent re-review ([agent-review-2.md](../reviews/agent-review-2.md)):
-  - N3: an explorer follow-up through the agent gets no history, so "Which close this quarter?"
-    loses the question before it. A pronoun can also send the follow-up to the briefed account.
+  - N3, fixed in version 2: the explore step now passes the previous question and answer as
+    history, and a pronoun after an explore answer stays with the explorer. The history part was
+    checked only in a preview of the local bundle
+    ([agent-iteration-1.md](../research/agent-iteration-1.md)).
   - N4: the explorer runs before the explore step can hand a misrouted message back, so that
     work can be wasted or relayed for the wrong question (suspected).
   - N5: access needs two permission sets plus a standard one, with no group and no setup doc.
     See [07](07-trust-access-and-failure.md).
   - N6: word-for-word relay of explorer tables is unproven on the current Apex.
 - Still open from the first review: a brief on the wrong account is stopped only by instruction
-  text (finding 6), and the NOT_FOUND reply says "open the account and ask again" although the
-  open record is not passed in (finding 12, Studio's one warning).
+  text (finding 6). Finding 12 is fixed in version 2: the NOT_FOUND reply now says "Try a fuller
+  or different account name." instead of asking the rep to open the account, which the agent
+  does not pass in.
 - Agent turns are slow. The Apex probe recorded 14 to 18 seconds per turn
   ([agent-api.md](../research/agent-api.md)). The custom panel calls the same Apex directly.
 - The custom panel's "Ask the agent" button only opens the built-in panel and sends the question.
