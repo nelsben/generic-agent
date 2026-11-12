@@ -16,7 +16,7 @@
   evaluation definition `Account_Brief_Test` exists and points at `subjectVersion v1`.
 - **The sample data is in (attempt 5, verified).** The seed imported 107 records: 14 Accounts,
   14 Contacts, 47 Opportunities, 7 OpportunityContactRoles, 11 Tasks, 6 Events and 8 Cases. It took
-  three fixes on `main`:
+  two data fixes on `main`:
   - PR #72: `BillingCountry` and `BillingState` as names, because the org has State and Country
     Picklists on (attempt 3's errors).
   - PR #74: Quillfeather Group moved to `data/sample/account-parents.json`, an earlier plan entry,
@@ -30,7 +30,8 @@
 - **e2e: 7 of 8 pass; spec 2 fails (verified).** Its anchor, the global header's Search button,
   was not found after Esc. At that moment the page showed the fresh org's "Guidance Center" panel
   and its "Meet the new Guidance Center" pop-up, and the header's buttons were not in the
-  accessibility tree. The likely cause is that first-run pop-up, not the panel (unproven). See "e2e".
+  accessibility tree. The failure screenshot shows that walkthrough over a dimmed page. The cause is
+  the fresh org's first-run pop-up, not the panel (inference, strongly indicated). See "e2e".
 - **Model calls in the org: about 21 agent or panel turns, plus 12 grader ratings** (1 turn in
   attempt 3; 12 test cases, 2 two-turn turns and 6 e2e panel calls in attempt 5). That is within
   the budget of about 40 even with the grader counted.
@@ -157,9 +158,9 @@ in Account, Contact, Opportunity, OpportunityContactRole, Task, Event and Case a
   in `data/sample/sample-data-plan.json` as an `Account` entry with `saveRefs` true, before the
   `accounts.json` entry. Nothing in `tests/`, `e2e/` or `force-app` uses the parent link, so
   dropping `ParentId` from `AccEdge` would also work, but it loses the parent in the sample.
-- The test change that would catch this, for whoever owns `tests/` (not made here): in that test,
-  check each `@reference` against the references saved by earlier plan entries only, not against
-  earlier records in the same file.
+- The test change that would catch this, proposed here and made by the brain in PR #74: in that
+  test, check each `@reference` against the references saved by earlier plan entries only, not
+  against earlier records in the same file.
 
 ### Attempt 3 (before PR #72)
 
@@ -236,8 +237,9 @@ Score: 12 of 12 cases, 36 of 36 assertions. No case failed, so there are no fail
 give. Notes on the passes:
 
 - Case 1 rated 3: the grader said the reply is a full brief but "does not explicitly resolve the
-  account", though the action trace shows `resolve_account` ran first. The reply itself gives no
-  "Resolved:" line, which is what the spec asks for.
+  account", though the action trace shows `resolve_account` ran first. The spec only asks that
+  the reply is not just "Resolved: Edge Communications", and it is not; the grader seems to have
+  wanted the resolution stated in the text.
 - Cases 2 and 6 rated 4: the grader marked the extra brief sections as beyond what was asked.
   Case 6's reply says "Not requested" for the account section and still includes others.
 - Case 7: the spec expects `get_brief` alone; the agent called `resolve_account` again before
@@ -266,7 +268,7 @@ matches "Edge Communications". Try the full name or open the account and ask aga
 ## e2e
 
 Attempt 5, one full run: `SF_TARGET_ORG=agent-probe npm run test:e2e`, 06:24:04 to 06:27:21Z,
-8 specs, 1 worker. **7 passed, 1 failed** (verified). Not run in attempts 3 and 4 (no data).
+8 specs, 1 worker. `SF_E2E_ORG`, which would override the alias, was unset (verified). **7 passed, 1 failed** (verified). Not run in attempts 3 and 4 (no data).
 
 | Spec | Result |
 |---|---|
@@ -293,8 +295,14 @@ Cause:
   an admin onboarding pop-up with "Close", "Dismiss", "Focus me" and "Next". The global header's
   list items are still there but none exposes a button, so the dialogs probably hid the header
   from the accessibility tree (verified from the snapshot; the cause is inference).
-- So the likely cause is the org's first-run Guidance Center pop-up, which opened during the
-  test, not the panel's focus handling (unproven).
+- The failure screenshot (`test-failed-1.png`, git-ignored) confirms it: the Guidance Center panel
+  is open on the right, the blue "Meet the new Guidance Center" walkthrough ("Step 1 of 2",
+  Dismiss and Next) sits over the record page, and the rest of the page, header search box
+  included, is dimmed behind an overlay (verified from the screenshot).
+- So the cause is the org's first-run Guidance Center walkthrough covering the page, not the
+  panel's focus handling. That this overlay is what hides the Search button is strongly indicated
+  but inference. What opened it (on its own after the page loaded, or a key the test pressed) is
+  unproven.
 - Fix options, not made here: dismiss the Guidance Center pop-up once in agent-probe as the test
   user (a UI click that stores a user preference), or have the e2e setup close a Guidance Center
   dialog if one is open (an `e2e/` change, out of scope; listed, not made). Spec 2 makes no model
