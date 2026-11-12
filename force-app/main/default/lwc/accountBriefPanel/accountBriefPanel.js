@@ -928,7 +928,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
         const contextRecordId = sessionId ? null : this.contextRecordId || null;
         const epoch = this._agentEpoch;
         const failed = () => {
-            this._push({ isText: true, isError: true, isAgent: true, question, text: AGENT_FAILURE_TEXT });
+            this._push({ isText: true, isError: true, question, text: AGENT_FAILURE_TEXT });
             return AGENT_FAILURE_TEXT;
         };
         return this._request({
@@ -947,7 +947,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
                 if (r.sessionId && epoch === this._agentEpoch) {
                     this._agentSessionId = r.sessionId;
                 }
-                this._push({ isText: true, isAgent: true, question, text: r.text });
+                this._push({ isText: true, question, text: r.text });
                 return 'Agent replied';
             }
         });

@@ -21,6 +21,8 @@ const DRILL_QUESTION = 'List the contacts at this account with their titles';
 // Spec 9: the probe's two turns. The follow-up only makes sense after the first.
 const AGENT_QUESTION = 'What are the open deals at this account?';
 const AGENT_FOLLOWUP = 'What about their open cases?';
+/** Text with runs of whitespace made one space, to compare a rendered reply with the returned one. */
+const squash = (text) => (text || '').replace(/\s+/g, ' ').trim();
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 /** A focusable element on the page outside the panel: the global header's Search button. */
@@ -293,9 +295,11 @@ test('9. Ask the agent answers in the panel, and a follow-up that needs the firs
     await expect(panel.liveRegion).toHaveText('Agent replied');
     await expect(panel.spinner).toBeHidden();
     await expect(panel.turns).toHaveCount(before + 1);
-    const turn1 = panel.turns.last();
+    // Pinned by index: last() would move to turn 2 once it renders.
+    const turn1 = panel.turns.nth(before);
     await expect(turn1.locator('.abp-question')).toHaveText(AGENT_QUESTION);
     await expect(turn1.locator('[data-error="true"]')).toHaveCount(0);
+    expect(squash(await turn1.locator('.abp-pre').textContent()) === squash(first.value.text), 'turn 1 shows the reply').toBe(true);
     expect(/deal|opportunit/i.test(first.value.text), 'turn 1 answers about deals').toBe(true);
 
     // Turn 2: names no account and carries no record, so only the first turn's session can answer it.
@@ -313,8 +317,11 @@ test('9. Ask the agent answers in the panel, and a follow-up that needs the firs
     expect(/which account|what account|specify (the|an) account/i.test(second.value.text), 'turn 2 did not ask which account').toBe(false);
     await expect(panel.liveRegion).toHaveText('Agent replied');
     await expect(panel.turns).toHaveCount(before + 2);
-    await expect(panel.turns.last().locator('.abp-question')).toHaveText(AGENT_FOLLOWUP);
-    await expect(panel.turns.last().locator('[data-error="true"]')).toHaveCount(0);
+    const turn2 = panel.turns.nth(before + 1);
+    await expect(turn2.locator('.abp-question')).toHaveText(AGENT_FOLLOWUP);
+    await expect(turn2.locator('[data-error="true"]')).toHaveCount(0);
+    expect(squash(await turn2.locator('.abp-pre').textContent()) === squash(second.value.text), 'turn 2 shows the reply').toBe(true);
     // Both replies stay on screen.
     await expect(turn1.locator('.abp-question')).toHaveText(AGENT_QUESTION);
+    expect(squash(await turn1.locator('.abp-pre').textContent()) === squash(first.value.text), 'turn 1 still shows its reply').toBe(true);
 });

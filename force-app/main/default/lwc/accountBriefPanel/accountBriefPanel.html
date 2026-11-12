@@ -143,9 +143,6 @@
                             <!-- Plain text: NOT_FOUND from the resolver, an Apex error, or the agent's reply -->
                             <template lwc:if={turn.isText}>
                                 <div class="abp-pre slds-m-top_xx-small" data-error={turn.isError}>{turn.text}</div>
-                                <template lwc:if={turn.isAgent}>
-                                    <div class="abp-agent-source slds-text-body_small slds-text-color_weak slds-m-top_xx-small">Account Brief agent</div>
-                                </template>
                             </template>
 
                             <!-- AMBIGUOUS: candidates re-resolve by Id -->
