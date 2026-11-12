@@ -83,7 +83,8 @@ published. The panel needs only `Account_Brief_Data_Access`.
 
 The agent in the built-in Agentforce panel needs one more step: publish and activate the
 `Account_Brief` bundle. In the org this was built in, every CLI publish fails with a server
-`401`, and Studio's Commit Version fails too, with its error not captured
+`401`, and Studio's Commit Version fails too with a "couldn't commit a version" message; its
+network response was not captured, so whether it is the same `401` is not known
 ([agent-publish-spike.md](docs/research/agent-publish-spike.md)). The plan's morning notes report,
 second-hand, that a minimal agent that failed there publishes in a fresh Developer Edition org, so
 the fault looks specific to that org ([gtm-burn-plan.md](docs/plans/gtm-burn-plan.md)). The panel
