@@ -4,7 +4,7 @@ title: Evidence capture: a Playwright script produces every screenshot and GIF i
 domain: frontend
 tier: frontier
 tier_reason: live-browser capture with privacy masking and visual judgement
-status: queued
+status: merged
 fixes: []
 scope: [docs/assets/**, e2e/capture/**, playwright.capture.config.js, package.json, e2e/README.md, .gitignore]
 forbid: [force-app/**, tests/**, scripts/**, e2e/panel.spec.js, e2e/global-setup.js, playwright.config.js, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
@@ -33,3 +33,7 @@ The GTM workbook has fixed slots for screenshots and GIFs (docs/assets/MANIFEST.
 - The running user's own name must not appear in any frame. At run time the capture script reads it with `sf org display user --target-org experimental --json` (never printed or written to disk), and before every capture it replaces that exact text in the page with 'Sample Owner' via injected script. Explorer questions in captures do not ask for owners. Sample record names (Edge Communications, its contacts) are fine
 - The capture script itself checks every captured still and every 0.5 s of each recording before export: the page text contains no running-user name, no email address, no 15 or 18 character Id and no 'URL_Redacted'; a failing check fails the run. For GIFs, also extract one frame per second with ffmpeg to a temporary folder outside the repo and read every one by eye
 - Hand-back: list each asset with its pixel size and file size, and the path of the Playwright run's test-results/.last-run.json so the brain can read it
+
+## Review
+
+Sonnet review attempt 2: 16 confirmed, 0 refuted, 7 unverifiable (attempt 1's one refuted claim, the DoorDash quote, was in the hand-back prose only and was corrected without a file change). Brain checks: the deny-list, Salesforce-Id, email and my.salesforce.com greps of the added text lines find 0 hits. The brain read every PNG and every 1 fps frame of all three GIFs, including the last frames, and found no running-user name, username, email, record Id, URL_Redacted, error toast or final-frame spinner. This covers the reviewer's unverifiable rows on frames and endings. The "OrgFarm EPIC" text visible in frame is not the running user (checked by a read-only query that printed only true/false). The reviewer briefly ran a detached checkout in the worktree and restored the branch; the tree was clean at afdd66b afterwards. Not captured: agent-brief.png and agent-explore.png, because version 2 cannot be published in experimental (401). Recapture in phase 2, once a version with the current script is active in the new org. Also in phase 2: panel-brief.png should show the brief's headline sentence, and explore-answer.png has the question scrolled out of view.
