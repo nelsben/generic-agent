@@ -299,7 +299,7 @@ Ben also said "it's not that thing to use other resources in salesforce"; record
   invocables ready for it.
 - Say go to schedule the outcome purge job in agent-probe after `BE-35` lands. Until then nothing expires.
 - Say go for the Testing Center suite in `agent-probe` (`BE-38`; the Approvals table). The brain recommends yes for the
-  functional suite: at most 20 cases with no write actions, on one dedicated test account (a summary still records its
+  functional suite: at most 20 cases with no write actions, on one existing sample-data account (a summary still records its
   session and its customer outcome), the same kind of run that passed there before. It also covers the ladder's
   `--agent` run (`OPS-46`).
 - Optional: install Java 11 or later on this Mac so the code scan's Java rules run (`OPS-46` runs the rest without it).
