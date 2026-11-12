@@ -82,6 +82,9 @@ pressed after Esc, and is still there 2.5 seconds later, once the utility bar's 
 moves are over. Spec 5 waits on the Aura response of the panel's Apex method, matched by method
 name only.
 
+Every test closes the "Meet the new Guidance Center" walkthrough of a fresh org whenever it appears
+(`Panel.gotoAccount`), because it covers the page and takes focus from the element a test just focused.
+
 Accessibility checks use `@axe-core/playwright` scoped to `c-account-brief-panel`, WCAG 2.0-2.2
 A and AA rules; the violations of each state are attached to the test as JSON.
 
