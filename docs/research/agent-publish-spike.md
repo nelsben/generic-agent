@@ -20,8 +20,9 @@
     (`POST /einstein/ai-agent/v1.1/authoring/agents/<agent id>/versions`) and for a new agent
     (`POST .../authoring/agents`).
   - Compiling the script (`POST .../authoring/scripts`) returns 200 with the same token every time.
-- **The 404 we chased was produced by the CLI's HTTP library.** jsforce treats every 401 as an
-  expired session (`http-api.js` `isSessionExpired`). It refreshes the token and resends the call,
+- **The 404 we chased was produced by the CLI's HTTP library.** jsforce treats any 401 as an
+  expired session unless the body holds one of two known strings (`http-api.js`
+  `isSessionExpired`). This body holds neither. It refreshes the token and resends the call,
   which gets an empty 404 in about 120 ms. The CLI's fallback then tries `test.api.salesforce.com`,
   which times out on connect and prints `TypeError: fetch failed` (verified in the capture and
   the code).
@@ -31,9 +32,11 @@
   - "Nothing changed": the script sent tonight differs from version 1 and still fails.
   - The open Studio draft blocks a CLI create-version: a brand-new agent with no draft fails the
     same way, and committing the draft from Studio fails too.
-- **What the evidence supports:** hypothesis 1 of agent-publish-failure.md. A server-side failure
-  saves the agent graph in this org for every create, through every client. The problem is not
-  specific to Account_Brief or to the CLI.
+- **What the evidence supports:** hypothesis 1 of agent-publish-failure.md. The server fails to
+  save the agent graph on every create in this org, for a new version and for a new agent alike.
+  The problem is not specific to Account_Brief.
+  - Studio's Commit Version also fails (verified). Whether Studio gets the same 401 is unverified,
+    because only its toast was captured, not its response.
 - **Nobody can ship an agent version to this org from the CLI or from Studio until the server
   stops failing.** The blocker and the next decisive tests are listed below.
 
@@ -62,7 +65,7 @@ On this run it also wrote no lines at all to `~/.sf/sf-2026-11-12.log`.
 | 1 | CLI publish of Account_Brief (approved). Open draft `Account_Brief_2` present | `sf agent publish authoring-bundle --api-name Account_Brief -o experimental --skip-retrieve --json` | compile 200, 200; `POST .../agents/<agent id>/versions` **401** after 5.6 s, body `{"expected":true,"message":"Error saving or updating agent graph","timestamp":1794454592,"path":"/v1.1/authoring/agents/<agent id>/versions","requestId":"9716b7d2…","status":401,"error":"Unauthorized"}`; jsforce refresh-and-resend: **404**, empty body, 123 ms; `test.api` connect timeout after 10.1 s | exit 10, `TypeError: fetch failed`. No version created. `git checkout` of the bundle and `git status`: clean |
 | 1b | Deactivate-first, then publish once (added by the brain's note) | not run | n/a | **Skipped.** No Approvals line covers deactivating the agent (re-read in the main checkout after step 1), and corrective-plan rule 4 makes deactivation Ben's call |
 | 2 | First-publish of a throwaway copy `Publish_Probe` (approved). Run from a temp project outside the repo; `developer_name` and `agent_label` changed, script otherwise identical | `sf agent publish authoring-bundle --api-name Publish_Probe -o experimental --skip-retrieve --json` | compile 200, 200; `POST .../authoring/agents` **401** after 4.6 s, same body (`"path":"/v1.1/authoring/agents"`, `requestId` `42b8e133…`); resend **404** empty, 127 ms; `test.api` connect timeout | exit 10, `fetch failed`. Queried afterwards: 0 BotDefinitions named `Publish_Probe%`; no `Publish_Probe` AiAuthoringBundle, Bot, AiAgentDefinition or GenAiPlannerBundle. Nothing to delete, so no destructive deploy and no manifest |
-| 3 | Studio "Commit Version" on Account Brief, Version 2 (Draft) (approved). Claude in Chrome, own tab, closed after | Commit Version, then Commit in the "Commit this version?" modal | Toast: "We couldn't commit a version of this agent. Check Agent Script, fix any errors, and try again." The Problems panel showed 0 errors, 1 warning, 0 info (the known `knownAccountId` warning from studio-preview.md). The page's network body was not capturable, because tracking starts only when first read | Failed. The draft is unchanged and still open |
+| 3 | Studio "Commit Version" on Account Brief, Version 2 (Draft) (approved). Claude in Chrome, own tab, closed after | Commit Version, then Commit in the "Commit this version?" modal | Toast: "We couldn't commit a version of this agent. Check Agent Script, fix any errors, and try again." The Problems panel showed 0 errors, 1 warning, 0 info (the same counts as studio-preview.md, whose one warning is the known `knownAccountId` one). The page's network body was not capturable, because tracking starts only when first read | Failed. The draft is unchanged and still open |
 | 3b | One CLI publish of a comment-only change as version 3 (approved). Temp copy with one `#` comment line added (sha256 prefix `525a6822`); local compile clean | same command as step 1, from the temp project | compile 200, 200; `POST .../agents/<agent id>/versions` **401** after 3.8 s, same body (`requestId` `ca3062b4…`); resend **404** empty, 113 ms; `test.api` timeout | exit 10, `fetch failed`. No version created. The draft was still open, because step 3 failed, so this attempt did not test the open-draft hypothesis. Step 2 already did |
 | 4 | 12-case spec against version 2 | not run | n/a | **Skipped: no version 2 exists** |
 | 5 | Activate version 2, then the two-turn check and three cases | not run | n/a | **Skipped: no version 2 exists.** Version 1 was never deactivated |
@@ -77,7 +80,7 @@ Each row is checked against the ranked list in `docs/research/agent-publish-fail
 | 2. Something added after version 1 blocks a new version (eval definition pinning v1, permission sets, app) | **Weakened in its Account_Brief form.** `Publish_Probe` has no eval definition, permission set or app and fails identically. An org-wide change is still possible (see the lead below) | Step 2 |
 | 3. Tenant or routing problem | **Routing ruled out; tenant-level failure consistent.** The production endpoint answers with a real service message. Only the fallback host is unreachable, and it is internal | Steps 1 to 3b |
 | 4. Draft-bundle state (the open "Version 2" draft blocks the CLI) | **Disproved as the cause.** A new agent with no draft fails the same way, and committing the draft from Studio also fails | Steps 2 and 3 |
-| 5. Client or CLI version | **Ruled out.** Studio, a different client and code path, fails too | Step 3 |
+| 5. Client or CLI version | **Unlikely.** Studio, a different client and code path, also fails to commit. That its failure is the same 401 is unverified, because Studio's response was not captured | Step 3 |
 | "Nothing changed" (the CLI re-sent version 1's script) | **Disproved.** Tonight's script (`fb0fc27d`) differs from version 1 and fails the same way | Step 1 |
 
 **A lead from the setup audit trail (read-only query; unverified as a cause).**
@@ -130,7 +133,7 @@ Not run. Step 4 needs a version 2, and none exists.
 new agent) gets
 `401 {"expected":true,"message":"Error saving or updating agent graph"}`.
 
-- The same failure happens through Studio's Commit Version.
+- Studio's Commit Version also fails. Whether it is the same 401 is unverified.
 - No CLI flag, script change or draft state changes it.
 - No step below can succeed until the server accepts a create.
 
@@ -176,8 +179,8 @@ proven in this org.
 >
 > `401 {"expected":true,"message":"Error saving or updating agent graph","path":"/v1.1/authoring/agents/<id>/versions","status":401,"error":"Unauthorized"}` (after about 4-6 s)
 >
-> jsforce's `HttpApi.isSessionExpired` treats any 401 as an expired session, refreshes the token
-> and resends. The resend gets an empty 404 in about 120 ms (presumably because the refreshed
+> jsforce's `HttpApi.isSessionExpired` treats any 401 as an expired session unless the body holds
+> one of two known strings (this body holds neither), so it refreshes the token and resends. The resend gets an empty 404 in about 120 ms (presumably because the refreshed
 > token is not the named-user JWT). `requestWithEndpointFallback` then moves on to
 > `test.api.salesforce.com`, whose connect timeout surfaces as `TypeError: fetch failed`. So the
 > real server message is lost twice.
@@ -188,5 +191,6 @@ proven in this org.
 > error"; (3) include the first non-2xx body in the thrown error.
 >
 > Compile (`/authoring/scripts`) returns 200 with the same token. Agentforce Studio's "Commit
-> Version" fails for the same agent with "We couldn't commit a version of this agent". So the
-> underlying save failure looks server-side; the CLI only hides it.
+> Version" also fails for the same agent with "We couldn't commit a version of this agent" (its
+> response was not captured). So the underlying save failure looks server-side; the CLI only
+> hides it.
