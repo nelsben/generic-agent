@@ -15,8 +15,9 @@ release lifecycle cannot ship it, so none of it is in front of users yet. The sc
 narrowed to that account. The brief no longer stops at "Resolved: ...". Each part of the agent can hand a question back
 to the router, and a failed lookup no longer leaves a stale account behind. A live Studio preview of these exact bytes
 passed all 12 test cases. But the version users talk to today is still version 1. That is the older script the first
-review criticised. Every attempt to publish a new version, from the command line or from Studio, fails on the Salesforce
-side with "Error saving or updating agent graph". The 12-case test suite has never run against this script as a test
+review criticised. Every attempt to publish a new version from the command line fails on the Salesforce side with
+"Error saving or updating agent graph". Studio's Commit Version also fails, but whether for the same reason is not
+confirmed. The 12-case test suite has never run against this script as a test
 run. Only the preview has. No one has used the agent as an ordinary sales rep instead of an administrator, and no real
 MCP call has been made. Before release, fix the explore follow-up and permission gaps below, unblock publishing, then
 follow the ship order at the end.
@@ -43,7 +44,7 @@ follow the ship order at the end.
 | 3 | No route out of a subagent, and no route for a candidate pick | fixed | `reclassify` in both subagents (`.agent:90-91,162-163`). Router rule 3 handles a pick (`.agent:38`). The preview shows the router is re-entered every turn (`studio-preview.md:48`), so reclassify only matters within one turn. The pick path was never previewed (row 7) |
 | 4 | A null Id from a failed resolve passes the `!= ""` gate | fixed | The gate is `is not None and != ""` (`.agent:43,67,86`). The id and name are set unconditionally (`.agent:82-83`). Preview case 8 is consistent (`studio-preview.md:29`) |
 | 5 | "Every answer comes from an action" contradicts the off-topic line | fixed | The exception is in `.agent:2`. Preview case 12 passed |
-| 6 | A brief on the wrong account is stopped only by prose | open | `.agent:70` is still instruction text. The gate at `.agent:86` cannot tell which account is meant. No spec or preview case names a second account after a brief |
+| 6 | A brief on the wrong account is stopped only by prose | open | `.agent:70` is still instruction text. The gate at `.agent:86` cannot tell which account is meant. Preview case 8 and spec `:62-77` name a second account after a brief, but one that does not resolve. Untested: a second account that resolves, where get_brief could fire on the old Id |
 | 7 | The spec misses branches and cannot assert negatives | changed | Added: AMBIGUOUS (spec `:40-44`), three history cases (`:51-88`), a single-outcome fake-Id case (`:35-39`), and "calls no other action" (`:34,39,44`). Still missing: a list pick, RESOLVED by pasted Id, and a second account. `expectedTopic: topic_selector` stays on the off-topic case (`:100`), against `agentforce-test/references/batch-testing.md:84` |
 | 8 | The repo workflow skips the skill lifecycle | changed | `agent-check.sh` adds the local compile and org validate with the CLI pinned and stderr kept (`:8-9,17,36,71`). `validate-org.sh` no longer deploys bundles (`test_agent_bundle.py:426-443`). The exact bytes were previewed. Still open: the spec never ran as a test run, and publish is blocked |
 | 9 | `last_status` has writers and no reader | fixed | Removed (`test_agent_bundle.py:131-132`) |
@@ -54,8 +55,9 @@ follow the ship order at the end.
 | 14 | Spec location | fixed (closed, no move) | Still `tests/agent/Account_Brief-testSpec.yaml:13-16`, outside `force-app` (known-issues.md Issue 1) |
 
 The skill's four "Internal Error" causes are still clean: there is no `access:` block (correct for an Employee agent),
-`outputs:` is present on all three actions (`.agent:101,124,179`), validate passes, and the publish failure is now
-captured as a server 401, not a script error (`agent-publish-spike.md:16-18`).
+`outputs:` is present on all three actions (`.agent:101,124,179`), validate passes, and the CLI publish failure is now
+captured as a server 401, not a script error (`agent-publish-spike.md:16-18`). Studio's commit failure was seen only as
+a toast, so its cause is unconfirmed (`agent-publish-spike.md:38,68,83`).
 
 ## New findings (most severe first)
 
@@ -136,9 +138,12 @@ the failure mode is the skill's, not seen here.
   (`ARCHITECTURE.md:9-14`). An explore turn makes up to 5 model calls and 4 queries (`ARCHITECTURE.md:84`). A pronoun
   follow-up re-runs get_brief. The preview shows the model narrowing `include` (`studio-preview.md:28`), but that is
   its choice, not a cap. N4 can add a wasted explore run to a misrouted turn.
-- Bulk: the agent sends one request per call, so this is safe. A Flow or MCP caller batching requests would hit limits
-  at about 25 resolves (4 SOQL each, `AccountBriefResolver.cls:49-51`) or 20 explores (5 callouts each,
-  `ExploreAction.cls:34-44`). `AccountBriefGetAction` batches its one memory write (`:33-39`).
+- Bulk: the agent sends one request per call, so this is safe. The resolver loops once per request
+  (`AccountBriefResolver.cls:49-51`). A name search that is not a unique exact match runs 3 queries: exact `:84`, COUNT
+  `:96` and partial `:113`. It adds 1 when that query fails on the city (fallback `:122`), 1 for a pasted Id (`:156`) and
+  1 for a known Id (`:138`). So 3 to 6 per resolve, or 1 for a unique exact match. A Flow or MCP caller batching
+  requests would reach the 100-SOQL limit at about 16 to 33 name-search resolves, or about 20 explores (5 callouts
+  each, `ExploreAction.cls:34-44`). `AccountBriefGetAction` batches its one memory write (`:33-39`).
 - Adoption: **yes, with conditions.** The pattern is sound and teachable: resolve-then-brief with the Id held in state,
   a deterministic explorer run, a reclassify transition in every subagent, structural unit tests and a local compile
   gate. A new team must first:
@@ -191,7 +196,7 @@ Not proven:
   (`docs/research/salesforce-mcp.md:17-25`).
 - No `sf agent test run` of this spec. No version 2 has been published or activated. The Copilot panel surface itself
   was never used.
-- Never exercised: a list pick, RESOLVED by pasted Id, a second account after a brief, explore follow-ups (N3), the
+- Never exercised: a list pick, RESOLVED by pasted Id, a second account that resolves after a brief, explore follow-ups (N3), the
   reclassify transitions, the failure rows marked "no" above, and repeated runs. The model is not deterministic, so one
   pass per case is a sample, not a rate.
 - `conversationHistory` replays text without setting variables (spec `:10-12`), so the stored-Id path is preview-only.
