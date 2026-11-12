@@ -54,30 +54,77 @@ public with sharing class AccountBriefMemory {
         }
     }
 
+    /** One brief turn to save: the input to recordAll. */
+    public class Entry {
+        public Id accountId;
+        public String status;
+        public String question;
+        public String answer;
+
+        public Entry(Id accountId, String status, String question, String answer) {
+            this.accountId = accountId;
+            this.status = status;
+            this.question = question;
+            this.answer = answer;
+        }
+    }
+
     /** Upserts the current user's row for the account and appends this turn (newest 10 kept). */
     public static void record(Id accountId, String status, String question, String answer) {
-        if (accountId == null) {
+        recordAll(new List<Entry>{ new Entry(accountId, status, question, answer) });
+    }
+
+    /**
+     * Saves several turns with one query and one upsert. Turns for the same account go to the same row,
+     * in list order. Null entries and entries without an accountId are skipped. Callers that also call
+     * a model run this after their last callout, because a callout after DML fails.
+     */
+    public static void recordAll(List<Entry> entries) {
+        Id userId = UserInfo.getUserId();
+        Set<String> keys = new Set<String>();
+        for (Entry e : entries == null ? new List<Entry>() : entries) {
+            if (e != null && e.accountId != null) {
+                keys.add(sessionKey(userId, e.accountId));
+            }
+        }
+        if (keys.isEmpty()) {
             return;
         }
-        Id userId = UserInfo.getUserId();
-        String key = sessionKey(userId, accountId);
 
-        Account_Brief_Session__c row = findRow(key);
-        if (row == null) {
-            row = new Account_Brief_Session__c(
-                Session_Key__c = key,
-                User__c = userId,
-                Account__c = accountId,
-                Brief_Count__c = 0
-            );
+        Map<String, Account_Brief_Session__c> rowsByKey = findRows(keys);
+        List<Account_Brief_Session__c> toSave = new List<Account_Brief_Session__c>();
+        Set<String> saved = new Set<String>();
+        for (Entry e : entries) {
+            if (e == null || e.accountId == null) {
+                continue;
+            }
+            String key = sessionKey(userId, e.accountId);
+            Account_Brief_Session__c row = rowsByKey.get(key);
+            if (row == null) {
+                row = new Account_Brief_Session__c(
+                    Session_Key__c = key,
+                    User__c = userId,
+                    Account__c = e.accountId,
+                    Brief_Count__c = 0
+                );
+                rowsByKey.put(key, row);
+            }
+            addTurn(row, e);
+            if (saved.add(key)) {
+                toSave.add(row);
+            }
         }
 
+        Database.upsert(toSave, Account_Brief_Session__c.Session_Key__c, true, AccessLevel.SYSTEM_MODE);
+    }
+
+    private static void addTurn(Account_Brief_Session__c row, Entry e) {
         List<Turn> turns = parseTurns(row.Turns_JSON__c);
         Turn t = new Turn();
         t.at = Datetime.now().formatGmt('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
-        t.status = status;
-        t.question = clip(question, 255);
-        t.headline = clip(firstLine(answer), HEADLINE_MAX);
+        t.status = e.status;
+        t.question = clip(e.question, 255);
+        t.headline = clip(firstLine(e.answer), HEADLINE_MAX);
         turns.add(t);
         while (turns.size() > MAX_TURNS) {
             turns.remove(0);
@@ -85,12 +132,10 @@ public with sharing class AccountBriefMemory {
 
         row.Turns_JSON__c = JSON.serialize(turns);
         row.Brief_Count__c = (row.Brief_Count__c == null ? 0 : row.Brief_Count__c) + 1;
-        row.Last_Status__c = clip(status, 40);
-        row.Last_Question__c = clip(question, 255);
-        row.Last_Brief__c = clip(answer, 32768);
+        row.Last_Status__c = clip(e.status, 40);
+        row.Last_Question__c = clip(e.question, 255);
+        row.Last_Brief__c = clip(e.answer, 32768);
         row.Last_Activity__c = Datetime.now();
-
-        Database.upsert(new List<Account_Brief_Session__c>{ row }, Account_Brief_Session__c.Session_Key__c, true, AccessLevel.SYSTEM_MODE);
     }
 
     /** The current user's turns for the account, newest first. Empty when there are none. */
@@ -124,14 +169,20 @@ public with sharing class AccountBriefMemory {
     }
 
     private static Account_Brief_Session__c findRow(String key) {
-        List<Account_Brief_Session__c> rows = [
+        return findRows(new Set<String>{ key }).get(key);
+    }
+
+    private static Map<String, Account_Brief_Session__c> findRows(Set<String> keys) {
+        Map<String, Account_Brief_Session__c> rowsByKey = new Map<String, Account_Brief_Session__c>();
+        for (Account_Brief_Session__c row : [
             SELECT Id, Session_Key__c, Turns_JSON__c, Last_Brief__c, Brief_Count__c
             FROM Account_Brief_Session__c
-            WHERE Session_Key__c = :key
+            WHERE Session_Key__c IN :keys
             WITH SYSTEM_MODE
-            LIMIT 1
-        ];
-        return rows.isEmpty() ? null : rows[0];
+        ]) {
+            rowsByKey.put(row.Session_Key__c, row);
+        }
+        return rowsByKey;
     }
 
     private static List<Turn> parseTurns(String json) {

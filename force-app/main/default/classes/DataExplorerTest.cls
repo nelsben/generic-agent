@@ -130,18 +130,48 @@ private class DataExplorerTest {
     }
 
     @IsTest
-    static void queryPastCapIsRefusedAndRunningOutOfTurnsIsAnError() {
+    static void queryPastCapIsRefusedAndRunningOutOfTurnsKeepsTheResults() {
         String q = query(OPPS_OF_ACME);
         Script s = script(new List<String>{ q, q, q, q, q });
 
         DataExplorer.Result r = DataExplorer.explore('Keep looking', null, null);
 
-        Assert.areEqual(DataExplorer.ERROR, r.status);
-        Assert.areEqual(DataExplorer.ERROR_TEXT, r.answer);
+        Assert.areEqual(DataExplorer.OK, r.status, 'the turn cap with rows in hand is not an error');
+        Assert.areNotEqual(DataExplorer.ERROR_TEXT, r.answer);
+        Assert.areEqual(DataExplorer.TURN_CAP_TEXT, r.answer, 'with a note that the turn cap was hit');
         Assert.areEqual(4, r.resultSets.size(), 'result sets already read are kept');
+        Assert.areEqual(3, r.resultSets[3].shown);
         Assert.areEqual(4, r.trail.size());
         Assert.areEqual(DataExplorer.MAX_TURNS, s.prompts.size());
         Assert.isTrue(r.followups.isEmpty());
+    }
+
+    @IsTest
+    static void runningOutOfTurnsWithNoResultsIsAnError() {
+        Script s = script(new List<String>{ 'no json', 'no json', 'no json', 'no json', 'no json' });
+
+        DataExplorer.Result r = DataExplorer.explore('Anything', null, null);
+
+        Assert.areEqual(DataExplorer.ERROR, r.status);
+        Assert.areEqual(DataExplorer.ERROR_TEXT, r.answer);
+        Assert.isTrue(r.resultSets.isEmpty());
+        Assert.areEqual(DataExplorer.MAX_TURNS, s.prompts.size());
+    }
+
+    @IsTest
+    static void aggregateOverTheRowCapIsFedBackAndCountsAsAQuery() {
+        ExploreQuery.rowCap = 2;
+        Script s = script(new List<String>{
+            query('{"object":"Opportunity","aggregates":[{"fn":"SUM","field":"Amount"}]}'),
+            answer('Add a filter.')
+        });
+
+        DataExplorer.Result r = DataExplorer.explore('Total pipeline?', null, null);
+
+        Assert.areEqual(DataExplorer.EMPTY, r.status);
+        Assert.isTrue(r.resultSets.isEmpty());
+        Assert.isTrue(s.prompts[1].contains('[1] INVALID: That would read more than 2 rows.'), s.prompts[1]);
+        Assert.isTrue(s.prompts[1].contains('Queries left: 3'), 'a refused aggregate still counts');
     }
 
     @IsTest

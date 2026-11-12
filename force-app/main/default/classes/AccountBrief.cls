@@ -3,12 +3,14 @@
  *
  * run() (1) checks the account is visible to the user, (2) builds the included gather sources
  * from the registry, in registry order, (3) reduces them with the model through AgentLlm,
- * (4) records the turn in AccountBriefMemory, (5) returns a Result.
+ * (4) records the turn in AccountBriefMemory, (5) returns a Result. runAll() does the same for
+ * several briefs in one transaction: every brief's model calls first, then one memory write.
  *
  * Gather is deterministic Apex (AccountBriefSource classes, no LLM). Reduce is data-driven:
  * PRE_REDUCES says which source keys a pre-reduce prompt condenses first; every other source
  * goes straight to the synthesis prompt. All prose lives in the prompt files, not here.
  * Runs with sharing. The only write is the memory record, made after every model call.
+ * A brief where no section is OK and at least one failed is an ERROR, not EMPTY, and calls no model.
  */
 public with sharing class AccountBrief {
     public static final String OK = 'OK';
@@ -48,6 +50,19 @@ public with sharing class AccountBrief {
         @AuraEnabled public String answer;
         @AuraEnabled public List<AccountBriefSection> sections = new List<AccountBriefSection>();
         @AuraEnabled public List<String> ignored = new List<String>();
+    }
+
+    /** One brief for runAll: the same three inputs run() takes. */
+    public class Ask {
+        public Id accountId;
+        public String question;
+        public Set<String> include;
+
+        public Ask(Id accountId, String question, Set<String> include) {
+            this.accountId = accountId;
+            this.question = question;
+            this.include = include;
+        }
     }
 
     /** One registry source as a picker lists it. */
@@ -101,6 +116,36 @@ public with sharing class AccountBrief {
      * Keys are matched trimmed and case-insensitively; unknown keys are listed in Result.ignored.
      */
     public static Result run(Id accountId, String question, Set<String> include) {
+        return runAll(new List<Ask>{ new Ask(accountId, question, include) })[0];
+    }
+
+    /**
+     * Several briefs in one transaction, one Result per Ask in the same order (a null Ask gives NOT_FOUND).
+     * Each brief's model callouts run in turn; the memory writes are collected and saved in one upsert
+     * after the last callout, because a callout after uncommitted DML fails.
+     */
+    public static List<Result> runAll(List<Ask> asks) {
+        List<Result> results = new List<Result>();
+        List<AccountBriefMemory.Entry> memory = new List<AccountBriefMemory.Entry>();
+        for (Ask a : asks == null ? new List<Ask>() : asks) {
+            results.add(a == null ? brief(null, null, null, memory) : brief(a.accountId, a.question, a.include, memory));
+        }
+
+        // 4. Memory, last: DML before a callout would fail the model calls above.
+        if (!memory.isEmpty()) {
+            try {
+                AccountBriefMemory.recordAll(memory);
+            } catch (Exception e) {
+                System.debug(LoggingLevel.ERROR, 'AccountBriefMemory.recordAll failed: ' + e.getMessage());
+            }
+        }
+
+        // 5. Return.
+        return results;
+    }
+
+    /** Steps 1-3 for one brief. A brief that should be remembered adds its turn to memory; nothing is written here. */
+    private static Result brief(Id accountId, String question, Set<String> include, List<AccountBriefMemory.Entry> memory) {
         Result r = new Result();
 
         // 1. Visibility gate.
@@ -117,12 +162,20 @@ public with sharing class AccountBrief {
 
         // 2. Gather.
         Map<String, AccountBriefSection> built = new Map<String, AccountBriefSection>();
+        Boolean anyOk = false;
+        Boolean anyError = false;
         for (Source src : registry) {
             if (wanted.contains(src.key)) {
                 AccountBriefSection s = buildSource(src, accountId);
                 r.sections.add(s);
                 built.put(src.key, s);
+                anyOk = anyOk || s.status == AccountBriefSection.OK;
+                anyError = anyError || s.status == AccountBriefSection.ERROR;
             }
+        }
+        // Nothing loaded and something failed: the brief failed. Saying "nothing on record" would be wrong.
+        if (!anyOk && anyError) {
+            return finish(r, ERROR, ERROR_TEXT, ERROR_TEXT);
         }
 
         // 3. Reduce. Any model failure ends the brief here, with no memory write.
@@ -133,20 +186,8 @@ public with sharing class AccountBrief {
             System.debug(LoggingLevel.ERROR, 'AccountBrief reduce failed: ' + e.getMessage());
             return finish(r, ERROR, ERROR_TEXT, ERROR_TEXT);
         }
-        Boolean anyOk = false;
-        for (AccountBriefSection s : r.sections) {
-            anyOk = anyOk || s.status == AccountBriefSection.OK;
-        }
         finish(r, anyOk ? OK : EMPTY, anyOk ? '' : EMPTY_TEXT, answer);
-
-        // 4. Memory, last: DML before a callout would fail the model calls above.
-        try {
-            AccountBriefMemory.record(accountId, r.status, question, r.answer);
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'AccountBriefMemory.record failed: ' + e.getMessage());
-        }
-
-        // 5. Return.
+        memory.add(new AccountBriefMemory.Entry(accountId, r.status, question, r.answer));
         return r;
     }
 

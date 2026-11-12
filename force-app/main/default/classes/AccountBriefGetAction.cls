@@ -29,10 +29,13 @@ public with sharing class AccountBriefGetAction {
         if (requests == null) {
             return out;
         }
+        // One runAll for the whole invocation: every model callout first, then one memory write.
+        // Calling run() per request would put request 1's memory DML before request 2's callout.
+        List<AccountBrief.Ask> asks = new List<AccountBrief.Ask>();
         for (Request req : requests) {
-            AccountBrief.Result r = req == null
-                ? AccountBrief.run(null, null, null)
-                : AccountBrief.run(toId(req.accountId), req.userQuestion, parseInclude(req.include));
+            asks.add(req == null ? null : new AccountBrief.Ask(toId(req.accountId), req.userQuestion, parseInclude(req.include)));
+        }
+        for (AccountBrief.Result r : AccountBrief.runAll(asks)) {
             Response resp = new Response();
             resp.status = r.status;
             resp.answer = r.answer;

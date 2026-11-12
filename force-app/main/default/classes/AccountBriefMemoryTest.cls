@@ -100,6 +100,50 @@ private class AccountBriefMemoryTest {
     }
 
     @IsTest
+    static void recordAllSavesSeveralTurnsWithOneQueryAndOneUpsert() {
+        Account a = makeAccount();
+        Account b = makeAccount();
+        List<AccountBriefMemory.Entry> entries = new List<AccountBriefMemory.Entry>{
+            new AccountBriefMemory.Entry(a.Id, 'OK', 'First?', 'A one'),
+            null,
+            new AccountBriefMemory.Entry(b.Id, 'EMPTY', 'Second?', 'B one'),
+            new AccountBriefMemory.Entry(null, 'OK', 'No account', 'skipped'),
+            new AccountBriefMemory.Entry(a.Id, 'OK', 'Third?', 'A two')
+        };
+
+        Test.startTest();
+        AccountBriefMemory.recordAll(entries);
+        Integer queries = Limits.getQueries();
+        Integer dml = Limits.getDmlStatements();
+        Test.stopTest();
+
+        Assert.areEqual(1, queries, 'one query for every existing row');
+        Assert.areEqual(1, dml, 'one upsert for every row');
+        Assert.areEqual(2, [SELECT COUNT() FROM Account_Brief_Session__c WITH SYSTEM_MODE], 'one row per account');
+        List<AccountBriefMemory.Turn> turnsA = AccountBriefMemory.history(a.Id);
+        Assert.areEqual(2, turnsA.size(), 'both turns for the same account land on one row');
+        Assert.areEqual('A two', turnsA[0].headline, 'newest first, in list order');
+        Assert.areEqual('A one', turnsA[1].headline);
+        Assert.areEqual('A two', AccountBriefMemory.lastBrief(a.Id));
+        Assert.areEqual(1, AccountBriefMemory.history(b.Id).size());
+    }
+
+    @IsTest
+    static void recordAllAddsToAnExistingRow() {
+        Account a = makeAccount();
+        AccountBriefMemory.record(a.Id, 'OK', 'Before?', 'Earlier');
+
+        AccountBriefMemory.recordAll(new List<AccountBriefMemory.Entry>{
+            new AccountBriefMemory.Entry(a.Id, 'OK', 'After?', 'Later')
+        });
+        AccountBriefMemory.recordAll(null);
+
+        Account_Brief_Session__c row = [SELECT Brief_Count__c, Last_Brief__c FROM Account_Brief_Session__c WITH SYSTEM_MODE];
+        Assert.areEqual(2, row.Brief_Count__c);
+        Assert.areEqual('Later', row.Last_Brief__c);
+    }
+
+    @IsTest
     static void unknownAccountReturnsEmpty() {
         Account a = makeAccount();
         System.assertEquals(0, AccountBriefMemory.history(a.Id).size());

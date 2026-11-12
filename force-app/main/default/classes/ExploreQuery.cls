@@ -9,10 +9,26 @@
  * bind variable. The row limit defaults to DEFAULT_LIMIT and is clamped to MAX_LIMIT; an aggregate
  * without groupBy returns one row and has no LIMIT. Queries run in user mode, so the user's object,
  * field and sharing access all apply. When a plain query fills its limit, one COUNT() query gives the total.
+ *
+ * Row cap. A LIMIT on an aggregate limits the groups returned, not the records aggregated, and every
+ * aggregated record counts toward the 50,000 query-row limit, whose LimitException cannot be caught.
+ * So an aggregate first runs a COUNT() with LIMIT rowCap + 1, and when more than rowCap records match
+ * it throws RowCapException instead of running. A COUNT() reads one query row however many records
+ * match (ExploreQueryTest measures it), so the pre-count is cheap and the plain total COUNT() needs no
+ * cap. One question runs at most DataExplorer.MAX_QUERIES (4) queries, each reading at most
+ * ROW_CAP + 1 rows, so a whole question stays under 50,000 rows; the cap also shrinks to what is left
+ * of the transaction's row limit.
  */
 public with sharing class ExploreQuery {
     public static final Integer DEFAULT_LIMIT = 50;
     public static final Integer MAX_LIMIT = 200;
+    public static final Integer ROW_CAP = 10000;
+
+    /** The row cap in force. Tests lower it. */
+    @TestVisible private static Integer rowCap = ROW_CAP;
+
+    /** Thrown instead of running an aggregate that would read more than the row cap. */
+    public class RowCapException extends Exception {}
 
     /** One query's result, for the model preview, the trail and the UI. */
     public class ResultSet {
@@ -51,6 +67,12 @@ public with sharing class ExploreQuery {
             throw new ExplorePlan.PlanException(String.join(r.errors, ' '));
         }
         Built b = build(r);
+        if (b.aggregate) {
+            Integer cap = effectiveCap();
+            if (Database.countQueryWithBinds(b.countSoql + ' LIMIT ' + (cap + 1), b.binds, AccessLevel.USER_MODE) > cap) {
+                throw new RowCapException('That would read more than ' + cap + ' rows. Add filters to narrow it.');
+            }
+        }
         List<SObject> records = Database.queryWithBinds(b.soql, b.binds, AccessLevel.USER_MODE);
 
         ResultSet rs = new ResultSet();
@@ -76,6 +98,12 @@ public with sharing class ExploreQuery {
             rs.total = Database.countQueryWithBinds(b.countSoql, b.binds, AccessLevel.USER_MODE);
         }
         return rs;
+    }
+
+    /** rowCap, or less when the transaction has fewer query rows left (one goes to the pre-count). */
+    private static Integer effectiveCap() {
+        Integer left = Limits.getLimitQueryRows() - Limits.getQueryRows();
+        return Math.max(0, Math.min(rowCap, left - 1));
     }
 
     /** The SOQL for a resolved plan. Only catalog paths, fixed tokens and local names reach the text. */

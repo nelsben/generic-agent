@@ -8,12 +8,15 @@ private class AccountBriefTest {
     private class Stub implements AgentLlm.Provider {
         List<String> systems = new List<String>();
         List<String> users = new List<String>();
+        /** DML statements already run in the transaction at each model call. A real callout after DML throws. */
+        List<Integer> dmlAtCall = new List<Integer>();
         Boolean fail = false;
 
         public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
             if (fail) {
                 throw new AgentLlm.LlmException('model down');
             }
+            dmlAtCall.add(Limits.getDmlStatements());
             systems.add(systemPrompt);
             users.add(userPrompt);
             if (systemPrompt.contains('engagement data')) {
@@ -220,7 +223,115 @@ private class AccountBriefTest {
         Assert.areEqual(1, r.sections.size());
         Assert.areEqual('broken', r.sections[0].key);
         Assert.areEqual(AccountBriefSection.ERROR, r.sections[0].status);
-        Assert.areEqual(AccountBrief.EMPTY, r.status);
+    }
+
+    @IsTest
+    static void everySectionErrorGivesErrorNotEmpty() {
+        Account a = mkAccount(false);
+        Stub stub = install();
+        AccountBrief.registry.add(new AccountBrief.Source('broken', 'NoSuchBriefSourceZz'));
+        AccountBrief.registry.add(new AccountBrief.Source('broken_too', 'NoSuchBriefSourceZz'));
+
+        AccountBrief.Result r = AccountBrief.run(a.Id, 'Anything?', new Set<String>{ 'broken', 'broken_too' });
+
+        Assert.areEqual(2, r.sections.size());
+        Assert.areEqual(AccountBrief.ERROR, r.status, 'every section failed, so the brief failed');
+        Assert.areEqual(AccountBrief.ERROR_TEXT, r.message);
+        Assert.areEqual(AccountBrief.ERROR_TEXT, r.answer);
+        Assert.areEqual(0, stub.systems.size(), 'no model call when nothing loaded');
+        Assert.areEqual(0, memoryRows(), 'a failed brief is not remembered');
+    }
+
+    @IsTest
+    static void errorAndEmptySectionsGiveError() {
+        Account a = mkAccount(false);
+        install();
+        AccountBrief.registry.add(new AccountBrief.Source('broken', 'NoSuchBriefSourceZz'));
+
+        AccountBrief.Result r = AccountBrief.run(a.Id, null, new Set<String>{ 'broken', 'contacts' });
+
+        Assert.areEqual(AccountBriefSection.EMPTY, r.sections[0].status, 'contacts is empty');
+        Assert.areEqual(AccountBriefSection.ERROR, r.sections[1].status, 'broken failed');
+        Assert.areEqual(AccountBrief.ERROR, r.status, 'no section is OK and one failed');
+        Assert.areEqual(AccountBrief.ERROR_TEXT, r.answer);
+    }
+
+    @IsTest
+    static void threeRequestsMakeNoModelCallAfterDml() {
+        Account first = mkAccount(true);
+        Account second = mkAccount(true);
+        List<AccountBriefGetAction.Request> requests = new List<AccountBriefGetAction.Request>();
+        for (Account a : new List<Account>{ first, second, first }) {
+            AccountBriefGetAction.Request req = new AccountBriefGetAction.Request();
+            req.accountId = String.valueOf(a.Id);
+            req.userQuestion = 'Status of ' + a.Name + '?';
+            requests.add(req);
+        }
+
+        Test.startTest();
+        Stub stub = install();
+        List<AccountBriefGetAction.Response> out = AccountBriefGetAction.getBriefs(requests);
+        Integer dml = Limits.getDmlStatements();
+        Test.stopTest();
+
+        Assert.areEqual(3, out.size());
+        for (AccountBriefGetAction.Response resp : out) {
+            Assert.areEqual(AccountBrief.OK, resp.status, resp.answer);
+            Assert.areEqual('Headline finding.\nAccount\nBody.', resp.answer);
+        }
+        Assert.areEqual(9, stub.dmlAtCall.size(), 'three model calls per brief');
+        for (Integer i = 0; i < stub.dmlAtCall.size(); i++) {
+            Assert.areEqual(0, stub.dmlAtCall[i], 'model call ' + (i + 1) + ' ran after DML: ' + stub.dmlAtCall);
+        }
+        Assert.areEqual(1, dml, 'one memory upsert for the whole invocation');
+        Assert.areEqual(2, memoryRows(), 'one row per user and account');
+        Assert.areEqual(2, AccountBriefMemory.history(first.Id).size(), 'both briefs of the first account are remembered');
+        Assert.areEqual(1, AccountBriefMemory.history(second.Id).size());
+    }
+
+    @IsTest
+    static void bulkBriefOverThreeHundredTasksStaysWithinLimits() {
+        Account a = mkAccount(false);
+        List<Contact> contacts = new List<Contact>();
+        for (Integer i = 0; i < 251; i++) {
+            contacts.add(new Contact(AccountId = a.Id, LastName = 'Bulk ' + String.valueOf(i).leftPad(3, '0')));
+        }
+        insert contacts;
+        List<String> subtypes = new List<String>{ 'Email', 'Call', 'Task' };
+        List<Task> tasks = new List<Task>();
+        for (Integer i = 0; i < 300; i++) {
+            tasks.add(new Task(
+                WhatId = a.Id,
+                WhoId = contacts[Math.mod(i, contacts.size())].Id,
+                Subject = 'Bulk task ' + i,
+                TaskSubtype = subtypes[Math.mod(i, 3)],
+                Status = 'Completed',
+                ActivityDate = Date.today().addDays(-Math.mod(i, 80))
+            ));
+        }
+        insert tasks;
+
+        Test.startTest();
+        install();
+        AccountBrief.Result r = AccountBrief.run(a.Id, null, null);
+        Integer queries = Limits.getQueries();
+        Integer rows = Limits.getQueryRows();
+        Integer heap = Limits.getHeapSize();
+        Test.stopTest();
+
+        Assert.areEqual(AccountBrief.OK, r.status, r.answer);
+        Map<String, AccountBriefSection> byKey = new Map<String, AccountBriefSection>();
+        for (AccountBriefSection s : r.sections) {
+            byKey.put(s.key, s);
+        }
+        Assert.areEqual(AccountBriefSection.OK, byKey.get('activity').status, byKey.get('activity').body);
+        Assert.areEqual(300, byKey.get('activity').total);
+        Assert.areEqual(AccountBriefActivitySection.CAP, byKey.get('activity').shown);
+        Assert.areEqual(AccountBriefSection.OK, byKey.get('contacts').status, byKey.get('contacts').body);
+        Assert.areEqual(251, byKey.get('contacts').total);
+        Assert.isTrue(queries < Limits.getLimitQueries(), 'SOQL queries: ' + queries);
+        Assert.isTrue(rows < Limits.getLimitQueryRows(), 'query rows: ' + rows);
+        Assert.isTrue(heap < Limits.getLimitHeapSize(), 'heap: ' + heap);
     }
 
     @IsTest
