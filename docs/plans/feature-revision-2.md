@@ -173,10 +173,12 @@ Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md
 - **Write actions:** draft first, then Confirm. One Apex service serves the panel, the agent and MCP.
 - **Two memories** (F75, F79). The conversation stays on the existing session object (`BE-26`): short, per rep and
   per account, own-only until Ben answers F32. What the product did for a customer is a customer outcome (`BE-35`):
-  one generic object in a master-detail to the account, so it persists, belongs to no single agent or session, and is
-  visible to whoever can see the account. The brain recommends that rule for outcomes, since a summary or a logged call
-  is account information, not a private chat. Agentforce's Agent Memory remembers things about a user for one agent;
-  it does not replace an account's history, so we keep ours and use the platform's where `BE-34` shows it helps.
+  one generic object in a master-detail to the account, so it persists and belongs to no single agent or session. Who
+  sees an outcome follows the account, with one guard: a summary is built from what its author could read, so other
+  reps see its type, date and sentiment label but not its text, unless Ben marks that type to share it. Per public
+  write-ups (`BE-34` confirms from Salesforce's docs), Agentforce's Agent Memory remembers things about a user for one
+  agent; it does not replace an account's history, so we keep ours and use the platform's where `BE-34` shows it
+  helps.
 - **Agent publishes are batched:** one for the rename, one for tone plus actions.
 - **Every pattern page gets the same shape and diagram style** (F49, F53). Each chapter Ben comments on gets its own
   card, like `OPS-38` for pattern 01. Pages he has no notes on get the same treatment in one sweep card, cut after his
@@ -215,8 +217,11 @@ Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md
 - Run the short VoiceOver script in docs/research/fr2-panel-proof.md after `FE-16` lands (about five minutes).
   Automated browsers cannot hear a screen reader.
 - Pick from the list of later panel additions after `FE-17` lands. The brain cuts cards for the ones picked.
-- Confirm that customer outcomes are visible to whoever can see the account (the brain's recommendation; F32's
-  own-only default stays for conversations). `BE-35` builds it that way unless Ben says otherwise.
+- Confirm who sees customer outcomes. The brain's default: anyone who can see the account sees each outcome's type,
+  date and sentiment label, and only its author sees the summary text, because the text can carry cases, deals or
+  fields another rep cannot read. Ben can mark a type to share its text with everyone who sees the account (useful
+  where reps share the same access). F32's own-only default stays for conversations. `BE-35` builds the default unless
+  Ben says otherwise.
 - Say go to schedule the outcome purge job in agent-probe after `BE-35` lands. Until then nothing expires.
 - Say go for the spikes, and for `OPS-37`.
 
@@ -227,8 +232,8 @@ Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md
    standard-chat measurements `BE-32`, and the agent memory discovery `BE-34`. After `OPS-29`, the
    card architecture spike `FE-18` and the panel discovery `FE-17` (docs only).
 3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
-4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-29`, `BE-30`, then `BE-33` (after `BE-29`), the customer
-   outcome store `BE-35`, sentiment `BE-36`, then `BE-27` (after `BE-35`).
+4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-29`, `BE-30`, then `BE-26` (after `BE-30`) and `BE-33` (after
+   `BE-29`), the customer outcome store `BE-35`, sentiment `BE-36`, then `BE-27` (after `BE-35`).
 5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-19` (history and sentiment) after `FE-15` and `BE-36`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one
    publish) after `BE-27`.
 6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04, `OPS-43` for pattern 05),
