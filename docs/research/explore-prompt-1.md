@@ -65,8 +65,9 @@ text as the panel shows it (after the privacy mask, so the record owner reads "S
 | Measured 3 | revision 2 | 216 px | 273 px | yes | 2 |
 | Recapture | revision 2 | 216 px | 273 px | yes | 1 |
 
-Revision 2: 3 of 3 measured runs fit, and none names more than three records. Two of them, and the
-recapture, wrote three sentences, not the "one or two" the rule asks for; they still fit.
+Revision 2: 3 of 3 measured runs fit, and none names more than three records. Each still gives
+the name and amount of one or two table rows, and all three, and the recapture, wrote three
+sentences, not the "one or two" the rule asks for; they still fit.
 
 The answers, word for word:
 
@@ -169,7 +170,9 @@ contact cards. Every other file in `docs/assets/` is unchanged (`git diff --stat
 | 11 | Agent spec | `sf agent test run --api-name Account_Brief_Test --test-runner testing-center --result-format json -o agent-probe --json`, then `sf agent test resume --job-id <run> --wait 2` | COMPLETED, 16 of 16 |
 | 12 | Recapture | the capture file | the three assets above |
 
-Two prompt revisions reached the org, the most the card allows. Nothing was published or
+Steps 9 and 11 overlapped: the spec run (09:43:50Z to 09:47:11Z) was started while the e2e run was
+still going in the background, and both finished green. Two prompt revisions reached the org, the
+most the card allows. Nothing was published or
 activated, and no sign-in or sign-out was made. Only the static resource was deployed.
 
 Org model use: six explorer questions through the panel (each up to five model calls), the e2e
@@ -177,7 +180,7 @@ run's model calls (about seven) and the 16 spec cases (each also graded).
 
 ## Left open
 
-- Some answers run to three sentences against the rule's "one or two". They fit, so no third
-  revision was made (the card allows two).
+- Every revision 2 answer ran to three sentences against the rule's "one or two". They fit, so no
+  third revision was made (the card allows two).
 - The answers mention the owner although the question does not ask for one. In the still it is the
   masked "Sample Owner".
