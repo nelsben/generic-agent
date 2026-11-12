@@ -17,7 +17,7 @@ spend: 6
 ---
 ## Why
 
-Feature revision 2 (FR2), Ben's chapter notes on pattern 08: "playwright tests for testing front-end changes", and "testing adoption, I think, is really important ... Meaningful and valuable." A suite that fails now and then for no reason teaches people to ignore it. Covers ledger row F89 in docs/plans/feature-revision-2.md, and two open items on page 08: spec 2 fails now and then (docs/research/org-migration.md), and the suite runs only one of the two hotkey branches (N11 in docs/reviews/lwc-review-2.md).
+Feature revision 2 (FR2), Ben's chapter notes on pattern 08: "playwright tests for testing front-end changes", and "testing adoption, I think, is really important". A suite that fails now and then for no reason teaches people to ignore it. Covers ledger row F89 in docs/plans/feature-revision-2.md, and two open items on page 08: spec 2 fails now and then (docs/research/org-migration.md), and the suite runs only one of the two hotkey branches (N11 in docs/reviews/lwc-review-2.md).
 
 ## Done when
 

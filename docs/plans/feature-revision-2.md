@@ -190,10 +190,8 @@ Ben's notes on [08-test-and-release-lifecycle.md](../patterns/08-test-and-releas
 | F88 | "we have a really awesome opportunity to build out some really cool Agentforce Testing Center suite that we can incorporate into the run" and "how we communicate how to effectively test these agents as well as part of this bundle" | Decision below: the optional agent is the test bench. `BE-38` (a capped Testing Center suite with no write actions, and one script that runs it for the active version; waits for Ben's go in the Approvals table); `OPS-28` (runs it in the scratch org, after the run without the agent); `OPS-46` (the agent track of the ladder); `OPS-47` (the chapter) |
 | F89 | "playwright tests for testing front-end changes" and "From a Chromium perspective, I'm assuming that this is UI UX tests, something similar to Playwright and like what Playwright ran" | Yes: Chromium is the browser Playwright drives. `FE-21` (spec 2's intermittent failure found and fixed, both hotkey branches, a smoke subset for front-end changes); each FR2 surface card already adds its own specs |
 | F90 | "any other test classes in Apex that we may have generated to like prove that this thing works well" | `OPS-47` (a "What the tests prove" table by area, and a first Apex test to copy, with the stubbed model) |
-| F91 | "testing adoption, I think, is really important because we're going to be bringing some of these programmatic testing concepts to Salesforce users who haven't historically done this type of testing. Meaningful and valuable. This is not ... A review board where you have to go and present everything and you're going to get graded" | Decision below on tone. `OPS-47` (written for people new to testing: a first test to copy for each kind, and turning a bad answer into a test); `OPS-46` (the ladder in one command, one line per rung) |
-| F92 | "on top of that, lets review open items" | The review of page 08's open items below; `OPS-47` writes the page's list from it |
-
-Ben also said "it's not that thing to use other resources in salesforce"; recorded verbatim, read only as far as `OPS-47` linking Salesforce's own testing tools (Testing Center, Code Analyzer, the Apex test runner, Agentforce DX) as what the page builds on.
+| F91 | "testing adoption, I think, is really important because we're going to be bringing some of these programmatic testing concepts to Salesforce users who haven't historically done this type of testing" | Decision below: testing is written for Salesforce teams new to it. `OPS-47` (written for people new to testing: a first test to copy for each kind, and turning a bad answer into a test); `OPS-46` (the ladder in one command, one line per rung) |
+| F92 | Withdrawn. The end of Ben's chapter 8 message, from "Meaningful and valuable" to "lets review open items", was picked up by speech-to-text: "this section can be dropped from my previous message. it was picked up by tts" | Dropped: the no-grades tone rule, the grading-words test and the reading of "other resources in salesforce". The review of page 08's open items below stays, because every chapter rechecks its open items (F80); `OPS-47` writes the page's list from it |
 
 #### Page 08's open items, reviewed
 
@@ -255,8 +253,8 @@ Ben also said "it's not that thing to use other resources in salesforce"; record
   functional suite runs there only with Ben's go, and the full run in the scratch org (`OPS-28`). A security suite is
   not planned: it needs a non-production org and Ben's go. If Ben says no to the `agent-probe` run, the brain drops
   `BE-38` from `OPS-46`, `OPS-47`, `OPS-36` and `OPS-28` before they are dispatched, so the close does not stall.
-- **Tests are a builder's tool, not a review board** (F91). Pages about testing use no grades, scorecards or sign-off
-  language; they show what each check catches and give a first test to copy.
+- **Testing is written for Salesforce teams new to it** (F91). Pages about testing assume the reader has never written
+  an automated test: they show what each check catches, in plain words, and give a first test to copy.
 - **"Why custom" lives in one page, chapter 00** (F66): docs/patterns/00-why-custom.md, the first chapter of the
   workbook, so a team reads the why before any pattern. The README links it in its first screen ("Why not just the
   standard chat?"), ARCHITECTURE.md links it, and each surface page (03, the rail, the embedded surface) links it from
