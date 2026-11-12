@@ -125,7 +125,7 @@ Ben's notes on [03-hotkey-panel.md](../patterns/03-hotkey-panel.md), 2026-11-12.
 | # | Feedback | Status |
 |---|----------|--------|
 | F60 | "being able to snap in, hide, display different chats brings us a level of visibility that that might not actually exist there today" | Direction kept: `FE-13` (launcher, minimize, expand), `FE-12` and `BE-26` (switching between past chats), `FE-15` (the rail); `OPS-40` tells it as the business outcome |
-| F61 | "I don't think anybody is dying to use the Astro button, so that makes sense" | Decision below: the hotkey panel is the way in we lead with; Agentforce's own panel stays a supported door. `OPS-40`, `OPS-36` |
+| F61 | "I don't think anybody is dying to use the Astro button, so that makes sense" | Decision below: the hotkey panel is the way in we lead with. Superseded by F82 and F83: Agentforce's own panel is no longer a way in. `OPS-40`, `OPS-36` |
 | F62 | "make sure limits and open items are covered" | `FE-12` (row 6: one Tab stop per result list; N5: drill-line target size; N9: Esc during IME composition), `FE-13` (N4: Esc returns focus from any starting point; 14f: the app's brand block), `FE-16` (both hotkey branches, the dark theme and its contrast, screen-reader output), `FE-5` (the non-admin run, "Ask the agent" included), `FE-17` (only in apps whose utility bar holds the panel; desktop only) |
 | F63 | "we might want to think about the hotkey panel and other items we should add later" | `FE-17` (discovery: what the panel could add later, ranked, with proposed cards; the brain cuts the ones Ben picks) |
 | F64 | "the how it works also needs auto number with numbered suggestions down below" | `OPS-40`; rule in [fr2-design.md](fr2-design.md#diagrams) |
@@ -161,6 +161,16 @@ Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md
 | F80 | "limits and open items should be rechecked and verified that we don't need new additional work" | Rechecked. Only the summary is remembered, not the explorer: `BE-26` keeps every turn, and pinning an answer is a candidate in `FE-17`. Earlier summaries are stored but never fed to the model: `BE-35` (what changed since). Memory outlives access (N6): `BE-35` (sharing follows the account) and `BE-26` (re-checked on read). How long an agent conversation keeps its variables: `BE-34` measures it. Accepted, with reasons on the page: system mode for the session object, a lock timeout that drops one turn, and a superseded summary that is stored (it is a real outcome and now shows in the timeline). `OPS-43` lists each |
 | F81 | "Same feedback as always regarding the sequence diagrams. We want auto number with explanations. We want to work on the formatting of the sequence diagram to make it look really good" | `OPS-43`; rule in [fr2-design.md](fr2-design.md#diagrams) |
 
+### Chapter notes: pattern 06, agent routing and verbatim relay
+
+Ben's notes on [06-agent-routing-and-verbatim-relay.md](../patterns/06-agent-routing-and-verbatim-relay.md), 2026-11-12.
+
+| # | Feedback | Status |
+|---|----------|--------|
+| F82 | "I don't think we want to promote using the default agent force pop-out panel. We most certainly can, but I don't think there's anything important about using it. If you decide to use number 6, that means you're not using any of the other avenues or areas to integrate AI and LLM calls into your workflow. I'd propose that we drop this" | Decision below: our surfaces are the only ways in. `OPS-44` (pattern 06 becomes a short optional appendix); `OPS-36` (the README drops it from the patterns, the diagram and the required quick start) |
+| F83 | "I'm all for dropping the Astro icon button and then also the ask the agent button too. We probably don't need those two items" | `FE-20` (removes "Ask the agent", its Apex client and specs, and agent access from the user group). `BE-28` parked: the agent gets no tone, write actions, follow-up fixes or rich answers in FR2, which also retires its share of F02, F08, F15, F16, F55, F58 and F65. Agent-panel work dropped from `BE-22`, `FE-18`, `BE-27`, `BE-26`, `FE-5`, `OPS-39` and `OPS-40`; `BE-32` measures through its own caller |
+| F84 | "We don't need to say is this agent force or anything like that. Like this is agent force, it's just a different skinned version of it" | Positioning in [fr2-design.md](fr2-design.md#the-product); `OPS-41` (chapter 00's header); `OPS-36`; `OPS-44` |
+
 ## Decisions the brain made (Ben may overrule)
 
 - **Default agent name:** "Customer Summary". Internal API names become `Customer_Summary` / `CustomerSummary` /
@@ -170,7 +180,7 @@ Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md
 - **Hotkeys:** Cmd/Ctrl-K opens the compact window (unchanged); Cmd/Ctrl-Shift-K opens the rail. `OPS-29` proves
   both reach the page and collide with nothing; if one does, it picks a replacement and records why.
 - **One shared conversation component**, inside two frames now and a third later.
-- **Write actions:** draft first, then Confirm. One Apex service serves the panel, the agent and MCP.
+- **Write actions:** draft first, then Confirm. One Apex service serves the panel and MCP.
 - **Two memories** (F75, F79). The conversation stays on the existing session object (`BE-26`): short, per rep and
   per account, own-only until Ben answers F32. What the product did for a customer is a customer outcome (`BE-35`):
   one generic object in a master-detail to the account, so it persists and belongs to no single agent or session. Who
@@ -179,13 +189,17 @@ Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md
   write-ups (`BE-34` confirms from Salesforce's docs), Agentforce's Agent Memory remembers things about a user for one
   agent; it does not replace an account's history, so we keep ours and use the platform's where `BE-34` shows it
   helps.
-- **Agent publishes are batched:** one for the rename, one for tone plus actions.
+- **One more agent publish only, for the rename** (`OPS-30`), so the optional agent keeps working. `BE-28` is parked
+  (F83).
 - **Every pattern page gets the same shape and diagram style** (F49, F53). Each chapter Ben comments on gets its own
   card, like `OPS-38` for pattern 01. Pages he has no notes on get the same treatment in one sweep card, cut after his
   last chapter note.
-- **The hotkey panel is the way in we lead with** (F61). The README and the pattern pages open with Cmd/Ctrl-K and the
-  rail. Agentforce's own panel stays a supported door for orgs that use it, shown on each pattern page's See it, but
-  not as the first step.
+- **Our surfaces are the only ways in** (F61, F82, F83). The README and the pattern pages open with Cmd/Ctrl-K and the
+  rail. Agentforce's own panel and "Ask the agent" are not ways in: no docs, tests or screenshots promote them, and
+  reps lose agent access through the user group (`FE-20`). The registered agent stays in the repo as an optional
+  add-on for a team that wants it in an Agentforce channel, renamed and published once by `OPS-30`, documented in
+  one appendix page (`OPS-44`), and no longer a required step in the quick start. It is all Agentforce (F84): the
+  product calls the platform's models through its trust layer, with our own surfaces, so no page argues about that.
 - **"Why custom" lives in one page, chapter 00** (F66): docs/patterns/00-why-custom.md, the first chapter of the
   workbook, so a team reads the why before any pattern. The README links it in its first screen ("Why not just the
   standard chat?"), ARCHITECTURE.md links it, and each surface page (03, the rail, the embedded surface) links it from
@@ -204,9 +218,9 @@ Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md
 
 ## Ben's to-do from FR2
 
-- Answer three approvals in docs/plans/gtm-burn-plan.md marked "pending Ben": the `BE-28` publish, the renamed MCP
-  server and app (`OPS-31`), and tests that create and delete their own task in agent-probe. The brain recommends yes
-  to each.
+- Answer two approvals in docs/plans/gtm-burn-plan.md marked "pending Ben": the renamed MCP server and app
+  (`OPS-31`), and tests that create and delete their own task in agent-probe. The brain recommends yes to each. The
+  `BE-28` publish is no longer needed (F83).
 - Answer F17 (Log a call: Task or Event). `BE-27` waits for it.
 - Answer F50: build an industry switch, or leave industry scenarios with the tabled `OPS-34`. The brain recommends
   leaving it tabled: `OPS-38` shows how to change the sections and the narrative by hand, which is enough for a demo.
@@ -231,11 +245,10 @@ Ben's notes on [05-conversation-memory.md](../patterns/05-conversation-memory.md
 2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`, the explorer discovery `BE-31`, and the
    standard-chat measurements `BE-32`, and the agent memory discovery `BE-34`. After `OPS-29`, the
    card architecture spike `FE-18` and the panel discovery `FE-17` (docs only).
-3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
+3. Rename: `FE-20` (retire "Ask the agent") first, then `BE-23`, then `OPS-30`, then `OPS-31`.
 4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-29`, `BE-30`, then `BE-26` (after `BE-30`) and `BE-33` (after
    `BE-29`), the customer outcome store `BE-35`, sentiment `BE-36`, then `BE-27` (after `BE-35`).
-5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-19` (history and sentiment) after `FE-15` and `BE-36`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one
-   publish) after `BE-27`.
-6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04, `OPS-43` for pattern 05),
+5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-19` (history and sentiment) after `FE-15` and `BE-36`; `FE-14` after `FE-12` and `BE-27`.
+6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04, `OPS-43` for pattern 05, `OPS-44` for pattern 06 as an appendix),
    `OPS-35`, `OPS-36`, then OPS-28.
-7. Parked: `OPS-33`, `OPS-34`.
+7. Parked: `OPS-33`, `OPS-34`, `BE-28` (F83).

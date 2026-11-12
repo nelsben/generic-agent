@@ -8,11 +8,14 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
 - **One branded agent, many skills.** The default name is **Customer Summary**; a seller can rename it per prospect.
   It works like Claude: one place to ask, and it routes the request. Its skills:
   1. **Summary:** the one-ask account summary (today's brief engine, pattern 01).
-  2. **Ask anything:** the explorer (pattern 02) and the registered agent (BE-20).
+  2. **Ask anything:** the explorer (pattern 02).
   3. **Act:** create a task, create an event, log a call, update a contact, create a case, update an opportunity. Each
      shows a draft and writes nothing until the user confirms.
-- **The same agent everywhere:** the compact window, the rail, an embedded component later, Agentforce's own panel,
-  and MCP clients. One Apex service sits behind each skill, and every door calls it.
+- **The same agent everywhere:** the compact window, the rail, an embedded component later, and MCP clients. One Apex
+  service sits behind each skill, and every door calls it. Agentforce's own panel and "Ask the agent" are not doors
+  (F82, F83); the registered agent is an optional add-on (pattern 06's appendix).
+- **It is Agentforce, with its own skin** (F84): the platform's models through its trust layer, behind surfaces we
+  control. No page argues about whether it counts as Agentforce.
 - **Built to be swapped:** brand settings hold the agent name, company name, logo, colours and tone. No component
   hard-codes a name, a colour or a font.
 
@@ -23,7 +26,7 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
    can read, in any combination. Nobody builds a flow or an action to answer a follow-up, and context is not passed
    back by hand (F54, F55).
 2. **Every answer is richly formatted and shown in cards.** Wherever the product shows text (the compact window, the
-   rail, Agentforce's own panel, an MCP client), it is formatted for reading, not dumped as plain text, and structured
+   rail, an MCP client), it is formatted for reading, not dumped as plain text, and structured
    data comes as a card from one typed card contract that every surface reads. `FE-18` designs the contract (F65).
 3. **API first for prompts.** Every model call goes through the Models API from Apex, with prompts kept as files a
    team can read, change, deploy and try in minutes, alone or with an AI coding assistant. A prompt template is an
@@ -108,8 +111,8 @@ site or permission metadata.
   `--cs-color-accent`, `--cs-color-surface`, `--cs-color-ink`, `--cs-font-display`, `--cs-font-body`,
   `--cs-radius`). The stylesheets read only these variables, with neutral fallbacks. SLDS styling hooks are used where
   they fit.
-- **Tone:** the tone line is added to the Apex prompts (summary synthesis, explorer) and, after the agent publish, to
-  the agent's instructions.
+- **Tone:** the tone line is added to the Apex prompts (summary synthesis, explorer). The optional agent's
+  instructions do not get it in FR2 (`BE-28` is parked, F83).
 - **Swap guide:** a page tells a seller exactly which record and fields to change, and how to redeploy.
 
 ## Write actions
@@ -120,8 +123,8 @@ site or permission metadata.
   an update.
 - **Security:** user mode for every query and DML, so CRUD, FLS and sharing apply. Permission set additions go in
   the data-access set, listed field by field.
-- **One service:** the panel calls it through `@AuraEnabled`, the agent through invocable actions, and MCP through
-  the same invocables.
+- **One service:** the panel calls it through `@AuraEnabled` and MCP through invocable actions, which an agent a team
+  adds later can call too.
 
 ## Pattern page shape
 
@@ -159,4 +162,4 @@ From Ben's notes on pattern 01 (F49). Every Mermaid diagram in the repo follows 
 - DML before a callout in the same transaction throws "uncommitted work pending". Commit drafts in a separate call
   from any model call.
 - A compile-time reference to `aiplatform.*` breaks installs in orgs without Agentforce. Keep it behind a seam.
-- Agent publishes are slow and have failed before. Batch them.
+- Agent publishes are slow and have failed before. FR2 has one, for the rename (`OPS-30`).

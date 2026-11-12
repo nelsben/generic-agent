@@ -1,6 +1,6 @@
 ---
 id: BE-28
-title: FR2: the agent catches up — brand tone in its instructions and the write actions with confirmation, then one publish and activate of Customer_Summary in agent-probe; agent spec extended
+title: FR2 (PARKED, ledger F83: the built-in panel is not a way in): the agent catches up — brand tone in its instructions and the write actions with confirmation, then one publish and activate of Customer_Summary in agent-probe; agent spec extended
 domain: backend
 tier: frontier
 tier_reason: agent publish and activate in a live org, with write actions routed by a model
@@ -16,6 +16,8 @@ budget: 2-attempts
 spend: 20
 ---
 ## Why
+
+**Parked.** Ben dropped the built-in Agentforce panel and "Ask the agent" as ways in (ledger F82, F83), so the agent gets no tone, write actions, follow-up fixes or rich answers in FR2. OPS-30's rename publish keeps it working as an optional add-on (pattern 06, rewritten by OPS-44). Re-cut this card only if Ben asks for the agent in a channel.
 
 Feature revision 2 (FR2): the same branded agent should speak in the prospect's tone and create follow-ups and updates in Agentforce's own panel too, not only in our surfaces. Publishes are slow and have failed before, so tone and actions go into one publish. Covers ledger rows F02, F08 (tone in the agent), F15 and F16 (agent side) in docs/plans/feature-revision-2.md.
 

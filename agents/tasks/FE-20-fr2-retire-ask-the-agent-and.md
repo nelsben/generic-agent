@@ -1,0 +1,30 @@
+---
+id: FE-20
+title: FR2: retire "Ask the agent" and the built-in panel as a way in — remove the button, its Apex client and its specs, take agent access out of the user group, and keep the living docs true; the agent itself stays
+domain: frontend
+tier: standard
+tier_reason: a removal across LWC, Apex, a permission set group, e2e and docs, with a live deploy to a production-classified org
+status: queued
+blocked_by: []
+fixes: []
+scope: [force-app/main/default/lwc/accountBriefPanel/**, force-app/main/default/classes/AccountBriefPanelController.cls, force-app/main/default/classes/AccountBriefPanelControllerTest.cls, force-app/main/default/classes/AccountBriefAgentClient.cls, force-app/main/default/classes/AccountBriefAgentClient.cls-meta.xml, force-app/main/default/classes/AccountBriefAgentClientTest.cls, force-app/main/default/classes/AccountBriefAgentClientTest.cls-meta.xml, force-app/main/default/permissionsets/Account_Brief_Data_Access.permissionset-meta.xml, force-app/main/default/permissionsetgroups/Account_Brief_User.permissionsetgroup-meta.xml, e2e/**, README.md, docs/patterns/01-route-gather-reduce.md, docs/patterns/03-hotkey-panel.md, docs/patterns/06-agent-routing-and-verbatim-relay.md, docs/assets/MANIFEST.md, docs/research/fr2-retire-ask-agent.md]
+forbid: [force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/Account_Brief_Agent_Access.permissionset-meta.xml, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, agents/**, docs/plans/**, docs/reviews/**, .chassis-delegation.json, reference/**, sfdx-project.json]
+resources: [org-live]
+red_test: the panel's Jest suite gains a test that no "Ask the agent" button renders and the Apex test that askAgent no longer exists is replaced by one that the controller exposes only the summary and explorer entry points; both fail on main and pass after
+gate: test, jest, org
+budget: 2-attempts
+spend: 8
+---
+## Why
+
+Feature revision 2 (FR2), Ben's chapter notes on pattern 06: "I don't think we want to promote using the default agent force pop-out panel", and "I'm all for dropping the Astro icon button and then also the ask the agent button too. We probably don't need those two items." "Ask the agent" sent a typed question from our panel to the registered agent and showed the reply in the panel. It takes 10 to 18 seconds a turn, returns plain text (against principle 2, rich answers in cards) and repeats what the panel already answers by calling the Apex directly. It goes before the rename, so dead code is not renamed. Covers ledger rows F82 and F83 in docs/plans/feature-revision-2.md.
+
+## Done when
+
+- Read first: docs/plans/feature-revision-2.md (rows F82 to F84 and the decision on ways in), docs/plans/fr2-design.md, docs/research/panel-agent-1.md (what the button does today), e2e/README.md and docs/patterns/03-hotkey-panel.md. Load the skills experience-lwc:experience-lwc-generate, salesforce-development:platform-apex-generate, salesforce-development:platform-apex-test-generate, salesforce-development:platform-permission-set-generate and salesforce-development:platform-metadata-deploy first
+- **The panel:** remove the "Ask the agent" button, its handler, the "Asking the agent" live-region text and the agent session state from accountBriefPanel. The Brief button keeps its row and its size; the composer's own send still answers through the explorer. Jest drops the agent cases and gains the red test; zero jest-axe violations
+- **Apex:** remove askAgent from AccountBriefPanelController and delete AccountBriefAgentClient and its test from the repo (and from the Data_Access class list if it is there). The classes stay in agent-probe, unused: deleting them in the org is a destructive deploy and joins the leftovers that wait for Ben's go. Say so in the doc
+- **Access:** take Account_Brief_Agent_Access out of the Account_Brief_User group, so reps reach the product only through our surfaces and the agent no longer shows for them in the built-in panel. The agent's own permission set stays in the repo for a team that adds the agent to a channel later. Whether the built-in launcher still shows for other reasons depends on org settings outside this product; record what you see as the admin, and leave the non-admin check to FE-5
+- **e2e:** remove spec 9 and the "Ask the agent" helpers, and delete the capture scripts for the built-in panel and for "Ask the agent" (06-agent and 07-ask-agent). Leave the image files: the pages that link them are rewritten by the chapter cards and OPS-36. Update e2e/README.md (spec list, model-call budget, run time) and docs/assets/MANIFEST.md (mark the three images as retired, still linked)
+- **Docs stay true in the meantime:** in README.md and patterns 01, 03 and 06, remove the "Ask the agent" sentences, the README diagram edges for the built-in panel and "Ask the agent", and say in one line on pattern 06 that the built-in panel and "Ask the agent" are no longer ways in (ledger F82, F83). No other rewriting: the chapter cards own the pages
+- Run the full e2e suite in agent-probe; record results in docs/research/fr2-retire-ask-agent.md with what was removed and why. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish, activate or deactivate an agent, never sign in or out, never create a user in the org, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit
