@@ -4,7 +4,7 @@ title: FR2: standard chat limits, measured in agent-probe — the answer-length 
 domain: backend
 tier: frontier
 tier_reason: measurements of model behaviour in a production-classified org, with claims the whole GTM story will rest on
-status: queued
+status: parked
 blocked_by: []
 fixes: []
 scope: [spikes/standard-limits/**, docs/research/fr2-standard-limits.md]

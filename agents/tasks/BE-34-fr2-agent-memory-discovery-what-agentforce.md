@@ -4,7 +4,7 @@ title: FR2: agent memory discovery — what Agentforce's Agent Memory (and Data 
 domain: backend
 tier: frontier
 tier_reason: a platform feature decision the memory design rests on, checked against docs and a production-classified org
-status: queued
+status: parked
 blocked_by: []
 fixes: []
 scope: [spikes/agent-memory/**, docs/research/fr2-agent-memory.md]

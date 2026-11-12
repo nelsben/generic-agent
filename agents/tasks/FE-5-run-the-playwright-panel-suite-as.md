@@ -4,7 +4,7 @@ title: Run the Playwright panel suite as a non-admin front-end user and add the 
 domain: frontend
 tier: standard
 tier_reason: extends a working harness with a second user and a few access specs
-status: queued
+status: parked
 fixes: []
 scope: [e2e/**]
 forbid: [force-app/**, tests/**, scripts/**, docs/**, reference/**, agents/**, .chassis-delegation.json, jest.config.js, playwright.config.js, package.json, package-lock.json]

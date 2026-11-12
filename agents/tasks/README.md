@@ -29,7 +29,7 @@ budget: 2-attempts
 | `title:` | one line, the outcome |
 | `domain:` | one of the repo's domains (`domains` in .chassis-delegation.json; default frontend, backend, ops, dispatcher, cross, shared); the branch is `agent/<domain>/<id>` and `agentTypes` maps it to the subagent type |
 | `tier:` | economy, standard or frontier: haiku, sonnet, opus by default (`tierMap`) |
-| `status:` | `/dispatch` takes `queued` or `claimed`; anything else (`template`, `merged`) is refused |
+| `status:` | `/dispatch` takes `queued` or `claimed`. `blocked` waits on `blocked_by`, and the tool sets it to `queued` by itself when the last blocker is finished. `parked` is refused and never released: use it for a card that waits on Ben's word or on its own row in the Approvals table, and for a superseded card (with a line saying what replaced it). `template`, `merged` and any other word are refused too |
 | `scope:` | globs the worker may change (`*` crosses folders; a trailing `/` means everything under it) |
 | `forbid:` | globs it must not touch |
 | `red_test:` | the test that fails before the change and passes after |

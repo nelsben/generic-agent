@@ -4,7 +4,7 @@ title: Turn off Salesforce usage telemetry on this machine for both the sf CLI a
 domain: ops
 tier: economy
 tier_reason: three commands, one config search and a short note
-status: queued
+status: parked
 repo: here
 scope: [docs/research/telemetry-off.md, ~/.sf/telemetry/**, ~/.sf/config.json, ~/.zshenv]
 forbid: [force-app/**, agents/**, reference/**, .chassis-delegation.json, scripts/**, tests/**, ~/.claude/**]
@@ -14,6 +14,8 @@ budget: 2-attempts
 spend: 3
 ---
 ## Why
+
+**Parked.** The write-up, docs/research/telemetry-off.md, says partly done; the remaining step is on Ben's own machine and is his.
 
 The environment carries SF_DISABLE_TELEMETRY=false. The sf CLI reads that as telemetry on; the salesforce-development plugin reads any non-empty value as off, so the plugin is off only by accident and no persistent opt-out is saved. Ben wants both off for good.
 

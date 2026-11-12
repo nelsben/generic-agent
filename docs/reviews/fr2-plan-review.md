@@ -137,6 +137,10 @@ table](#edit-table), which names the finding behind each row.
   nothing may touch.
 - Fix: BE-8, BE-15 and BE-19 become `parked`, the one status the tool refuses, each with a line under Why naming what
   replaced it. OPS-10 is parked too. No tool setting changes. This ships first, as its own small change.
+- Corrected after merge (2026-11-12): before the holds landed, a dry-run dispatch of BE-15 was refused: "BE-15 is
+  status superseded; /dispatch takes a queued or claimed card". The installed tool refuses a status word it does not
+  know; it does not read it as `queued`. BE-15 and BE-19 were never dispatchable, so this finding rests on BE-8 and
+  OPS-10, which were. The fix is unchanged: `parked` is a word the tool knows.
 
 **2. Every hold on Ben's word lives in prose, and the tool releases `blocked` cards by itself.**
 - Evidence: approvals:79 "pending Ben's go (brain recommends yes; the standing deploy line covers the deploys)", yet
@@ -149,6 +153,9 @@ table](#edit-table), which names the finding behind each row.
 - **tool**: when the last blocker of a `blocked` card is finished, the tool sets the card to `queued`. `parked` is the
   one status it refuses to dispatch and never releases. A made-up word such as `held` is read as `queued`. A card set to
   `blocked` after its blockers merged is never released.
+- Corrected after merge (2026-11-12): a made-up word is refused, not read as `queued` (see finding 1). The rest holds,
+  by dry run: a `parked` card is refused, and a `blocked` card is refused with the note that finishing its last
+  blocker releases it.
 - Goes wrong: OPS-29 can be dispatched today under a row that says pending. BE-28 is released when its six blockers
   merge and then points a worker at a third agent publish; OPS-33 and OPS-34 are released the same way. The brain
   runbook (approvals:189 onward) has no step that checks a row before dispatch.
@@ -644,9 +651,10 @@ after the previous one is merged. Unstarred cards use the second worker slot. Th
 
 ## Unverified
 
-- How the installed copy of the delegation tool treats an unknown status and a parked card. Each is confirmed by a dry
-  run when the holds land. `briefExtra` and a new gate id are used only after a yes to decision 15, and are confirmed by
-  a dry run then.
+- `briefExtra` and a new gate id are used only after a yes to decision 15, and are confirmed by a dry run then.
+- Checked on 2026-11-12 when the holds landed, by dry-run dispatches: BE-31, OPS-29, FE-5, BE-8, BE-15 and BE-19 are
+  each refused as parked; BE-21 is refused as blocked by OPS-29; and, before the holds, BE-15 was refused for its
+  unknown status word. That last result corrects findings 1 and 2.
 - Whether a deploy with RunLocalTests fails on a stale dependent class in agent-probe (finding 11).
 - Which bundle `sf agent publish` picks when two share a developer name (finding 13).
 - Whether the GitHub markdown API renders Mermaid at all (finding 33).
@@ -668,7 +676,7 @@ A by itself, straight away, then sections B to E together. Nothing is dispatched
 
 | Target | Where | Change | Finding | Decides |
 |---|---|---|---|---|
-| BE-15, BE-19 | fm `status` | `parked`. Today it is `superseded`, a word the tool does not know and reads as `queued`. Keep, or add, one line under Why naming what replaced the card | 1 | brain |
+| BE-15, BE-19 | fm `status` | `parked`. Today it is `superseded`, a word the tool does not know (corrected after merge: it refuses the word; see finding 1). Keep, or add, one line under Why naming what replaced the card | 1 | brain |
 | BE-8 | fm `status` | `parked`; one line under Why: 'Superseded by BE-9 (see OPS-14). Never dispatch.' | 1 | brain |
 | OPS-10 | fm `status` | `parked`; one line under Why: 'The write-up says partly done; the remaining step is Ben's.' | 1 | brain |
 | OPS-29, BE-31, BE-32, BE-34, FE-20 | fm `status` | `parked` until Ben's go | 2 | Ben 1 |
@@ -676,7 +684,7 @@ A by itself, straight away, then sections B to E together. Nothing is dispatched
 | BE-28, OPS-33, OPS-34 | fm `status` | `parked` (they are `blocked` today, which the tool releases) | 2 | brain |
 | OPS-31 | fm `status` | `parked` on approvals:83 | 3 | Ben 3 |
 | BE-38 | fm `status` | `parked` on approvals:82 | 6 | Ben 5 |
-| agents/tasks/README.md | line 32 | The status row lists what the tool does with each word: `queued` and `claimed` dispatch; `blocked` is released when its last blocker is finished; `parked` is refused and never released; a superseded card is `parked` with a line under Why naming what replaced it; any other word is read as `queued` | 1, 2 | brain |
+| agents/tasks/README.md | line 32 | The status row lists what the tool does with each word: `queued` and `claimed` dispatch; `blocked` is released when its last blocker is finished; `parked` is refused and never released; a superseded card is `parked` with a line under Why naming what replaced it; any other word is refused (corrected after merge) | 1, 2 | brain |
 | Check, no file | after the merge | A dry-run dispatch of BE-31 is refused as parked, of BE-21 as blocked, and of BE-8, BE-15 and BE-19 as parked. A script over the real cards lists every card that reads as ready (status `queued` or an unknown word, every blocker merged): the list is empty. Record the results in the change's description | 1, 2 | brain |
 
 ### B. Plan documents, and the tool settings on a yes
