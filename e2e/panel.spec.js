@@ -181,7 +181,8 @@ test('5. a second request sent before the first answers: only the second answer 
     await expect(panel.spinner).toBeHidden();
 
     // The first reply lands later and must be dropped: never rendered, spinner stays off.
-    await firstReply;
+    // The response's body must reach the page before the page can process (and drop) it.
+    await (await firstReply).finished();
     await panel.settle();
     await expect(panel.turns).toHaveCount(1);
     await expect(panel.host).not.toContainText(first);

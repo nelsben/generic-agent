@@ -59,9 +59,18 @@ still in flight, and fails as a test problem if it was not.
 Every test loads the Account Brief app, then the account's record page, fresh: the utility has
 never been opened. Locators pierce the panel's shadow DOM with Playwright's built-in engine:
 roles and labels first, then the data attributes the panel already renders (`data-turn`,
-`data-id`, `data-focus`). Three places use a class or tag the panel already has, because it
-exposes no role there: `.abp-body` (the scroll box), `lightning-spinner` and
-`lightning-breadcrumbs`. The panel's live region is `[role=status][aria-live=polite]`, since
+`data-id`, `data-focus`). Where the panel exposes no role or label, a tag or class it already
+has is used:
+
+- `c-account-brief-panel`, the host, to scope every locator and the axe scan
+- `.abp-body`, the scroll box (spec 4)
+- `lightning-spinner` and `lightning-breadcrumbs`
+- `lightning-accordion-section`, to find each brief section and its header button
+- `article`, to tell the brief's summary headline from the accordion section headers, which are
+  also level-2 headings, and to find the drill view's heading
+- `button[data-id]`, a drillable section line or result row
+
+The panel's live region is `[role=status][aria-live=polite]`, since
 `lightning-textarea` renders a second, empty `role=status`. Spec 5 waits on the Aura response of
 the panel's Apex method, matched by method name only.
 

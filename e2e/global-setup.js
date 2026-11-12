@@ -16,8 +16,15 @@ const fs = require('fs');
 const { chromium } = require('@playwright/test');
 const { ORG, SF, ACCOUNT_NAME, AUTH_DIR, STATE_FILE, RUN_FILE, sf } = require('./support/env');
 
+/** An error Playwright prints as its message alone: no stack, no code frame. */
+function oneLine(message) {
+    const e = new Error(message);
+    e.stack = message;
+    return e;
+}
+
 function loginHint() {
-    return `No usable sf CLI session for org alias "${ORG}". Run: sf org login web -a ${ORG}`;
+    return oneLine(`No usable sf CLI session for org alias "${ORG}". Run: sf org login web -a ${ORG}`);
 }
 
 /** The frontdoor URL, or a thrown one-line hint. The URL never leaves this function's caller. */
@@ -25,7 +32,7 @@ function frontdoorUrl() {
     const out = sf(['org', 'open', '--url-only', '--json', '-o', ORG]);
     const url = out && out.status === 0 && out.result && out.result.url;
     if (!url || !/^https:\/\//.test(url)) {
-        throw new Error(loginHint());
+        throw loginHint();
     }
     return url;
 }
@@ -35,17 +42,17 @@ function accountId() {
     const out = sf(['data', 'query', '--query', soql, '--json', '-o', ORG]);
     const records = out && out.status === 0 && out.result && out.result.records;
     if (!records) {
-        throw new Error(loginHint());
+        throw loginHint();
     }
     if (records.length === 0) {
-        throw new Error(`No Account named "${ACCOUNT_NAME}" in org "${ORG}": the specs need it.`);
+        throw oneLine(`No Account named "${ACCOUNT_NAME}" in org "${ORG}": the specs need it.`);
     }
     return records[0].Id;
 }
 
 module.exports = async function globalSetup() {
     if (!fs.existsSync(SF)) {
-        throw new Error(`The sf CLI was not found at ${SF}.`);
+        throw oneLine(`The sf CLI was not found at ${SF}.`);
     }
     const id = accountId();
     fs.mkdirSync(AUTH_DIR, { recursive: true, mode: 0o700 });
@@ -61,7 +68,7 @@ module.exports = async function globalSetup() {
             await page.waitForURL((u) => u.pathname.startsWith('/lightning/'), { timeout: 60_000 });
         } catch (e) {
             // Playwright's own message would quote the URL: replace it.
-            throw new Error(loginHint());
+            throw loginHint();
         }
         // The Lightning origin (no secrets). Each test then opens the Account Brief app itself.
         const origin = new URL(page.url()).origin;
