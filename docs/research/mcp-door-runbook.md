@@ -17,7 +17,8 @@
 - **The door is built in agent-probe and stops at the sign-in (verified).** There is a custom
   hosted MCP server `AccountBriefMcp`. It is active and has three tools: `resolve_account`,
   `get_account_brief` and `ask_account_brief`. There is also a dedicated External Client App
-  `AccountBriefMcpClient` with the `mcp_api` and `refresh_token` scopes and PKCE.
+  `AccountBriefMcpClient` with the scopes `MCP` and `RefreshToken` and PKCE. `MCP` is taken to be
+  the documented `mcp_api` scope; that mapping is inference (see the table).
 - **The server URL is live and asks for a token (verified).** An unauthenticated `tools/list` to
   it returned HTTP 401, `JWT Token is required`.
 - **No tool has been called (unproven).** The first call needs Ben's OAuth sign-in (step 9). Still
@@ -32,8 +33,8 @@
 
 | Component | Type | State | How it was made |
 |---|---|---|---|
-| `AccountBriefMcpClient` | External Client App (`ExternalClientApplication` and its three settings types) | Deployed. Scopes `MCP` (the UI's `mcp_api`) and `RefreshToken`. PKCE required, consumer secret optional, named-user JWT on. Callbacks for Claude and Postman. Permitted users: admin-approved, through `Account_Brief_Data_Access` | Metadata deploy from `mcp-door/` (steps 1 and 2) |
-| `AccountBriefMcp` | Custom hosted MCP server (`McpServerDefinition`), type `PLATFORM` | **Active** | API Catalog REST (steps 3 to 7) |
+| `AccountBriefMcpClient` | External Client App (`ExternalClientApplication` and its three settings types) | Deployed. Scopes `MCP` (taken to be `mcp_api`) and `RefreshToken`. PKCE required, consumer secret optional, named-user JWT on. Callbacks for Claude and Postman. Permitted users: admin-approved, through `Account_Brief_Data_Access` | Metadata deploy from `mcp-door/` (steps 1 and 2) |
+| `AccountBriefMcp` | Custom hosted MCP server (`McpServerDefinition`), type `PLATFORM` | **Active** | API Catalog REST (steps 3, 5, 6 and 8) |
 | `resolve_account` | Tool, source `APEX_ACTION`, `AccountBriefResolver` | Own description; all hints false | Step 5 and step 6 |
 | `get_account_brief` | Tool, source `APEX_ACTION`, `AccountBriefGetAction` | Own description; all hints false | Step 5 and step 6 |
 | `ask_account_brief` | Tool, source `PLATFORM_AGENT`, the `Account_Brief` agent | Own description; all hints false | Step 5 and step 6 |
@@ -46,10 +47,11 @@ installed, and no sign-in, consent screen or credential entry happened.
 | Claim | Status |
 |---|---|
 | An External Client App for MCP deploys from source with `sf` (four files, scope name `MCP`) | verified: validate 4 of 4 components and 159 of 159 Apex tests, then quick deploy |
-| The `mcp_api` scope is spelled `MCP` in `commaSeparatedOauthScopes` | verified: the org's own error listed the valid names |
+| `MCP` is an accepted scope name in `commaSeparatedOauthScopes` | verified: the org's own error listed the valid names |
+| `MCP` is the documented `mcp_api` scope | **unproven**: inference from the name; no other MCP-like name was in the list. Ben checks it in step 9 |
 | An External Client App needs `contactEmail` to deploy, although the type marks it optional | verified: deploy error "Enter a valid contact email address." |
 | A tool description set by `PUT .../assets/<asset-id>` is stored as `descriptionOverride` | verified: the retrieved `McpServerDefinition` holds the three new texts |
-| The stripped `mcp-door/` set passes a check-only deploy | verified, against agent-probe, where the components already exist (an update check) |
+| The stripped `mcp-door/` set passes a check-only deploy | verified, against agent-probe, where the components already existed and the server was still inactive (an update check) |
 | A custom server can be activated by `POST .../activate` with no Setup step | verified: HTTP 204, then `active: true` |
 | The server URL refuses a call without a token | verified: HTTP 401, `JWT Token is required` |
 | Deploying `mcp-door/` creates the server in an org that never had it | **unproven**: never run in a second org |
@@ -62,8 +64,8 @@ installed, and no sign-in, consent screen or credential entry happened.
 
 ## Steps, in order
 
-Each step says whether it changes the org. Steps 1 to 7 ran in agent-probe on 2026-11-12. Steps
-8 to 10 are Ben's.
+Each step says whether it changes the org. Steps 0 to 8 ran in agent-probe on 2026-11-12. Steps
+9 and 10 are Ben's.
 
 Prerequisites (not part of this card, already true in agent-probe): `force-app` deployed,
 `Account_Brief` published and active, and `Account_Brief_Data_Access` assigned to the user who will
@@ -151,9 +153,10 @@ which is why step 6 replaces every description.
 ]}
 ```
 
-HTTP 200 (verified). The quirks from [salesforce-mcp.md](salesforce-mcp.md) held: Apex tools are
-added with no `name` (a custom name here gives HTTP 500), `sourceId` is `apex-<Class>`, and the
-agent needs a `name`. The Apex tools came back named `<Class>apex_<Class>`. All three got the
+HTTP 200 (verified). This follows the quirks recorded in [salesforce-mcp.md](salesforce-mcp.md):
+Apex tools are added with no `name` (a custom name there gave HTTP 500), `sourceId` is
+`apex-<Class>`, and the agent needs a `name`. Only this working path was run here; the failing
+cases were not repeated. The Apex tools came back named `<Class>apex_<Class>`. All three got the
 default hints, all false (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`,
 `returnDirect`). That is what the design asks for, because a brief writes a memory row.
 
@@ -174,9 +177,10 @@ while the server is inactive.
 
 ### 7. Retrieve into mcp-door (changes the org: no)
 
-Retrieve in metadata format to a folder **outside** the repo. A plain source retrieve would write
-new components into `force-app` (the default package directory), and the retrieved files carry
-the consumer key, the contact email and the org Id:
+Retrieve in metadata format to a folder **outside** the repo. The retrieved files carry the
+consumer key, the contact email and the org Id (verified). A plain source retrieve would also
+place new components in `force-app`, the default package directory (unproven: not run; it is how
+`sf` treats a component with no local file):
 
 ```bash
 sf project retrieve start \
@@ -219,11 +223,14 @@ with no `Authorization` header returned HTTP 401, `{"errors":[{"message":"JWT To
 
 1. Wait at least 30 minutes after step 2. Salesforce documents up to 30 minutes before a new
    External Client App works.
-2. Get the consumer key: Setup > External Client App Manager > Account Brief MCP Client >
-   Settings > OAuth Settings > Consumer Key and Secret. Never paste it into the repo.
+2. Check that the app's scopes read `mcp_api` and `refresh_token` in Setup > External Client App
+   Manager > Account Brief MCP Client (the `MCP` mapping is unproven). Then get the consumer key
+   from the app's OAuth settings (the exact Setup path is unproven here). Never paste it into the
+   repo.
 3. Log into agent-probe in the default browser, and out of other orgs.
 4. Postman first, to see the raw tool JSON. Use OAuth 2.0, authorization code with PKCE, the
-   consumer key, no secret, and the callback `https://oauth.pstmn.io/v1/callback`. Or use Claude:
+   consumer key, no secret, and the callback `https://oauth.pstmn.io/v1/callback` (Postman's
+   usual callback; unproven, not read from a source in this run). Or use Claude:
    Customize > Connectors > Add custom connector, the server URL from step 3, "Use your own OAuth
    client", the consumer key, the secret left blank. Claude's callback
    `https://claude.ai/api/mcp/auth_callback` is already on the app.
