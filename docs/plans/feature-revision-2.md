@@ -171,6 +171,16 @@ Ben's notes on [06-agent-routing-and-verbatim-relay.md](../patterns/06-agent-rou
 | F83 | "I'm all for dropping the Astro icon button and then also the ask the agent button too. We probably don't need those two items" | `FE-20` (removes "Ask the agent", its Apex client and specs, and agent access from the user group). `BE-28` parked: the agent gets no tone, write actions, follow-up fixes or rich answers in FR2, which also retires its share of F02, F08, F15, F16, F55, F58 and F65. Agent-panel work dropped from `BE-22`, `FE-18`, `BE-27`, `BE-26`, `FE-5`, `OPS-39` and `OPS-40`; `BE-32` measures through its own caller |
 | F84 | "We don't need to say is this agent force or anything like that. Like this is agent force, it's just a different skinned version of it" | Positioning in [fr2-design.md](fr2-design.md#the-product); `OPS-41` (chapter 00's header); `OPS-36`; `OPS-44` |
 
+### Chapter notes: pattern 07, trust, access and failure
+
+Ben's notes on [07-trust-access-and-failure.md](../patterns/07-trust-access-and-failure.md), 2026-11-12.
+
+| # | Feedback | Status |
+|---|----------|--------|
+| F85 | "I again don't know if this is an entire chapter. I think this is more so design philosophy than anything else" and "The question is, does it need to be its own section?" | Decision below: trust is a principle, not a chapter. Principle 5 in [fr2-design.md](fr2-design.md#operating-principles); `OPS-45` (page 07 becomes a short "Trust by design" page, out of the chapter list); the failure behaviour moves into the chapters where it happens (`OPS-38` for not found, a choice of accounts and a failed section, with the two captures; `OPS-40` for the panel's fixed sentences); `OPS-36` (the README lists the principles) |
+| F86 | "How we give access to records and permission sets is an implementation detail almost" | Access becomes one step in the README's quick start and each chapter's Adopt it (`OPS-36`); `OPS-45` keeps what each permission set grants as reference, not as a story. `FE-5` proves the one step is enough for a rep (summary, explorer, prompt files and the model call), and until it passes the pages say not yet proven |
+| F87 | "making sure your agent runs in with sharing, except for things where it needs system context, like memory records, seems to make sense. I would align to that" | Principle 5; `BE-37` (the rule as a test: every class with sharing, every CRM read in user mode, each system-context use named in the code with its reason); `BE-35` (reps get no field access to an outcome's text, and the outcome service reads it in system context only for its author or a type marked to share, so the rule cannot be bypassed through a list view, a report or the API); `BE-26` (conversation history named as a system-context use); `BE-33` (N11: whether a rep can read the prompt files in user mode); `FE-20` (removes the agent-definition query, the other half of N11); `FE-12` (an Id-shaped number never becomes a failing drill button, lwc re-review N2) |
+
 ## Decisions the brain made (Ben may overrule)
 
 - **Default agent name:** "Customer Summary". Internal API names become `Customer_Summary` / `CustomerSummary` /
@@ -202,6 +212,12 @@ Ben's notes on [06-agent-routing-and-verbatim-relay.md](../patterns/06-agent-rou
   add-on for a team that wants it in an Agentforce channel, renamed and published once by `OPS-30`, documented in
   one appendix page (`OPS-44`), and no longer a required step in the quick start (`OPS-28` proves the run without it). It is all Agentforce (F84): the
   product calls the platform's models through its trust layer, with our own surfaces, so no page argues about that.
+- **Trust is a principle, not a chapter** (F85 to F87). It is principle 5 in fr2-design.md and one short section of
+  the README. Each chapter says what runs as the user and names any system-context use in its "Why you can trust it";
+  the failure behaviour sits in the chapter where it happens; granting access is one step in the quick start. Page 07
+  keeps its file name for now as a one-screen "Trust by design" page that lists the rule, the named exceptions and
+  what each permission set grants (`OPS-45`); the sweep card decides its final number and name. A test enforces the
+  rule (`BE-37`), so a later card cannot quietly add a system-mode query.
 - **"Why custom" lives in one page, chapter 00** (F66): docs/patterns/00-why-custom.md, the first chapter of the
   workbook, so a team reads the why before any pattern. The README links it in its first screen ("Why not just the
   standard chat?"), ARCHITECTURE.md links it, and each surface page (03, the rail, the embedded surface) links it from
@@ -252,9 +268,9 @@ Ben's notes on [06-agent-routing-and-verbatim-relay.md](../patterns/06-agent-rou
    standard-chat measurements `BE-32`, and the agent memory discovery `BE-34`. After `OPS-29`, the
    card architecture spike `FE-18` and the panel discovery `FE-17` (docs only).
 3. Rename: `FE-20` (retire "Ask the agent") first, then `BE-23`, then `OPS-30`, then `OPS-31`.
-4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-29`, `BE-30`, then `BE-26` (after `BE-30`) and `BE-33` (after
+4. Foundations: the trust rule as a test `BE-37` first (after `OPS-30`), then `BE-24`, `FE-11`, `BE-25`, `BE-29`, `BE-30`, then `BE-26` (after `BE-30`) and `BE-33` (after
    `BE-29`), the customer outcome store `BE-35`, sentiment `BE-36`, then `BE-27` (after `BE-35`).
 5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-19` (history and sentiment) after `FE-15` and `BE-36`; `FE-14` after `FE-12` and `BE-27`.
-6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04, `OPS-43` for pattern 05, `OPS-44` for pattern 06 as an appendix),
+6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04, `OPS-43` for pattern 05, `OPS-44` for pattern 06 as an appendix, `OPS-45` for page 07 as a short principles page),
    `OPS-35`, `OPS-36`, then OPS-28.
 7. Parked: `OPS-33`, `OPS-34`, `BE-28` (F83).

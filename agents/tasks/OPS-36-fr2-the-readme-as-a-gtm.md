@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: the public face of the repo, with live captures and Ben's page notes to judge
 status: blocked
-blocked_by: [OPS-35, OPS-32, OPS-31, FE-20, OPS-44, OPS-38, OPS-39, OPS-40, OPS-41, OPS-42, OPS-43]
+blocked_by: [OPS-35, OPS-32, OPS-31, FE-20, OPS-44, OPS-38, OPS-39, OPS-40, OPS-41, OPS-42, OPS-43, OPS-45]
 fixes: []
 scope: [README.md, docs/ARCHITECTURE.md, docs/assets/**, docs/patterns/**, e2e/capture/**, tests/test_readme_fr2.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -29,4 +29,5 @@ Feature revision 2 (FR2): the repo is now an accelerator other teams "take ... t
 - **Ways in (ledger F82 to F84):** the README never presents the built-in Agentforce panel or "Ask the agent" as a way in. The pattern list drops 06 from the patterns and lists it as an optional appendix; the diagram has no built-in panel edge. The quick start no longer needs an agent publish: move it to the appendix as an optional step, as OPS-44's hand-back proposes, and mark "runs without the agent" as not yet proven until OPS-28's run without the agent passes. Say it plainly: this is Agentforce, with its own surfaces
 - **Why custom (ledger F66):** the README's first screen has a short "Why not just the standard chat?" with two or three lines and a link to docs/patterns/00-why-custom.md (OPS-41); ARCHITECTURE.md links it too. Chapter 00 comes first in the README's list of patterns
 - Pattern pages: only their image links and alt text change here, to point at the recaptured assets. Their text and diagrams belong to the chapter cards (OPS-38 for pattern 01). Every diagram the README adds follows fr2-design.md 'Diagrams' and copies the theme block from docs/patterns/_diagram-theme.md
-- See it on every pattern page (ledger F57, fr2-design.md 'Pattern page shape'): for each pattern, capture it on each surface where it runs (compact window, rail, Agentforce's panel; the MCP door as a client transcript image), a GIF where something moves, read every frame, and set alt text. The pattern pages' See it sections link these captures
+- See it on every pattern page (ledger F57, fr2-design.md 'Pattern page shape'): for each pattern, capture it on each surface where it runs (compact window, rail; the MCP door as a client transcript image), a GIF where something moves, read every frame, and set alt text. The pattern pages' See it sections link these captures
+- **Design principles (ledger F85 to F87):** a short README section lists the five principles in fr2-design.md, one line each. Trust is principle 5 and links page 07 ("Trust by design", OPS-45), not a chapter: the pattern list shows 07 as a reference page, not a pattern. Granting access is one line in the quick start (assign the group); it stays "not yet proven for a rep" until FE-5 has passed
