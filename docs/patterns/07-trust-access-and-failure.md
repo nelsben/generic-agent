@@ -137,6 +137,7 @@ sequenceDiagram
   `WITH USER_MODE` explicitly, so they do not depend on that.
 
 > [!WARNING]
-> **Not yet proven:** a live run as a non-admin user with only the group `Account_Brief_User` and the standard set (FE-5 is parked until Ben creates the end user). The Apex
+> **Not yet proven:** a live run as a non-admin user with only the group `Account_Brief_User` and
+> the standard set. The Apex
 > tests use `runAs` for users without access, which checks the code paths, not the real profile,
 > the app and the agent together.
