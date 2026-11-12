@@ -1,5 +1,8 @@
 # Publish spike: Account_Brief version 2 from the CLI (OPS-21)
 
+> This page records the org this was first built in. The agent-probe state is in
+> [org-migration.md](org-migration.md) and [agent-iteration-1.md](agent-iteration-1.md).
+
 - Date: 2026-11-12, 03:34 to 03:45 UTC. Org `experimental` (Developer Edition, API 68.0).
 - CLI: `@salesforce/cli` 2.157.8 (`@salesforce/agents` 2.3.1, jsforce-node 3.12.0, undici 8.12.3).
 - Script: `force-app/main/default/aiAuthoringBundles/Account_Brief/Account_Brief.agent`, sha256

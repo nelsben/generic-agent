@@ -130,8 +130,8 @@ sequenceDiagram
   updating agent graph": the CLI publish, the first publish of a new throwaway agent, and a
   comment-only version 3. Studio's Commit Version also failed; whether with the same error was
   not captured ([agent-publish-spike.md](../research/agent-publish-spike.md)). In `agent-probe`,
-  a fresh Developer Edition org, the same bundle from main published on its first try and its
-  version 1 is active ([org-migration.md](../research/org-migration.md)), so the fault is
+  a fresh Developer Edition org, the same bundle from main published on its first try as version 1
+  ([org-migration.md](../research/org-migration.md)) and version 2 is now active, so the fault is
   specific to that one org.
 - In `agent-probe`, version 2 was published while version 1 was active and then activated in its
   place ([agent-iteration-1.md](../research/agent-iteration-1.md)). The first publish of it failed
