@@ -181,6 +181,34 @@ Ben's notes on [07-trust-access-and-failure.md](../patterns/07-trust-access-and-
 | F86 | "How we give access to records and permission sets is an implementation detail almost" | Access becomes one step in the README's quick start and each chapter's Adopt it (`OPS-36`); `OPS-45` keeps what each permission set grants as reference, not as a story. `FE-5` proves the one step is enough for a rep (summary, explorer, prompt files and the model call), and until it passes the pages say not yet proven |
 | F87 | "making sure your agent runs in with sharing, except for things where it needs system context, like memory records, seems to make sense. I would align to that" | Principle 5; `BE-37` (the rule as a test: every class with sharing, every CRM read in user mode, each system-context use named in the code with its reason); `BE-35` (reps get no field access to an outcome's text, and the outcome service reads it in system context only for its author or a type marked to share, so the rule cannot be bypassed through a list view, a report or the API, and one rep's summary text never reaches another rep's model prompt; the text then shows only in our surfaces, even to its author); `FE-19` (what a non-author sees on the timeline and the chart); `BE-26` (conversation history named as a system-context use); `BE-33` (N11: whether a rep can read the prompt files in user mode); `FE-20` (removes the agent-definition query, the other half of N11); `FE-12` (an Id-shaped number never becomes a failing drill button, lwc re-review N2) |
 
+### Chapter notes: pattern 08, test and release lifecycle
+
+Ben's notes on [08-test-and-release-lifecycle.md](../patterns/08-test-and-release-lifecycle.md), 2026-11-12.
+
+| # | Feedback | Status |
+|---|----------|--------|
+| F88 | "we have a really awesome opportunity to build out some really cool Agentforce Testing Center suite that we can incorporate into the run" and "how we communicate how to effectively test these agents as well as part of this bundle" | Decision below: the optional agent is the test bench. `BE-38` (a capped Testing Center suite and one script that runs it for the active version; waits for Ben's go in the Approvals table); `OPS-28` (runs it in the scratch org, after the run without the agent); `OPS-46` (the agent track of the ladder); `OPS-47` (the chapter) |
+| F89 | "playwright tests for testing front-end changes" and "From a Chromium perspective, I'm assuming that this is UI UX tests, something similar to Playwright and like what Playwright ran" | Yes: Chromium is the browser Playwright drives. `FE-21` (spec 2's intermittent failure found and fixed, both hotkey branches, a smoke subset for front-end changes); each FR2 surface card already adds its own specs |
+| F90 | "any other test classes in Apex that we may have generated to like prove that this thing works well" | `OPS-47` (a "What the tests prove" table by area, and a first Apex test to copy, with the stubbed model) |
+| F91 | "testing adoption, I think, is really important because we're going to be bringing some of these programmatic testing concepts to Salesforce users who haven't historically done this type of testing. Meaningful and valuable. This is not ... A review board where you have to go and present everything and you're going to get graded" | Decision below on tone. `OPS-47` (written for people new to testing: a first test to copy for each kind, and turning a bad answer into a test); `OPS-46` (the ladder in one command, one line per rung) |
+| F92 | "on top of that, lets review open items" | The review of page 08's open items below; `OPS-47` writes the page's list from it |
+
+Ben also said "it's not that thing to use other resources in salesforce"; recorded verbatim, read only as far as `OPS-47` linking Salesforce's own testing tools (Testing Center, Code Analyzer, the Apex test runner, Agentforce DX) as what the page builds on.
+
+#### Page 08's open items, reviewed
+
+| Open item on the page today | Now |
+|---|---|
+| The CLI publish fails with a 401 in the org this was first built in | Accepted as history: that org is no longer used, and `agent-probe` publishes fine. `OPS-47` keeps it as one line. The Salesforce case is drafted and is Ben's to file |
+| A test definition is pinned to the agent version it was created for | Closed by `BE-38`: its script recreates the definition for the active version on every run and prints the version |
+| The local checks cannot see run-time defects, such as a model rewording a reply | Accepted: that is what the Testing Center rung (`BE-38`) and the browser suite are for |
+| The code scan needs Code Analyzer and Java, and only reports | Code Analyzer is installed; Java is not on this machine, so the scan does not run at all today. `OPS-46` runs the engines that need no Java and says what it skipped. Installing Java is an optional step on Ben's to-do. It stays report-only |
+| The checks are check-only, so the org matches main only as of the last real deploy | Every FR2 card now deploys under the standing approval, but nothing checks for drift. `OPS-46` adds a read-only drift check |
+| The browser suite has run as an admin only, on one machine, on one hotkey branch | Admin only: `FE-5` (needs Ben's non-admin user). One hotkey branch: `FE-21`. One machine: no card; nothing runs the checks automatically (there is no CI). Running them in GitHub Actions would mean storing an org login in GitHub, which is Ben's call |
+| Spec 2 fails now and then, cause not found | `FE-21` |
+| Publishing a new version over an active one through Studio is not proven | Accepted: the CLI is the documented path and is proven in `agent-probe`. The Studio route stays unproven; FR2 has one more publish (`OPS-30`) and it uses the CLI |
+| Spec 9 ("Ask the agent") | Removed by `FE-20` |
+
 ## Decisions the brain made (Ben may overrule)
 
 - **Default agent name:** "Customer Summary". Internal API names become `Customer_Summary` / `CustomerSummary` /
@@ -218,6 +246,16 @@ Ben's notes on [07-trust-access-and-failure.md](../patterns/07-trust-access-and-
   keeps its file name for now as a one-screen "Trust by design" page that lists the rule, the named exceptions and
   what each permission set grants (`OPS-45`); the sweep card decides its final number and name. A test enforces the
   rule (`BE-37`), so a later card cannot quietly add a system-mode query.
+- **The optional agent is the test bench** (F88). Testing Center tests a registered agent, so the suite runs through
+  the optional agent, whose actions call the same Apex services as the panel and MCP. It tests routing and the summary
+  and explorer behind them, not the panel, the rail or cards (Playwright does that) and not write actions (the agent
+  has none, F83). The agent is not republished for tests: a case that fails because its script lags behind the Apex
+  is a finding for Ben. A run spends model calls, so it is a named rung, not part of every card's gate, and the suite
+  is capped at 20 cases. Salesforce advises running Testing Center in a sandbox; `agent-probe` has none, so the
+  functional suite runs there only with Ben's go, and the full run in the scratch org (`OPS-28`). A security suite is
+  not planned: it needs a non-production org and Ben's go.
+- **Tests are a builder's tool, not a review board** (F91). Pages about testing use no grades, scorecards or sign-off
+  language; they show what each check catches and give a first test to copy.
 - **"Why custom" lives in one page, chapter 00** (F66): docs/patterns/00-why-custom.md, the first chapter of the
   workbook, so a team reads the why before any pattern. The README links it in its first screen ("Why not just the
   standard chat?"), ARCHITECTURE.md links it, and each surface page (03, the rail, the embedded surface) links it from
@@ -259,6 +297,11 @@ Ben's notes on [07-trust-access-and-failure.md](../patterns/07-trust-access-and-
 - Say whether MCP clients may write (create a task, log a call). Until then MCP stays read-only; `BE-27` builds the
   invocables ready for it.
 - Say go to schedule the outcome purge job in agent-probe after `BE-35` lands. Until then nothing expires.
+- Say go for the Testing Center suite in `agent-probe` (`BE-38`; the Approvals table). The brain recommends yes for the
+  functional suite: read-only cases, at most 20, the same kind of run that passed there before.
+- Optional: install Java 11 or later on this Mac so the code scan's Java rules run (`OPS-46` runs the rest without it).
+- Optional: decide whether the checks should run automatically in GitHub Actions. That needs an org login stored as a
+  GitHub secret, so no card is cut until you say so.
 - Say go for the spikes, and for `OPS-37`.
 
 ## Order
@@ -271,6 +314,7 @@ Ben's notes on [07-trust-access-and-failure.md](../patterns/07-trust-access-and-
 4. Foundations: the trust rule as a test `BE-37` first (after `OPS-30`), then `BE-24`, `FE-11`, `BE-25`, `BE-29`, `BE-30`, then `BE-26` (after `BE-30`) and `BE-33` (after
    `BE-29`), the customer outcome store `BE-35`, sentiment `BE-36`, then `BE-27` (after `BE-35`).
 5. Surfaces: `FE-12`, then `FE-13`, then `FE-16` and `FE-15`; `FE-19` (history and sentiment) after `FE-15` and `BE-36`; `FE-14` after `FE-12` and `BE-27`.
-6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04, `OPS-43` for pattern 05, `OPS-44` for pattern 06 as an appendix, `OPS-45` for page 07 as a short principles page),
+   Tests: the Testing Center suite `BE-38` (after `BE-29` and `BE-30`, on Ben's go); `FE-21` after `FE-13`; then the ladder `OPS-46`.
+6. Close: `OPS-32`, the chapter cards (`OPS-41` for chapter 00, "Why custom", `OPS-38` for pattern 01, `OPS-39` for pattern 02, `OPS-40` for pattern 03, `OPS-42` for pattern 04, `OPS-43` for pattern 05, `OPS-44` for pattern 06 as an appendix, `OPS-45` for page 07 as a short principles page, `OPS-47` for pattern 08 as a testing workbook),
    `OPS-35`, `OPS-36`, then OPS-28.
 7. Parked: `OPS-33`, `OPS-34`, `BE-28` (F83).
