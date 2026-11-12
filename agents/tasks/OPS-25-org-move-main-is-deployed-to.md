@@ -11,7 +11,7 @@ forbid: [force-app/**, tests/**, e2e/**, scripts/**, data/**, agents/**, docs/pl
 resources: [org-live]
 red_test: none
 gate: test, org, agent
-budget: 3-attempts
+budget: 4-attempts
 spend: 25
 ---
 ## Why
