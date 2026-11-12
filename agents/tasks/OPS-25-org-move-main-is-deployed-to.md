@@ -4,8 +4,7 @@ title: Org move: main is deployed to agent-probe, the sample data is seeded, Acc
 domain: ops
 tier: frontier
 tier_reason: org-changing deploy, publish and activation in a production-classified org, with stop conditions
-status: blocked
-blocked_by: [OPS-24]
+status: queued
 fixes: []
 scope: [docs/research/org-migration.md]
 forbid: [force-app/**, tests/**, e2e/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
