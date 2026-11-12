@@ -4,7 +4,7 @@ title: Account_Brief agent routes account-named requests to the brief, relays ac
 domain: backend
 tier: standard
 tier_reason: prompt and routing changes in one Agent Script file, proven by a live agent test
-status: queued
+status: parked
 fixes: [BE-7]
 scope: [force-app/main/default/aiAuthoringBundles/Account_Brief/Account_Brief.agent, tests/agent/Account_Brief-testSpec.yaml, tests/test_agent_bundle.py]
 forbid: [agents/**, .chassis-delegation.json, reference/**, force-app/main/default/classes/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/Account_Brief/Account_Brief.bundle-meta.xml]
@@ -14,6 +14,8 @@ budget: 2-attempts
 spend: 10
 ---
 ## Why
+
+**Parked: superseded by BE-9, which contains its commits (see OPS-14). Never dispatch.** This card names the `experimental` org, which nothing may touch.
 
 The first agent test run in experimental (8 cases) showed two real defects and two spec faults. Requests that name an account but read like a data question ('which deals are slipping', 'just the open deals for X') went to explore instead of account_brief, and the agent added its own sentence after a verbatim message. These must be fixed before the custom panel shows agent replies in our own UI.
 

@@ -4,7 +4,7 @@ title: FR2: explorer discovery — what it takes for the ask-anything explorer t
 domain: backend
 tier: frontier
 tier_reason: design research across security, governor limits and model behaviour, with measurements in a production-classified org
-status: queued
+status: parked
 blocked_by: []
 fixes: []
 scope: [spikes/explorer-scale/**, docs/research/fr2-explorer-scale.md]

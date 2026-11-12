@@ -4,7 +4,7 @@ title: FR2: the MCP door under the new name — deploy CustomerSummaryMcpClient,
 domain: ops
 tier: frontier
 tier_reason: External Client App deploy and MCP server creation through a REST path in a live org
-status: blocked
+status: parked
 blocked_by: [OPS-30]
 fixes: []
 scope: [mcp-door/**, tests/test_mcp_door.py, docs/research/mcp-door-runbook.md, docs/patterns/09-outside-door-mcp.md]

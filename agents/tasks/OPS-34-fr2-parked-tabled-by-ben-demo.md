@@ -4,7 +4,7 @@ title: FR2 (PARKED, tabled by Ben): demo data and industry scenarios, and one co
 domain: ops
 tier: standard
 tier_reason: an options paper with no org work
-status: blocked
+status: parked
 blocked_by: [BE-24]
 fixes: []
 scope: [docs/research/fr2-later-options.md]

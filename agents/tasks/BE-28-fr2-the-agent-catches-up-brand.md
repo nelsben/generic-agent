@@ -4,7 +4,7 @@ title: FR2 (PARKED, ledger F83: the built-in panel is not a way in): the agent c
 domain: backend
 tier: frontier
 tier_reason: agent publish and activate in a live org, with write actions routed by a model
-status: blocked
+status: parked
 blocked_by: [BE-27, BE-24, OPS-30, BE-30, FE-18, BE-35]
 fixes: []
 scope: [force-app/main/default/aiAuthoringBundles/Customer_Summary/**, tests/agent/**, docs/research/fr2-agent-next.md, docs/patterns/06-agent-routing-and-verbatim-relay.md]

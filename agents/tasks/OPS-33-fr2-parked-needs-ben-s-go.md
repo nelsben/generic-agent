@@ -4,7 +4,7 @@ title: FR2 (PARKED, needs Ben's go): embedded call-centre spike — prove how a 
 domain: ops
 tier: frontier
 tier_reason: contact-centre provisioning in a live org with licence and feature questions
-status: blocked
+status: parked
 blocked_by: [OPS-32]
 fixes: []
 scope: [spikes/embedded/**, docs/research/fr2-embedded-spike.md]
