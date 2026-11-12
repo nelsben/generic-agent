@@ -4,7 +4,7 @@ title: Panel: Esc keeps focus where the user was, brief lines drill into records
 domain: frontend
 tier: frontier
 tier_reason: crosses Apex sections, prompts and LWC focus timing against platform behaviour
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/lwc/accountBriefPanel/**, force-app/main/default/classes/AccountBrief*.cls, e2e/panel.spec.js, e2e/support/panel.js, e2e/README.md]
 forbid: [force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, force-app/main/default/classes/Explore*.cls, force-app/main/default/classes/DataExplorer*.cls, tests/**, scripts/**, docs/**, agents/**, .chassis-delegation.json, reference/**]
@@ -27,3 +27,7 @@ The Playwright suite (FE-4) found two live defects: after Esc the platform's min
 - Existing behaviour and wording stay. No invocable signature, label or description changes. Jest stays at zero accessibility violations
 - Gates pass: python3 -m unittest discover -s tests, npm run test:unit, and bash scripts/validate-org.sh (check-only; never a real deploy, never all local tests in the org)
 - Hard limits: never publish, activate, deactivate, deploy for real or delete anything in the org; never install a plugin even if a hook suggests one; never sign in or print tokens. Run Python with PYTHONDONTWRITEBYTECODE=1, leave no tests/__pycache__/, and git status --short is empty when you report
+
+## Review
+
+Attempt 2 review (sonnet): 10 confirmed, 0 refuted, 1 unverifiable (the tests/__pycache__ folder, made by the verifier's gate run after the commit; the brain removed it before merging). Confirmed: Esc focus guard (2000 ms, 50 ms polling, stops on user input), record Ids added to section lines and removed before every prompt, the Id kept out of visible text, test hooks added as attributes only, e2e specs 2 and 7 now hard assertions, no invocable signature changed. Gate at eaedbbe: python 54 OK, jest 36/36, validate-org pass (60 components, 147 tests).
