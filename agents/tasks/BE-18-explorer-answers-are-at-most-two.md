@@ -4,7 +4,7 @@ title: Explorer answers are at most two sentences on four question shapes (list,
 domain: backend
 tier: frontier
 tier_reason: prompt change shipped to a live org, measured across question shapes, with a regression gate on the published agent
-status: queued
+status: merged
 scope: [force-app/main/default/staticresources/AgentPrompt_Explore.resource, tests/test_explore_prompt.py, e2e/capture/04-explore.capture.js, docs/assets/explore-answer.png, docs/assets/explore-drill.gif, docs/assets/drill-view.png, docs/assets/MANIFEST.md, docs/patterns/02-ask-anything-explorer.md, docs/research/explore-prompt-2.md, docs/research/explore-prompt-1.md]
 forbid: [force-app/main/default/classes/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, force-app/main/default/permissionsetgroups/**, scripts/**, data/**, agents/**, README.md, docs/plans/**, docs/reviews/**, e2e/panel.spec.js, e2e/support/**, playwright.config.js, playwright.capture.config.js, reference/**, .chassis-delegation.json, sfdx-project.json]
 resources: [org-live]
@@ -31,3 +31,23 @@ BE-17's rule 9 rewrite kept the table as the answer, but every answer still ran 
 - Recapture only explore-answer.png, explore-drill.gif and drill-view.png with e2e/capture/04-explore.capture.js (SF_TARGET_ORG=agent-probe), keeping the privacy machinery (masking, the 0.5 s checks, the all-frames checks). Remove any console.log of answer text that BE-17 added to that capture file. Every other file in docs/assets/ stays byte-identical (git diff --stat). Read each new PNG and every GIF frame at 1 fps by eye and say in the hand-back what each shows
 - MANIFEST.md rows and the alt text and captions in docs/patterns/02-ask-anything-explorer.md match the new images exactly. Write docs/research/explore-prompt-2.md: the rule 9 change, the baseline and final answers for all four shapes with their sentence counts, the fit numbers, the e2e and spec results, and the deploy steps in order; add one line at the top of explore-prompt-1.md pointing to it. No record Ids, org Ids, usernames, emails, tokens, instance hostnames or URLs with query strings in any file or image
 - Budget: about 40 model calls in the org. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+# BE-18 hand check (attempt 2, a764276)
+
+Accepted after a hand check.
+
+- Bar met 12/12 across the four shapes (L, C, S, F): every answer is at most two sentences. L fits the 273 px box at 158 px.
+- No regression: e2e 8/8. Agent spec replies 16/16, actions 16/16, topic 15/16. Case 12 is the topic miss. Case 2 is the brief path and does not load the explore prompt (only DataExplorer.cls loads it), so it is not a regression of this card.
+- Amend granted for DataExplorer.cls and its test. Explorer and drill tables no longer show Id columns and use catalog labels (Account, Stage, Close Date). Row Ids stay in the rows for drill-down. The trail shows "Id IN (5 records)" or "a record", never raw Ids. Five new Apex tests cover this, and 159/159 tests passed on deploy.
+- Reviewers refuted two claims across two passes.
+  - For the F follow-up, the panel shows two tables: the five-row rerun and the 2 matches, not only the 2 matches. explore-prompt-2.md made the same claim. The brain fixed it in d08338d: the research page now describes both tables, notes that rule 9's "the system shows the last result's rows as a table" does not match either, and lists the extra table and the raw amounts under Still open.
+  - The other refuted claim was a tests/__pycache__ directory. The gate run created it after the worker committed, and it was removed before merge.
+- Privacy grep of the 689 added lines found nothing: denylist 0, Ids 0, emails 0, hosts 0, query-string URLs 0, home paths 0, experimental 0.
+- Assets viewed: explore-answer.png, drill-view.png and every frame of explore-drill.gif. Each uses sample data, a masked owner, masked emails and 555 phone numbers, with no Id column.
+- Budget: the worker overran the ~45-call estimate (36 calls plus 2 deploys plus spec runs) across two attempts.
+- Left open for a follow-up card:
+  - the F follow-up also shows the rerun table, and the structural fix is to pass the earlier result's Ids in history;
+  - amounts show as raw numbers ("293920") in the table and drill view;
+  - a group-by on an id field shows only counts.
