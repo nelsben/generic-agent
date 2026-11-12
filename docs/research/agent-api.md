@@ -85,7 +85,7 @@ Route A, in-org Apex and LWC (recommended first):
 
 Route B, outside Salesforce (Agent API):
 1. Create an External Client App with the scopes above and client credentials (documented).
-2. Get the agent Id (BotDefinition `0XxgK000002WVtxSAG`, verified).
+2. Get the agent Id (BotDefinition `<agent id>`, verified).
 3. For an Employee agent, expect to need a user-bound token and `bypassUser=false` (unverified).
 4. Start session, send messages with increasing `sequenceId`, end session.
 5. Test whether start-session accepts the Employee agent before building anything on it.
@@ -106,7 +106,7 @@ list), but none for the Agent API.
 
 ## Org probes (read-only, org `experimental`)
 
-- `SELECT ... FROM BotDefinition`: Account_Brief `0XxgK000002WVtxSAG`, Type `InternalCopilot`,
+- `SELECT ... FROM BotDefinition`: Account_Brief `<agent id>`, Type `InternalCopilot`,
   AgentType `AgentforceEmployeeAgent`. Also a second agent, same types.
 - `BotVersion`: Account_Brief v1 `0X9gK0000048xtRSAQ` is Active. The second agent's v1 is Inactive.
 - `ExternalClientApplication`: two existing apps. Their OAuth scopes are Api, Web,
