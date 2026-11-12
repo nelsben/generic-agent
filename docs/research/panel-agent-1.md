@@ -16,7 +16,7 @@ after the deploy, and the full e2e suite passed 9 of 9.
 Before the deploy, one anonymous Apex run made two calls of
 `Invocable.Action.createCustomAction('generateAiAgentResponse', 'Account_Brief')`, the second with
 the first call's `sessionId`. The messages were the ones the panel sends: "What are the open deals
-at this account?" with the open record appended ("The record I have open is <record Id>.", the
+at this account?" with the open record appended (`The record I have open is <record Id>.`, the
 Edge Communications account), then "What about their open cases?" with no record. The script
 printed field names, timings and true/false checks only.
 
@@ -72,8 +72,9 @@ Under the Approvals lines "The panel calls the registered agent directly" and
 3. `sf project deploy validate` of `AccountBriefAgentClient`, `AccountBriefAgentClientTest`,
    `AccountBriefPanelController`, `AccountBriefPanelControllerTest` and the `accountBriefPanel`
    bundle, `--test-level RunLocalTests`: Succeeded, 5 of 5 components, 172 tests, 0 errors.
-   Coverage: `AccountBriefAgentClient` 36 of 46 lines (the 10 left are the real `Transport`,
-   which only a live action reaches), `AccountBriefPanelController` 73 of 75.
+   Coverage: `AccountBriefAgentClient` 36 of 46 lines (9 of the 10 left are the real
+   `ActionTransport`, which only a live action reaches; the 10th is the fallback for a reply that
+   parses as JSON but is not an object), `AccountBriefPanelController` 73 of 75.
 4. `CONFIRM_PROD=1 sf project deploy quick --job-id <validation id>`: Succeeded, 5 of 5
    components, under its own deploy Id.
 5. The permission set was not deployed: it did not change.
