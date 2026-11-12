@@ -4,7 +4,7 @@ title: e2e passes 8 of 8 in agent-probe: opening the account page closes the Gui
 domain: frontend
 tier: standard
 tier_reason: one small helper change, found by reading live markup in one org
-status: queued
+status: merged
 fixes: []
 scope: [e2e/support/panel.js, e2e/README.md, docs/research/org-migration.md]
 forbid: [force-app/**, tests/**, scripts/**, data/**, e2e/panel.spec.js, e2e/global-setup.js, e2e/capture/**, docs/assets/**, README.md, docs/patterns/**, agents/**, docs/plans/**, .chassis-delegation.json, reference/**]
@@ -31,3 +31,16 @@ OPS-25's e2e run in agent-probe passed 7 of 8. Spec 2 failed because the fresh o
 - docs/research/org-migration.md gets a short section at its end, "e2e after FE-9", with the red result, the change and the green 8 of 8 run. It edits nothing above that section
 - e2e/README.md says, in a line, that the tests close a fresh org's Guidance Center walkthrough whenever it appears, and why
 - The test and jest gates pass
+
+## Review
+
+Accepted on the verifier's verdict, with no review pass; the brain read the diff itself.
+
+- The change is 7 lines in Panel.gotoAccount. Before the first goto, it registers a Playwright locator handler for a dialog containing "Meet the new Guidance Center", and the handler clicks that dialog's "Dismiss" button. When no walkthrough is shown, it adds no wait. Neither e2e/panel.spec.js nor the capture code changed.
+- What it does not prove: no walkthrough appeared in any FE-9 run, so the handler never fired and it is unproven against a real walkthrough. Whether Dismiss keeps the walkthrough away on later runs was not checked.
+- Red: spec 2 failed with the same Search-not-focused error as before, but with no walkthrough on screen. With the handler in place it failed once more, then passed 5 times. The green full run passed 8 of 8 (3.1 min), once. Spec 2 is intermittent in agent-probe, and nothing found so far explains all its failures.
+- The card's `-g "^2\."` matched no spec, because Playwright greps the full title path. The worker used `-g "2\. Esc"`; the doc says so.
+- Brain fix aed540b: the README line had said the walkthrough "takes focus" as a fact. It now states only what is known and points to the doc.
+- Stray tests/__pycache__ came from a gate run; it was removed twice before verification.
+- Gates: test and jest pass at aed540b. Privacy grep of the added lines found no hits.
+- For FE-8: if spec 2 or a capture flakes on focus, rerun once before treating it as a regression.
