@@ -30,8 +30,9 @@
 - **e2e: 7 of 8 pass; spec 2 fails (verified).** Its anchor, the global header's Search button,
   was not found after Esc. At that moment the page showed the fresh org's "Guidance Center" panel
   and its "Meet the new Guidance Center" pop-up, and the header's buttons were not in the
-  accessibility tree. The failure screenshot shows that walkthrough over a dimmed page. The cause is
-  the fresh org's first-run pop-up, not the panel (inference, strongly indicated). See "e2e".
+  accessibility tree. The failure screenshot shows that walkthrough over a dimmed page. The likely
+  cause is the fresh org's first-run pop-up (inference: what opened it, and whether a key the test
+  pressed did, is unproven). See "e2e".
 - **Model calls in the org: about 21 agent or panel turns, plus 12 grader ratings** (1 turn in
   attempt 3; 12 test cases, 2 two-turn turns and 6 e2e panel calls in attempt 5). That is within
   the budget of about 40 even with the grader counted.
@@ -299,10 +300,13 @@ Cause:
   is open on the right, the blue "Meet the new Guidance Center" walkthrough ("Step 1 of 2",
   Dismiss and Next) sits over the record page, and the rest of the page, header search box
   included, is dimmed behind an overlay (verified from the screenshot).
-- So the cause is the org's first-run Guidance Center walkthrough covering the page, not the
-  panel's focus handling. That this overlay is what hides the Search button is strongly indicated
-  but inference. What opened it (on its own after the page loaded, or a key the test pressed) is
-  unproven.
+- The Search button was focused right after Esc (the first check in `expectFocusStays`,
+  `e2e/support/panel.js`, passed) and was gone by the end of its 2.5 s wait. So the walkthrough came
+  up during those 2.5 s.
+- The likely cause is the org's first-run Guidance Center walkthrough covering the page, and the
+  panel's focus return worked up to that moment. Both are inference. What opened the walkthrough is
+  unproven: it may appear on its own some seconds after a page loads, or a key the test pressed
+  (Cmd/Ctrl-K, Esc) may open it. A fix that only checks once at page load may miss a late one.
 - Fix options, not made here: dismiss the Guidance Center pop-up once in agent-probe as the test
   user (a UI click that stores a user preference), or have the e2e setup close a Guidance Center
   dialog if one is open (an `e2e/` change, out of scope; listed, not made). Spec 2 makes no model
