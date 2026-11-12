@@ -13,6 +13,29 @@ const OPEN_SECTIONS = ['Open deals', 'Service health'];
 // The spinner wait is cut out of brief-flow.gif: it keeps this much after Send and before the answer.
 const KEEP_AFTER_SEND = 3;
 const KEEP_BEFORE_ANSWER = 1;
+// brief-flow.gif ends on the arrived brief, held this long with its headline in view.
+const HOLD_ON_HEADLINE = 3500;
+
+/**
+ * Scrolls the conversation so the summary box, which opens with the headline sentence, sits at the
+ * top of the scroll box. Returns the geometry in CSS px, and whether the first section header fits
+ * under the summary too. In the 340x480 panel it does not when the summary is long, or when the
+ * bar shows "Earlier briefs" (the scroll box is then about 140 px tall).
+ */
+async function headlineAtTop(panel, turn, sections) {
+    const box = await panel.body.boundingBox();
+    const summary = await turn.locator('article.abp-summary').boundingBox();
+    const header = await sections.first().getByRole('button').first().boundingBox();
+    if (!box || !summary || !header) {
+        throw new Error('panel-brief.png: the scroll box, the summary or the first section is not rendered.');
+    }
+    const needed = Math.ceil(header.y + header.height - summary.y + 8);
+    await panel.body.evaluate((el, d) => {
+        el.scrollTop += d;
+    }, summary.y - box.y - 4);
+    await panel.page.waitForTimeout(300);
+    return { box: Math.round(box.height), needed, fits: needed <= box.height };
+}
 
 test('brief-flow.gif, panel-brief.png, panel-sections-open.png, memory-followup.png', async ({ page, panel, t0 }) => {
     const guard = watch(page, 'the brief');
@@ -31,14 +54,16 @@ test('brief-flow.gif, panel-brief.png, panel-sections-open.png, memory-followup.
     const arrived = at(t0);
     const turn = panel.turns.last();
     await expect(panel.headline(turn)).toBeVisible();
-    await page.waitForTimeout(2000);
-    // The 340x480 panel shows the headline first; scroll down so the collapsed sections show too.
-    const sections = turn.locator('lightning-accordion-section');
-    await sections.last().evaluate((el) => el.scrollIntoView({ block: 'end', behavior: 'smooth' }));
-    await page.waitForTimeout(3000);
+    // The panel scrolls the new turn to the top: the question, then the headline. The GIF ends here,
+    // held still on the headline.
+    await page.waitForTimeout(HOLD_ON_HEADLINE);
     const end = at(t0);
 
-    // panel-brief.png: the finished brief, every section collapsed.
+    // panel-brief.png: the headline sentence at the top of the scroll box; the collapsed sections
+    // are in view under it only when the summary is short enough.
+    const sections = turn.locator('lightning-accordion-section');
+    const fit = await headlineAtTop(panel, turn, sections);
+    console.log(`panel-brief.png: box ${fit.box} px, headline to first section ${fit.needed} px, sections in view ${fit.fits}`);
     await panel.composer.blur();
     await still(page, 'panel-brief.png');
 

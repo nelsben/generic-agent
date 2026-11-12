@@ -65,11 +65,11 @@ sequenceDiagram
 
 ## See it
 
-![An explorer result in the panel: the table caption "Opportunity · 5 of 36 rows", the Name, Amount and StageName headers, and the top rows, each name a drill button](../assets/explore-answer.png)
+![An explorer result in the panel, scrolled to its table: the caption "Opportunity · 5 of 36 rows", the Name, Amount and StageName headers, and the first two rows, Juniper Project B and Fernhollow Project C, each name a link; the question and the one-line answer are above, out of view](../assets/explore-answer.png)
 
 ![An Opportunity result table, then the drill view of one row under a "Conversation" breadcrumb, then the table again](../assets/explore-drill.gif)
 
-![The drill view of one Opportunity: the "Conversation" breadcrumb, the record name as a heading, and its first field, Name](../assets/drill-view.png)
+![The drill view of one Opportunity: the breadcrumb "Conversation > Juniper Project B", the record name with its type, Opportunity, and its first fields, Name and StageName](../assets/drill-view.png)
 
 ## Why you can trust it
 

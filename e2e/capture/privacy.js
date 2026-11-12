@@ -2,7 +2,7 @@
 /**
  * Privacy for every captured frame (see "Capture" in e2e/README.md).
  *
- * The running user's name, username, email and nickname are read from the sf CLI at run time and
+ * The running user's name, first and last name, username, email and nickname are read from the sf CLI at run time and
  * kept in memory only: never printed, logged, put in an error message or written to disk.
  *
  * pageGuard() runs in the page (as a context init script, so from the first document of every
@@ -10,8 +10,9 @@
  * - injects CSS that hides the global header's avatar button and any user photo;
  * - on every animation frame, before paint, rewrites text and visible attributes in the document
  *   and in every shadow root (native ones are tracked by wrapping attachShadow): the user's name
- *   and other identity strings become "Sample Owner", email addresses "email hidden", and 15 or
- *   18 character record Ids "Id hidden"; user photos are hidden inline;
+ *   and other identity strings, and the first or last name as a whole word, become "Sample Owner",
+ *   email addresses "email hidden", and 15 or 18 character record Ids "Id hidden"; user photos are
+ *   hidden inline;
  * - exposes window.__abpCapture.check(), which walks the same trees and returns the categories of
  *   forbidden text still visible (never the text itself).
  */
@@ -53,7 +54,7 @@ function identity() {
     if (!/^005[0-9A-Za-z]{12}([0-9A-Za-z]{3})?$/.test(user.id)) {
         throw oneLine('sf org display user returned an unexpected user Id shape.');
     }
-    const soql = `SELECT Name, Email, CommunityNickname FROM User WHERE Id = '${user.id}'`;
+    const soql = `SELECT Name, FirstName, LastName, Email, CommunityNickname FROM User WHERE Id = '${user.id}'`;
     const q = sf(['data', 'query', '--query', soql, '--json', '-o', ORG]);
     const row = q && q.status === 0 && q.result && q.result.records && q.result.records[0];
     if (!row || !row.Name) {
@@ -62,13 +63,16 @@ function identity() {
     return {
         name: String(row.Name),
         // Exact strings replaced with "Sample Owner" wherever they appear.
-        strings: [row.Name, user.username, row.Email, row.CommunityNickname].filter((s) => typeof s === 'string' && s.trim().length >= 3)
+        strings: [row.Name, user.username, row.Email, row.CommunityNickname].filter((s) => typeof s === 'string' && s.trim().length >= 3),
+        // The first and last name alone (an agent greeting may use the first name): replaced as whole
+        // words only, so a longer word that contains one is left alone.
+        words: [row.FirstName, row.LastName].filter((s) => typeof s === 'string' && s.trim().length >= 2).map((s) => s.trim())
     };
 }
 
 /**
  * Runs in the browser. Must be self-contained: Playwright serialises it.
- * @param {{ strings: string[], name: string }} arg
+ * @param {{ strings: string[], words?: string[], name: string }} arg
  */
 function pageGuard(arg) {
     const w = /** @type {any} */ (window);
@@ -78,6 +82,11 @@ function pageGuard(arg) {
     const REPLACEMENT = 'Sample Owner';
     const strings = (arg.strings || []).slice().sort((a, b) => b.length - a.length);
     const lowered = strings.map((s) => s.toLowerCase());
+    const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // First and last name as whole words (no letter or digit on either side).
+    const WORDS = (arg.words || []).length
+        ? new RegExp('(?<![\\p{L}\\p{N}])(?:' + arg.words.map(escape).join('|') + ')(?![\\p{L}\\p{N}])', 'giu')
+        : null;
     const EMAIL = /[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g;
     // Exactly 15 or 18 letters and digits, at least one a digit, not part of a longer run.
     const ID = /(?<![A-Za-z0-9])(?=[A-Za-z]*[0-9])(?:[A-Za-z0-9]{18}|[A-Za-z0-9]{15})(?![A-Za-z0-9])/g;
@@ -94,8 +103,11 @@ function pageGuard(arg) {
         const low = out.toLowerCase();
         for (let i = 0; i < strings.length; i += 1) {
             if (low.indexOf(lowered[i]) >= 0) {
-                out = out.split(new RegExp(strings[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')).join(REPLACEMENT);
+                out = out.split(new RegExp(escape(strings[i]), 'gi')).join(REPLACEMENT);
             }
+        }
+        if (WORDS) {
+            out = out.replace(WORDS, REPLACEMENT);
         }
         if (out.indexOf('@') >= 0) {
             out = out.replace(EMAIL, 'email hidden');
@@ -233,7 +245,8 @@ function pageGuard(arg) {
         const text = parts.join('\n');
         const low = text.toLowerCase();
         const found = [];
-        if (lowered.some((s) => low.indexOf(s) >= 0) || low.indexOf(String(arg.name).toLowerCase()) >= 0) {
+        const word = WORDS ? new RegExp(WORDS.source, WORDS.flags) : null;
+        if (lowered.some((s) => low.indexOf(s) >= 0) || low.indexOf(String(arg.name).toLowerCase()) >= 0 || (word && word.test(text))) {
             found.push('running-user identity');
         }
         if (new RegExp(EMAIL.source).test(text)) {

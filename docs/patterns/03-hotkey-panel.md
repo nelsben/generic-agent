@@ -57,9 +57,9 @@ sequenceDiagram
 
 ## See it
 
-![The Account Brief panel opens over an account page with typed text already in its composer, then minimizes back to the utility bar](../assets/hotkey-open.gif)
+![The Account Brief panel opens over an account page with an empty composer, "Which cases are still open?" is typed into it, then the panel minimizes back to the utility bar](../assets/hotkey-open.gif)
 
-![The panel with two brief sections expanded, Open deals with its one overdue deal and Service health with none, and the composer at the bottom](../assets/panel-sections-open.png)
+![The panel with the Open deals section expanded: "Open deals · 5 of 5" with an OK badge, "5 open, $634,180 total pipeline, 2 overdue", and the first deal, Edge Core Router Refresh, marked OVERDUE, above the composer](../assets/panel-sections-open.png)
 
 ## Why you can trust it
 

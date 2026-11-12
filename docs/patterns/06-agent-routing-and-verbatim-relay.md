@@ -64,8 +64,9 @@ sequenceDiagram
 
 ## See it
 
-No screenshots of the built-in panel are shown, because the only active version is version 1,
-which does not hold the script this page describes.
+![The built-in Agentforce panel, titled Account Brief, docked over the Edge Communications page: the question "Brief me on Edge Communications", then the agent's reply, opening with "Two deals are overdue and a high-priority escalated case reports BGP sessions dropping under load." and going on with an Account paragraph and an Open deals paragraph, cut off at the bottom above the message box](../assets/agent-brief.png)
+
+![The same built-in panel after the question "How many open opportunities are there in the whole org?": the reply "There are 36 open opportunities in the whole org.", a line explaining that these are opportunities where IsClosed is false, "Count 36", and the like, dislike and copy buttons](../assets/agent-explore.png)
 
 ## Why you can trust it
 

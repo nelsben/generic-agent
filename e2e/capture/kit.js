@@ -37,11 +37,40 @@ function who() {
 }
 
 /**
- * Runs the page's check() and throws a one-line error naming the asset and the category only.
+ * Runs check() in every frame of the page that has the guard (the init script runs in each frame,
+ * iframes included) and merges the results: the categories found and the characters read.
+ * A frame that navigates away mid-check is skipped; the next check reads its new document.
+ * @param {import('@playwright/test').Page} page
+ */
+async function checkFrames(page) {
+    const found = new Set();
+    let chars = 0;
+    let frames = 0;
+    for (const frame of page.frames()) {
+        let r = null;
+        try {
+            r = await frame.evaluate(() => {
+                const g = /** @type {any} */ (window).__abpCapture;
+                return g ? g.check() : null;
+            });
+        } catch (e) {
+            r = null;
+        }
+        if (r) {
+            frames += 1;
+            chars += r.chars;
+            r.found.forEach((f) => found.add(f));
+        }
+    }
+    return { found: [...found], chars, frames };
+}
+
+/**
+ * Checks every frame and throws a one-line error naming the asset and the category only.
  * @param {import('@playwright/test').Page} page
  */
 async function assertClean(page, what) {
-    const r = await page.evaluate(() => /** @type {any} */ (window).__abpCapture.check());
+    const r = await checkFrames(page);
     if (r.found.length) {
         throw oneLine(`Privacy check failed for ${what}: ${r.found.join(', ')} in view.`);
     }
@@ -51,8 +80,8 @@ async function assertClean(page, what) {
 }
 
 /**
- * Checks the page every 0.5 s while it is recorded. stop() waits for the loop and throws if any
- * check found forbidden text, or if no check could run at all.
+ * Checks every frame of the page every 0.5 s while it is recorded. stop() waits for the loop and
+ * throws if any check found forbidden text, or if no check could run at all.
  * @param {import('@playwright/test').Page} page
  */
 function watch(page, what) {
@@ -63,11 +92,8 @@ function watch(page, what) {
         while (running && !page.isClosed()) {
             const started = Date.now();
             try {
-                const r = await page.evaluate(() => {
-                    const g = /** @type {any} */ (window).__abpCapture;
-                    return g ? g.check() : null;
-                });
-                if (r) {
+                const r = await checkFrames(page);
+                if (r.frames) {
                     checks += 1;
                     if (r.found.length && !failure) {
                         failure = r.found.join(', ');
@@ -106,7 +132,14 @@ function pngSize(file) {
  */
 async function still(page, name, clip = PANEL_CROP, options = {}) {
     await settle(page, 500);
-    await page.evaluate(() => /** @type {any} */ (window).__abpCapture.sanitize());
+    for (const frame of page.frames()) {
+        await frame.evaluate(() => {
+            const g = /** @type {any} */ (window).__abpCapture;
+            if (g) {
+                g.sanitize();
+            }
+        }).catch(() => {});
+    }
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     await assertClean(page, name);
     const file = path.join(ASSETS, name);
@@ -182,7 +215,7 @@ function gif(rawVideo, name, segments, crop = PANEL_CROP) {
 const test = base.extend({
     context: async ({ context }, use) => {
         const id = who();
-        await context.addInitScript(pageGuard, { strings: id.strings, name: id.name });
+        await context.addInitScript(pageGuard, { strings: id.strings, words: id.words, name: id.name });
         await use(context);
     },
     t0: async ({ page }, use) => {
