@@ -154,8 +154,10 @@ Bold marks a miss against the bar.
 
 Every C answer states 36 in its first sentence. On revision 3, F used the earlier result in 3 of
 3 runs. Each ran two queries: the L query again with Id (5 of 36 rows), then those five Ids with
-the 2027 condition (2 rows, Juniper Project B and Fernhollow Project C), so the table holds just
-the two matches.
+the 2027 condition (2 rows, Juniper Project B and Fernhollow Project C). The text names only the
+matches, but the panel shows a table for every query, so the turn shows two tables: the five-row
+rerun ("Opportunity · 5 of 36 rows") and the two matches ("Opportunity · 2 rows"). Rule 9's "the
+system shows the last result's rows as a table" does not match this either.
 
 Revision 3 against the bar, 12 answers:
 
@@ -372,6 +374,7 @@ All 12 answers meet the bar.
 - None of the S answers named the account this time; the bar now allows it.
 - Each F answer ran two queries: the L query again (5 of 36 rows), then those five Ids with the
   2027 condition. It returned 2 rows, Juniper Project B and Fernhollow Project C, both in L's five.
+  The panel shows both result sets as tables, so the five-row rerun appears with the two matches.
 - No table had an Id column. Headers read, for example, Name, Amount, Account, Stage, Close Date.
 - L fit: 158 px of 273 px in all three runs.
 
@@ -425,5 +428,8 @@ The red validation and the deploys made no model calls. The total is over the co
 
 - The follow-up still depends on the model rerunning the earlier query. A structural fix would pass
   the earlier result's Ids in the history (`DataExplorer` and the panel).
+- A follow-up turn shows the rerun's table as well as the matches' table, because the panel shows
+  every result set. Showing only the last result set, or passing the Ids as above, would fix it.
+- Amounts show as raw numbers (293920) in the table and the drill view, not as currency.
 - A group-by on an id field now shows only its counts, because the id column is hidden. No catalog
   question in this run grouped by one.
