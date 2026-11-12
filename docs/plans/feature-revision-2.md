@@ -180,7 +180,8 @@ Ben's notes on [06-agent-routing-and-verbatim-relay.md](../patterns/06-agent-rou
 - **Hotkeys:** Cmd/Ctrl-K opens the compact window (unchanged); Cmd/Ctrl-Shift-K opens the rail. `OPS-29` proves
   both reach the page and collide with nothing; if one does, it picks a replacement and records why.
 - **One shared conversation component**, inside two frames now and a third later.
-- **Write actions:** draft first, then Confirm. One Apex service serves the panel and MCP.
+- **Write actions:** draft first, then Confirm. One Apex service serves the panel, and MCP once Ben says MCP may
+  write.
 - **Two memories** (F75, F79). The conversation stays on the existing session object (`BE-26`): short, per rep and
   per account, own-only until Ben answers F32. What the product did for a customer is a customer outcome (`BE-35`):
   one generic object in a master-detail to the account, so it persists and belongs to no single agent or session. Who
@@ -193,12 +194,13 @@ Ben's notes on [06-agent-routing-and-verbatim-relay.md](../patterns/06-agent-rou
   (F83).
 - **Every pattern page gets the same shape and diagram style** (F49, F53). Each chapter Ben comments on gets its own
   card, like `OPS-38` for pattern 01. Pages he has no notes on get the same treatment in one sweep card, cut after his
-  last chapter note.
+  last chapter note. The sweep card also settles final page numbers and file names (pattern 06 is now an appendix).
 - **Our surfaces are the only ways in** (F61, F82, F83). The README and the pattern pages open with Cmd/Ctrl-K and the
   rail. Agentforce's own panel and "Ask the agent" are not ways in: no docs, tests or screenshots promote them, and
-  reps lose agent access through the user group (`FE-20`). The registered agent stays in the repo as an optional
+  reps lose agent access through the user group (`FE-20`; hiding the Agentforce icon itself is a Setup choice left
+  to Ben). The registered agent stays in the repo as an optional
   add-on for a team that wants it in an Agentforce channel, renamed and published once by `OPS-30`, documented in
-  one appendix page (`OPS-44`), and no longer a required step in the quick start. It is all Agentforce (F84): the
+  one appendix page (`OPS-44`), and no longer a required step in the quick start (`OPS-28` proves the run without it). It is all Agentforce (F84): the
   product calls the platform's models through its trust layer, with our own surfaces, so no page argues about that.
 - **"Why custom" lives in one page, chapter 00** (F66): docs/patterns/00-why-custom.md, the first chapter of the
   workbook, so a team reads the why before any pattern. The README links it in its first screen ("Why not just the
@@ -236,6 +238,10 @@ Ben's notes on [06-agent-routing-and-verbatim-relay.md](../patterns/06-agent-rou
   fields another rep cannot read. Ben can mark a type to share its text with everyone who sees the account (useful
   where reps share the same access). F32's own-only default stays for conversations. `BE-35` builds the default unless
   Ben says otherwise.
+- Decide whether to hide the Agentforce icon for reps. `FE-20` records the Setup step that does it; the brain does
+  not change it.
+- Say whether MCP clients may write (create a task, log a call). Until then MCP stays read-only; `BE-27` builds the
+  invocables ready for it.
 - Say go to schedule the outcome purge job in agent-probe after `BE-35` lands. Until then nothing expires.
 - Say go for the spikes, and for `OPS-37`.
 
