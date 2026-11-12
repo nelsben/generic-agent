@@ -4,8 +4,8 @@
 
 The assistant shows a rep only records that rep can already open in Salesforce. When something
 goes wrong, the rep reads one plain sentence that says what to do next, never a stack trace.
-Granting access takes two permission sets that grant nothing extra, plus Salesforce's standard
-Agentforce user set for the built-in agent.
+Granting access is one step: assign the permission set group `Account_Brief_User` (two narrow
+sets that grant nothing extra), plus Salesforce's standard Agentforce user set for the built-in agent.
 
 ## The problem it removes
 
@@ -61,7 +61,7 @@ sequenceDiagram
 7. **No markup.** The panel renders model text as plain text, never as HTML.
 8. **Two narrow permission sets.** `Account_Brief_Data_Access` shows the app, grants the five
    entry-point classes, and gives read-only access to the memory object. `Account_Brief_Agent_Access`
-   grants the agent and nothing else.
+   grants the agent and nothing else. `Account_Brief_User` is a permission set group holding both.
 
 ## See it
 
@@ -100,8 +100,13 @@ sequenceDiagram
 
 ## Adopt it
 
-1. Copy both permission sets from `force-app/main/default/permissionsets/` and
-   `tests/test_permission_sets.py`.
+1. Copy both permission sets from `force-app/main/default/permissionsets/`, the group from
+   `force-app/main/default/permissionsetgroups/`, and `tests/test_permission_sets.py` and
+   `tests/test_access_group.py`.
+   **Give a user access:** assign the group `Account_Brief_User` and the standard Agentforce user
+   permission set `CopilotSalesforceUser` (the name agent-review-2 cites; the org-migration run did
+   not confirm it, so check it in your org). Assign the group, not the two sets one by one: a
+   missing set can make every agent turn fail.
 2. Keep `with sharing` and `WITH USER_MODE` on every new query. Make every new source return
    `AccountBriefSection.failed(...)` from its catch block.
 3. Keep every user-facing failure as a constant in Apex, and wrap every new `@AuraEnabled` method
@@ -121,9 +126,10 @@ sequenceDiagram
 - Two queries, for the prompt files and the agent's definition, run without an explicit access
   mode. Whether a non-admin can read the prompt files from Apex has not been checked; if not, every
   brief and question fails (N11).
-- Access needs two permission sets plus the standard Agentforce user set. Nothing groups them,
-  and no setup page lists all three (agent re-review N5, should-fix,
-  [agent-review-2.md](../reviews/agent-review-2.md)).
+- Access is the group `Account_Brief_User` plus the standard Agentforce user set, named in the
+  "Give a user access" step above and in the README (agent re-review N5,
+  [agent-review-2.md](../reviews/agent-review-2.md)). Whether the Models API callout needs anything
+  extra for a rep is unknown.
 - A number in a brief line that looks like a record Id becomes a drill button, and clicking it
   can show platform error text instead of the fixed sentence (panel re-review N2,
   [lwc-review-2.md](../reviews/lwc-review-2.md)).
@@ -131,6 +137,6 @@ sequenceDiagram
   `WITH USER_MODE` explicitly, so they do not depend on that.
 
 > [!WARNING]
-> **Not yet proven:** a live run as a non-admin user with only the two permission sets. The Apex
+> **Not yet proven:** a live run as a non-admin user with only the group `Account_Brief_User` and the standard set (FE-5 is parked until Ben creates the end user). The Apex
 > tests use `runAs` for users without access, which checks the code paths, not the real profile,
 > the app and the agent together.
