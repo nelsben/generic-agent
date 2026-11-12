@@ -65,9 +65,9 @@ sequenceDiagram
 
 ## See it
 
-![The panel during "/brief Edge Communications": it opens empty, the request is typed and sent, the brief arrives, and the view ends on its headline, "Two deals are overdue, including the support plan renewal critical to the account relationship, while a high-priority router case is escalated today."](../assets/brief-flow.gif)
+![The Account Brief panel on an account page: it opens with an empty conversation, "/brief Edge Communications" is typed and sent, a spinner shows, and the brief arrives and settles on its headline, "Two overdue deals and a high-priority BGP case threaten the support-plan renewal now in discussion with finance.", with the Account, Open deals and Service health rows under it](../assets/brief-flow.gif)
 
-![A finished brief in the panel, scrolled to its headline: "Two deals are overdue, including the support plan renewal critical to the account relationship, while a high-priority router case is escalated today.", then the first line of the Account summary; the section rows are further down, out of view](../assets/panel-brief.png)
+![A finished brief under the one-row bar of "Brief Edge Communicat…" and "Ask the agent": the request "/brief Edge Communications", the headline "Two overdue deals and a high-priority BGP case threaten the support-plan renewal now in discussion with finance.", a collapsed "Full summary" toggle, then the rows Account · 1 of 1, Open deals · 5 of 5 and Service health · 5 of 5, each marked OK, above the composer](../assets/panel-brief.png)
 
 ## Why you can trust it
 

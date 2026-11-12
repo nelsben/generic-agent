@@ -63,7 +63,7 @@ sequenceDiagram
 
 ## See it
 
-![The Playwright HTML report: 8 of 8 panel specs passed in Chromium, each with a check mark and its duration, total time 3.0 minutes](../assets/e2e-report.png)
+![The Playwright HTML report: 8 of 8 panel specs passed in Chromium, each with a check mark and its duration, total time 3.1 minutes](../assets/e2e-report.png)
 
 ## Why you can trust it
 
@@ -81,7 +81,10 @@ sequenceDiagram
 - **The agent test ran on an active version.** In `agent-probe`, after the publish and
   activation, `sf agent test run` of the 12-case spec passed 12 of 12 cases and 36 of 36
   assertions against version 1, and the Playwright suite passed 8 of 8 there
-  ([org-migration.md](../research/org-migration.md)). Its first run there passed 7 of 8; spec 2
+  ([org-migration.md](../research/org-migration.md)). Version 2 was then published over it,
+  activated, and passed the 16-case spec, 16 of 16
+  ([agent-iteration-1.md](../research/agent-iteration-1.md)). The Playwright suite's first run there
+  passed 7 of 8; spec 2
   has failed now and then since, cause not found.
 - **The lifecycle follows Salesforce's own skills.** The agent review found the earlier workflow
   skipped the documented draft-first order (finding 8 in [agent-review.md](../reviews/agent-review.md)).
@@ -108,9 +111,10 @@ sequenceDiagram
   ([agent-publish-spike.md](../research/agent-publish-spike.md)). In `agent-probe`, a fresh
   Developer Edition org, the CLI publish of main's bundle returned HTTP 200 on every call, and its
   version 1 was activated ([org-migration.md](../research/org-migration.md)).
-- The org's existing agent test definition is pinned to version 1. Recreate it from the spec and
-  check its subject version before crediting a pass to a new version (agent re-review N2,
-  [agent-review-2.md](../reviews/agent-review-2.md)).
+- An agent test definition is pinned to the version it was created against. In `agent-probe` it
+  was recreated from the spec for version 2 and its subject version checked
+  ([agent-iteration-1.md](../research/agent-iteration-1.md)). Do the same before crediting a pass
+  to any new version (agent re-review N2, [agent-review-2.md](../reviews/agent-review-2.md)).
 - The local gates cannot see defects that show only in Studio or at run time, such as a
   model rewording a reply. That is why the preview rung exists.
 - `apex-scan.sh` needs the Code Analyzer plugin and Java 11 or later. It reports and does not gate.
@@ -120,6 +124,7 @@ sequenceDiagram
   branches ([lwc-review-2.md](../reviews/lwc-review-2.md), N11).
 
 > [!WARNING]
-> **Not yet proven:** publishing and activating a version 2 over an active version, by either
-> route. In `agent-probe` only version 1 has been published, and the org this was first built in
-> cannot publish at all.
+> **Not yet proven:** publishing a version over an active one through Studio. The CLI route is
+> proven in `agent-probe`, where version 2 was published while version 1 was active and then
+> activated ([agent-iteration-1.md](../research/agent-iteration-1.md)). The org this was first
+> built in cannot publish at all.

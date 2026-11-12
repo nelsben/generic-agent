@@ -47,8 +47,8 @@ sequenceDiagram
    seven sections and the explorer query `WITH USER_MODE` or `AccessLevel.USER_MODE`. Object
    access, field access and sharing all apply. A rep who cannot see a field gets that section as
    ERROR, not a quiet gap.
-3. **Fixed status texts.** NOT_FOUND from the resolver reads 'No account matches "…". Try the
-   full name or open the account and ask again.' A brief that cannot be finished reads "I couldn't
+3. **Fixed status texts.** NOT_FOUND from the resolver reads 'No account matches "…". Try a
+   fuller or different account name.' A brief that cannot be finished reads "I couldn't
    finish the brief right now. Try again in a minute." These come from Apex constants, and the
    agent relays them as they are.
 4. **AMBIGUOUS is a choice.** Up to 8 candidates, one line each with name, city and Id. The panel
@@ -65,9 +65,9 @@ sequenceDiagram
 
 ## See it
 
-![The panel after "/brief Zephyr Quartz Holdings": "No account matches" that name, with "Try the full name or open the account and ask again."](../assets/not-found.png)
+![The panel after "/brief Zephyr Quartz Holdings": "No account matches "Zephyr Quartz Holdings". Try a fuller or different account name."](../assets/not-found.png)
 
-![The panel after "/brief United Oil": "Several accounts match "United Oil". Which one?", then three candidate buttons, each with its city or "no city"](../assets/ambiguous.png)
+![The panel after "/brief United Oil": "Several accounts match "United Oil". Which one?", then three candidate buttons, United Oil & Gas Corp. — New York, United Oil & Gas, Singapore — Singapore, and United Oil & Gas, UK — no city](../assets/ambiguous.png)
 
 ## Why you can trust it
 

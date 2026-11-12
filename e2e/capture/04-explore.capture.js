@@ -6,7 +6,9 @@
 const { test, expect, watch, still, gif, at, settle, savedVideo } = require('./kit');
 const { ANSWER_TIMEOUT } = require('../support/panel');
 
-const QUESTION = 'Which 5 open opportunities have the largest amounts?';
+// The explorer tends to list every row in its text, which pushes the table out of a 340x480 panel;
+// asking for one sentence keeps the question, the answer and the table's header row in one view.
+const QUESTION = 'Which 5 open opportunities have the largest amounts? Answer in one sentence.';
 
 test('explore-answer.png, explore-drill.gif, drill-view.png', async ({ page, panel, t0 }) => {
     const guard = watch(page, 'the explorer');
@@ -19,7 +21,7 @@ test('explore-answer.png, explore-drill.gif, drill-view.png', async ({ page, pan
     await expect(rows.first()).toBeVisible();
     await panel.composer.blur();
 
-    // explore-answer.png: the question at the top of the scroll box, then the one-line answer, the
+    // explore-answer.png: the question at the top of the scroll box, then the one-sentence answer, the
     // table's title and its header row. The run fails, naming the CSS px, if the header row does not
     // fit under the question: the still would not show what its caption says.
     const question = turn.locator('.abp-question').first();

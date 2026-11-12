@@ -45,7 +45,7 @@ and writes brief memory rows, as any use of the panel does:
 |---|---|
 | 1. Cmd/Ctrl-K before the utility was ever opened | 0 |
 | 2. Esc returns focus; Tab can leave | 0 |
-| 3. Brief: headline, collapsed accordions, live region | 1 |
+| 3. Brief: headline, collapsed accordions, live region; the pinned bar at most 80 px, the scroll box at least 240 px | 1 |
 | 4. Composer pinned at 340x480, newest answer in view | 2 |
 | 5. Latest wins | 1 |
 | 6. Typing enables Send; Enter sends | 0 |
@@ -65,7 +65,9 @@ roles and labels first, then the panel's test hooks and the data attributes it r
 (`data-turn`, `data-id`, `data-focus`):
 
 - `c-account-brief-panel`, the host, to scope every locator and the axe scan
-- the region named `Conversation`, the scroll box (spec 4)
+- the region named `Conversation`, the scroll box (specs 3 and 4)
+- `.slds-utility-panel__header`, the utility panel's own header (title, Minimize, Pop-out), whose
+  bottom edge spec 3 measures the pinned bar from: the platform renders it with no role or label
 - `data-testid="abp-live-region"`, the panel's polite live region (`lightning-textarea` renders a
   second, empty `role=status`, so the role alone is not enough)
 - `data-testid="abp-spinner"`, the loading spinner's container
@@ -75,6 +77,10 @@ roles and labels first, then the panel's test hooks and the data attributes it r
   section and its header button
 - `article`, to find the drill view's heading
 - `button[data-id]`, a drillable section line or result row
+
+Spec 3 measures the panel at 340x480 after one brief, with the account's "Earlier briefs" list
+rendered: from the panel header's bottom edge to the top of the scroll box is at most 80 CSS px,
+the scroll box is at least 240 CSS px tall, and the Brief and "Ask the agent" buttons share one row.
 
 Every brief line that describes one record (a deal, a contact, a case, a task, a call) is a
 drill button; spec 7 fails if none is. Spec 2 checks that focus is back where the hotkey was
@@ -128,7 +134,12 @@ What it needs:
 What it produces: stills at viewport 1440x900 and deviceScaleFactor 2, cropped to the panel and
 the record header (at most 1600 px wide); GIFs cut from the test's video, 6 to 20 seconds, each
 starting on a settled frame. `brief-flow.gif` cuts most of the spinner wait between Send and the
-answer. Raw videos stay in `test-results/capture/raw/` (gitignored). One frame per second of each
+answer. `panel-brief.png` frames the brief's question at the top of the scroll box, and the run
+fails if the headline and the first two section headers are not all inside it. `explore-answer.png`
+frames the question the same way, and the run fails if the table's header row is not inside it.
+Its question ends "Answer in one sentence." because the explorer otherwise tends to list every row
+in its text, which pushed the header row about 180 px below a 273 px scroll box.
+Raw videos stay in `test-results/capture/raw/` (gitignored). One frame per second of each
 GIF, and its last frame, are written outside the repo for review (`$TMPDIR/abp-capture-frames/`,
 or `CAPTURE_FRAMES_DIR`).
 
