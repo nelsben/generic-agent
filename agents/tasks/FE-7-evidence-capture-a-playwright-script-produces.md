@@ -4,8 +4,7 @@ title: Evidence capture: a Playwright script produces every screenshot and GIF i
 domain: frontend
 tier: frontier
 tier_reason: live-browser capture with privacy masking and visual judgement
-status: blocked
-blocked_by: [OPS-19]
+status: queued
 fixes: []
 scope: [docs/assets/**, e2e/capture/**, playwright.capture.config.js, package.json, e2e/README.md, .gitignore]
 forbid: [force-app/**, tests/**, scripts/**, e2e/panel.spec.js, e2e/global-setup.js, playwright.config.js, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
