@@ -70,7 +70,10 @@ This pattern has no screen. The diagram above is the picture.
   with the cause.
 - **Review findings are fixed in code.** Apex review finding 13 (uncontrolled output length and
   some unwrapped errors) and finding 14 (one SOQL per model call to load a prompt) are fixed and
-  covered by the tests above ([apex-review.md](../reviews/apex-review.md)). The re-review is pending.
+  covered by the tests above ([apex-review.md](../reviews/apex-review.md)). The re-review
+  ([apex-review-2.md](../reviews/apex-review-2.md)) confirms finding 14 fixed. It marks finding 13
+  changed: every provider error is now wrapped and the output is capped, but there is still no
+  timeout control and the cap cuts silently (N8).
 - **It runs live.** Every brief and explorer answer in the Studio preview went through this door
   ([studio-preview.md](../research/studio-preview.md)).
 
@@ -88,7 +91,9 @@ This pattern has no screen. The diagram above is the picture.
 ## Limits and open items
 
 - The cap is by characters, not tokens. The model can still spend tokens it was not asked for;
-  only the text that comes back is cut.
+  only the text that comes back is cut. A brief that hits the cap ends mid-sentence with no marker
+  (Apex re-review N8, [apex-review-2.md](../reviews/apex-review-2.md)).
+- The model name is a constant in code, so an org without that model must change code (N12).
 - One provider is active for the whole org. Choosing a model per prompt needs a small change to
   `AgentLlm`.
 - A second provider has been designed for, not written. Only `AgentLlmModelsApi` exists.

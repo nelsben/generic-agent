@@ -98,3 +98,6 @@ Setup or through the API Catalog, not in this repo.
 - Whether a called action also needs class access through a permission set is not confirmed.
 - The server's metadata is not in this repo, so it cannot be deployed with the rest yet.
 - Org-wide questions (`ExploreAction`) and the agent as a tool are not part of the first step.
+- All three re-reviews list a real MCP tool call as not yet made
+  ([apex-review-2.md](../reviews/apex-review-2.md), [lwc-review-2.md](../reviews/lwc-review-2.md),
+  [agent-review-2.md](../reviews/agent-review-2.md)).

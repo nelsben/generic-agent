@@ -13,7 +13,7 @@ spend: 10
 ---
 ## Why
 
-The gather step builds each section of the brief deterministically, in Apex with no LLM. Each section is capped so the final answer stays well under the ~6K-char relay ceiling, where the agent silently compresses output. Prompt templates later turn these blocks into prose, so every fact must be right here. The architecture reference is local and confidential; restate its patterns and never copy its client names: /Users/bennelsen/Documents/generic-agent/reference/agent-landscape-guide/guide.md. Read sections 2.4, 2.5, 5.1, 6.3 and 7.2. In this org, Gong-style calls are Event records (AccountId set, call notes in Description), and logged emails and calls are Tasks (TaskSubtype Email or Call).
+The gather step builds each section of the brief deterministically, in Apex with no LLM. Each section is capped so the final answer stays well under the ~6K-char relay ceiling, where the agent silently compresses output. Prompt templates later turn these blocks into prose, so every fact must be right here. The architecture reference is local and confidential; restate its patterns and never copy its client names: <repo>/reference/agent-landscape-guide/guide.md. Read sections 2.4, 2.5, 5.1, 6.3 and 7.2. In this org, recorded calls are Event records (AccountId set, call notes in Description), and logged emails and calls are Tasks (TaskSubtype Email or Call).
 
 ## Done when
 

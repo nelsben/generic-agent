@@ -74,9 +74,10 @@ sequenceDiagram
   rest of the org gate.
 - **The preview ran.** 12 of 12 cases routed correctly in Studio preview, saved with 0 errors and
   1 deliberate warning ([studio-preview.md](../research/studio-preview.md)).
-- **The browser suite ran.** 6 of 8 specs passed on the live org. The two failures were real
-  panel defects, not test problems: Esc focus and brief-line drill ([FE-4 card](../../agents/tasks/FE-4-playwright-end-to-end-suite-for.md),
-  [gtm-burn-plan.md](../../docs/plans/gtm-burn-plan.md)).
+- **The real deploy and the browser suite ran.** Main was deployed to a real org: 60 components,
+  150 of 150 Apex tests. The Playwright suite then passed 8 of 8 on the first run, as an admin
+  user ([deploy-verify.md](../research/deploy-verify.md)). An earlier run passed 6 of 8, and its
+  two failures were real panel defects, Esc focus and brief-line drill, fixed before this run.
 - **The lifecycle follows Salesforce's own skills.** The agent review found the earlier workflow
   skipped the documented draft-first order (finding 8 in [agent-review.md](../reviews/agent-review.md)).
   The order above follows the lifecycle table in [salesforce-skills.md](../research/salesforce-skills.md).
@@ -95,15 +96,24 @@ sequenceDiagram
 
 ## Limits and open items
 
-- `sf agent publish authoring-bundle` fails with a server 404 ("Error saving or updating agent
-  graph") for this bundle. Studio is the working path for now
-  ([agent-publish-failure.md](../research/agent-publish-failure.md)).
+- `sf agent publish authoring-bundle` is blocked in the org this was built in. The server returns
+  `401` "Error saving or updating agent graph" for every publish, including a new throwaway agent.
+  The `404` the CLI shows is its HTTP library resending after that `401`. Studio's Commit Version
+  fails too, so there is no working path in that org today
+  ([agent-publish-spike.md](../research/agent-publish-spike.md)). The plan notes report that the
+  same minimal agent publishes in a fresh Developer Edition org
+  ([gtm-burn-plan.md](../plans/gtm-burn-plan.md), "Morning notes"; second-hand).
+- The org's existing agent test definition is pinned to version 1. Recreate it from the spec and
+  check its subject version before crediting a pass to a new version (agent re-review N2,
+  [agent-review-2.md](../reviews/agent-review-2.md)).
 - The local gates cannot see defects that show only in Studio or at run time, such as a
   model rewording a reply. That is why the preview rung exists.
 - `apex-scan.sh` needs the Code Analyzer plugin and Java 11 or later. It reports and does not gate.
-- The org runs behind `main` until the next real deploy. The gates above are check-only.
+- The gates above are check-only. The org matches `main` outside the agent bundle only as of the
+  last real deploy ([deploy-verify.md](../research/deploy-verify.md)).
+- The browser suite has run as an admin user only, on one machine, for one of the two hotkey
+  branches ([lwc-review-2.md](../reviews/lwc-review-2.md), N11).
 
 > [!WARNING]
-> **Not yet proven:** publishing and activating version 2 by either route, the agent test spec run
-> with `sf agent test run`, and all 8 Playwright specs passing. The spec run needs an active version
-> with the fixed script. The Playwright run needs the Esc focus and brief-line drill fixes deployed.
+> **Not yet proven:** publishing and activating version 2 by either route, and the agent test spec
+> run with `sf agent test run`. The spec run needs an active version with the fixed script.

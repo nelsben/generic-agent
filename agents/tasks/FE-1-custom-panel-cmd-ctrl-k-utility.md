@@ -14,7 +14,7 @@ spend: 25
 ---
 ## Why
 
-Ben wants a custom UI, not the chat icon: a hotkey-opened panel with inline AI summary cards where the user can ask anything and drill into anything, modelled on his Plesio panel. That panel uses a document keydown listener for Cmd/Ctrl-K and Esc that yields on defaultPrevented, a composer stopPropagation focus trap on this.template so Lightning's single-key shortcuts don't fire, the lightning__UtilityBar target, follow-up chips that submit as new questions, and a visible 'ran N queries' trail. One engine, two front ends: the controller calls the same Apex as the agent (AccountBriefResolver, AccountBrief.run, DataExplorer).
+Ben wants a custom UI, not the chat icon: a hotkey-opened panel with inline AI summary cards where the user can ask anything and drill into anything, modelled on a panel from another of his projects. That panel uses a document keydown listener for Cmd/Ctrl-K and Esc that yields on defaultPrevented, a composer stopPropagation focus trap on this.template so Lightning's single-key shortcuts don't fire, the lightning__UtilityBar target, follow-up chips that submit as new questions, and a visible 'ran N queries' trail. One engine, two front ends: the controller calls the same Apex as the agent (AccountBriefResolver, AccountBrief.run, DataExplorer).
 
 ## Done when
 

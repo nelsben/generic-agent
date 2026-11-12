@@ -67,7 +67,7 @@ sequenceDiagram
 
 ![The panel during "/brief Edge Communications": the hotkey opens it, the headline lands, then the section accordions fill in](../assets/brief-flow.gif)
 
-![A finished brief in the panel: the headline and summary on top, each section collapsed under its title with a status badge](../assets/panel-brief.png)
+![A finished brief in the panel: the summary on top, each section collapsed under its title with a status badge](../assets/panel-brief.png)
 
 ## Why you can trust it
 
@@ -85,9 +85,13 @@ sequenceDiagram
 - **Review findings are fixed in code.** The Apex review ([apex-review.md](../reviews/apex-review.md))
   found that an all-failed brief read as EMPTY (finding 1), that bulk calls hit callout-after-DML
   (finding 3), and that the resolver ran one query per pasted Id (finding 5). Each is fixed and
-  covered by the tests named above. The re-review is pending.
-- **It runs live.** Studio preview cases 1, 2, 6 and 7 brief the right account through the agent
-  ([studio-preview.md](../research/studio-preview.md)).
+  covered by the tests named above. The re-review ([apex-review-2.md](../reviews/apex-review-2.md))
+  confirms findings 1 and 5 fixed and finding 3 fixed for ordering, and rates the Apex
+  "Ready with fixes" with no blockers.
+- **It runs live.** Main was deployed to a real org with 150 of 150 Apex tests passing, and the
+  Playwright run briefed an account in the panel as an admin user, 8 of 8 specs
+  ([deploy-verify.md](../research/deploy-verify.md)). Studio preview cases 1, 2, 6 and 7 brief the
+  right account through the draft agent ([studio-preview.md](../research/studio-preview.md)).
 
 ## Adopt it
 
@@ -108,11 +112,15 @@ sequenceDiagram
 ## Limits and open items
 
 - The brief is for one Account. Other objects need their own resolver and registry.
-- Section lines in a brief cannot be drilled yet. The section classes write no record Id into
-  their lines. The live Playwright run found this, and the fix is queued
-  ([FE-4 card](../../agents/tasks/FE-4-playwright-end-to-end-suite-for.md), [gtm-burn-plan.md](../../docs/plans/gtm-burn-plan.md)).
-- Open notes from the Apex hygiene pass: a query timeout in the resolver reads as NOT_FOUND, and a
-  user without access to contact roles or event names loses the whole section, not one field.
+- Should-fix from the Apex re-review ([apex-review-2.md](../reviews/apex-review-2.md)):
+  - N1: a caller that sends many briefs in one call can hit a platform limit that cannot be
+    caught, and then gets no answer at all. The agent sends one request, so it is not affected.
+  - N2: one field the rep cannot read fails the whole section, and the message reads like a
+    passing fault.
+  - N3: the synthesis prompt has no rule for a failed section, so the model can write "no open
+    cases" when the Cases section failed to load.
+- Notes from the same review: every query error in the resolver reads as NOT_FOUND (N7), and a
+  brief that runs past the output cap ends mid-sentence with no marker (N8).
 
 > [!WARNING]
 > **Not yet proven:** a brief run by a non-admin user in a live org. The Apex tests use `runAs`

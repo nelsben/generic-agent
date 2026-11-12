@@ -79,7 +79,9 @@ sequenceDiagram
 - **Review findings are fixed in code.** Apex review finding 10 (a dead invocable write action,
   `recordFromFlow`, exposed to builders) and finding 11 (racing writes and unbounded rows) are
   fixed and covered above ([apex-review.md](../reviews/apex-review.md)). LWC review finding 9
-  (earlier briefs of another account) is fixed ([lwc-review.md](../reviews/lwc-review.md)).
+  (earlier briefs of another account) is fixed ([lwc-review.md](../reviews/lwc-review.md)). The
+  re-reviews confirm all three fixed ([apex-review-2.md](../reviews/apex-review-2.md),
+  [lwc-review-2.md](../reviews/lwc-review-2.md)).
 - **It runs live.** Studio preview case 7 answers "What about their open cases?" from the stored
   account, with no new resolve ([studio-preview.md](../research/studio-preview.md)).
 
@@ -103,3 +105,9 @@ sequenceDiagram
   but nothing calls it yet.
 - A lock timeout on the memory write drops that one turn. The brief itself still returns.
 - How long an agent conversation keeps its variables has not been measured.
+- Memory outlives access. A rep who loses access to an account can still see its last brief
+  text, because past briefs are returned without checking access again (Apex re-review N6,
+  [apex-review-2.md](../reviews/apex-review-2.md)).
+- A brief overtaken by a newer request is never shown, but the server still finishes it and
+  stores it, so "Earlier briefs" can list a brief the rep never saw (panel re-review N6,
+  [lwc-review-2.md](../reviews/lwc-review-2.md)).

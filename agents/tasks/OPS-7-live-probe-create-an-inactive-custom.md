@@ -30,7 +30,7 @@ MCP is the outside door Ben cares about most, and what he described is a registe
 - Delete the probe server and confirm with a GET that no custom server remains. If no delete call exists or it fails, leave the server inactive, say so at the top of the hand-back, and give the exact call that failed
 - Add a section `## Live probe (custom server)` to docs/research/salesforce-mcp.md with every result above marked verified, and update the Plain answer, Open questions and Recommendation to match. For the public-versus-global question write the finding and both options without choosing: flip the three action classes to global, or add a thin global facade class for MCP that calls the same engine (which also keeps the agent-facing 'relay it verbatim' descriptions out of MCP tool schemas)
 - Add one line to the doc: one existing External Client App in the org already carries an MCP scope (seen in the earlier probe), and the baseline will use its own dedicated app instead of reusing it
-- Scrub: remove every name of another app or agent in the org from this file (the two External Client App names, the second agent). Replace with generic words. `grep -i plesio docs/research/salesforce-mcp.md` must print nothing
+- Scrub: remove every name of another app or agent in the org from this file (the two External Client App names, the second agent). Replace with generic words. A grep of docs/research/salesforce-mcp.md for the other project's name must print nothing
 - State what is still unverified after this probe: an end-to-end tool call from a client, tool-call timeout, per-call cost, behaviour for a non-admin user. No client names, no content from reference/. Keep the file under 260 lines. Gate passes: test. Commit, do not push
 
 ## Review

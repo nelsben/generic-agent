@@ -95,7 +95,13 @@ sequenceDiagram
   ([ExploreActionTest](../../force-app/main/default/classes/ExploreActionTest.cls)). This followed
   Studio preview case 11, where headers showed raw field paths
   ([studio-preview.md](../research/studio-preview.md)).
-- **It runs live.** Studio preview cases 9, 10 and 11 answer org-wide questions through the agent.
+- **It runs live.** The Playwright run on a real org drilled from a brief line to the record view
+  and back as an admin user (spec 7, 8 of 8 passed, [deploy-verify.md](../research/deploy-verify.md)).
+  Studio preview cases 9, 10 and 11 answer org-wide questions through the draft agent. That
+  preview ran before the last explorer fixes (the plain header labels above), so the agent's
+  answers on the current Apex have not been re-run.
+- **The re-reviews.** The Apex re-review ([apex-review-2.md](../reviews/apex-review-2.md)) confirms
+  findings 4, 6 and 8 fixed on the explorer path and rates it "Ready with fixes".
 
 ## Adopt it
 
@@ -114,9 +120,17 @@ sequenceDiagram
 - Filters are joined by AND only. There is no OR between filters.
 - Parent paths go one level up, such as `Account.Name`. Long text fields are shown but cannot be
   filtered.
-- Drill-down from a brief's section lines is not possible yet: section lines carry no record Id.
-  The fix is queued ([FE-4 card](../../agents/tasks/FE-4-playwright-end-to-end-suite-for.md), [gtm-burn-plan.md](../../docs/plans/gtm-burn-plan.md)).
 - One question can take up to 5 model calls.
+- Should-fix findings from the re-reviews:
+  - When the model fails partway, the panel keeps the tables already read, but the agent shows
+    only the fixed error line (Apex N4, [apex-review-2.md](../reviews/apex-review-2.md)).
+  - A drill into related records shows raw record Ids and API field names as headers (panel N1,
+    [lwc-review-2.md](../reviews/lwc-review-2.md)).
+  - A question asked after a brief is quietly tied to that account, and nothing on screen says so
+    (panel N3).
+  - In the agent, a follow-up question reaches the explorer without the question before it, and a
+    pronoun can send it to the briefed account instead (agent N3,
+    [agent-review-2.md](../reviews/agent-review-2.md)).
 
 > [!WARNING]
 > **Not yet proven:** the explorer run as a non-admin user in a live org. The catalog and query
