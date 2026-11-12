@@ -8,9 +8,8 @@ For whoever orchestrates next. Read this, then the four research write-ups it po
   the custom panel, two permission sets, the Account Brief app with the panel in its utility bar
   (deployed), and research in `docs/research/` (salesforce-mcp, agent-api, agent-publish-failure,
   salesforce-skills).
-- BE-8 (agent routing, verbatim relay, follow-ups call the brief, test spec uses a real account)
-  is finished on branch `agent/backend/BE-8` (sha 8a8afb6), deliberately NOT merged: it has never
-  run against a live agent. BE-9 supersedes it and contains its commits (see Peer review below).
+- BE-8 and BE-9 (agent routing, verbatim relay, review fixes, `scripts/agent-check.sh`) are
+  merged (PR #27). The script is not yet publishable; BE-11 fixes the Studio preview defects.
 - Proven live: the panel can call the registered agent from Apex (`generateAiAgentResponse`,
   two turns, 14-18 s each, reply is `{"type":"Text","value":...}`); a Developer Edition org can
   create a custom MCP server; our public Apex actions and the Employee-type agent are both
@@ -47,6 +46,15 @@ c. Also check the skills' "Internal Error on publish" causes: the agent's access
    `outputs:` block, structural drift.
 d. Once a version is live: activate, run the 8-case agent test and the two-turn follow-up check
    through `generateAiAgentResponse`, then merge BE-9 (which contains BE-8's commits) with the merge tool.
+
+Status 2026-11-11 (evening): step 1a ran. Studio accepted BE-9's script only after two fixes,
+and the live preview found two more defects (explore answers counts without calling
+`explore_data`; after a brief, an org-wide question routes to the brief). BE-9 is merged as the
+base; BE-11 carries all four fixes. Nothing was committed, published or activated in Studio; the
+Version 2 draft holds BE-9 plus the two Studio fixes, and version 1 is still active. The local
+gate (`scripts/agent-check.sh`) did not catch any of the four, so a Studio save plus a live
+preview of each branch stays mandatory before publish. Next: preview BE-11's exact bytes in
+Studio, then Ben's go for 1d.
 
 ### 2. Adopt the Salesforce skills (done 2026-11-11)
 The plugins `salesforce-development`, `agentforce-adlc`, `experience-lwc` and `integration` are
@@ -97,7 +105,6 @@ Follow-up cards:
 - FE-3: the LWC fixes plus Jest.
 
 ## Waiting on Ben
-- Connect the Chrome extension and log into `experimental` (step 1a).
-- `/opt/homebrew/bin/sf` (2.130.9, an npm global under Homebrew's node) shadows
-  `/usr/local/bin/sf` (2.157.8) on PATH. Pick one and remove the other, or reorder PATH.
+- Create the non-admin user `experimental-enduser` for FE-5.
+- Go to commit, publish and activate once BE-11's bytes preview clean in Studio.
 - Optional: `git push origin --delete agent/ops/OPS-1`.
