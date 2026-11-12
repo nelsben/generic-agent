@@ -186,6 +186,44 @@ private class AccountBriefPanelControllerTest {
         }
     }
 
+    private class PanelTestException extends Exception {}
+
+    private static final String FIXED_ERROR = 'I couldn\'t finish that right now. Try again in a minute.';
+
+    /** Calls one panel method; it must throw AuraHandledException with the fixed text, never the raw text. */
+    private static void assertFixed(String method, String raw) {
+        Account a = acme();
+        try {
+            if (method == 'resolve') {
+                AccountBriefPanelController.resolve('Panel Acme', null);
+            } else if (method == 'getBrief') {
+                AccountBriefPanelController.getBrief(a.Id, null, null);
+            } else if (method == 'explore') {
+                AccountBriefPanelController.explore('Any deals?', a.Id, null);
+            } else if (method == 'drill') {
+                AccountBriefPanelController.drill(a.Id, null);
+            } else {
+                AccountBriefPanelController.history(a.Id);
+            }
+            Assert.fail(method + ': expected an AuraHandledException');
+        } catch (AuraHandledException e) {
+            Assert.areEqual(FIXED_ERROR, e.getMessage(), method);
+            Assert.isFalse(e.getMessage().contains(raw), method + ' leaked the raw exception text');
+        }
+    }
+
+    @IsTest
+    static void unexpectedExceptionsBecomeFixedText() {
+        stub(new List<String>());
+        String raw = 'Too many SOQL queries: 101 (raw platform text)';
+        AccountBriefPanelController.failure = new PanelTestException(raw);
+        Test.startTest();
+        for (String method : new List<String>{ 'resolve', 'getBrief', 'explore', 'drill', 'history' }) {
+            assertFixed(method, raw);
+        }
+        Test.stopTest();
+    }
+
     @IsTest
     static void sourcesMatchTheRegistry() {
         List<AccountBrief.SourceInfo> sources = AccountBriefPanelController.sources();

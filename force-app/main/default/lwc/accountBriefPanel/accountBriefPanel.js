@@ -1,21 +1,28 @@
 /**
- * accountBriefPanel: a Cmd/Ctrl-K panel over the Account Brief engine.
+ * accountBriefPanel: a Cmd/Ctrl-K panel over the Account Brief engine, in the utility bar only.
  *
  * One engine, two front ends: every call goes through AccountBriefPanelController, which only
  * delegates to the Apex the agent uses (AccountBriefResolver, AccountBrief, AccountBriefMemory,
  * DataExplorer). The panel never renders model text as HTML: answers are text in pre-line blocks.
  *
- * Keys: a document keydown listener owns Cmd/Ctrl-K (focus the composer, opening the utility
- * first) and yields when another component already handled the event (defaultPrevented). The
- * composer stops propagation of every key so Lightning's single-key shortcuts don't fire while
- * typing; the focus trap (Tab wrap, Esc) is registered on this.template and also called from the
- * composer, since the composer's keys never reach it.
+ * Requests: every entry point (composer, follow-up, candidate, brief button, drill, message
+ * channel) goes through _request. The latest request wins: each carries a token, and a reply
+ * whose token is no longer the latest is dropped, never rendered. A repeat of the request
+ * already in flight (a double click) is ignored.
+ *
+ * Keys: a document keydown listener owns Cmd-K on Mac and Ctrl-K elsewhere (no Shift or Alt):
+ * it records where focus was, opens the utility and focuses the composer. It yields when another
+ * component already handled the event (defaultPrevented). The panel is not a modal, so Tab is
+ * never trapped; Esc anywhere inside it minimizes the utility and returns focus. The composer
+ * stops propagation of every key so Lightning's single-key shortcuts don't fire while typing,
+ * so it handles the hotkey and Esc itself.
  */
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { subscribe, unsubscribe, MessageContext, APPLICATION_SCOPE } from 'lightning/messageService';
 import { EnclosingUtilityId, open as openUtility, minimize as minimizeUtility } from 'lightning/platformUtilityBarApi';
 import { open as openAgent, execute as executeAgent } from 'lightning/accApi';
+import ACCOUNT_OBJECT from '@salesforce/schema/Account';
 import ACCOUNT_BRIEF_OPEN from '@salesforce/messageChannel/AccountBriefOpen__c';
 import resolve from '@salesforce/apex/AccountBriefPanelController.resolve';
 import getBrief from '@salesforce/apex/AccountBriefPanelController.getBrief';
@@ -30,23 +37,20 @@ const HISTORY_TURNS = 5;
 const ACCOUNT_PREFIX = '001';
 // An 18-character record Id inside a line of text, e.g. an AMBIGUOUS candidate line.
 const ID_IN_LINE = /(^|[^A-Za-z0-9])([0-9][0-9A-Za-z]{17})(?![A-Za-z0-9])/;
-const FOCUSABLE = 'button, [href], input, textarea, select, summary, [tabindex]:not([tabindex="-1"])';
 const NAME_FIELDS = ['Name', 'CaseNumber', 'Subject'];
+// The controller's fixed ERROR line; shown when a failure carries no handled text.
+const ERROR_TEXT = "I couldn't finish that right now. Try again in a minute.";
 
-const BADGE = {
-    OK: 'slds-badge slds-theme_success',
-    EMPTY: 'slds-badge',
-    ERROR: 'slds-badge slds-theme_error'
+const BADGE_CLASS = {
+    OK: 'slds-theme_success',
+    ERROR: 'slds-theme_error'
 };
 
+/** The AuraHandledException text from Apex, else the fixed line: never raw script or platform text. */
 function errorText(error) {
-    if (error && error.body && error.body.message) {
-        return error.body.message;
-    }
-    if (error && error.message) {
-        return error.message;
-    }
-    return 'Something went wrong. Try again in a minute.';
+    const body = error && error.body;
+    const message = body && (Array.isArray(body) ? body[0] && body[0].message : body.message);
+    return message || ERROR_TEXT;
 }
 
 function cellText(value) {
@@ -59,6 +63,20 @@ function cellText(value) {
 function idInLine(line) {
     const m = ID_IN_LINE.exec(line || '');
     return m ? m[2] : null;
+}
+
+function isMac() {
+    const nav = window.navigator || {};
+    const platform = (nav.userAgentData && nav.userAgentData.platform) || nav.platform || '';
+    return /mac|iphone|ipad/i.test(platform);
+}
+
+/** Cmd-K on Mac, Ctrl-K elsewhere; by physical key so non-Latin layouts work; no Shift or Alt. */
+function isHotkey(event) {
+    if (event.code !== 'KeyK' || event.shiftKey || event.altKey) {
+        return false;
+    }
+    return isMac() ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
 }
 
 export default class AccountBriefPanel extends NavigationMixin(LightningElement) {
@@ -74,15 +92,24 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     botId = null;
     pageAccount = null;
     briefedAccount = null;
+    historyAccount = null;
     historyItems = [];
     notice = '';
+    liveMessage = '';
+    // Every accordion starts collapsed; never reassigned, so a rerender keeps open sections open.
+    closedSections = [];
 
     _pageRef;
-    _messageRecordId = null;
     _lastContextId;
     _seq = 0;
+    _requestId = 0;
+    _inFlightKey = null;
     _keyHandler;
     _subscription;
+    _returnFocus = null;
+    _drillOrigin = null;
+    _focusAfterRender = null;
+    _scrollAfterRender = null;
 
     @wire(MessageContext) messageContext;
 
@@ -112,7 +139,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     connectedCallback() {
         this._keyHandler = (event) => this._handleDocumentKeydown(event);
         document.addEventListener('keydown', this._keyHandler);
-        this.template.addEventListener('keydown', this._trapKeydown);
+        this.template.addEventListener('keydown', this._panelKeydown);
         this._subscribe();
         this._syncContext();
     }
@@ -120,6 +147,20 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     renderedCallback() {
         // MessageContext can arrive after connectedCallback.
         this._subscribe();
+        if (this._focusAfterRender) {
+            const target = this.template.querySelector(this._focusAfterRender);
+            this._focusAfterRender = null;
+            if (target) {
+                target.focus();
+            }
+        }
+        if (this._scrollAfterRender) {
+            const turn = this.template.querySelector('[data-turn="' + this._scrollAfterRender + '"]');
+            this._scrollAfterRender = null;
+            if (turn && turn.scrollIntoView) {
+                turn.scrollIntoView({ block: 'start' });
+            }
+        }
     }
 
     disconnectedCallback() {
@@ -127,7 +168,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
             document.removeEventListener('keydown', this._keyHandler);
             this._keyHandler = null;
         }
-        this.template.removeEventListener('keydown', this._trapKeydown);
+        this.template.removeEventListener('keydown', this._panelKeydown);
         if (this._subscription) {
             unsubscribe(this._subscription);
             this._subscription = null;
@@ -149,61 +190,34 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     // ------------------------------------------------------------ keys
 
     _handleDocumentKeydown(event) {
-        if (event.defaultPrevented) {
-            return;
-        }
-        if ((event.metaKey || event.ctrlKey) && (event.key === 'k' || event.key === 'K')) {
+        if (!event.defaultPrevented && isHotkey(event)) {
             event.preventDefault();
             this._openAndFocus();
-        } else if (event.key === 'Escape' && this.template.activeElement) {
-            // Focus is inside the panel but the trap did not take it: close.
-            event.preventDefault();
-            this._close();
         }
     }
 
-    /** Focus trap on this.template: Tab wraps inside the panel, Esc blurs the composer or closes. */
-    _trapKeydown = (event) => {
-        if (event.defaultPrevented) {
-            return;
-        }
-        if (event.key === 'Escape') {
+    /** Keys anywhere inside the panel: Esc minimizes and returns focus. Tab is left alone. */
+    _panelKeydown = (event) => {
+        if (event.key === 'Escape' && !event.defaultPrevented) {
             event.preventDefault();
-            const composer = this._composer();
-            if (composer && this.template.activeElement === composer) {
-                composer.blur();
-            } else {
-                this._close();
-            }
-            return;
-        }
-        if (event.key !== 'Tab') {
-            return;
-        }
-        const panel = this.template.querySelector('.abp-panel');
-        const focusables = panel
-            ? Array.from(panel.querySelectorAll(FOCUSABLE)).filter((el) => !el.disabled && !el.hidden)
-            : [];
-        if (!focusables.length) {
-            return;
-        }
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        const active = this.template.activeElement;
-        if (event.shiftKey && active === first) {
-            event.preventDefault();
-            last.focus();
-        } else if (!event.shiftKey && active === last) {
-            event.preventDefault();
-            first.focus();
+            this._close();
         }
     };
 
     handleComposerKeydown(event) {
-        // Keep Lightning's single-key shortcuts from firing while typing.
+        // Keep Lightning's single-key shortcuts from firing while typing; so the hotkey and Esc
+        // never reach document or the panel listener, and are handled here.
         event.stopPropagation();
-        this._trapKeydown(event);
-        if (event.key === 'Enter' && !event.shiftKey) {
+        if (isHotkey(event)) {
+            event.preventDefault();
+            this._openAndFocus();
+            return;
+        }
+        if (event.key === 'Escape') {
+            this._panelKeydown(event);
+            return;
+        }
+        if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
             event.preventDefault();
             this._submitDraft();
         }
@@ -213,17 +227,22 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
         event.stopPropagation();
     }
 
-    handleComposerInput(event) {
-        this.draft = event.target.value;
+    handleComposerChange(event) {
+        this.draft = event.detail.value;
     }
 
     async _openAndFocus() {
+        // Record where focus was, unless it is already inside the panel.
+        if (!this.template.activeElement) {
+            const active = document.activeElement;
+            this._returnFocus = active && active !== document.body ? active : null;
+        }
         try {
             if (this.utilityId) {
                 await openUtility(this.utilityId, { autoFocus: true });
             }
         } catch (e) {
-            // Not in a utility bar, or the API is unavailable: just focus.
+            // The API is unavailable: just focus.
         }
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(() => {
@@ -235,16 +254,22 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     }
 
     async _close() {
-        const active = this.template.activeElement;
-        if (active && active.blur) {
-            active.blur();
-        }
+        const target = this._returnFocus;
+        this._returnFocus = null;
         try {
             if (this.utilityId) {
                 await minimizeUtility(this.utilityId);
             }
         } catch (e) {
-            // Not in a utility bar: blurring is all Esc does.
+            // The API is unavailable: focus still moves back.
+        }
+        if (target && target.isConnected && typeof target.focus === 'function') {
+            target.focus();
+            return;
+        }
+        const active = this.template.activeElement;
+        if (active && active.blur) {
+            active.blur();
         }
     }
 
@@ -272,12 +297,12 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
 
     get isAccountPage() {
         const id = this.pageRecordId;
-        return this.pageObjectApiName === 'Account' || (!!id && id.startsWith(ACCOUNT_PREFIX));
+        return this.pageObjectApiName === ACCOUNT_OBJECT.objectApiName || (!!id && id.startsWith(ACCOUNT_PREFIX));
     }
 
-    /** Context for a question: a message's record, the page's record, then the briefed account. */
+    /** Context for a question: the page's record, then the briefed account. */
     get contextRecordId() {
-        return this._messageRecordId || this.pageRecordId || (this.briefedAccount ? this.briefedAccount.id : null);
+        return this.pageRecordId || (this.briefedAccount ? this.briefedAccount.id : null);
     }
 
     _syncContext() {
@@ -287,6 +312,9 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
         }
         this._lastContextId = id;
         this.pageAccount = null;
+        // The account changed: an earlier account's briefs must not stay on screen.
+        this.historyAccount = null;
+        this.historyItems = [];
         if (!id || !this.isAccountPage) {
             return;
         }
@@ -294,7 +322,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
             .then((r) => {
                 if (r && r.status === 'RESOLVED' && this._lastContextId === id) {
                     this.pageAccount = { id: r.accountId, name: r.accountName };
-                    this._loadHistory(r.accountId);
+                    this._loadHistory(this.pageAccount);
                 }
             })
             .catch(() => {
@@ -309,15 +337,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     // ------------------------------------------------------------ include chips
 
     get includeChips() {
-        return this.sourceList.map((s) => {
-            const on = this.selectedKeys.includes(s.key);
-            return {
-                key: s.key,
-                title: s.title,
-                pressed: on ? 'true' : 'false',
-                className: 'slds-button abp-chip ' + (on ? 'slds-button_brand' : 'slds-button_neutral')
-            };
-        });
+        return this.sourceList.map((s) => ({ key: s.key, title: s.title, selected: this.selectedKeys.includes(s.key) }));
     }
 
     get hasSources() {
@@ -338,14 +358,57 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
             : [...this.selectedKeys, key];
     }
 
-    // ------------------------------------------------------------ submit
+    // ------------------------------------------------------------ the one request path
 
     get sendDisabled() {
-        return this.pending || !this.draft || !this.draft.trim();
+        return !this.draft || !this.draft.trim();
     }
 
     get hasTurns() {
         return this.turns.length > 0;
+    }
+
+    /**
+     * Runs one request. The latest wins: work gets isCurrent() and checks it after every await,
+     * so a superseded reply changes nothing and makes no further call. A repeat of the request
+     * in flight (same key) is ignored. Resolves to the short line the live region announces.
+     */
+    _request({ key, label, loading, work, onError }) {
+        if (this.pending && key === this._inFlightKey) {
+            return Promise.resolve();
+        }
+        this._requestId += 1;
+        const token = this._requestId;
+        const isCurrent = () => token === this._requestId;
+        this._inFlightKey = key;
+        this.pending = true;
+        this.notice = '';
+        this.liveMessage = loading;
+        return Promise.resolve()
+            .then(() => work(isCurrent))
+            .then((done) => {
+                if (isCurrent() && done) {
+                    this.liveMessage = done;
+                }
+            })
+            .catch((error) => {
+                if (!isCurrent()) {
+                    return;
+                }
+                const text = errorText(error);
+                if (onError) {
+                    onError(text);
+                } else {
+                    this._push({ isText: true, isError: true, question: label, text });
+                }
+                this.liveMessage = text;
+            })
+            .finally(() => {
+                if (isCurrent()) {
+                    this.pending = false;
+                    this._inFlightKey = null;
+                }
+            });
     }
 
     handleSend() {
@@ -354,78 +417,110 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
 
     _submitDraft() {
         const text = (this.draft || '').trim();
-        if (!text || this.pending) {
+        if (!text) {
             return;
         }
         this.draft = '';
-        const composer = this._composer();
-        if (composer) {
-            composer.value = '';
-        }
         this.submit(text);
     }
 
     /** Runs one composer text: '/brief <name>' briefs an account, anything else is a question. */
-    submit(text, contextOverride) {
+    submit(text, contextRecordId) {
         const q = (text || '').trim();
-        if (!q || this.pending) {
+        if (!q) {
             return Promise.resolve();
         }
         this.drillStack = [];
-        this.notice = '';
         if (BRIEF_COMMAND.test(q)) {
             const name = q.replace(BRIEF_COMMAND, '').trim();
-            return this._run(q, () => resolve({ accountName: name, recordId: null }).then((r) => this._afterResolve(r, q)));
+            return this._request({
+                key: 'brief:' + name.toLowerCase(),
+                label: q,
+                loading: 'Loading brief for ' + name,
+                work: async (isCurrent) => {
+                    const r = await resolve({ accountName: name, recordId: null });
+                    return this._afterResolve(r, q, isCurrent);
+                }
+            });
         }
-        return this._run(q, () => this._explore(q, contextOverride));
+        const context = contextRecordId || this.contextRecordId || null;
+        return this._request({
+            key: 'ask:' + q,
+            label: q,
+            loading: 'Loading answer',
+            work: async (isCurrent) => {
+                const r = await explore({ question: q, contextRecordId: context, historyJson: this._historyJson() });
+                if (!isCurrent()) {
+                    return null;
+                }
+                this._push(this._exploreTurn(r, q));
+                return r.status === 'ERROR' ? r.answer : 'Answer ready';
+            }
+        });
     }
 
     handleBriefThisAccount() {
         const label = this.briefButtonLabel;
-        if (this.pageAccount) {
-            const acct = this.pageAccount;
-            this._run(label, () => this._brief(acct.id, acct.name, label));
-        } else {
-            this._run(label, () => resolve({ accountName: null, recordId: this.pageRecordId }).then((r) => this._afterResolve(r, label)));
-        }
+        const account = this.pageAccount;
+        const recordId = this.pageRecordId;
+        this.drillStack = [];
+        return this._request({
+            key: 'record:' + recordId,
+            label,
+            loading: 'Loading brief for ' + (account ? account.name : 'this account'),
+            work: async (isCurrent) => {
+                if (account) {
+                    return this._brief(account.id, account.name, label, isCurrent);
+                }
+                const r = await resolve({ accountName: null, recordId });
+                return this._afterResolve(r, label, isCurrent);
+            }
+        });
     }
 
     handleCandidate(event) {
         const { id, label } = event.currentTarget.dataset;
-        this._run(label, () => resolve({ accountName: null, recordId: id }).then((r) => this._afterResolve(r, label)));
+        return this._request({
+            key: 'record:' + id,
+            label,
+            loading: 'Loading brief for ' + label,
+            work: async (isCurrent) => {
+                const r = await resolve({ accountName: null, recordId: id });
+                return this._afterResolve(r, label, isCurrent);
+            }
+        });
     }
 
     handleFollowup(event) {
         this.submit(event.currentTarget.dataset.text);
     }
 
-    async _run(label, work) {
-        this.pending = true;
-        try {
-            await work();
-        } catch (error) {
-            this._push({ isText: true, isError: true, question: label, text: errorText(error) });
-        } finally {
-            this.pending = false;
-        }
+    _nextKey(prefix) {
+        this._seq += 1;
+        return prefix + this._seq;
     }
 
     _push(turn) {
-        this._seq += 1;
-        this.turns = [...this.turns, { key: 't' + this._seq, ...turn }];
+        const key = turn.key || this._nextKey('t');
+        this.turns = [...this.turns, { ...turn, key }];
+        this._scrollAfterRender = key;
     }
 
-    _afterResolve(r, label) {
+    _afterResolve(r, label, isCurrent) {
+        if (!isCurrent()) {
+            return null;
+        }
         if (r.status === 'RESOLVED') {
-            return this._brief(r.accountId, r.accountName, label);
+            return this._brief(r.accountId, r.accountName, label, isCurrent);
         }
         if (r.status === 'AMBIGUOUS') {
-            this._push(this._ambiguousTurn(r, label));
-            return Promise.resolve();
+            const turn = this._ambiguousTurn(r, label);
+            this._push(turn);
+            return turn.header || 'Pick an account';
         }
         // NOT_FOUND: the resolver's text, verbatim.
         this._push({ isText: true, question: label, text: r.message, historyAnswer: r.message });
-        return Promise.resolve();
+        return r.message;
     }
 
     _ambiguousTurn(r, label) {
@@ -435,46 +530,65 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
         lines.slice(1).forEach((line, i) => {
             const id = idInLine(line);
             if (id) {
-                candidates.push({ key: 'c' + i, id, label: line.split(' — ')[0], detail: line });
+                // Show "Name — City" without the raw Id; the Id stays in data-id.
+                const display = line.replace(id, '').replace(/[\s—-]+$/, '').trim();
+                candidates.push({ key: 'c' + i, id, label: line.split(' — ')[0], display: display || line });
             } else if (line.trim()) {
                 notes.push({ key: 'n' + i, text: line });
+            }
+        });
+        // Two candidates that read the same keep their Id so they can be told apart.
+        candidates.forEach((c) => {
+            if (candidates.filter((o) => o.display === c.display).length > 1) {
+                c.display = c.display + ' — ' + c.id;
             }
         });
         return { isAmbiguous: true, question: label, header: lines[0], candidates, notes, historyAnswer: r.message };
     }
 
-    async _brief(accountId, accountName, label) {
+    async _brief(accountId, accountName, label, isCurrent) {
         const r = await getBrief({
             accountId,
             question: null,
             include: this.selectedKeys.length ? [...this.selectedKeys] : null
         });
+        if (!isCurrent()) {
+            return null;
+        }
         this.briefedAccount = { id: accountId, name: accountName };
-        this._push(this._briefTurn(r, label, accountName));
-        this._loadHistory(accountId);
+        const turn = this._briefTurn(r, label, accountName);
+        this._push(turn);
+        this._loadHistory(this.briefedAccount);
+        return turn.verbatim ? r.message : 'Brief ready: ' + (turn.header || accountName);
     }
 
     _briefTurn(r, label, accountName) {
+        const key = this._nextKey('t');
         const verbatim = r.status === 'NOT_FOUND' || r.status === 'ERROR';
         const answer = (r.answer || '').trim();
         const nl = answer.indexOf('\n');
-        const sections = (r.sections || []).map((s, i) => ({
-            key: (s.key || 's') + i,
-            title: s.title,
-            status: s.status,
-            badgeClass: BADGE[s.status] || 'slds-badge',
-            countText: s.shown + ' of ' + s.total,
-            lines: (s.body || '').split('\n').map((line, j) => {
-                const id = idInLine(line);
-                return { key: 'l' + j, text: line === '' ? ' ' : line, drillId: id, isDrill: !!id };
-            })
-        }));
+        const sections = (r.sections || []).map((s, i) => {
+            const sectionKey = (s.key || 's') + i;
+            return {
+                key: sectionKey,
+                title: s.title,
+                label: s.title + ' · ' + s.shown + ' of ' + s.total,
+                status: s.status,
+                badgeClass: BADGE_CLASS[s.status] || '',
+                lines: (s.body || '').split('\n').map((line, j) => {
+                    const id = idInLine(line);
+                    return { key: 'l' + j, text: line === '' ? ' ' : line, drillId: id, isDrill: !!id, focusKey: key + '-' + sectionKey + '-l' + j };
+                })
+            };
+        });
         return {
+            key,
             isBrief: true,
             question: label,
             accountName,
             verbatim,
             message: r.message,
+            messageIsError: r.status === 'ERROR',
             showMessage: verbatim || (r.status === 'EMPTY' && !!r.message && r.message !== answer),
             header: verbatim ? '' : nl >= 0 ? answer.substring(0, nl).trim() : answer,
             rest: verbatim || nl < 0 ? '' : answer.substring(nl + 1).trim(),
@@ -483,15 +597,6 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
             ignoredText: r.ignored && r.ignored.length ? 'Not sections: ' + r.ignored.join(', ') : '',
             historyAnswer: verbatim ? r.message : answer
         };
-    }
-
-    async _explore(q, contextOverride) {
-        const r = await explore({
-            question: q,
-            contextRecordId: contextOverride || this.contextRecordId || null,
-            historyJson: this._historyJson()
-        });
-        this._push(this._exploreTurn(r, q));
     }
 
     _historyJson() {
@@ -503,9 +608,11 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     }
 
     _exploreTurn(r, q) {
-        const tables = (r.resultSets || []).map((rs, i) => this._table(rs, 'rs' + i));
+        const key = this._nextKey('t');
+        const tables = (r.resultSets || []).map((rs, i) => this._table(rs, key + '-rs' + i));
         const trail = (r.trail || []).map((text, i) => ({ key: 'q' + i, text }));
         return {
+            key,
             isExplore: true,
             question: q,
             isError: r.status === 'ERROR',
@@ -515,20 +622,26 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
             trail,
             trailLabel: 'Ran ' + trail.length + (trail.length === 1 ? ' query' : ' queries'),
             followups: (r.followups || []).map((text, i) => ({ key: 'f' + i, text })),
+            hasFollowups: !!(r.followups && r.followups.length),
             historyAnswer: r.answer
         };
     }
 
+    /** A result table. A row with an Id drills through a real button in its first cell. */
     _table(rs, key) {
         const columns = rs.columns || [];
-        const rows = (rs.rows || []).map((row, i) => ({
-            key: key + 'r' + i,
-            id: row.Id || null,
-            clickable: !!row.Id,
-            rowClass: row.Id ? 'abp-row-link' : '',
-            tabindex: row.Id ? '0' : '-1',
-            cells: columns.map((c, j) => ({ key: 'c' + j, value: cellText(row[c]) }))
-        }));
+        const rows = (rs.rows || []).map((row, i) => {
+            const rowKey = key + '-r' + i;
+            const clickable = !!row.Id;
+            return {
+                key: rowKey,
+                id: row.Id || null,
+                cells: columns.map((c, j) => {
+                    const value = cellText(row[c]);
+                    return { key: 'c' + j, value, isAction: clickable && j === 0, actionText: value || 'Open record', focusKey: rowKey };
+                })
+            };
+        });
         const count = rs.total > rs.shown ? rs.shown + ' of ' + rs.total : String(rs.shown);
         return {
             key,
@@ -545,46 +658,52 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
         return this.drillStack.length > 0;
     }
 
+    /** The conversation stays rendered while drilling, so its state and the origin row survive. */
+    get conversationClass() {
+        return this.isDrilling ? 'slds-hide' : '';
+    }
+
     get drillTop() {
         return this.drillStack.length ? this.drillStack[this.drillStack.length - 1] : null;
     }
 
     get breadcrumbs() {
-        return this.drillStack.map((d, i) => ({ key: d.key, label: d.label, index: String(i), current: i === this.drillStack.length - 1 }));
+        return this.drillStack.map((d, i) => ({ key: d.key, label: d.label, index: String(i) }));
     }
 
     handleRowClick(event) {
-        const id = event.currentTarget.dataset.id;
+        const { id, focus } = event.currentTarget.dataset;
         if (id) {
-            this._drill(id, null, this.isDrilling);
-        }
-    }
-
-    handleRowKeydown(event) {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            this.handleRowClick(event);
+            this._drill(id, null, this.isDrilling, focus);
         }
     }
 
     handleLineDrill(event) {
-        this._drill(event.currentTarget.dataset.id, null, false);
+        const { id, focus } = event.currentTarget.dataset;
+        this._drill(id, null, false, focus);
     }
 
     handleRelated(event) {
         const top = this.drillTop;
         if (top) {
-            this._drill(top.recordId, event.currentTarget.dataset.object, true);
+            this._drill(top.recordId, event.currentTarget.dataset.object, true, null);
         }
     }
 
     handleCrumb(event) {
+        event.preventDefault();
         const index = Number(event.currentTarget.dataset.index);
         this.drillStack = this.drillStack.slice(0, index + 1);
+        this._focusAfterRender = '.abp-drill-heading';
     }
 
-    handleBackToConversation() {
+    handleBackToConversation(event) {
+        if (event) {
+            event.preventDefault();
+        }
         this.drillStack = [];
+        this._focusAfterRender = this._drillOrigin ? '[data-focus="' + this._drillOrigin + '"]' : '.abp-composer';
+        this._drillOrigin = null;
     }
 
     handleViewRecord() {
@@ -598,39 +717,48 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
         });
     }
 
-    async _drill(recordId, relatedObject, push) {
-        if (this.pending) {
-            return;
-        }
-        this.pending = true;
-        this.notice = '';
-        try {
-            const d = await drill({ recordId, relatedObject: relatedObject || null });
-            const entry = this._drillEntry(d, recordId, relatedObject);
-            this.drillStack = push ? [...this.drillStack, entry] : [entry];
-        } catch (error) {
-            this.notice = errorText(error);
-        } finally {
-            this.pending = false;
-        }
+    _drill(recordId, relatedObject, push, origin) {
+        return this._request({
+            key: 'drill:' + recordId + ':' + (relatedObject || ''),
+            label: relatedObject || recordId,
+            loading: relatedObject ? 'Loading ' + relatedObject + ' records' : 'Loading record',
+            onError: (text) => {
+                this.notice = text;
+            },
+            work: async (isCurrent) => {
+                const d = await drill({ recordId, relatedObject: relatedObject || null });
+                if (!isCurrent()) {
+                    return null;
+                }
+                const entry = this._drillEntry(d, recordId, relatedObject);
+                if (!push || !this.drillStack.length) {
+                    this.drillStack = [entry];
+                    this._drillOrigin = origin || null;
+                } else {
+                    this.drillStack = [...this.drillStack, entry];
+                }
+                this._focusAfterRender = '.abp-drill-heading';
+                return 'Showing ' + entry.label;
+            }
+        });
     }
 
     _drillEntry(d, recordId, relatedObject) {
-        this._seq += 1;
+        const key = this._nextKey('d');
         const rs = d.result || {};
         if (relatedObject) {
             return {
-                key: 'd' + this._seq,
+                key,
                 recordId,
                 isRecord: false,
                 label: relatedObject,
-                table: this._table(rs, 'd' + this._seq)
+                table: this._table(rs, key)
             };
         }
         const row = (rs.rows && rs.rows[0]) || {};
         const nameField = NAME_FIELDS.find((f) => row[f]);
         return {
-            key: 'd' + this._seq,
+            key,
             recordId,
             isRecord: true,
             objectName: rs.objectName,
@@ -645,8 +773,9 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
 
     // ------------------------------------------------------------ history
 
+    /** The account whose earlier briefs are shown: the open Account page's, or the last briefed. */
     get historyAccountId() {
-        return this.briefedAccount ? this.briefedAccount.id : this.pageAccount ? this.pageAccount.id : null;
+        return this.historyAccount ? this.historyAccount.id : null;
     }
 
     get hasHistory() {
@@ -654,25 +783,37 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
     }
 
     get historyLabel() {
-        return 'Earlier briefs (' + this.historyItems.length + ')';
+        const name = this.historyAccount && this.historyAccount.name ? ' of ' + this.historyAccount.name : '';
+        return 'Earlier briefs' + name + ' (' + this.historyItems.length + ')';
     }
 
-    _loadHistory(accountId) {
-        if (!accountId) {
+    _loadHistory(account) {
+        if (!account || !account.id) {
             return;
         }
+        if (account.id !== this.historyAccountId) {
+            this.historyItems = [];
+        }
+        this.historyAccount = account;
+        const accountId = account.id;
         history({ accountId })
             .then((turns) => {
+                // A reply for an account that is no longer current is dropped.
+                if (accountId !== this.historyAccountId) {
+                    return;
+                }
                 this.historyItems = (turns || []).map((t, i) => ({
                     key: 'h' + i,
-                    at: t.at ? new Date(t.at).toLocaleString() : '',
+                    at: t.at || null,
                     status: t.status,
                     question: t.question,
                     headline: t.headline
                 }));
             })
             .catch(() => {
-                this.historyItems = [];
+                if (accountId === this.historyAccountId) {
+                    this.historyItems = [];
+                }
             });
     }
 
@@ -691,28 +832,35 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
                 await executeAgent(question, this.botId);
             }
         } catch (error) {
-            this.notice = 'Could not open the agent: ' + errorText(error);
+            this.notice = 'Could not open the agent. ' + errorText(error);
         }
     }
 
     // ------------------------------------------------------------ message channel
 
+    /** AccountBriefOpen: a prompt runs with the message's recordId as context; an Account Id alone briefs it. */
     _handleMessage(message) {
         if (!message) {
-            return;
+            return Promise.resolve();
         }
-        this._messageRecordId = message.recordId || null;
+        const recordId = message.recordId || null;
         this._openAndFocus();
         const prompt = (message.prompt || '').trim();
-        let done;
         if (prompt) {
-            done = this.submit(prompt, this._messageRecordId);
-        } else if (this._messageRecordId && this._messageRecordId.startsWith(ACCOUNT_PREFIX)) {
-            const id = this._messageRecordId;
-            done = this._run('Brief', () => resolve({ accountName: null, recordId: id }).then((r) => this._afterResolve(r, 'Brief ' + (r.accountName || ''))));
+            return this.submit(prompt, recordId);
         }
-        Promise.resolve(done).finally(() => {
-            this._messageRecordId = null;
-        });
+        if (recordId && recordId.startsWith(ACCOUNT_PREFIX)) {
+            this.drillStack = [];
+            return this._request({
+                key: 'record:' + recordId,
+                label: 'Brief',
+                loading: 'Loading brief',
+                work: async (isCurrent) => {
+                    const r = await resolve({ accountName: null, recordId });
+                    return this._afterResolve(r, 'Brief ' + (r.accountName || ''), isCurrent);
+                }
+            });
+        }
+        return Promise.resolve();
     }
 }

@@ -5,9 +5,15 @@
  * call (AccountBriefResolver, AccountBrief, AccountBriefMemory, DataExplorer). Nothing here
  * calls a model, writes prose or adds visibility: it runs with sharing and passes through.
  * Engine failures that carry user-facing text come back as AuraHandledException with that text.
+ * Anything unexpected is logged and comes back as AuraHandledException with ERROR_TEXT, the fixed
+ * line the engine uses for ERROR: raw exception text never reaches the panel.
  */
 public with sharing class AccountBriefPanelController {
     @TestVisible private static final String AGENT_DEVELOPER_NAME = 'Account_Brief';
+    /** Matches DataExplorer's fixed ERROR text (docs/ARCHITECTURE.md: ERROR carries fixed user-facing text). */
+    @TestVisible private static final String ERROR_TEXT = 'I couldn\'t finish that right now. Try again in a minute.';
+    /** Test seam: when set, every @AuraEnabled call below throws it before delegating. */
+    @TestVisible private static Exception failure;
 
     /** A drill-down: the rows drill() returned and, for a single record, the catalog objects that look up to it. */
     public class Drill {
@@ -19,36 +25,54 @@ public with sharing class AccountBriefPanelController {
     /** Words or the open record to one Account: AccountBriefResolver.resolve. */
     @AuraEnabled
     public static AccountBriefResolver.Response resolve(String accountName, String recordId) {
-        return AccountBriefResolver.resolve(accountName, recordId);
+        try {
+            failIfInjected();
+            return AccountBriefResolver.resolve(accountName, recordId);
+        } catch (Exception e) {
+            throw unexpected('resolve', e);
+        }
     }
 
     /** The brief: AccountBrief.run. include null or empty means every source. Not cacheable: it calls out, then writes memory. */
     @AuraEnabled
     public static AccountBrief.Result getBrief(Id accountId, String question, List<String> include) {
-        return AccountBrief.run(accountId, question, include == null ? null : new Set<String>(include));
+        try {
+            failIfInjected();
+            return AccountBrief.run(accountId, question, include == null ? null : new Set<String>(include));
+        } catch (Exception e) {
+            throw unexpected('getBrief', e);
+        }
     }
 
     /** Ask anything: DataExplorer.explore. Not cacheable: it calls out. */
     @AuraEnabled
     public static DataExplorer.Result explore(String question, Id contextRecordId, String historyJson) {
-        return DataExplorer.explore(question, contextRecordId, historyJson);
+        try {
+            failIfInjected();
+            return DataExplorer.explore(question, contextRecordId, historyJson);
+        } catch (Exception e) {
+            throw unexpected('explore', e);
+        }
     }
 
-    /** Drill-down without the model: DataExplorer.drill, plus the related objects for a record drill. */
+    /**
+     * Drill-down without the model: DataExplorer.drill, plus the related objects for a record drill.
+     * ExploreException text is the engine's own fixed plain-English line, so it passes through;
+     * QueryException, NoAccessException and anything else get ERROR_TEXT.
+     */
     @AuraEnabled
     public static Drill drill(Id recordId, String relatedObject) {
         Drill d = new Drill();
         try {
+            failIfInjected();
             d.result = DataExplorer.drill(recordId, relatedObject);
+            if (String.isBlank(relatedObject)) {
+                d.related = relatedObjects(recordId.getSObjectType().getDescribe().getName());
+            }
         } catch (DataExplorer.ExploreException e) {
             throw handled(e.getMessage());
-        } catch (QueryException e) {
-            throw handled(e.getMessage());
-        } catch (NoAccessException e) {
-            throw handled(e.getMessage());
-        }
-        if (String.isBlank(relatedObject)) {
-            d.related = relatedObjects(recordId.getSObjectType().getDescribe().getName());
+        } catch (Exception e) {
+            throw unexpected('drill', e);
         }
         return d;
     }
@@ -56,7 +80,12 @@ public with sharing class AccountBriefPanelController {
     /** The current user's earlier briefs of the account, newest first: AccountBriefMemory.history. */
     @AuraEnabled
     public static List<AccountBriefMemory.Turn> history(Id accountId) {
-        return AccountBriefMemory.history(accountId);
+        try {
+            failIfInjected();
+            return AccountBriefMemory.history(accountId);
+        } catch (Exception e) {
+            throw unexpected('history', e);
+        }
     }
 
     /** The brief's sources, keys and titles in registry order: AccountBrief.sources. */
@@ -93,6 +122,19 @@ public with sharing class AccountBriefPanelController {
             }
         }
         return out;
+    }
+
+    private static void failIfInjected() {
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    /** Logs the detail for the admin and hands the panel the fixed line. */
+    private static AuraHandledException unexpected(String method, Exception e) {
+        System.debug(LoggingLevel.ERROR, 'AccountBriefPanelController.' + method + ': '
+            + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+        return handled(ERROR_TEXT);
     }
 
     private static AuraHandledException handled(String message) {
