@@ -24,6 +24,8 @@ should be fixed before another team builds on this:
 - the final-brief prompt does not tell the model what a failed section means;
 - the agent loses the explorer's partial results when the model fails.
 
+It is not proven in real use yet: no non-admin user has run it and no real MCP call has been made.
+
 Two things have **not happened**, and the pattern is not proven until they do:
 - no non-admin user has run a full brief holding only the two shipped permission sets;
 - no real MCP call has been made.
@@ -75,11 +77,11 @@ There are no blockers.
 **N1. A request batch with no cap can hit an uncatchable governor limit.**
 - Where: `AccountBrief.cls:127-145`, `AccountBriefGetAction.cls:28-46`, `ExploreAction.cls:29-45`.
 - How it fails: both invocables loop over every request in one transaction.
-  - One brief runs up to about 25 SOQL queries: 24 written in the seven section classes plus the visibility check. Some of them are conditional.
+  - One brief runs up to about 25 SOQL queries. That is a static worst case: 24 queries are written in the seven section classes, plus the visibility check, and some are conditional. `bulkBriefOverThreeHundredTasksStaysWithinLimits` asserts only that the count is under the limit, so no exact figure is measured.
   - One brief also makes up to 3 model callouts.
   - The prompt cache saves only the 3 prompt loads after the first brief.
 - At roughly the fourth request, the transaction reaches the 100-query limit. That `LimitException` cannot be caught, so the whole invocation fails and no request gets an answer. The memory write at the end (3 more queries) makes it worse.
-- The explorer uses up to 5 callouts and about 9 queries per question. Many questions approach the callout count and the 120 s cumulative callout time limit. Whether Models API calls count toward those limits is **unverified**.
+- The explorer uses up to 5 callouts and up to about 10 queries per question: 4 plan queries, each with at most one count, plus the prompt load and the context-record lookup. Many questions approach the callout count and the 120 s cumulative callout time limit. Whether Models API calls count toward those limits is **unverified**.
 - Scenario: a Flow or a bulk caller passes ten accounts to "Get Account Brief" and the user gets a fault with zero briefs. The agent path normally sends one request, which is why this is should-fix and not a blocker.
 - Fix: process only as many requests as `Limits` allows, and return ERROR with fixed text for the rest. Alternatively, document and enforce one request per call.
 
@@ -119,13 +121,14 @@ There are no blockers.
   - Where: `AccountBriefMemory.cls:165-188` and `AccountBriefPanelController.cls:82-89`.
   - The user's own past briefs are returned without checking that the user can still see the account.
   - `Last_Brief__c` (up to 32,768 characters) is readable in reports through the Read grant, with `enableReports` on the object.
-  - Scenario: a rep loses access to an account after a territory change but can still read its last brief text, including deal amounts. Only the rep can read it, because the object's sharing is Private.
+  - Scenario: a rep loses access to an account after a territory change but can still read its last brief text, including deal amounts.
+  - The object's sharing is Private, so other reps cannot read the row. Admins can, and so can users above the rep in the role hierarchy if hierarchy access applies.
 - **N7. Every QueryException reads as NOT_FOUND.**
   - Where: `AccountBriefResolver.cls:55-63`, `AccountBrief.cls:205-212`.
   - A missing object permission or field-level access gives "couldn't find that account", which sends admins looking for missing data instead of missing access.
 - **N8. The output cap cuts mid-sentence without notice.**
   - Where: `AgentLlm.cls:58-60` cuts the text at `maxTokens * 4` characters.
-  - The synthesis allowance is 1,500 tokens, which is 6,000 characters. That is close to the roughly 6,000-character relay limit that `ExploreAction.MAX_CHARS` (5,900) respects. A brief that runs long ends mid-sentence with no marker.
+  - The synthesis allowance is 1,500 tokens, which is 6,000 characters. `docs/ARCHITECTURE.md` L65 puts the chat relay limit at about 6K characters, and `ExploreAction.MAX_CHARS` (5,900) stays under it, but the brief has no such clamp. A brief that runs long ends mid-sentence with no marker.
 - **N9. Record text reaches the prompt with no fence.**
   - Account Description, Event Description, task subjects and case subjects reach the prompts as plain text.
   - A crafted Description can steer the brief's wording.
@@ -146,7 +149,10 @@ There are no blockers.
   - Every class is `with sharing`.
   - The record reads are the section queries, explorer queries, resolver and visibility check, plus the drill. All of them use `WITH USER_MODE` or `AccessLevel.USER_MODE`, so object, field and sharing access apply.
   - The only SYSTEM_MODE code is in `AccountBriefMemory`. It is justified in the class doc and always filtered to `UserInfo.getUserId()`.
-- Writes: the only DML is the memory row, created or updated for the running user. No delete is granted, and no View All or Modify All is granted.
+- Writes: the only DML is on memory rows, in SYSTEM_MODE.
+  - It creates or updates the running user's row.
+  - `purgeOverflow` (`AccountBriefMemory.cls:129-142`) deletes the running user's oldest rows beyond the cap, and only that user's rows (`theCapNeverPurgesAnotherUsersRows`).
+  - The permission sets grant no Delete, View All or Modify All.
 - Explorer:
   - The SOQL text is built only from catalog paths, fixed operators and generated aliases. Every value is a bind variable (`ExploreQuery.cls:116-208`).
   - The catalog is describe-checked per user (`ExploreCatalog.cls:152-224`).
