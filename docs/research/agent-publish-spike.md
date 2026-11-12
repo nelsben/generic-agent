@@ -95,6 +95,15 @@ Each row is checked against the ranked list in `docs/research/agent-publish-fail
 - A 401 saying "Unauthorized" while saving the agent graph fits a permission or integration-user
   change on the platform side better than a script problem. Nothing tonight proves that link.
 
+**A second lead: the CLI's connected app (from the brain; unverified, not checked tonight).**
+
+- The `experimental` alias's stored CLI auth uses a dedicated JWT connected app (it has a
+  private key), not the stock Salesforce CLI app.
+- The authoring API may need Einstein scopes on that app (`einstein_gpt_api` and `sfap_api`, or
+  `full`) beyond `api` and `refresh_token`. A missing scope would fit a 401 that a token refresh
+  does not cure.
+- It does not by itself explain Studio's commit failure.
+
 ## Final org state
 
 This is the read-only query after the last step, run at 03:44Z.
@@ -108,7 +117,7 @@ This is the read-only query after the last step, run at 03:44Z.
 - AiAuthoringBundles in the org:
   - `Account_Brief_1` (locked to v1)
   - `Account_Brief_2` (the open draft, last saved 02:36Z, sha256 `fb0fc27d`)
-  - `Plesio_AgentScript_1` (an older agent, untouched)
+  - one unrelated older agent bundle (untouched)
 - Nothing was deactivated, activated, deployed or deleted. The only org writes attempted were the
   four create calls above, and all of them failed.
 
@@ -158,15 +167,22 @@ proven in this org.
 
 ## Next decisive tests (each needs Ben's go)
 
-1. **Publish a minimal script as a new agent.** Use one `start_agent` block with no actions and
+1. **Publish once through the stock CLI app (the cheapest decider).** This tests the
+   connected-app lead.
+   - Ben signs in a second time himself, under the stock Salesforce CLI app with a NEW alias:
+     `sf org login web --alias experimental-web`.
+   - Then the publish is retried once against that alias.
+   - Never run `sf org logout` on either alias afterwards. The logout revokes that user's refresh
+     token, which other automation uses.
+2. **Publish a minimal script as a new agent.** Use one `start_agent` block with no actions and
    no Apex targets. This tells whether the save fails on our action graph (Apex targets) or on
    any agent at all. It would be a second Publish_Probe-style create, so it needs its own approval.
-2. **Look in Setup for the 05:45Z change.** Check the integration permission set conversion and
+3. **Look in Setup for the 05:45Z change.** Check the integration permission set conversion and
    the Agentforce permission set group change, and whether the Einstein/Agentforce platform user
    lost a permission.
-3. **Decode the named-user JWT's claims.** Only the scopes and the app, not the signature. This
+4. **Decode the named-user JWT's claims.** Only the scopes and the app, not the signature. This
    checks for a scope change since version 1.
-4. **The deactivate-first test from the brain's note**, if Ben approves the short deactivation.
+5. **The deactivate-first test from the brain's note**, if Ben approves the short deactivation.
    The evidence above makes it unlikely to help, because a new agent with nothing active fails the
    same way.
 
@@ -180,8 +196,9 @@ proven in this org.
 > `401 {"expected":true,"message":"Error saving or updating agent graph","path":"/v1.1/authoring/agents/<id>/versions","status":401,"error":"Unauthorized"}` (after about 4-6 s)
 >
 > jsforce's `HttpApi.isSessionExpired` treats any 401 as an expired session unless the body holds
-> one of two known strings (this body holds neither), so it refreshes the token and resends. The resend gets an empty 404 in about 120 ms (presumably because the refreshed
-> token is not the named-user JWT). `requestWithEndpointFallback` then moves on to
+> one of two known strings (this body holds neither), so it refreshes the token and resends. The
+> resend gets an empty 404 in about 120 ms (presumably because the refreshed token is not the
+> named-user JWT). `requestWithEndpointFallback` then moves on to
 > `test.api.salesforce.com`, whose connect timeout surfaces as `TypeError: fetch failed`. So the
 > real server message is lost twice.
 >
@@ -194,3 +211,7 @@ proven in this org.
 > Version" also fails for the same agent with "We couldn't commit a version of this agent" (its
 > response was not captured). So the underlying save failure looks server-side; the CLI only
 > hides it.
+>
+> Suspected, not confirmed: the org's CLI auth uses a custom JWT connected app rather than the
+> stock CLI app. If the authoring API needs Einstein scopes (`einstein_gpt_api`, `sfap_api`) that
+> the app lacks, that would fit a 401 that a token refresh does not cure.
