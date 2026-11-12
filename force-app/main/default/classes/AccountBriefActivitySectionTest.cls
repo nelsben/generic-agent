@@ -50,7 +50,7 @@ private class AccountBriefActivitySectionTest {
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(9, s.total);
         Assert.areEqual(5, s.shown);
-        List<String> lines = s.body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual(6, lines.size());
         Assert.areEqual('90d: 4 emails, 2 calls, 3 other; 2 open tasks overdue', lines[0]);
         Assert.areEqual(bullet(0, 'Task', 'Due today', 'n/a'), lines[1]);
@@ -61,7 +61,7 @@ private class AccountBriefActivitySectionTest {
         Assert.isTrue(lines[2].contains('…'));
         Assert.isFalse(s.body.contains('Outside window'));
         Assert.isFalse(s.body.contains('Other account'));
-        Assert.isTrue(s.body.length() <= 1200);
+        Assert.isTrue(AccountBriefSection.withoutIds(s.body).length() <= 1200);
     }
 
     @IsTest
@@ -81,7 +81,7 @@ private class AccountBriefActivitySectionTest {
                 + bullet(1, 'Email', 'Newest', 'n/a') + '\n'
                 + bullet(10, 'Call', 'Middle', 'n/a') + '\n'
                 + bullet(30, 'Email', 'Oldest', 'n/a'),
-            s.body
+            AccountBriefSection.withoutIds(s.body)
         );
     }
 
@@ -186,7 +186,7 @@ private class AccountBriefActivitySectionTest {
         Assert.areEqual(1, s.total);
         Assert.areEqual(
             '90d: 0 emails, 1 calls, 0 other; 0 open tasks overdue\n' + bullet(1, 'Call', 'Visible renewal call', 'n/a'),
-            s.body
+            AccountBriefSection.withoutIds(s.body)
         );
     }
 

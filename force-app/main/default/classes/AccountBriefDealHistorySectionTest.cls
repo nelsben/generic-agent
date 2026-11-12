@@ -36,9 +36,9 @@ private class AccountBriefDealHistorySectionTest {
         Assert.areEqual(7, s.total);
         Assert.areEqual(5, s.shown);
         Assert.isTrue(s.total > AccountBriefDealHistorySection.ROW_CAP);
-        Assert.isTrue(s.body.length() <= 1200);
+        Assert.isTrue(AccountBriefSection.withoutIds(s.body).length() <= 1200);
 
-        List<String> lines = s.body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual(7, lines.size());
         // 4 won / 3 lost, win rate 4/7 = 57%, average won deal (1000+2000+3000+4000)/4 = $2,500.
         Assert.areEqual('4 won / 3 lost all-time, win rate 57%, average won deal $2,500', lines[0]);
@@ -71,7 +71,7 @@ private class AccountBriefDealHistorySectionTest {
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(2, s.total);
         Assert.areEqual(2, s.shown);
-        List<String> lines = s.body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual('0 won / 2 lost all-time, win rate 0%, average won deal n/a', lines[0]);
         Assert.areEqual(3, lines.size());
     }

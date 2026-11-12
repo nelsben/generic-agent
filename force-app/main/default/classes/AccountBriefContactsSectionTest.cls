@@ -63,7 +63,7 @@ private class AccountBriefContactsSectionTest {
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(8, s.total);
         Assert.areEqual(6, s.shown);
-        List<String> lines = s.body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual(6, lines.size());
         for (Integer i = 0; i < 6; i++) {
             Integer k = 8 - i;
@@ -71,7 +71,7 @@ private class AccountBriefContactsSectionTest {
         }
         Assert.isFalse(s.body.contains('Contact1'));
         Assert.isFalse(s.body.contains('Contact2'));
-        Assert.isTrue(s.body.length() <= 1200);
+        Assert.isTrue(AccountBriefSection.withoutIds(s.body).length() <= 1200);
     }
 
     @IsTest
@@ -94,7 +94,7 @@ private class AccountBriefContactsSectionTest {
         Assert.areEqual(1, s.shown);
         // 91-day Email and 120-day Event fall outside the window; the 'Task' touch counts toward
         // ordering but has no column of its own.
-        Assert.areEqual(expectedLine(reread(busy.Id), 'no title', 2, 1, 1, false), s.body);
+        Assert.areEqual(expectedLine(reread(busy.Id), 'no title', 2, 1, 1, false), AccountBriefSection.withoutIds(s.body));
     }
 
     @IsTest
@@ -122,7 +122,7 @@ private class AccountBriefContactsSectionTest {
         AccountBriefSection s = new AccountBriefContactsSection().build(a.Id);
         Assert.areEqual(4, s.total);
         Assert.areEqual(4, s.shown);
-        List<String> lines = s.body.split('\n');
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual(expectedLine(rRecent, 'Dir', 0, 1, 0, false), lines[0]);
         Assert.areEqual(expectedLine(rOlder, 'Dir', 0, 1, 0, false), lines[1]);
         // Quiet contacts follow, the one with a past touch before the one with none.

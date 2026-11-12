@@ -59,9 +59,9 @@ private class AccountBriefCallsSectionTest {
                 + '- ' + dateOf(-5) + ' — Five days ago — 15 min — with n/a\n'
                 + ' notes: ' + AccountBriefSection.clip(longNotes, 300) + '\n'
                 + 'Next: ' + dateOf(3) + ' — Soonest kickoff',
-            s.body
+            AccountBriefSection.withoutIds(s.body)
         );
-        Assert.isTrue(s.body.length() <= 1200);
+        Assert.isTrue(AccountBriefSection.withoutIds(s.body).length() <= 1200);
     }
 
     @IsTest
@@ -78,8 +78,8 @@ private class AccountBriefCallsSectionTest {
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(6, s.total);
         Assert.isTrue(s.shown >= 1 && s.shown < 5, 'blocks dropped, not cut: ' + s.shown);
-        Assert.isTrue(s.body.length() <= 1200, 'body length ' + s.body.length());
-        List<String> lines = s.body.split('\n');
+        Assert.isTrue(AccountBriefSection.withoutIds(s.body).length() <= 1200, 'body length ' + AccountBriefSection.withoutIds(s.body).length());
+        List<String> lines = AccountBriefSection.withoutIds(s.body).split('\n');
         Assert.areEqual('Next: ' + dateOf(2) + ' — Upcoming', lines[lines.size() - 1]);
         Integer bullets = 0;
         for (String line : lines) {
@@ -110,7 +110,7 @@ private class AccountBriefCallsSectionTest {
         Assert.areEqual(AccountBriefSection.OK, s.status);
         Assert.areEqual(0, s.total);
         Assert.areEqual(0, s.shown);
-        Assert.areEqual('No past calls or meetings logged.\nNext: ' + dateOf(4) + ' — First meeting', s.body);
+        Assert.areEqual('No past calls or meetings logged.\nNext: ' + dateOf(4) + ' — First meeting', AccountBriefSection.withoutIds(s.body));
     }
 
     @IsTest
@@ -118,7 +118,7 @@ private class AccountBriefCallsSectionTest {
         Account a = mkAccount();
         insert new Event(WhatId = a.Id, Subject = null, StartDateTime = DateTime.now().addDays(-2), IsAllDayEvent = false, DurationInMinutes = 30);
         AccountBriefSection s = new AccountBriefCallsSection().build(a.Id);
-        Assert.areEqual('- ' + dateOf(-2) + ' — n/a — 30 min — with n/a', s.body);
+        Assert.areEqual('- ' + dateOf(-2) + ' — n/a — 30 min — with n/a', AccountBriefSection.withoutIds(s.body));
     }
 
     @IsTest

@@ -107,7 +107,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
         Integer room = ROW_CAP;
         if (high > 0) {
             rows.addAll([
-                SELECT CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
+                SELECT Id, CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
                 WHERE AccountId = :accountId AND IsClosed = false AND Priority = :PRIO_HIGH
                 WITH USER_MODE
                 ORDER BY CreatedDate ASC, Id LIMIT :room
@@ -116,7 +116,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
         }
         if (medium > 0 && room > 0) {
             rows.addAll([
-                SELECT CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
+                SELECT Id, CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
                 WHERE AccountId = :accountId AND IsClosed = false AND Priority = :PRIO_MEDIUM
                 WITH USER_MODE
                 ORDER BY CreatedDate ASC, Id LIMIT :room
@@ -125,7 +125,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
         }
         if (low > 0 && room > 0) {
             rows.addAll([
-                SELECT CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
+                SELECT Id, CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
                 WHERE AccountId = :accountId AND IsClosed = false AND Priority = :PRIO_LOW
                 WITH USER_MODE
                 ORDER BY CreatedDate ASC, Id LIMIT :room
@@ -134,7 +134,7 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
         }
         if (other > 0 && room > 0) {
             rows.addAll([
-                SELECT CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
+                SELECT Id, CaseNumber, Subject, Priority, Status, CreatedDate FROM Case
                 WHERE AccountId = :accountId AND IsClosed = false
                     AND (Priority = null OR Priority NOT IN :KNOWN_PRIORITIES)
                 WITH USER_MODE
@@ -144,11 +144,12 @@ public with sharing class AccountBriefCasesSection implements AccountBriefSource
 
         Integer shown = 0;
         for (Case c : rows) {
-            body += '\n- ' + c.CaseNumber
+            // The Case Id ends the line, for the panel's drill.
+            body += '\n' + AccountBriefSection.withId('- ' + c.CaseNumber
                 + ' — ' + AccountBriefSection.clip(c.Subject, 100)
                 + ' — ' + AccountBriefSection.clip(c.Priority, 30)
                 + ' — ' + AccountBriefSection.clip(c.Status, 40)
-                + ' — open ' + ageDays(c.CreatedDate, now) + ' days';
+                + ' — open ' + ageDays(c.CreatedDate, now) + ' days', c.Id);
             shown++;
         }
         if (shown < open) {

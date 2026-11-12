@@ -3,9 +3,10 @@
  * The Account Brief panel as a front-end user meets it: the Account Brief app, the record page of
  * Edge Communications, the utility bar item "Account Brief" (340x480, eager).
  *
- * Locators pierce the panel's native shadow DOM with Playwright's built-in engine: roles, labels
- * and the data attributes the panel already renders (data-turn, data-id, data-focus). Where the
- * panel exposes neither, a class it already has is used and named in e2e/README.md.
+ * Locators pierce the panel's native shadow DOM with Playwright's built-in engine: roles, labels,
+ * the panel's test hooks (data-testid: abp-live-region, abp-spinner, abp-summary-headline) and the
+ * data attributes it renders (data-turn, data-id, data-focus). The few tags the panel offers no
+ * hook for are named in e2e/README.md.
  */
 const fs = require('fs');
 const { test: base, expect } = require('@playwright/test');
@@ -34,10 +35,11 @@ class Panel {
         this.send = this.host.getByRole('button', { name: 'Send', exact: true });
         this.briefButton = this.host.getByRole('button', { name: 'Brief ' + ACCOUNT_NAME, exact: true });
         // The panel's own live region; lightning-textarea renders a second, empty role=status.
-        this.liveRegion = this.host.locator('[role="status"][aria-live="polite"]');
-        this.spinner = this.host.locator('lightning-spinner');
+        this.liveRegion = this.host.getByTestId('abp-live-region');
+        this.spinner = this.host.getByTestId('abp-spinner');
         this.turns = this.host.locator('[data-turn]');
-        this.body = this.host.locator('.abp-body');
+        // The scroll box: the conversation and the drill view.
+        this.body = this.host.getByRole('region', { name: 'Conversation', exact: true });
         this.breadcrumbs = this.host.locator('lightning-breadcrumbs');
     }
 
@@ -97,6 +99,21 @@ class Panel {
         await expect(this.liveRegion).toHaveText(/^Brief ready: /, { timeout: ANSWER_TIMEOUT });
         await expect(this.spinner).toBeHidden();
         return this.turns.last();
+    }
+
+    /** The brief's summary headline: one per brief turn, apart from the section headers. */
+    headline(turn) {
+        return turn.getByTestId('abp-summary-headline');
+    }
+
+    /**
+     * Focus is on locator now and still there after the platform's late focus moves (up to about a
+     * second after a minimize) are over.
+     */
+    async expectFocusStays(locator, message) {
+        await expect(locator, message).toBeFocused();
+        await this.page.waitForTimeout(2_500);
+        await expect(locator, message + ', and stayed there').toBeFocused();
     }
 
     /** The brief's section headers (lightning-accordion-section buttons). */

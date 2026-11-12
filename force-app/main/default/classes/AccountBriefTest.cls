@@ -379,4 +379,80 @@ private class AccountBriefTest {
         Assert.isNotNull(stub.synthesisUser(), 'the model still writes the brief');
         Assert.areEqual(1, memoryRows(), 'a brief that answered is remembered');
     }
+
+    /** The line of s that contains text; it must end with ' — ' and the record's 18-character Id. */
+    private static void assertLineEndsWithId(AccountBriefSection s, String text, Id recordId) {
+        Assert.isNotNull(s, 'section missing');
+        for (String line : s.body.split('\n')) {
+            if (line.contains(text)) {
+                Assert.isTrue(line.endsWith(' — ' + String.valueOf(recordId)), s.key + ' line lacks its record Id: ' + line);
+                return;
+            }
+        }
+        Assert.fail(s.key + ' has no line containing "' + text + '": ' + s.body);
+    }
+
+    @IsTest
+    static void recordIdsReachThePanelInSectionLinesButNeverAPrompt() {
+        Account a = mkAccount(false);
+        Contact c = new Contact(AccountId = a.Id, LastName = 'Drillable', Title = 'Buyer');
+        insert c;
+        Opportunity openDeal = new Opportunity(AccountId = a.Id, Name = 'Open drill deal', StageName = 'Prospecting', Amount = 900, CloseDate = Date.today().addDays(15));
+        Opportunity wonDeal = new Opportunity(AccountId = a.Id, Name = 'Won drill deal', StageName = 'Closed Won', Amount = 700, CloseDate = Date.today().addDays(-15));
+        insert new List<Opportunity>{ openDeal, wonDeal };
+        insert new OpportunityContactRole(OpportunityId = openDeal.Id, ContactId = c.Id, Role = 'Decision Maker', IsPrimary = true);
+        Case cs = new Case(AccountId = a.Id, Subject = 'Drill case', Priority = 'High', Status = 'New');
+        insert cs;
+        Task t = new Task(WhatId = a.Id, Subject = 'Drill task', TaskSubtype = 'Call', Status = 'Completed', ActivityDate = Date.today().addDays(-1));
+        insert t;
+        Event past = new Event(WhatId = a.Id, Subject = 'Drill call', StartDateTime = DateTime.now().addDays(-2), DurationInMinutes = 30, Description = 'Drill notes');
+        Event next = new Event(WhatId = a.Id, Subject = 'Drill kickoff', StartDateTime = DateTime.now().addDays(3), DurationInMinutes = 30);
+        insert new List<Event>{ past, next };
+        Stub stub = install();
+
+        Test.startTest();
+        AccountBrief.Result r = AccountBriefPanelController.getBrief(a.Id, null, null);
+        Test.stopTest();
+
+        Assert.areEqual(AccountBrief.OK, r.status);
+        Map<String, AccountBriefSection> byKey = new Map<String, AccountBriefSection>();
+        for (AccountBriefSection s : r.sections) {
+            byKey.put(s.key, s);
+        }
+
+        // 1. The panel gets every record's Id at the end of that record's line.
+        assertLineEndsWithId(byKey.get('open_deals'), 'Open drill deal', openDeal.Id);
+        assertLineEndsWithId(byKey.get('open_deals'), 'Drillable (Decision Maker)', c.Id);
+        assertLineEndsWithId(byKey.get('cases'), 'Drill case', cs.Id);
+        assertLineEndsWithId(byKey.get('contacts'), 'Drillable', c.Id);
+        assertLineEndsWithId(byKey.get('activity'), 'Drill task', t.Id);
+        assertLineEndsWithId(byKey.get('calls'), 'Drill call', past.Id);
+        assertLineEndsWithId(byKey.get('calls'), 'Next: ', next.Id);
+        assertLineEndsWithId(byKey.get('deal_history'), 'Won drill deal', wonDeal.Id);
+        // Summary, notes and "more" lines describe no one record and carry no Id.
+        Integer withId = 0;
+        for (AccountBriefSection s : r.sections) {
+            for (String line : s.body.split('\n')) {
+                if (Pattern.matches('.* — [0-9][0-9A-Za-z]{17}', line)) {
+                    withId++;
+                }
+            }
+        }
+        Assert.areEqual(8, withId, 'one Id per record line, none elsewhere');
+
+        // 2. No Id reaches a model prompt, while the lines themselves do.
+        Assert.areEqual(3, stub.users.size());
+        List<String> prompts = new List<String>(stub.systems);
+        prompts.addAll(stub.users);
+        for (Id recordId : new List<Id>{ openDeal.Id, wonDeal.Id, c.Id, cs.Id, t.Id, past.Id, next.Id }) {
+            for (String p : prompts) {
+                Assert.isFalse(p.contains(String.valueOf(recordId)), 'record Id ' + recordId + ' reached a prompt: ' + p);
+            }
+        }
+        String all = String.join(stub.users, '\n');
+        for (String text : new List<String>{ 'Open drill deal', 'Drillable (Decision Maker)', 'Drill case', 'Drill task', 'Drill call', 'Drill notes', 'Drill kickoff', 'Won drill deal' }) {
+            Assert.isTrue(all.contains(text), 'the prompt lost "' + text + '"');
+        }
+        Assert.isFalse(Pattern.compile('(?m) — [0-9][0-9A-Za-z]{17}$').matcher(all).find(), 'a line in a prompt still ends with an Id');
+    }
 }

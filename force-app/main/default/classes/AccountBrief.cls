@@ -282,14 +282,18 @@ public with sharing class AccountBrief {
         return AgentLlm.complete(SYNTHESIS_PROMPT, synthesisVars, SYNTHESIS_MAX_TOKENS);
     }
 
-    /** What a prompt sees for one source: the body if OK, '<STATUS>: <body>' otherwise. */
+    /**
+     * What a prompt sees for one source: the body if OK, '<STATUS>: <body>' otherwise.
+     * The record Ids at line ends are for the panel's drill only: they never reach a model.
+     */
     private static String sectionText(AccountBriefSection s) {
         if (s == null) {
             return NOT_REQUESTED;
         }
+        String body = AccountBriefSection.withoutIds(s.body);
         if (s.status == AccountBriefSection.OK) {
-            return s.body;
+            return body;
         }
-        return s.status + ': ' + s.body;
+        return s.status + ': ' + body;
     }
 }
