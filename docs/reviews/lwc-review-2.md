@@ -55,7 +55,7 @@ Finding 12 in detail:
 
 There are no blockers.
 
-**N1. Drill views show raw record Ids and API field names.** Should-fix. V.
+**N1. Drill views show raw record Ids and API field names.** Should-fix. V by code reading (no test drills a Task list).
 - Where:
   - `_table` makes column 0 the drill button and uses `rs.columns` as headers (js:691-713).
   - Every ExploreCatalog CURATED entry starts with `'Id'` (ExploreCatalog.cls:16-50). A related-object drill selects every catalog path (DataExplorer.cls:226-228), and ExploreQuery keeps them in order as columns (ExploreQuery.cls:140-146). So column 0 is `Id`.
