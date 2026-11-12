@@ -1,0 +1,147 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk0"
+      },
+      "Subject": "Intro call about router refresh",
+      "ActivityDate": "$day:-2",
+      "Status": "Completed",
+      "Priority": "Normal",
+      "TaskSubtype": "Call",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConMarlowe"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk1"
+      },
+      "Subject": "Sent revised router quote",
+      "ActivityDate": "$day:-4",
+      "Status": "Completed",
+      "Priority": "Normal",
+      "TaskSubtype": "Email",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConTessaly"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk2"
+      },
+      "Subject": "Sent security questionnaire",
+      "ActivityDate": "$day:-9",
+      "Status": "Completed",
+      "Priority": "Normal",
+      "TaskSubtype": "Email",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConPercival"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk3"
+      },
+      "Subject": "Pricing walkthrough",
+      "ActivityDate": "$day:-16",
+      "Status": "Completed",
+      "Priority": "Normal",
+      "TaskSubtype": "Call",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConTessaly"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk4"
+      },
+      "Subject": "Prepare renewal comparison sheet",
+      "ActivityDate": "$day:-21",
+      "Status": "Completed",
+      "Priority": "Normal",
+      "TaskSubtype": "Task",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConIsolde"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk5"
+      },
+      "Subject": "Follow-up on fiber survey results",
+      "ActivityDate": "$day:-28",
+      "Status": "Completed",
+      "Priority": "Normal",
+      "TaskSubtype": "Email",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConMarlowe"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk6"
+      },
+      "Subject": "Quarterly check-in",
+      "ActivityDate": "$day:-44",
+      "Status": "Completed",
+      "Priority": "Normal",
+      "TaskSubtype": "Call",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConMarlowe"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk7"
+      },
+      "Subject": "Sent training bundle outline",
+      "ActivityDate": "$day:-58",
+      "Status": "Completed",
+      "Priority": "Normal",
+      "TaskSubtype": "Email",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConAmbrose"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk8"
+      },
+      "Subject": "Send signed support plan terms",
+      "ActivityDate": "$day:-9",
+      "Status": "Not Started",
+      "Priority": "Normal",
+      "TaskSubtype": "Task",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConIsolde"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk9"
+      },
+      "Subject": "Chase approval on revised quote",
+      "ActivityDate": "$day:-20",
+      "Status": "Not Started",
+      "Priority": "Normal",
+      "TaskSubtype": "Call",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConTessaly"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "referenceId": "Tsk10"
+      },
+      "Subject": "Book site visit",
+      "ActivityDate": "$day:6",
+      "Status": "Not Started",
+      "Priority": "Normal",
+      "TaskSubtype": "Task",
+      "WhatId": "@AccEdge",
+      "WhoId": "@ConAmbrose"
+    }
+  ]
+}

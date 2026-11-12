@@ -35,6 +35,12 @@ class TestValidateOrg(unittest.TestCase):
             f.write("#!/bin/sh\ntouch '%s'\nexit 99\n" % self.marker)
         os.chmod(fake_sf, 0o755)
 
+    def test_target_org_is_one_setting_defaulting_to_agent_probe(self):
+        with open(SCRIPT, encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn('TARGET_ORG="${SF_TARGET_ORG:-agent-probe}"', text)
+        self.assertNotIn("experimental", text)
+
     def test_deploy_start_is_always_dry_run(self):
         # Any `deploy start` in the script must carry --dry-run, so a real deploy cannot slip in.
         with open(SCRIPT, encoding="utf-8") as f:

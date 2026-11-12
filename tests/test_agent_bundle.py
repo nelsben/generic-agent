@@ -336,16 +336,22 @@ class TestAccountBriefSpec(unittest.TestCase):
         self.assertRegex(case, r"expectedActions:\s*\n\s*- resolve_account\s*\n\s*expectedOutcome")
         for name in ("United Oil & Gas Corp.", "United Oil & Gas, Singapore", "United Oil & Gas, UK"):
             self.assertIn(name, case)
-        # The outcome matches AccountBriefResolver.ambiguous(): "<Name> — <BillingCity or 'no city'> — <Id>".
+        # The outcome describes AccountBriefResolver.ambiguous(): "<Name> — <BillingCity or 'no city'> — <Id>".
         outcome = case.split("expectedOutcome:", 1)[1]
         self.assertNotIn("each with its city", outcome)
-        for line in (
-            "United Oil & Gas Corp. — New York — 001gK00001Fb9BKQAZ",
-            "United Oil & Gas, Singapore — Singapore — 001gK00001Fb9BOQAZ",
-            "United Oil & Gas, UK — no city — 001gK00001Fb9BNQAZ",
-        ):
-            self.assertIn(line, outcome)
         self.assertIn('Several accounts match \\"United Oil\\". Which one?', outcome)
+        self.assertIn("three candidate lines", outcome)
+        self.assertIn("18-character", outcome)
+        self.assertIn("no city", outcome)
+        for city in ("New York", "Singapore"):
+            self.assertIn(city, outcome)
+
+    def test_spec_holds_no_record_id_or_org_name(self):
+        text = SPEC.read_text(encoding="utf-8")
+        # The fake all-zero Id in the pasted-Id case is the only 001 value allowed.
+        ids = [i for i in re.findall(r"001[A-Za-z0-9]{12,15}", text) if i != "001000000000000AAA"]
+        self.assertEqual(ids, [])
+        self.assertNotIn("experimental", text)
 
     def test_two_turn_follow_up_case(self):
         case = self.case("What about their open cases?")
@@ -385,9 +391,11 @@ class TestCheckScripts(unittest.TestCase):
         self.assertIn("index-agent.mjs", text)
         self.assertIn("setup-agentscript-sdk.mjs", text)
         self.assertIn('SF="/usr/local/bin/sf"', text)
+        self.assertIn('TARGET_ORG="${SF_TARGET_ORG:-agent-probe}"', text)
         self.assertIn(
-            '"$SF" agent validate authoring-bundle --json --api-name Account_Brief -o experimental', text
+            '"$SF" agent validate authoring-bundle --json --api-name Account_Brief -o "$TARGET_ORG"', text
         )
+        self.assertNotIn("experimental", text)
         self.assertNotIn("/dev/null", text)
 
     def test_validate_org_keeps_stderr(self):

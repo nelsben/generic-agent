@@ -1,10 +1,9 @@
 # The account name "Edge Communications" (used in six cases) must exist in the target org and have
-# opportunities. It is a standard Developer Edition sample account. Change it if the org lacks it.
-# The AMBIGUOUS case uses "United Oil", which must match more than one account by name and none exactly.
-# A read-only query of the experimental org (2026-11-11) found three: "United Oil & Gas Corp." (New York),
-# "United Oil & Gas, Singapore" (Singapore) and "United Oil & Gas, UK" (no city). These also must exist in
-# the target org. The case's outcome quotes the resolver's candidate lines with their experimental-org Ids;
-# change the Ids for another org.
+# opportunities. Load it with `bash scripts/seed-sample-data.sh`, which also creates the three United Oil accounts.
+# The AMBIGUOUS case uses "United Oil", which must match more than one account by name and none exactly:
+# "United Oil & Gas Corp." (New York), "United Oil & Gas, Singapore" (Singapore) and "United Oil & Gas, UK"
+# (no billing city). The case's outcome describes the resolver's candidate lines and does not quote account
+# Ids, which differ in every org.
 # expectedActions uses superset matching: an extra action never fails it, so cases that must call nothing
 # else say so in expectedOutcome, which the LLM judge checks.
 # conversationHistory replays text only and does not set agent variables, so the two-turn case starts with no
@@ -41,7 +40,7 @@ testCases:
     expectedTopic: account_brief
     expectedActions:
       - resolve_account
-    expectedOutcome: "The agent replies with the resolver's candidate list, verbatim. First the line: Several accounts match \"United Oil\". Which one? Then three candidate lines, each as name — city — Id, with the literal words no city where the account has no billing city: United Oil & Gas Corp. — New York — 001gK00001Fb9BKQAZ; United Oil & Gas, Singapore — Singapore — 001gK00001Fb9BOQAZ; United Oil & Gas, UK — no city — 001gK00001Fb9BNQAZ. It does not produce a brief and calls no action other than resolve_account."
+    expectedOutcome: "The agent replies with the resolver's candidate list, verbatim. First the line: Several accounts match \"United Oil\". Which one? Then exactly three candidate lines, each as account name, city, then an 18-character Salesforce Id, separated by spaced em dashes. The city is the billing city, or the literal words no city where the account has none. The three lines are for United Oil & Gas Corp. (city New York), United Oil & Gas, Singapore (city Singapore) and United Oil & Gas, UK (no city). It does not produce a brief and calls no action other than resolve_account."
   - utterance: "Just the open deals for Edge Communications"
     expectedTopic: account_brief
     expectedActions:

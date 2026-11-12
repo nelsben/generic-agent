@@ -1,0 +1,98 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Cas0"
+      },
+      "AccountId": "@AccEdge",
+      "Subject": "Core router drops BGP sessions under load",
+      "Status": "Escalated",
+      "Origin": "Web",
+      "Priority": "High",
+      "ContactId": "@ConMarlowe"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Cas1"
+      },
+      "AccountId": "@AccEdge",
+      "Subject": "Firmware upgrade fails on branch switch",
+      "Status": "Working",
+      "Origin": "Phone",
+      "Priority": "Medium",
+      "ContactId": "@ConPercival"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Cas2"
+      },
+      "AccountId": "@AccEdge",
+      "Subject": "Rack power monitor reports wrong readings",
+      "Status": "New",
+      "Origin": "Email",
+      "Priority": "Medium",
+      "ContactId": "@ConAmbrose"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Cas3"
+      },
+      "AccountId": "@AccEdge",
+      "Subject": "Invoice shows old support plan name",
+      "Status": "New",
+      "Origin": "Email",
+      "Priority": "Low",
+      "ContactId": "@ConTessaly"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Cas4"
+      },
+      "AccountId": "@AccEdge",
+      "Subject": "Question about the renewal paperwork",
+      "Status": "New",
+      "Origin": "Phone",
+      "ContactId": "@ConIsolde"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Cas5"
+      },
+      "AccountId": "@AccEdge",
+      "Subject": "Replacement SFP modules arrived late",
+      "Status": "Closed",
+      "Origin": "Web",
+      "Priority": "Medium",
+      "ContactId": "@ConMarlowe"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Cas6"
+      },
+      "AccountId": "@AccEdge",
+      "Subject": "Certificate expiry warning on management portal",
+      "Status": "Closed",
+      "Origin": "Email",
+      "Priority": "High",
+      "ContactId": "@ConPercival"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "referenceId": "Cas7"
+      },
+      "AccountId": "@AccF0",
+      "Subject": "Sensor calibration drift",
+      "Status": "Working",
+      "Origin": "Web",
+      "Priority": "Low"
+    }
+  ]
+}

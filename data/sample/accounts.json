@@ -1,0 +1,226 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccQuill"
+      },
+      "Name": "Quillfeather Group",
+      "Type": "Customer - Direct",
+      "Industry": "Other",
+      "BillingCity": "Duluth",
+      "BillingState": "MN",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0100",
+      "Website": "www.example.com",
+      "Description": "Made-up holding group that owns Edge Communications in the sample data."
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccEdge"
+      },
+      "Name": "Edge Communications",
+      "ParentId": "@AccQuill",
+      "Type": "Customer - Direct",
+      "Industry": "Communications",
+      "AnnualRevenue": 139000000,
+      "NumberOfEmployees": 1100,
+      "BillingCity": "Austin",
+      "BillingState": "TX",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0142",
+      "Website": "www.example.com/edge",
+      "Description": "Sample telecom customer. Buys network hardware and a support plan; renewal talks are under way."
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccUO1"
+      },
+      "Name": "United Oil & Gas Corp.",
+      "Type": "Customer - Direct",
+      "Industry": "Energy",
+      "AnnualRevenue": 5600000000,
+      "NumberOfEmployees": 145000,
+      "BillingCity": "New York",
+      "BillingState": "NY",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0201",
+      "Website": "www.example.com/uog"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccUO2"
+      },
+      "Name": "United Oil & Gas, Singapore",
+      "Type": "Customer - Direct",
+      "Industry": "Energy",
+      "AnnualRevenue": 250000000,
+      "NumberOfEmployees": 3000,
+      "BillingCity": "Singapore",
+      "BillingCountry": "Singapore",
+      "Phone": "(555) 010-0202",
+      "Website": "www.example.com/uog-sg"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccUO3"
+      },
+      "Name": "United Oil & Gas, UK",
+      "Type": "Customer - Direct",
+      "Industry": "Energy",
+      "AnnualRevenue": 120000000,
+      "NumberOfEmployees": 2400,
+      "BillingCountry": "UK",
+      "Phone": "(555) 010-0203",
+      "Website": "www.example.com/uog-uk"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF0"
+      },
+      "Name": "Brindlewick Hydroponics",
+      "Type": "Prospect",
+      "Industry": "Agriculture",
+      "AnnualRevenue": 2000000,
+      "NumberOfEmployees": 40,
+      "BillingCity": "Kansas City",
+      "BillingState": "MO",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0300",
+      "Website": "www.example.com/f0"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF1"
+      },
+      "Name": "Tamsin Ridge Logistics",
+      "Type": "Prospect",
+      "Industry": "Transportation",
+      "AnnualRevenue": 3750000,
+      "NumberOfEmployees": 75,
+      "BillingCity": "Reno",
+      "BillingState": "NV",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0301",
+      "Website": "www.example.com/f1"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF2"
+      },
+      "Name": "Oddfellow Marine Supply",
+      "Type": "Prospect",
+      "Industry": "Retail",
+      "AnnualRevenue": 5500000,
+      "NumberOfEmployees": 110,
+      "BillingCity": "Portland",
+      "BillingState": "ME",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0302",
+      "Website": "www.example.com/f2"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF3"
+      },
+      "Name": "Pimble Quarry Works",
+      "Type": "Prospect",
+      "Industry": "Construction",
+      "AnnualRevenue": 7250000,
+      "NumberOfEmployees": 145,
+      "BillingCity": "Boise",
+      "BillingState": "ID",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0303",
+      "Website": "www.example.com/f3"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF4"
+      },
+      "Name": "Fernhollow Analytics",
+      "Type": "Prospect",
+      "Industry": "Technology",
+      "AnnualRevenue": 9000000,
+      "NumberOfEmployees": 180,
+      "BillingCity": "Madison",
+      "BillingState": "WI",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0304",
+      "Website": "www.example.com/f4"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF5"
+      },
+      "Name": "Gallowglass Textiles",
+      "Type": "Prospect",
+      "Industry": "Apparel",
+      "AnnualRevenue": 10750000,
+      "NumberOfEmployees": 215,
+      "BillingCity": "Greenville",
+      "BillingState": "SC",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0305",
+      "Website": "www.example.com/f5"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF6"
+      },
+      "Name": "Harrowgate Candle Co",
+      "Type": "Prospect",
+      "Industry": "Consumer Goods",
+      "AnnualRevenue": 12500000,
+      "NumberOfEmployees": 250,
+      "BillingCity": "Burlington",
+      "BillingState": "VT",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0306",
+      "Website": "www.example.com/f6"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF7"
+      },
+      "Name": "Juniper Lantern Media",
+      "Type": "Prospect",
+      "Industry": "Media",
+      "AnnualRevenue": 14250000,
+      "NumberOfEmployees": 285,
+      "BillingCity": "Tulsa",
+      "BillingState": "OK",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0307",
+      "Website": "www.example.com/f7"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId": "AccF8"
+      },
+      "Name": "Kestrel Bramble Foods",
+      "Type": "Prospect",
+      "Industry": "Food & Beverage",
+      "AnnualRevenue": 16000000,
+      "NumberOfEmployees": 320,
+      "BillingCity": "Fargo",
+      "BillingState": "ND",
+      "BillingCountry": "USA",
+      "Phone": "(555) 010-0308",
+      "Website": "www.example.com/f8"
+    }
+  ]
+}
