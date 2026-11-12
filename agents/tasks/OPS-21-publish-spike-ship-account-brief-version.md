@@ -4,8 +4,7 @@ title: Publish spike: ship Account_Brief version 2 from the CLI with the real se
 domain: ops
 tier: frontier
 tier_reason: platform diagnosis with org-changing steps and stop conditions
-status: blocked
-blocked_by: [OPS-20]
+status: queued
 fixes: []
 scope: [docs/research/agent-publish-spike.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
@@ -29,6 +28,7 @@ We must be able to deploy agents from the CLI. Every failed publish so far re-se
   - After any failed publish, run `git checkout -- force-app/main/default/aiAuthoringBundles/Account_Brief` and `git status`.
   - `sf agent activate --api-name Account_Brief -o experimental --json` with no version activates the LATEST version. Query the versions first and pass the version explicitly if the flag exists, so an activation can never land on the wrong version.
   - Their leading hypothesis for our 404: the open Studio "Version 2" draft blocks a CLI create-version. Record whether step 1 fails with that draft present. If it fails, step 3 (committing that draft from Studio) is also the test of this hypothesis: after the commit, step 3's CLI attempt runs with no draft open.
+- This card runs before the real deploy (OPS-20), while Ben is awake to help. So the org's Apex is behind main: BE-12, BE-13 and BE-14 are not deployed, and no invocable signature changed. Case 11's headers may still show dotted paths or URL_Redacted; record it as expected, not a new failure. Before step 1, read the latest message from the brain in your hand-off, if any, for recipe notes from the sibling project
 - Rule for the whole card: one attempt per step. On an error, read the CLI log (~/.sf/sf-<date>.log) and the code path named in agent-publish-failure.md, write down the server's real status and body, and move to the next step. Never retry the same call unchanged
 - Step 1, CLI publish: run bash scripts/agent-check.sh, confirm the .agent sha256 starts fb0fc27d, then run the CLI publish of the Account_Brief authoring bundle to experimental once, with debug output on (for example SF_LOG_LEVEL=debug or --dev-debug; confirm with --help) written to a file outside the repo. Capture the real HTTP status and response body of the versions call, with tokens and Ids removed. If it succeeds, a version 2 exists and version 1 is still active
 - Step 2, only if step 1 fails: first-publish a throwaway copy under the API name Publish_Probe from a temporary folder outside the repo, once, with the same capture. Whatever the result, if a Publish_Probe agent now exists and the approvals allow deleting it, delete it with a destructive deploy (load salesforce-development:platform-destructive-deploy) whose manifest lists only components whose API names start with Publish_Probe, put that manifest in the results file, and confirm by query that nothing named Publish_Probe remains and Account_Brief is untouched; otherwise report that it must be removed by hand
