@@ -14,9 +14,17 @@ For the brain that runs tonight (Opus). Read this whole file, then start at "Run
   ruled out the two Account Brief permission sets: with both unassigned the publish still
   failed, and both are reassigned now. The daily platform jobs also ran on the day version 1
   published fine. Its read is a fault on the platform or tenant side. That is not proven.
-- **Your call:** open a Salesforce case with the endpoint, the request Ids the sibling session
-  holds and the timeline. The sibling session recommends it once one more check (capturing
-  Studio's commit response) comes back negative.
+- **The fault is specific to `experimental`.** The same minimal agent, published with the same
+  CLI version, went through cleanly in a brand-new Developer Edition org: the create call
+  returned 200 and made version 1. In `experimental` the identical call gets the 401. The new
+  org signed in through the browser rather than the JWT app, but auth still looks ruled out:
+  version 1 of Account Brief published through that same JWT app, and Studio's commit fails
+  from a browser session too. The test agent is deleted from the new org, and nothing in
+  `experimental` was touched.
+- **Your call:** open a Salesforce case. The sibling session is drafting it for you, with the
+  endpoint, the request Ids, the timeline, "a minimal agent fails too" and "the same agent
+  publishes in a fresh org". Make no change to Account Brief while the case is open; version 1
+  stays active and the rollback command is unchanged.
 - **Apex re-review (OPS-16, merged):** ready with fixes, no blockers. Should-fix: N1 to N4.
 
 ## Before Ben sleeps (his items; nothing else needs him)
