@@ -202,6 +202,8 @@ private class AccountBriefPanelControllerTest {
                 AccountBriefPanelController.explore('Any deals?', a.Id, null);
             } else if (method == 'drill') {
                 AccountBriefPanelController.drill(a.Id, null);
+            } else if (method == 'sources') {
+                AccountBriefPanelController.sources();
             } else {
                 AccountBriefPanelController.history(a.Id);
             }
@@ -218,7 +220,7 @@ private class AccountBriefPanelControllerTest {
         String raw = 'Too many SOQL queries: 101 (raw platform text)';
         AccountBriefPanelController.failure = new PanelTestException(raw);
         Test.startTest();
-        for (String method : new List<String>{ 'resolve', 'getBrief', 'explore', 'drill', 'history' }) {
+        for (String method : new List<String>{ 'resolve', 'getBrief', 'explore', 'drill', 'history', 'sources' }) {
             assertFixed(method, raw);
         }
         Test.stopTest();

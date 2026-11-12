@@ -91,7 +91,12 @@ public with sharing class AccountBriefPanelController {
     /** The brief's sources, keys and titles in registry order: AccountBrief.sources. */
     @AuraEnabled(cacheable=true)
     public static List<AccountBrief.SourceInfo> sources() {
-        return AccountBrief.sources();
+        try {
+            failIfInjected();
+            return AccountBrief.sources();
+        } catch (Exception e) {
+            throw unexpected('sources', e);
+        }
     }
 
     /** The BotDefinition Id of the Account_Brief agent, or null when the org has none or the user can't see it. */
