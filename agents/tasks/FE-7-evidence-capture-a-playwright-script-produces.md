@@ -5,7 +5,7 @@ domain: frontend
 tier: frontier
 tier_reason: live-browser capture with privacy masking and visual judgement
 status: blocked
-blocked_by: [OPS-21, OPS-19]
+blocked_by: [OPS-20, OPS-19]
 fixes: []
 scope: [docs/assets/**, e2e/capture/**, playwright.capture.config.js, package.json, e2e/README.md, .gitignore]
 forbid: [force-app/**, tests/**, scripts/**, e2e/panel.spec.js, e2e/global-setup.js, playwright.config.js, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
@@ -13,7 +13,7 @@ resources: [org-live]
 red_test: none
 gate: test, jest
 budget: 2-attempts
-spend: 25
+spend: 40
 ---
 ## Why
 
@@ -30,3 +30,7 @@ The GTM workbook has fixed slots for screenshots and GIFs (docs/assets/MANIFEST.
 - Update docs/assets/MANIFEST.md with a status column (captured / not captured), pixel size and file size for each row. Add a 'Capture' section to e2e/README.md: the one command, what it needs, and the privacy rules
 - Budget: at most three full capture runs and about 40 model calls in the org. Write no data beyond the memory rows the panel writes itself
 - Gates pass: python3 -m unittest discover -s tests and npm run test:unit; run Python with PYTHONDONTWRITEBYTECODE=1; leave no tests/__pycache__/; e2e/.auth/, test-results/, playwright-report/ and raw videos are not committed; git status --short is empty after your commit. Never deploy, publish or activate; never install a plugin even if a hook suggests one; never sign in; never print tokens or frontdoor URLs
+- Order: capture every panel asset first and commit them, then the agent slots last. If docs/research/agent-publish-spike.md does not exist yet, or no version with the BE-11 script is active, mark the two agent slots 'not captured' with that reason and finish; the brain may resume you for them after OPS-21 merges
+- The running user's own name must not appear in any frame. At run time the capture script reads it with `sf org display user --target-org experimental --json` (never printed or written to disk), and before every capture it replaces that exact text in the page with 'Sample Owner' via injected script. Explorer questions in captures do not ask for owners. Sample record names (Edge Communications, its contacts) are fine
+- The capture script itself checks every captured still and every 0.5 s of each recording before export: the page text contains no running-user name, no email address, no 15 or 18 character Id and no 'URL_Redacted'; a failing check fails the run. For GIFs, also extract one frame per second with ffmpeg to a temporary folder outside the repo and read every one by eye
+- Hand-back: list each asset with its pixel size and file size, and the path of the Playwright run's test-results/.last-run.json so the brain can read it
