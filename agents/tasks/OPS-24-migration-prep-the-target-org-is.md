@@ -4,7 +4,7 @@ title: Migration prep: the target org is one setting (default agent-probe), and 
 domain: ops
 tier: standard
 tier_reason: repo-only refactor plus a data set driven by reading existing classes; no org
-status: queued
+status: merged
 fixes: []
 scope: [data/sample/**, scripts/seed-sample-data.sh, scripts/validate-org.sh, scripts/agent-check.sh, e2e/support/env.js, e2e/README.md, tests/test_sample_data.py, tests/test_validate_org.py, tests/test_agent_bundle.py, tests/agent/Account_Brief-testSpec.yaml]
 forbid: [force-app/**, docs/**, README.md, agents/**, e2e/capture/**, e2e/panel.spec.js, e2e/global-setup.js, playwright.config.js, playwright.capture.config.js, .chassis-delegation.json, reference/**, .sf/**]
@@ -29,3 +29,13 @@ Ben approved moving the baseline off experimental, which rejects every agent pub
 - e2e/README.md: the org prerequisites say the alias comes from SF_TARGET_ORG (default agent-probe) and that the sample data comes from `bash scripts/seed-sample-data.sh`, not from Developer Edition demo data
 - Touch no org at all: no sf command that reaches an org, including no query, deploy, import or login. Never install a plugin even if a hook suggests one
 - Gate passes: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, and npm run test:unit; leave no tests/__pycache__/; git status --short is empty after your commit. In the hand-back, list the records by object with their counts, and anything in the section classes the data could not exercise
+
+## Review
+
+The verdict accepted attempt 1 without a review pass. Brain checks:
+- I read the seed script. It renders to mktemp, runs one read-only Edge Communications check, then one `sf data import tree`. It stops if the org is already seeded, never prints sf output, and `--render-only` makes no sf call.
+- The import plan resolves refs in parent-to-child order: Account, Contact, Opportunity, OpportunityContactRole, Task, Event, Case.
+- In the spec, the AMBIGUOUS case now describes the three candidate lines without real Ids.
+- On the added lines, the deny-list, Salesforce-Id, email (only example.com), my.salesforce.com, query-string and home-path greps found 0 hits. The remaining "experimental" mentions in tests are assertions that it is absent.
+
+The data leaves some paths unexercised, as the worker said. Salesforce sets CreatedDate, so case age and account age read 0 days. All Edge contacts have titles. No section cap or "…and N more" footer is reached. Task Type is unset. The seed has not run against a real org yet; OPS-25 runs it in agent-probe.
