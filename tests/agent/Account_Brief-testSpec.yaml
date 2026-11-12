@@ -3,7 +3,8 @@
 # The AMBIGUOUS case uses "United Oil", which must match more than one account by name and none exactly.
 # A read-only query of the experimental org (2026-11-11) found three: "United Oil & Gas Corp." (New York),
 # "United Oil & Gas, Singapore" (Singapore) and "United Oil & Gas, UK" (no city). These also must exist in
-# the target org.
+# the target org. The case's outcome quotes the resolver's candidate lines with their experimental-org Ids;
+# change the Ids for another org.
 # expectedActions uses superset matching: an extra action never fails it, so cases that must call nothing
 # else say so in expectedOutcome, which the LLM judge checks.
 # conversationHistory replays text only and does not set agent variables, so the two-turn case starts with no
@@ -40,7 +41,7 @@ testCases:
     expectedTopic: account_brief
     expectedActions:
       - resolve_account
-    expectedOutcome: "The agent replies with the resolver's candidate list: a line saying several accounts match \"United Oil\" and asking which one, then United Oil & Gas Corp., United Oil & Gas, Singapore and United Oil & Gas, UK, each with its city and Id. It does not produce a brief and calls no action other than resolve_account."
+    expectedOutcome: "The agent replies with the resolver's candidate list, verbatim. First the line: Several accounts match \"United Oil\". Which one? Then three candidate lines, each as name — city — Id, with the literal words no city where the account has no billing city: United Oil & Gas Corp. — New York — 001gK00001Fb9BKQAZ; United Oil & Gas, Singapore — Singapore — 001gK00001Fb9BOQAZ; United Oil & Gas, UK — no city — 001gK00001Fb9BNQAZ. It does not produce a brief and calls no action other than resolve_account."
   - utterance: "Just the open deals for Edge Communications"
     expectedTopic: account_brief
     expectedActions:
