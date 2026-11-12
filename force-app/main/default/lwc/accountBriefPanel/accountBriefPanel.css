@@ -1,5 +1,7 @@
+/* The utility panel gives the host its height (480); the body scrolls, the composer stays pinned. */
 :host {
     display: block;
+    height: 100%;
 }
 
 .abp-panel {
@@ -11,6 +13,11 @@
     margin: 0;
 }
 
+.abp-bar,
+.abp-composer-row {
+    flex: 0 0 auto;
+}
+
 .abp-bar-row,
 .abp-chips,
 .abp-candidates {
@@ -19,6 +26,7 @@
     gap: 0.25rem;
 }
 
+/* Native buttons that carry free text (candidates, follow-ups) wrap at 340px. */
 .abp-chip,
 .abp-candidate {
     margin: 0;
@@ -33,7 +41,7 @@
 .abp-body {
     position: relative;
     flex: 1 1 auto;
-    min-height: 6rem;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -56,23 +64,18 @@
 }
 
 [data-error='true'] {
-    color: var(--slds-g-color-error-base-40, #ea001e);
+    color: var(--slds-g-color-error-1, #ea001e);
 }
 
-.abp-card-head,
-.abp-section-head {
+.abp-card-head {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0.5rem;
 }
 
-.abp-section-head {
-    cursor: pointer;
-}
-
-.abp-section-title {
-    font-weight: 600;
+.abp-drill-heading:focus {
+    outline: none;
 }
 
 .abp-field {
@@ -91,25 +94,21 @@
     text-overflow: ellipsis;
 }
 
-.abp-row-link {
-    cursor: pointer;
-}
-
+.abp-row-button,
 .abp-line-link {
     white-space: normal;
     text-align: left;
     line-height: 1.375;
 }
 
-.abp-composer {
-    width: 100%;
-    resize: vertical;
+.abp-row-button {
+    max-width: 14rem;
 }
 
 .abp-composer-row {
-    border-top: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+    border-top: 1px solid var(--slds-g-color-border-1, #e5e5e5);
 }
 
 .abp-history {
-    border-bottom: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+    border-bottom: 1px solid var(--slds-g-color-border-1, #e5e5e5);
 }

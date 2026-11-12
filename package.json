@@ -1,0 +1,13 @@
+{
+  "name": "generic-agent",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Account Brief agent and panel: Jest unit tests for the LWC",
+  "scripts": {
+    "test:unit": "sfdx-lwc-jest"
+  },
+  "devDependencies": {
+    "@sa11y/jest": "^7.0.0",
+    "@salesforce/sfdx-lwc-jest": "^7.0.0"
+  }
+}

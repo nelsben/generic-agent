@@ -1,41 +1,50 @@
 <template>
     <div class="abp-panel slds-card">
+        <!-- Announces each request's start and its result to screen readers (WCAG 4.1.3). -->
+        <div class="slds-assistive-text" role="status" aria-live="polite">{liveMessage}</div>
+
         <!-- Brief bar -->
         <div class="slds-p-around_x-small abp-bar">
             <div class="abp-bar-row">
                 <template lwc:if={isAccountPage}>
-                    <button class="slds-button slds-button_brand" onclick={handleBriefThisAccount} disabled={pending}>
-                        {briefButtonLabel}
-                    </button>
+                    <lightning-button variant="brand" label={briefButtonLabel} onclick={handleBriefThisAccount}></lightning-button>
                 </template>
                 <template lwc:if={showAgentButton}>
-                    <button class="slds-button slds-button_neutral" onclick={handleAskAgent}>Ask the agent</button>
+                    <lightning-button label="Ask the agent" onclick={handleAskAgent}></lightning-button>
                 </template>
             </div>
             <template lwc:if={hasSources}>
-                <details class="slds-m-top_x-small">
-                    <summary class="slds-text-body_small slds-text-color_weak">{includeSummary}</summary>
-                    <div class="abp-chips slds-m-top_xx-small">
-                        <template for:each={includeChips} for:item="chip">
-                            <button key={chip.key} class={chip.className} data-key={chip.key}
-                                aria-pressed={chip.pressed} onclick={handleChip}>{chip.title}</button>
-                        </template>
-                    </div>
-                </details>
+                <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
+                    <lightning-accordion-section name="include" label={includeSummary}>
+                        <div class="abp-chips">
+                            <template for:each={includeChips} for:item="chip">
+                                <lightning-button-stateful key={chip.key} data-key={chip.key} selected={chip.selected}
+                                    label-when-off={chip.title} label-when-on={chip.title} label-when-hover={chip.title}
+                                    icon-name-when-off="utility:add" icon-name-when-on="utility:check"
+                                    icon-name-when-hover="utility:close" onclick={handleChip}></lightning-button-stateful>
+                            </template>
+                        </div>
+                    </lightning-accordion-section>
+                </lightning-accordion>
             </template>
             <template lwc:if={hasHistory}>
-                <details class="slds-m-top_x-small">
-                    <summary class="slds-text-body_small slds-text-color_weak">{historyLabel}</summary>
-                    <ul class="slds-m-top_xx-small">
-                        <template for:each={historyItems} for:item="h">
-                            <li key={h.key} class="slds-p-vertical_xx-small abp-history">
-                                <div class="slds-text-body_small slds-text-color_weak">{h.at} · {h.status}</div>
-                                <div class="slds-text-body_small">{h.headline}</div>
-                                <div class="slds-text-body_small slds-text-color_weak">{h.question}</div>
-                            </li>
-                        </template>
-                    </ul>
-                </details>
+                <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
+                    <lightning-accordion-section name="history" label={historyLabel} class="abp-history-section">
+                        <ul>
+                            <template for:each={historyItems} for:item="h">
+                                <li key={h.key} class="slds-p-vertical_xx-small abp-history">
+                                    <div class="slds-text-body_small slds-text-color_weak">
+                                        <lightning-formatted-date-time value={h.at} year="numeric" month="short" day="numeric"
+                                            hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                        · {h.status}
+                                    </div>
+                                    <div class="slds-text-body_small">{h.headline}</div>
+                                    <div class="slds-text-body_small slds-text-color_weak">{h.question}</div>
+                                </li>
+                            </template>
+                        </ul>
+                    </lightning-accordion-section>
+                </lightning-accordion>
             </template>
         </div>
 
@@ -43,29 +52,26 @@
             <div class="slds-p-horizontal_x-small slds-text-color_error slds-text-body_small" role="alert">{notice}</div>
         </template>
 
-        <!-- Body: drill view or conversation -->
+        <!-- Body: drill view over the conversation; the conversation stays rendered underneath -->
         <div class="abp-body slds-p-horizontal_x-small">
             <template lwc:if={pending}>
                 <div class="abp-spinner"><lightning-spinner alternative-text="Loading" size="small"></lightning-spinner></div>
             </template>
 
             <template lwc:if={isDrilling}>
-                <nav role="navigation" aria-label="Drill path" class="slds-m-vertical_x-small">
-                    <ol class="slds-breadcrumb slds-list_horizontal slds-wrap">
-                        <li class="slds-breadcrumb__item">
-                            <button class="slds-button" onclick={handleBackToConversation}>Conversation</button>
-                        </li>
+                <div class="slds-m-vertical_x-small">
+                    <lightning-breadcrumbs>
+                        <lightning-breadcrumb label="Conversation" onclick={handleBackToConversation}></lightning-breadcrumb>
                         <template for:each={breadcrumbs} for:item="crumb">
-                            <li key={crumb.key} class="slds-breadcrumb__item">
-                                <button class="slds-button" data-index={crumb.index} onclick={handleCrumb}>{crumb.label}</button>
-                            </li>
+                            <lightning-breadcrumb key={crumb.key} label={crumb.label} data-index={crumb.index}
+                                onclick={handleCrumb}></lightning-breadcrumb>
                         </template>
-                    </ol>
-                </nav>
+                    </lightning-breadcrumbs>
+                </div>
                 <article class="slds-box slds-box_x-small">
                     <template lwc:if={drillTop.isRecord}>
                         <div class="abp-card-head">
-                            <h2 class="slds-text-heading_small">{drillTop.label}</h2>
+                            <h2 class="slds-text-heading_small abp-drill-heading" tabindex="-1">{drillTop.label}</h2>
                             <span class="slds-text-body_small slds-text-color_weak">{drillTop.objectName}</span>
                         </div>
                         <dl class="slds-m-top_x-small">
@@ -79,14 +85,14 @@
                         <template lwc:if={drillTop.hasRelated}>
                             <div class="abp-chips slds-m-top_x-small">
                                 <template for:each={drillTop.related} for:item="r">
-                                    <button key={r.key} class="slds-button slds-button_neutral abp-chip"
-                                        data-object={r.name} onclick={handleRelated}>{r.name}</button>
+                                    <lightning-button key={r.key} class="abp-related" label={r.name} data-object={r.name}
+                                        onclick={handleRelated}></lightning-button>
                                 </template>
                             </div>
                         </template>
                     </template>
                     <template lwc:else>
-                        <div class="slds-text-heading_small">{drillTop.table.title}</div>
+                        <h2 class="slds-text-heading_small abp-drill-heading" tabindex="-1">{drillTop.table.title}</h2>
                         <template lwc:if={drillTop.table.hasRows}>
                             <div class="abp-table-wrap slds-m-top_x-small">
                                 <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped">
@@ -99,10 +105,15 @@
                                     </thead>
                                     <tbody>
                                         <template for:each={drillTop.table.rows} for:item="row">
-                                            <tr key={row.key} class={row.rowClass} data-id={row.id} tabindex={row.tabindex}
-                                                onclick={handleRowClick} onkeydown={handleRowKeydown}>
+                                            <tr key={row.key}>
                                                 <template for:each={row.cells} for:item="cell">
-                                                    <td key={cell.key}><div class="abp-cell">{cell.value}</div></td>
+                                                    <td key={cell.key}>
+                                                        <template lwc:if={cell.isAction}>
+                                                            <button class="slds-button abp-row-button" data-id={row.id}
+                                                                data-focus={cell.focusKey} onclick={handleRowClick}>{cell.actionText}</button>
+                                                        </template>
+                                                        <template lwc:else><div class="abp-cell">{cell.value}</div></template>
+                                                    </td>
                                                 </template>
                                             </tr>
                                         </template>
@@ -112,15 +123,16 @@
                         </template>
                     </template>
                     <div class="slds-m-top_x-small">
-                        <button class="slds-button abp-view-link" onclick={handleViewRecord}>View record</button>
+                        <lightning-button variant="base" class="abp-view-record" label="View record"
+                            onclick={handleViewRecord}></lightning-button>
                     </div>
                 </article>
             </template>
 
-            <template lwc:else>
+            <div class={conversationClass}>
                 <template lwc:if={hasTurns}>
                     <template for:each={turns} for:item="turn">
-                        <section key={turn.key} class="slds-m-vertical_small abp-turn">
+                        <section key={turn.key} data-turn={turn.key} class="slds-m-vertical_small abp-turn">
                             <div class="abp-question slds-text-body_small">{turn.question}</div>
 
                             <!-- Plain text: NOT_FOUND from the resolver, or an Apex error -->
@@ -134,9 +146,7 @@
                                 <div class="abp-candidates slds-m-top_xx-small">
                                     <template for:each={turn.candidates} for:item="c">
                                         <button key={c.key} class="slds-button slds-button_neutral abp-candidate"
-                                            data-id={c.id} data-label={c.label} title={c.detail} onclick={handleCandidate}>
-                                            {c.detail}
-                                        </button>
+                                            data-id={c.id} data-label={c.label} onclick={handleCandidate}>{c.display}</button>
                                     </template>
                                 </div>
                                 <template for:each={turn.notes} for:item="n">
@@ -144,10 +154,10 @@
                                 </template>
                             </template>
 
-                            <!-- Brief: summary card, then one card per section -->
+                            <!-- Brief: summary card, then one accordion section per brief section -->
                             <template lwc:if={turn.isBrief}>
                                 <template lwc:if={turn.showMessage}>
-                                    <div class="abp-pre slds-m-top_xx-small">{turn.message}</div>
+                                    <div class="abp-pre slds-m-top_xx-small" data-error={turn.messageIsError}>{turn.message}</div>
                                 </template>
                                 <template lwc:if={turn.header}>
                                     <article class="slds-box slds-box_x-small slds-m-top_xx-small abp-summary">
@@ -158,25 +168,24 @@
                                 <template lwc:if={turn.ignoredText}>
                                     <div class="slds-text-body_small slds-text-color_weak">{turn.ignoredText}</div>
                                 </template>
-                                <template for:each={turn.sections} for:item="s">
-                                    <details key={s.key} class="slds-box slds-box_x-small slds-m-top_xx-small abp-section">
-                                        <summary class="abp-section-head">
-                                            <span class="abp-section-title">{s.title}</span>
-                                            <span class={s.badgeClass}>{s.status}</span>
-                                            <span class="slds-text-body_small slds-text-color_weak">{s.countText}</span>
-                                        </summary>
-                                        <div class="slds-m-top_xx-small">
-                                            <template for:each={s.lines} for:item="line">
-                                                <div key={line.key} class="abp-pre">
-                                                    <template lwc:if={line.isDrill}>
-                                                        <button class="slds-button abp-line-link" data-id={line.drillId}
-                                                            onclick={handleLineDrill}>{line.text}</button>
-                                                    </template>
-                                                    <template lwc:else>{line.text}</template>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </details>
+                                <template lwc:if={turn.hasSections}>
+                                    <lightning-accordion allow-multiple-sections-open active-section-name={closedSections}
+                                        class="abp-accordion">
+                                        <template for:each={turn.sections} for:item="s">
+                                            <lightning-accordion-section key={s.key} name={s.key} label={s.label} class="abp-section">
+                                                <lightning-badge slot="actions" label={s.status} class={s.badgeClass}></lightning-badge>
+                                                <template for:each={s.lines} for:item="line">
+                                                    <div key={line.key} class="abp-pre">
+                                                        <template lwc:if={line.isDrill}>
+                                                            <button class="slds-button abp-line-link" data-id={line.drillId}
+                                                                data-focus={line.focusKey} onclick={handleLineDrill}>{line.text}</button>
+                                                        </template>
+                                                        <template lwc:else>{line.text}</template>
+                                                    </div>
+                                                </template>
+                                            </lightning-accordion-section>
+                                        </template>
+                                    </lightning-accordion>
                                 </template>
                             </template>
 
@@ -198,10 +207,15 @@
                                                     </thead>
                                                     <tbody>
                                                         <template for:each={t.rows} for:item="row">
-                                                            <tr key={row.key} class={row.rowClass} data-id={row.id} tabindex={row.tabindex}
-                                                                onclick={handleRowClick} onkeydown={handleRowKeydown}>
+                                                            <tr key={row.key}>
                                                                 <template for:each={row.cells} for:item="cell">
-                                                                    <td key={cell.key}><div class="abp-cell">{cell.value}</div></td>
+                                                                    <td key={cell.key}>
+                                                                        <template lwc:if={cell.isAction}>
+                                                                            <button class="slds-button abp-row-button" data-id={row.id}
+                                                                                data-focus={cell.focusKey} onclick={handleRowClick}>{cell.actionText}</button>
+                                                                        </template>
+                                                                        <template lwc:else><div class="abp-cell">{cell.value}</div></template>
+                                                                    </td>
                                                                 </template>
                                                             </tr>
                                                         </template>
@@ -212,21 +226,25 @@
                                     </div>
                                 </template>
                                 <template lwc:if={turn.hasTrail}>
-                                    <details class="slds-m-top_x-small">
-                                        <summary class="slds-text-body_small slds-text-color_weak">{turn.trailLabel}</summary>
-                                        <ol class="slds-m-top_xx-small">
-                                            <template for:each={turn.trail} for:item="q">
-                                                <li key={q.key} class="slds-text-body_small abp-pre">{q.text}</li>
-                                            </template>
-                                        </ol>
-                                    </details>
+                                    <lightning-accordion allow-multiple-sections-open active-section-name={closedSections}
+                                        class="abp-accordion">
+                                        <lightning-accordion-section name="trail" label={turn.trailLabel}>
+                                            <ol>
+                                                <template for:each={turn.trail} for:item="q">
+                                                    <li key={q.key} class="slds-text-body_small abp-pre">{q.text}</li>
+                                                </template>
+                                            </ol>
+                                        </lightning-accordion-section>
+                                    </lightning-accordion>
                                 </template>
-                                <div class="abp-chips slds-m-top_x-small">
-                                    <template for:each={turn.followups} for:item="f">
-                                        <button key={f.key} class="slds-button slds-button_neutral abp-chip"
-                                            data-text={f.text} onclick={handleFollowup} disabled={pending}>{f.text}</button>
-                                    </template>
-                                </div>
+                                <template lwc:if={turn.hasFollowups}>
+                                    <div class="abp-chips slds-m-top_x-small">
+                                        <template for:each={turn.followups} for:item="f">
+                                            <button key={f.key} class="slds-button slds-button_neutral abp-chip"
+                                                data-text={f.text} onclick={handleFollowup}>{f.text}</button>
+                                        </template>
+                                    </div>
+                                </template>
                             </template>
                         </section>
                     </template>
@@ -236,15 +254,17 @@
                         Ask anything about your data, or type /brief and an account name. Cmd/Ctrl-K focuses this box.
                     </p>
                 </template>
-            </template>
+            </div>
         </div>
 
         <!-- Composer -->
         <div class="slds-p-around_x-small abp-composer-row">
-            <textarea class="slds-textarea abp-composer" rows="2" aria-label="Ask or /brief an account"
-                placeholder="Ask anything, or /brief Account name" onkeydown={handleComposerKeydown}
-                onkeyup={handleComposerKeyOther} onkeypress={handleComposerKeyOther} oninput={handleComposerInput}></textarea>
-            <button class="slds-button slds-button_brand slds-m-top_xx-small" onclick={handleSend} disabled={sendDisabled}>Send</button>
+            <lightning-textarea class="abp-composer" label="Ask or /brief an account" variant="label-hidden"
+                placeholder="Ask anything, or /brief Account name" value={draft} onchange={handleComposerChange}
+                onkeydown={handleComposerKeydown} onkeyup={handleComposerKeyOther}
+                onkeypress={handleComposerKeyOther}></lightning-textarea>
+            <lightning-button variant="brand" class="abp-send slds-m-top_xx-small" label="Send" onclick={handleSend}
+                disabled={sendDisabled}></lightning-button>
         </div>
     </div>
 </template>
