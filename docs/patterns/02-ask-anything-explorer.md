@@ -65,7 +65,7 @@ sequenceDiagram
 
 ## See it
 
-![An explorer result in the panel, scrolled to its table: the caption "Opportunity · 5 of 36 rows", the Name, Amount and StageName headers, and the first two rows, Juniper Project B and Fernhollow Project C, each name a link; the question and the one-line answer are above, out of view](../assets/explore-answer.png)
+![An explorer result in the panel, scrolled to its table: the caption "Opportunity · 5 of 36 rows", the Name, Amount and StageName headers, the first row, Juniper Project B, and the top of a second, Fernhollow, each name a link; the question and the one-line answer are above, out of view](../assets/explore-answer.png)
 
 ![An Opportunity result table, then the drill view of one row under a "Conversation" breadcrumb, then the table again](../assets/explore-drill.gif)
 

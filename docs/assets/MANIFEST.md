@@ -16,7 +16,7 @@ script, is the active version (see [org-migration](../research/org-migration.md)
 |---|---|---|---|---|---|
 | `brief-flow.gif` | The panel opens, "/brief Edge Communications" is typed and sent, the brief arrives, and the GIF ends on a settled frame with the headline | [README](../../README.md), [01](../patterns/01-route-gather-reduce.md) | captured | 760x750 | 1.91 MB (12.0 s) |
 | `panel-brief.png` | A finished brief scrolled to its headline sentence and the start of the summary; the sections are below, out of view | [01](../patterns/01-route-gather-reduce.md) | captured | 1520x1500 | 207 KB |
-| `explore-answer.png` | The result table for an org-wide question: its caption, header row and first two rows; the question and one-line answer are above, out of view | [02](../patterns/02-ask-anything-explorer.md) | captured | 1520x1500 | 198 KB |
+| `explore-answer.png` | The result table for an org-wide question: its caption, header row, first row and the top of the second; the question and one-line answer are above, out of view | [02](../patterns/02-ask-anything-explorer.md) | captured | 1520x1500 | 198 KB |
 | `explore-drill.gif` | Click a result row, the drill view opens, the breadcrumb goes back | [02](../patterns/02-ask-anything-explorer.md) | captured | 760x750 | 1011 KB (7.8 s) |
 | `drill-view.png` | The drill view of one record | [02](../patterns/02-ask-anything-explorer.md) | captured | 1520x1500 | 190 KB |
 | `hotkey-open.gif` | Cmd/Ctrl-K opens the panel with the composer focused, a question is typed, and Esc minimizes it | [03](../patterns/03-hotkey-panel.md) | captured | 760x750 | 1.37 MB (8.0 s) |

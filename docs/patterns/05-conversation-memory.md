@@ -60,7 +60,7 @@ sequenceDiagram
 
 ## See it
 
-![The follow-up "In one sentence, what was the main risk in that brief?" answered with "The main risk was two overdue deals, particularly the support plan renewal that is critical to the account relationship.", with a suggested follow-up question under it](../assets/memory-followup.png)
+![The follow-up "In one sentence, what was the main risk in that brief?" answered with "The main risk was two overdue deals, particularly the support plan renewal that is critical to the account relationship.", then a suggested follow-up, "What are the details of the overdue support plan renewal?", and the top edge of a second suggestion](../assets/memory-followup.png)
 
 ## Why you can trust it
 
