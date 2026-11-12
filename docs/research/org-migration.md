@@ -1,7 +1,7 @@
 # Org move: main to agent-probe (OPS-25)
 
-- Date: 2026-11-12, 05:30 to 06:05 UTC. Target org alias `agent-probe`. Three attempts; this page
-  records all three, and attempt 3 is the current state.
+- Date: 2026-11-12, 05:30 to 06:15 UTC. Target org alias `agent-probe`. Four attempts; this page
+  records all four, and attempt 4 is the current state.
 - CLI: `@salesforce/cli` 2.158.7 at `/usr/local/bin/sf` (the spike used 2.157.8).
 - Approval: "Phase 2: migrate to the fresh Developer Edition org that publishes (deploy, publish,
   activate there)" in `docs/plans/gtm-burn-plan.md`, Approvals. The staged order and the rerun
@@ -14,20 +14,24 @@
 - **`main` is deployed to agent-probe, and Account_Brief is published and active there (v1,
   verified).** Both permission sets are deployed and assigned to the running user. The org
   evaluation definition `Account_Brief_Test` exists and points at `subjectVersion v1`.
-- **The seed failed, so the org has no sample data (0 Accounts, 0 Opportunities, verified).** The
-  org has State and Country Picklists turned on, and `data/sample/accounts.json` writes
-  `BillingCountry` as `USA` and `UK`, which that picklist rejects. The fix is a data change in
-  `data/sample/accounts.json` (`USA` to `United States`, `UK` to `United Kingdom`), a forbidden path
-  for this card, so it was not made. See "Seed" below.
+- **The seed failed twice, so the org has no sample data (0 records in all seven seeded objects,
+  verified after attempt 4).**
+  - Attempt 3: the org has State and Country Picklists turned on, and `data/sample/accounts.json`
+    wrote `BillingCountry` as `USA` and `UK`. PR #72 (the brain) changed those to `United States`
+    and `United Kingdom` and the state codes to state names.
+  - Attempt 4, with #72: the country errors are gone. The one error left is
+    `MALFORMED_ID` on `ParentId` for Edge Communications: "Parent Account ID: id value of incorrect
+    type: @AccQuill". Edge Communications points at its parent Quillfeather Group in the same file,
+    and `sf data import tree` does not resolve a reference to a record in the same file. The fix
+    is a split of `data/sample/accounts.json`, a forbidden path for this card. See "Seed" below.
 - **The agent answers in this org (verified, 1 model call).** One `generateAiAgentResponse` turn,
   "Give me a brief on Edge Communications", returned success in 6.2 s with the resolver's reply,
   verbatim: `No account matches "Edge Communications". Try the full name or open the account and
   ask again.` That is the right answer for an org with no accounts.
-- **The 12-case agent test, the second turn of the two-turn check and e2e were not run.** Seven
-  of the 12 cases (1, 2, 5, 6, 7, 8, 9) and all of e2e depend on seeded accounts and would fail on
-  data, not on the agent. Cases 3, 4, 10, 11 and 12 do not need the seed, but a partial run would
-  spend model calls without giving the 12-case result; the whole spec is better run once after the
-  seed lands. 1 model call was made in the org.
+- **The 12-case agent test, the second turn of the two-turn check and e2e were not run.** The
+  brain's attempt-4 order stops at a failed seed. Seven of the 12 cases (1, 2, 5, 6, 7, 8, 9) and
+  all of e2e depend on seeded accounts and would fail on data, not on the agent. 1 model call was
+  made in the org in total (attempt 3's turn 1).
 - The memory test that failed validate 2 was fixed in `main` by PR #70 (the brain): the test's own
   setup `update` is now `Database.update(..., true, AccessLevel.SYSTEM_MODE)`. With that change,
   validate 3 passed 150 of 150 Apex tests (verified).
@@ -42,7 +46,7 @@
 
 ## What was done, in order
 
-Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28.
+Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28, attempt 4 rows 29 to 33.
 
 | # | Step | Command (abridged) | Outcome |
 |---|---|---|---|
@@ -74,6 +78,11 @@ Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28.
 | 26 | Evaluation definition | `sf agent test create --json --spec tests/agent/Account_Brief-testSpec.yaml --api-name Account_Brief_Test --test-runner testing-center -o agent-probe` | Created (legacy `AiEvaluationDefinition`, the CLI default). A read-only retrieve to a scratch folder shows `subjectName Account_Brief`, `subjectType AGENT`, `subjectVersion v1`, the active version (verified). The CLI also wrote the definition into `force-app/main/default/aiEvaluationDefinitions/`; that untracked file was deleted, so the tree stays clean |
 | 27 | Two-turn check, turn 1 only | `sf apex run --file <scratch>/turn1.apex -o agent-probe --json` (`generateAiAgentResponse`, "Give me a brief on Edge Communications") | success, 6.2 s, the resolver's no-match reply (verified). 1 model call. Turn 2 not run |
 | 28 | 12-case run, e2e | not run | No sample data; see below |
+| 29 | Brain's decision: the amend is declined, the data is fixed on `main` instead | PR #72 | `BillingCountry` to `United States` and `United Kingdom`, all twelve `BillingState` codes to state names. Worktree rebased; budget raised to 4 attempts (PR #73). No redeploy, republish or reactivation |
+| 30 | Starting state | `SELECT COUNT() FROM Account` | 0 (verified) |
+| 31 | Seed, attempt 4 | `SF_TARGET_ORG=agent-probe bash scripts/seed-sample-data.sh` (06:09:32 to 06:09:34Z) | **Failed:** "Data Import failed", 1 error: `MALFORMED_ID` on `ParentId` for reference `AccEdge`. No country or state errors (verified). Not retried |
+| 32 | Counts | `SELECT COUNT() FROM <object>` for Account, Contact, Opportunity, OpportunityContactRole, Task, Event and Case | 0 each (verified) |
+| 33 | 12-case run, two-turn check, e2e | not run | Stopped by the attempt-4 rule for a failed seed |
 
 ## Deploy and test totals
 
@@ -95,6 +104,36 @@ Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28.
 
 ## Seed
 
+### Attempt 4 (with PR #72)
+
+`SF_TARGET_ORG=agent-probe bash scripts/seed-sample-data.sh` ran once, after a read-only check
+that the org had 0 Accounts. It failed on the Account file and wrote nothing (verified: 0 records
+in Account, Contact, Opportunity, OpportunityContactRole, Task, Event and Case afterwards).
+
+- The only error: `MALFORMED_ID` on `ParentId` for reference `AccEdge` (Edge Communications):
+  "Parent Account ID: id value of incorrect type: @AccQuill" (verified). The country and state
+  errors are gone, so #72 fixed those.
+- Cause: `AccEdge` has `"ParentId": "@AccQuill"`, and `AccQuill` (Quillfeather Group) is in the
+  same file, `accounts.json`. `sf data import tree --help` says records with lookups to records in
+  another file must be listed after that file. A reference to a record in the same file is not
+  resolved; it is sent as the literal text `@AccQuill`. So the attempt-3 `ParentId` error was
+  this, not a knock-on error from `AccQuill` failing, as attempt 3 guessed (the guess was marked
+  unproven).
+- Why the unit tests pass: `tests/test_sample_data.py`,
+  `test_plan_parses_and_every_reference_resolves`, accepts a reference to any record defined
+  earlier in the record order, including one earlier in the same file. The import only accepts
+  one saved by an earlier plan entry.
+- Likely fix (unproven: every file after `accounts.json` has never run in this org): move the
+  `AccQuill` record into its own file, for example `data/sample/account-parents.json`, and list it
+  in `data/sample/sample-data-plan.json` as an `Account` entry with `saveRefs` true, before the
+  `accounts.json` entry. Nothing in `tests/`, `e2e/` or `force-app` uses the parent link, so
+  dropping `ParentId` from `AccEdge` would also work, but it loses the parent in the sample.
+- The test change that would catch this, for whoever owns `tests/` (not made here): in that test,
+  check each `@reference` against the references saved by earlier plan entries only, not against
+  earlier records in the same file.
+
+### Attempt 3 (before PR #72)
+
 `SF_TARGET_ORG=agent-probe bash scripts/seed-sample-data.sh` ran once. The tree import failed on
 the Account file and wrote nothing (verified: 0 Accounts and 0 Opportunities afterwards). The
 errors, per record reference:
@@ -104,8 +143,8 @@ errors, per record reference:
   valid countries.: Billing Country". 11 of them carry `USA` (`AccQuill`, `AccUO1`, `AccF0` to
   `AccF8`) and 1 carries `UK` (`AccUO3`). `Singapore` was accepted (verified).
 - 1 record, `MALFORMED_ID` on `ParentId`: "Parent Account ID: id value of incorrect type:
-  @AccQuill" (`AccEdge`). `AccEdge`'s parent is `AccQuill`, one of the failed rows, so this is
-  probably a knock-on error that goes away once `AccQuill` loads (unproven).
+  @AccQuill" (`AccEdge`). Attempt 3 guessed this was a knock-on error from `AccQuill` failing;
+  attempt 4 showed it is not (see above).
 
 The org has State and Country Picklists turned on. `Account.BillingCountry` accepts the picklist
 labels: `United States` and `United Kingdom` are valid, and every `BillingStateCode` the sample
@@ -126,8 +165,9 @@ file, so the other seed files never ran):
   asserts `USA`, `UK` or a state code (verified by search). `tests/test_sample_data.py` checks
   names and cities only.
 
-`data/**` is forbidden for this card, so the change is an amend for the brain. The seed was not
-retried with edited copies, because the card allows only the seed as written.
+`data/**` is forbidden for this card, so the change was an amend for the brain, who made it on
+`main` as PR #72. The seed was not retried with edited copies, because the card allows only the
+seed as written.
 
 ## Agent versions
 
@@ -146,7 +186,7 @@ BotDefinition had 0 rows before the publish.
 
 | Case | Utterance (short) | Result |
 |---|---|---|
-| 1 to 12 | `tests/agent/Account_Brief-testSpec.yaml` | not run: no sample data (the seed failed) |
+| 1 to 12 | `tests/agent/Account_Brief-testSpec.yaml` | not run in attempt 3 or 4: no sample data (the seed failed both times) |
 
 - The evaluation definition `Account_Brief_Test` is in the org, from the spec unchanged, with
   `subjectVersion v1`, the active version (verified). `sf agent test run --api-name
@@ -168,7 +208,7 @@ brief on Edge Communications", then a second turn on the returned session (`docs
 
 ## e2e
 
-Not run. Global setup needs the account Edge Communications.
+Not run in attempt 3 or 4. Global setup needs the account Edge Communications.
 
 ## Stand the baseline up in a fresh org
 
@@ -185,9 +225,10 @@ Not run. Global setup needs the account Edge Communications.
    This needs PR #70 in the source.
 4. `sf org assign permset --name Account_Brief_Data_Access -o <alias> --json`.
 5. Seed: `SF_TARGET_ORG=<alias> bash scripts/seed-sample-data.sh`, then count each object
-   read-only. **Blocked here in agent-probe** (State and Country Picklists); it needs the
-   `data/sample/accounts.json` change under "Seed" first. The steps after this one do not depend
-   on the data, so they ran.
+   read-only. **Blocked here in agent-probe.** PR #72 cleared the State and Country Picklist
+   errors; the self-reference in `accounts.json` still needs the split under "Seed". The steps
+   after this one do not depend on the data, so they ran in attempt 3. With a fixed seed, it only
+   has to land before step 9's test run, not before the publish.
 6. `bash scripts/agent-check.sh`, then publish once:
    `sf agent publish authoring-bundle --api-name Account_Brief -o <alias> --skip-retrieve --json`.
    Then `git checkout -- force-app/main/default/aiAuthoringBundles/Account_Brief` and `git status`.
@@ -217,6 +258,9 @@ the two-turn check and `npm run test:e2e`.
   `agent-metadata-and-lifecycle.md`).
 
 ## Gate results
+
+Attempt 4, after the failed seed, with the same results as attempt 3 (verified): 72 unit tests
+OK, `validate-org.sh` pass (60 components, 150 tests), `agent-check.sh` pass.
 
 Attempt 3, after the Agent Access deploy (verified):
 
