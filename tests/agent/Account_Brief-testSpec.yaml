@@ -1,5 +1,14 @@
-# The account name "Edge Communications" (used in three cases) must exist in the target org and have
+# The account name "Edge Communications" (used in four cases) must exist in the target org and have
 # opportunities. It is a standard Developer Edition sample account. Change it if the org lacks it.
+# The AMBIGUOUS case uses "United Oil", which must match more than one account by name and none exactly.
+# A read-only query of the experimental org (2026-11-11) found three: "United Oil & Gas Corp." (New York),
+# "United Oil & Gas, Singapore" (Singapore) and "United Oil & Gas, UK" (no city). These also must exist in
+# the target org.
+# expectedActions uses superset matching: an extra action never fails it, so cases that must call nothing
+# else say so in expectedOutcome, which the LLM judge checks.
+# conversationHistory replays text only and does not set agent variables, so the two-turn case starts with no
+# resolved account; it may resolve the account again before get_brief. A live two-turn preview checks the
+# stored-Id path.
 name: Account_Brief
 description: Account Brief agent. Resolve-then-brief gate, verbatim relay, open data exploration and an off-topic refusal.
 subjectType: AGENT
@@ -10,7 +19,7 @@ testCases:
     expectedActions:
       - resolve_account
       - get_brief
-    expectedOutcome: "The agent resolves the account first, then returns the account brief for it."
+    expectedOutcome: "The agent resolves the account first, then returns the account brief for it in the same reply. The reply is not just \"Resolved: Edge Communications\"."
   - utterance: "What is going on with Edge Communications, and which deals are slipping?"
     expectedTopic: account_brief
     expectedActions:
@@ -21,18 +30,34 @@ testCases:
     expectedTopic: account_brief
     expectedActions:
       - resolve_account
-    expectedOutcome: "The agent says no account matches the name and does not produce a brief."
+    expectedOutcome: "The agent says no account matches the name and does not produce a brief. It calls no action other than resolve_account."
   - utterance: "Brief me on 001000000000000AAA"
     expectedTopic: account_brief
     expectedActions:
       - resolve_account
-    expectedOutcome: "The agent resolves the pasted Id through resolve_account, then returns a brief or says no account matches. It does not invent a brief."
+    expectedOutcome: "The agent resolves the pasted Id through resolve_account and replies that no account matches \"001000000000000AAA\". It does not produce or invent a brief, and calls no action other than resolve_account."
+  - utterance: "Brief me on United Oil"
+    expectedTopic: account_brief
+    expectedActions:
+      - resolve_account
+    expectedOutcome: "The agent replies with the resolver's candidate list: a line saying several accounts match \"United Oil\" and asking which one, then United Oil & Gas Corp., United Oil & Gas, Singapore and United Oil & Gas, UK, each with its city and Id. It does not produce a brief and calls no action other than resolve_account."
   - utterance: "Just the open deals for Edge Communications"
     expectedTopic: account_brief
     expectedActions:
       - resolve_account
       - get_brief
     expectedOutcome: "The agent resolves the account, then returns a brief limited to open deals."
+  - utterance: "What about their open cases?"
+    expectedTopic: account_brief
+    expectedActions:
+      - get_brief
+    expectedOutcome: "The agent answers about the open cases of Edge Communications, the account briefed in the previous turn, from a get_brief call in this turn. It does not ask which account, does not run the data explorer, and does not answer from the earlier reply."
+    conversationHistory:
+      - role: user
+        message: "Give me a brief on Edge Communications"
+      - role: agent
+        topic: account_brief
+        message: "Edge Communications (Austin)\nOpen deals, cases, contacts and recent activity for Edge Communications follow."
   - utterance: "How many open opportunities are there?"
     expectedTopic: explore
     expectedActions:
@@ -45,5 +70,4 @@ testCases:
     expectedOutcome: "The agent relays a list of the largest open opportunities from the data explorer."
   - utterance: "What is the weather in Paris today?"
     expectedTopic: topic_selector
-    expectedActions: []
-    expectedOutcome: "The agent declines with a single line saying it briefs accounts and answers questions about CRM data. It calls no action."
+    expectedOutcome: "The whole reply is exactly this one line: \"I can brief you on an account or answer questions about your CRM data.\" The agent gives no weather information, runs no brief and no data lookup, and adds nothing before or after that line."
