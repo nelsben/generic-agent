@@ -61,8 +61,8 @@ not changed. A non-admin run is the open item.
   did not change; the brief, explore and drill paths did not change. BE-19's unfinished work had
   added a visible "Account Brief agent" source label under agent replies (`abp-agent-source`,
   with an `isAgent` flag on each turn). This change removes it again to keep the touch light, so
-  compared with main the panel's visible markup is unchanged: `git diff` against main shows no
-  `abp-agent-source` line.
+  compared with main the only visible markup change is `disabled={sendDisabled}` on the "Ask the agent"
+  button: `git diff` against main shows no `abp-agent-source` line.
 
 ## Deploy steps, in order
 
