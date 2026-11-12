@@ -2,8 +2,10 @@
 private class ExploreActionTest {
     private class Script implements AgentLlm.Provider {
         List<String> replies = new List<String>();
+        List<String> prompts = new List<String>();
         Integer calls = 0;
         public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
+            prompts.add(userPrompt);
             if (calls >= replies.size()) {
                 throw new AgentLlm.LlmException('model down');
             }
@@ -11,10 +13,17 @@ private class ExploreActionTest {
         }
     }
 
-    private static void script(List<String> replies) {
+    private static Script script(List<String> replies) {
         Script s = new Script();
         s.replies = replies;
         AgentLlm.stub = s;
+        return s;
+    }
+
+    /** The first dotted field path (Account.Name) in the text, or null. */
+    private static String dottedPath(String text) {
+        Matcher m = Pattern.compile('[A-Za-z_]+\\.[A-Za-z_]+').matcher(text);
+        return m.find() ? m.group() : null;
     }
 
     private static ExploreAction.Request request(String question, Id contextRecordId) {
@@ -107,5 +116,26 @@ private class ExploreActionTest {
         List<ExploreAction.Response> out = ExploreAction.explore(new List<ExploreAction.Request>{ null });
         Assert.areEqual(1, out.size(), 'a null request still gets its own response');
         Assert.areEqual('EMPTY', out[0].status);
+    }
+
+    @IsTest
+    static void parentFieldsGetPlainLabelsInTheAnswerAndTheModelPreview() {
+        Account a = new Account(Name = 'Label Acme', Industry = 'Technology');
+        insert a;
+        insert new Opportunity(AccountId = a.Id, Name = 'Label Deal', StageName = 'Prospecting', Amount = 500, CloseDate = Date.today());
+        Script s = script(new List<String>{
+            '{"action":"query","plan":{"object":"Opportunity","fields":["Name","Account.Name","Owner.Name"]}}',
+            '{"action":"answer","text":"One deal.","followups":[]}'
+        });
+
+        List<ExploreAction.Response> out = ExploreAction.explore(new List<ExploreAction.Request>{ request('Deals with owners?', null) });
+
+        Assert.areEqual('OK', out[0].status, out[0].answer);
+        Assert.isNull(dottedPath(out[0].answer), 'dotted path in the answer: ' + out[0].answer);
+        Assert.isTrue(out[0].answer.contains('Name | Account | Owner\nLabel Deal | Label Acme | '), out[0].answer);
+        // The rows the model sees come back under the same plain labels.
+        String seen = s.prompts[1].substringAfter('RESULT Opportunity');
+        Assert.isNull(dottedPath(seen), 'dotted path in the model preview: ' + seen);
+        Assert.isTrue(seen.contains('Name | Account | Owner'), seen);
     }
 }

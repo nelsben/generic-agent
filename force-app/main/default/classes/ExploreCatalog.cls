@@ -74,6 +74,8 @@ public with sharing class ExploreCatalog {
     public class Field {
         public String path;
         public String type;
+        /** Plain column label for tables and the model: no dots, e.g. Account, Owner, Account Industry. */
+        public String label;
         public String kind;
         public Boolean filterable = false;
         public Boolean sortable = false;
@@ -186,6 +188,7 @@ public with sharing class ExploreCatalog {
         }
         Field f = fromDescribe(fd);
         f.path = fd.getName();
+        f.label = plainLabel(fd.getLabel(), fd.getName());
         return f;
     }
 
@@ -211,12 +214,33 @@ public with sharing class ExploreCatalog {
             Schema.DescribeFieldResult fd = sf.getDescribe();
             Field f = fromDescribe(fd);
             f.path = lookup.getRelationshipName() + '.' + fd.getName();
+            f.label = parentLabel(lookup.getLabel(), lookup.getRelationshipName(), fd.getLabel(), fd.getName());
             f.filterable = f.filterable && lookup.isFilterable();
             f.sortable = f.sortable && lookup.isSortable();
             f.groupable = f.groupable && lookup.isGroupable();
             return f;
         }
         return null;
+    }
+
+    /** A label with no dot (a dotted name reads as a web address downstream), or fallback when it is blank. */
+    @TestVisible
+    private static String plainLabel(String label, String fallback) {
+        String clean = label == null ? '' : label.replace('.', ' ').replaceAll('\\s+', ' ').trim();
+        return clean == '' ? fallback : clean;
+    }
+
+    /**
+     * The label of a parent field: the parent's label (the lookup's label without its trailing ' ID'),
+     * plus the field label unless the field is Name. Account.Name is Account, Account.Industry is Account Industry.
+     */
+    @TestVisible
+    private static String parentLabel(String lookupLabel, String relationship, String fieldLabel, String fieldName) {
+        String parent = plainLabel(lookupLabel, relationship);
+        if (parent.endsWith(' ID') && parent.length() > 3) {
+            parent = parent.left(parent.length() - 3);
+        }
+        return fieldName == 'Name' ? parent : parent + ' ' + plainLabel(fieldLabel, fieldName);
     }
 
     private static Field fromDescribe(Schema.DescribeFieldResult fd) {

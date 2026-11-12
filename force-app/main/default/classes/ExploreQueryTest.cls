@@ -261,4 +261,23 @@ private class ExploreQueryTest {
                 + '{"field":"CreatedDate","op":"<=","value":"2026-01-05"},{"field":"CreatedDate","op":"!=","value":"2026-01-04"}]}').shown);
         }
     }
+
+    @IsTest
+    static void labelsAreDotFreeAndUniqueWhilePathsStayTheKeys() {
+        ExploreQuery.ResultSet rs = run('{"object":"Opportunity","fields":["Name","Account.Name","Owner.Name"]}');
+
+        Assert.areEqual(new List<String>{ 'Name', 'Account.Name', 'Owner.Name' }, rs.columns);
+        Assert.areEqual(new List<String>{ 'Name', 'Account', 'Owner' }, rs.labels);
+        Assert.isTrue(rs.rows[0].containsKey('Account.Name'), 'rows stay keyed by field path');
+
+        ExploreQuery.ResultSet grouped = run('{"object":"Opportunity","fields":["Owner.Name"],"groupBy":["Owner.Name"],'
+            + '"aggregates":[{"fn":"COUNT"},{"fn":"SUM","field":"Amount"},{"fn":"AVG","field":"Amount"}]}');
+        Assert.areEqual(new List<String>{ 'Owner', 'Count', 'Sum of Amount', 'Average of Amount' }, grouped.labels);
+        for (String l : grouped.labels) {
+            Assert.isFalse(l.contains('.') || l.contains('('), l);
+        }
+
+        Assert.areEqual(new List<String>{ 'Owner', 'owner 2', 'Owner 3', 'Name' },
+            ExploreQuery.uniqueLabels(new List<String>{ 'Owner', 'owner', 'Owner', 'Name' }));
+    }
 }
