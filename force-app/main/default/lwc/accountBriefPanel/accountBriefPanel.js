@@ -71,10 +71,20 @@ function idInLine(line) {
     return m ? m[2] : null;
 }
 
-/** A brief line as the rep reads it: the record Id and the ' — ' before it removed, indent kept. */
-function withoutId(line, id) {
-    const shown = line.replace(id, '').replace(/[\s—]+$/, '');
-    return shown.trim() ? shown : line;
+// The record Id Apex puts at the end of a brief line that describes one record (AccountBriefSection.withId).
+const RECORD_ID_AT_END = / — ([0-9][0-9A-Za-z]{17})$/;
+
+/**
+ * A brief section line as the rep reads it, and the record it drills to. A trailing ' — <Id>' is
+ * the line's record: it is cut from the text, indent kept, and nothing else in the line is touched.
+ * Without one, any Id in the line still drills and the text stays whole.
+ */
+function briefLine(line) {
+    const end = RECORD_ID_AT_END.exec(line);
+    if (end && line.slice(0, end.index).trim()) {
+        return { id: end[1], text: line.slice(0, end.index) };
+    }
+    return { id: idInLine(line), text: line };
 }
 
 function isMac() {
@@ -626,8 +636,7 @@ export default class AccountBriefPanel extends NavigationMixin(LightningElement)
                 badgeClass: BADGE_CLASS[s.status] || '',
                 lines: (s.body || '').split('\n').map((line, j) => {
                     // A line that ends with a record Id drills to it; the Id stays in data-id, not the text.
-                    const id = idInLine(line);
-                    const text = id ? withoutId(line, id) : line;
+                    const { id, text } = briefLine(line);
                     return { key: 'l' + j, text: text === '' ? ' ' : text, drillId: id, isDrill: !!id, focusKey: key + '-' + sectionKey + '-l' + j };
                 })
             };
