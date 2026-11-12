@@ -107,6 +107,14 @@ An alternative that keeps one deploy, also unproven: move the agent access grant
 `force-app`'s routine deploy (for example into its own package directory deployed after publish).
 That is a source change and belongs to its own card.
 
+## Gate results at this commit
+
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests`: 72 tests, OK.
+- `bash scripts/agent-check.sh`: pass. Local compile clean (0 warnings), and
+  `sf agent validate authoring-bundle` passed on agent-probe even though none of the Apex its
+  actions call is in the org yet (verified).
+- `bash scripts/validate-org.sh`: fail, with the same component error as step 8.
+
 ## Cleanup
 
 Nothing to clean up in the org. The only lasting local change is the project's default org
