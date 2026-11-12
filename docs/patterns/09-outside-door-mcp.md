@@ -72,11 +72,11 @@ This pattern has no screen yet. The diagram above is the design.
 
 ## Why you can trust it
 
-- **The listing and add steps were probed live.** A custom server was created through the API.
-  The org listed all three action classes as `APEX_ACTION` sources, and the resolver and brief
-  actions were added as tools. The Employee agent was also listed as `PLATFORM_AGENT` and added,
-  as `ask_account_brief`. The server was never activated and was deleted at the end
-  ([salesforce-mcp.md](../research/salesforce-mcp.md)).
+- **The setup ran live, up to the sign-in.** A first probe in the earlier org created a server,
+  added the tools and deleted it ([salesforce-mcp.md](../research/salesforce-mcp.md)). In
+  agent-probe the server and its client app were then built for real: the client app deployed
+  from source, the three tools were added and described, the server was activated, and a call
+  without a token was refused ([runbook](../research/mcp-door-runbook.md)).
 - **The actions behind the door are tested.** They are the same classes the panel and agent use.
   See [01](01-route-gather-reduce.md) and [07](07-trust-access-and-failure.md).
 - **Access follows the rep.** Salesforce documents that every hosted MCP tool call carries the
@@ -112,7 +112,8 @@ and the API steps that build the server where that deploy is not enough.
 - Whether a called action also needs class access through a permission set is not confirmed.
 - The server's metadata is in `mcp-door/`. Whether deploying it creates the server in a fresh
   org is not yet tested, and activation is not in source.
-- Org-wide questions (`ExploreAction`) and the agent as a tool are not part of the first step.
+- Org-wide questions through `ExploreAction` are not a tool. The agent tool, `ask_account_brief`,
+  can answer them, but no call has been made yet.
 - All three re-reviews list a real MCP tool call as not yet made
   ([apex-review-2.md](../reviews/apex-review-2.md), [lwc-review-2.md](../reviews/lwc-review-2.md),
   [agent-review-2.md](../reviews/agent-review-2.md)).
