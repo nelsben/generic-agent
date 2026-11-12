@@ -147,6 +147,19 @@ private class DataExplorerTest {
     }
 
     @IsTest
+    static void runningOutOfTurnsAfterAnEmptyLastQuerySaysSo() {
+        String none = query('{"object":"Opportunity","fields":["Name"],"filters":[{"field":"Name","op":"=","value":"No such deal"}]}');
+        script(new List<String>{ query(OPPS_OF_ACME), none, none, none, none });
+
+        DataExplorer.Result r = DataExplorer.explore('Keep looking', null, null);
+
+        Assert.areEqual(DataExplorer.OK, r.status, 'the first query found rows');
+        Assert.areEqual(DataExplorer.TURN_CAP_NO_ROWS_TEXT, r.answer, 'no promise of a table that is not shown');
+        Assert.areEqual(4, r.resultSets.size());
+        Assert.areEqual(0, r.resultSets[3].shown);
+    }
+
+    @IsTest
     static void runningOutOfTurnsWithNoResultsIsAnError() {
         Script s = script(new List<String>{ 'no json', 'no json', 'no json', 'no json', 'no json' });
 

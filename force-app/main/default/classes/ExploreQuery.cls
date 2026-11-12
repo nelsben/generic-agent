@@ -14,8 +14,9 @@
  * aggregated record counts toward the 50,000 query-row limit, whose LimitException cannot be caught.
  * So an aggregate first runs a COUNT() with LIMIT rowCap + 1, and when more than rowCap records match
  * it throws RowCapException instead of running. A COUNT() reads one query row however many records
- * match (ExploreQueryTest measures it), so the pre-count is cheap and the plain total COUNT() needs no
- * cap. One question runs at most DataExplorer.MAX_QUERIES (4) queries, each reading at most
+ * match, and a COUNT(Id) aggregate reads one row per group it returns (ExploreQueryTest measures
+ * both). So the pre-count is cheap, the plain total COUNT() needs no cap, and an aggregate whose only
+ * functions are COUNT(Id) skips the pre-count: its groups are bounded by the LIMIT. One question runs at most DataExplorer.MAX_QUERIES (4) queries, each reading at most
  * ROW_CAP + 1 rows, so a whole question stays under 50,000 rows; the cap also shrinks to what is left
  * of the transaction's row limit.
  */
@@ -56,6 +57,8 @@ public with sharing class ExploreQuery {
         /** Aggregate queries: the alias each column is read from. */
         List<String> aliases = new List<String>();
         Boolean aggregate = false;
+        /** Every aggregate is COUNT(Id): reads one query row per group, so it needs no row cap. */
+        Boolean countOnly = false;
         Integer rowLimit;
         String filters;
     }
@@ -67,7 +70,7 @@ public with sharing class ExploreQuery {
             throw new ExplorePlan.PlanException(String.join(r.errors, ' '));
         }
         Built b = build(r);
-        if (b.aggregate) {
+        if (b.aggregate && !b.countOnly) {
             Integer cap = effectiveCap();
             if (Database.countQueryWithBinds(b.countSoql + ' LIMIT ' + (cap + 1), b.binds, AccessLevel.USER_MODE) > cap) {
                 throw new RowCapException('That would read more than ' + cap + ' rows. Add filters to narrow it.');
@@ -120,7 +123,9 @@ public with sharing class ExploreQuery {
                 b.columns.add(r.groupBy[i].path);
                 b.aliases.add('g' + i);
             }
+            b.countOnly = !r.aggregates.isEmpty();
             for (Integer i = 0; i < r.aggregates.size(); i++) {
+                b.countOnly = b.countOnly && r.aggregates[i].expr == 'COUNT(Id)';
                 selects.add(r.aggregates[i].expr + ' a' + i);
                 b.columns.add(r.aggregates[i].expr);
                 b.aliases.add('a' + i);

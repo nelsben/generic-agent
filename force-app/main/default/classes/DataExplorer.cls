@@ -10,7 +10,8 @@
  * PREVIEW_ROWS rows of each result plus the total. All wording for the model lives in the prompt file.
  * An aggregate over more than the ExploreQuery row cap is refused and fed back as INVALID too.
  * When the turns run out with result sets in hand, they are kept: the status is OK (EMPTY when no
- * set has rows) and the answer is TURN_CAP_TEXT, so the caller still shows the last result. Turns
+ * set has rows) and the answer is TURN_CAP_TEXT, so the caller still shows the last result, or
+ * TURN_CAP_NO_ROWS_TEXT when that last result has no rows (callers table only the last set). Turns
  * that run out with nothing read, and any model failure, are ERROR.
  *
  * drill() skips the model: the record's catalog fields, or its child rows in one catalog object with
@@ -27,6 +28,8 @@ public with sharing class DataExplorer {
     @TestVisible private static final String NO_QUESTION_TEXT = 'Ask a question about your data.';
     @TestVisible private static final String TURN_CAP_TEXT =
         'I ran out of steps before I could write a full answer. Here is the last result I found; ask a narrower question for more.';
+    @TestVisible private static final String TURN_CAP_NO_ROWS_TEXT =
+        'I ran out of steps before I could write a full answer, and my last query found no rows. Ask a narrower question.';
     @TestVisible private static final Integer MAX_TURNS = 5;
     @TestVisible private static final Integer MAX_QUERIES = 4;
     @TestVisible private static final Integer PREVIEW_ROWS = 20;
@@ -93,8 +96,9 @@ public with sharing class DataExplorer {
                     + '\n[' + turn + '] ' + outcome);
             }
             // The turns ran out without an answer. Keep what was read rather than throw it away.
-            if (!run.result.resultSets.isEmpty()) {
-                answer(run.result, TURN_CAP_TEXT, null);
+            List<ExploreQuery.ResultSet> sets = run.result.resultSets;
+            if (!sets.isEmpty()) {
+                answer(run.result, sets[sets.size() - 1].shown > 0 ? TURN_CAP_TEXT : TURN_CAP_NO_ROWS_TEXT, null);
                 return run.result;
             }
         } catch (Exception e) {
