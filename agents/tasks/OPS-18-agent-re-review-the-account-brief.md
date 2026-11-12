@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: architecture judgement across security, limits and adoption; cited as GTM evidence
 status: blocked
-blocked_by: [FE-6, BE-14]
+blocked_by: [FE-6]
 scope: [docs/reviews/agent-review-2.md]
 forbid: [force-app/**, tests/**, scripts/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
 red_test: none
