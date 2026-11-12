@@ -4,8 +4,7 @@ title: e2e passes 8 of 8 in agent-probe: opening the account page closes the Gui
 domain: frontend
 tier: standard
 tier_reason: one small helper change, found by reading live markup in one org
-status: blocked
-blocked_by: [OPS-25]
+status: queued
 fixes: []
 scope: [e2e/support/panel.js, e2e/README.md, docs/research/org-migration.md]
 forbid: [force-app/**, tests/**, scripts/**, data/**, e2e/panel.spec.js, e2e/global-setup.js, e2e/capture/**, docs/assets/**, README.md, docs/patterns/**, agents/**, docs/plans/**, .chassis-delegation.json, reference/**]
