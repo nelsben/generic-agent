@@ -157,9 +157,23 @@ public with sharing class ExploreQuery {
                 conditions.add(f.op == '='
                     ? '(' + p + ' >= :b' + i + ' AND ' + p + ' < :e' + i + ')'
                     : '(' + p + ' < :b' + i + ' OR ' + p + ' >= :e' + i + ' OR ' + p + ' = null)');
+            } else if (f.bindValueEnds != null) {
+                // IN on a Datetime field with date-only items: each one is a whole-day range.
+                List<Object> starts = (List<Object>) f.bindValue;
+                List<String> parts = new List<String>();
+                for (Integer j = 0; j < starts.size(); j++) {
+                    b.binds.put('b' + i + '_' + j, starts[j]);
+                    if (f.bindValueEnds[j] == null) {
+                        parts.add(f.field.path + ' = :b' + i + '_' + j);
+                    } else {
+                        b.binds.put('e' + i + '_' + j, f.bindValueEnds[j]);
+                        parts.add('(' + f.field.path + ' >= :b' + i + '_' + j + ' AND ' + f.field.path + ' < :e' + i + '_' + j + ')');
+                    }
+                }
+                conditions.add('(' + String.join(parts, ' OR ') + ')');
             } else {
                 b.binds.put('b' + i, f.bindValue);
-                conditions.add(f.field.path + ' ' + f.op + ' :b' + i);
+                conditions.add(f.field.path + ' ' + (f.bindOp != null ? f.bindOp : f.op) + ' :b' + i);
             }
             readable.add(f.display);
         }

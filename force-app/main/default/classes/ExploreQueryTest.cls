@@ -228,4 +228,37 @@ private class ExploreQueryTest {
             Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"<","value":"2026-01-06"}]}').shown);
         }
     }
+
+    @IsTest
+    static void rangeOperatorsAndInCoverTheWholeLocalDayForADateOnlyValue() {
+        System.runAs(kiritimatiUser()) {
+            Account acct = new Account(Name = 'Zone Account');
+            insert acct;
+            // Noon on 2026-01-05 where the user is (UTC+14): well inside that local day, away from both midnights.
+            Test.setCreatedDate(acct.Id, Datetime.newInstance(Date.newInstance(2026, 1, 5), Time.newInstance(12, 0, 0, 0)));
+            String base = '{"object":"Account","fields":["Name"],"filters":[{"field":"Name","op":"=","value":"Zone Account"},';
+
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":">","value":"2026-01-05"}]}').shown, '> the day excludes the day itself');
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":">","value":"2026-01-04"}]}').shown, '> the day before includes the day');
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":">=","value":"2026-01-05"}]}').shown, '>= starts at local midnight');
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":">=","value":"2026-01-06"}]}').shown);
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":"<","value":"2026-01-05"}]}').shown, '< stops at local midnight');
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"<","value":"2026-01-06"}]}').shown);
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"<=","value":"2026-01-05"}]}').shown, '<= includes the whole day');
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":"<=","value":"2026-01-04"}]}').shown);
+
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"IN","value":["2026-01-05"]}]}').shown, 'IN matches any time in the day');
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"IN","value":["2026-01-03","2026-01-05"]}]}').shown);
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":"IN","value":["2026-01-03","2026-01-04"]}]}').shown);
+
+            // Several date filters in one query keep distinct bind names.
+            ExploreQuery.ResultSet both = run(base + '{"field":"CreatedDate","op":">=","value":"2026-01-05"},'
+                + '{"field":"CreatedDate","op":"<=","value":"2026-01-05"}]}');
+            Assert.areEqual(1, both.shown, 'through the same day, both ends');
+            Assert.areEqual(0, run(base + '{"field":"CreatedDate","op":">","value":"2026-01-04"},'
+                + '{"field":"CreatedDate","op":"<=","value":"2026-01-04"}]}').shown);
+            Assert.areEqual(1, run(base + '{"field":"CreatedDate","op":"IN","value":["2026-01-05","2026-01-07"]},'
+                + '{"field":"CreatedDate","op":"<=","value":"2026-01-05"},{"field":"CreatedDate","op":"!=","value":"2026-01-04"}]}').shown);
+        }
+    }
 }
