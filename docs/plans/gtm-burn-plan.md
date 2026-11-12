@@ -36,7 +36,7 @@ approved skips it and reports. Only Ben changes a line; the brain records his an
 |---|---|
 | Real deploy of `main` to `experimental` (never the agent bundle) | approved (Ben, 2026-11-11, answered in chat) |
 | CLI publish of Account_Brief version 2; Studio "Commit Version" as the fallback | approved (Ben, 2026-11-11, answered in chat) |
-| A second CLI publish of a comment-only change as an inactive version 3 (OPS-21 step 3) | pending: not asked; skip it |
+| A second CLI publish of a comment-only change as an inactive version 3 (OPS-21 step 3) | approved (Ben, 2026-11-11, answered in chat: prove we can iterate on agents from the CLI) |
 | Create a throwaway agent `Publish_Probe` if the CLI publish fails, and delete it afterwards | approved (Ben, 2026-11-11, answered in chat) |
 | Activate version 2 once the 12-case test passes | approved (Ben, 2026-11-11, answered in chat, on the condition that version 1 is reactivated if the check after activation fails) |
 | Org setup for the MCP server and its External Client App (stretch), up to the sign-in | approved (Ben, 2026-11-11, answered in chat) |
@@ -72,8 +72,11 @@ so a deploy never lands during a capture.
 1. Dispatch FE-6 and BE-14 together.
 2. Dispatch OPS-19 as soon as a slot is free (no blocker). OPS-16, OPS-17, OPS-18 release
    when FE-6 and BE-14 merge, so they review the fixed code.
-3. When FE-6 and BE-14 are both merged, dispatch OPS-20 ahead of any remaining review card.
-4. OPS-21 after OPS-20. FE-7 after OPS-20 and OPS-19: panel assets first; its two agent slots
+3. OPS-21 (the publish spike) goes first in Lane B, on the next free frontier slot, while
+   Ben is awake to help (his call, 2026-11-11). OPS-20 follows it; both hold `org-live`, so
+   they run one at a time. When FE-6 is merged and OPS-21 has handed back, dispatch OPS-20
+   ahead of any remaining review card.
+4. After OPS-20. FE-7 after OPS-20 and OPS-19: panel assets first; its two agent slots
    need OPS-21, so resume FE-7 for them after OPS-21 merges. OPS-22 last.
 5. If OPS-20's deploy succeeded but e2e is below 8 of 8, merge OPS-20 anyway, cut a frontier
    fix card for the failing specs (scope: the panel, its controller, `e2e/panel.spec.js`),
