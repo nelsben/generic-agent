@@ -4,8 +4,7 @@ title: Migration prep: the target org is one setting (default agent-probe), and 
 domain: ops
 tier: standard
 tier_reason: repo-only refactor plus a data set driven by reading existing classes; no org
-status: blocked
-blocked_by: [OPS-22]
+status: queued
 fixes: []
 scope: [data/sample/**, scripts/seed-sample-data.sh, scripts/validate-org.sh, scripts/agent-check.sh, e2e/support/env.js, e2e/README.md, tests/test_sample_data.py, tests/test_validate_org.py, tests/test_agent_bundle.py, tests/agent/Account_Brief-testSpec.yaml]
 forbid: [force-app/**, docs/**, README.md, agents/**, e2e/capture/**, e2e/panel.spec.js, e2e/global-setup.js, playwright.config.js, playwright.capture.config.js, .chassis-delegation.json, reference/**, .sf/**]
