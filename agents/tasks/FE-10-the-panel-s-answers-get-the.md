@@ -5,7 +5,7 @@ domain: frontend
 tier: frontier
 tier_reason: UI layout judgement, a production-classified deploy, and a full privacy-masked recapture read by eye
 status: blocked
-blocked_by: [FE-8, BE-16]
+blocked_by: [BE-16]
 fixes: []
 scope: [force-app/main/default/lwc/accountBriefPanel/**, e2e/panel.spec.js, e2e/support/panel.js, e2e/capture/**, e2e/README.md, docs/assets/**, README.md, docs/patterns/**]
 forbid: [force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, tests/**, scripts/**, data/**, agents/**, docs/plans/**, docs/research/**, .chassis-delegation.json, reference/**, playwright.config.js, playwright.capture.config.js]
