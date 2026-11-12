@@ -4,7 +4,7 @@
  * Line 1 counts them by TaskSubtype (Email, Call, everything else) plus how many of them are
  * open and past due; then the 5 most recent, newest first. Counts come from aggregate SOQL.
  * Read-only: no DML. Runs with sharing, deterministic Apex, no LLM, plain text only.
- * Every Task query runs in USER_MODE, like the other sections: the user's sharing, object and field
+ * Every Task query runs in USER_MODE: the user's sharing, object and field
  * access all apply, so the brief and the model prompt never show a Task field the user can't read.
  * System mode is not needed here: a Standard User can read every Task field queried, and the
  * optional Type field is selected only when the user can read it. A user missing read access to

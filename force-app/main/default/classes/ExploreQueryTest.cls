@@ -84,7 +84,7 @@ private class ExploreQueryTest {
     static void groupedAggregateOverTheRowCapIsRefused() {
         ExploreQuery.rowCap = 3;
         try {
-            run('{"object":"Opportunity","groupBy":["StageName"],"aggregates":[{"fn":"COUNT"}]}');
+            run('{"object":"Opportunity","groupBy":["StageName"],"aggregates":[{"fn":"COUNT"},{"fn":"SUM","field":"Amount"}]}');
             Assert.fail('expected RowCapException: 4 opportunities, cap 3');
         } catch (ExploreQuery.RowCapException e) {
             Assert.isTrue(e.getMessage().contains('more than 3 rows'), e.getMessage());
@@ -103,6 +103,30 @@ private class ExploreQueryTest {
 
         Assert.areEqual(6000, ((Decimal) rs.rows[0].get('SUM(Amount)')).intValue());
         Assert.areEqual(4, rows, 'pre-count (1 row) plus the aggregate (one row per record aggregated)');
+    }
+
+    @IsTest
+    static void countOnlyAggregatesSkipTheRowCap() {
+        ExploreQuery.rowCap = 2;
+        Test.startTest();
+        Integer start = Limits.getQueryRows();
+        ExploreQuery.ResultSet page = run('{"object":"Opportunity","fields":["Name"],"limit":2}');
+        Integer plain = Limits.getQueryRows() - start;
+        start = Limits.getQueryRows();
+        ExploreQuery.ResultSet total = run('{"object":"Opportunity","aggregates":[{"fn":"COUNT"}]}');
+        Integer countOnly = Limits.getQueryRows() - start;
+        start = Limits.getQueryRows();
+        ExploreQuery.ResultSet grouped = run('{"object":"Opportunity","groupBy":["StageName"],"aggregates":[{"fn":"COUNT"}]}');
+        Integer groupedRows = Limits.getQueryRows() - start;
+        Test.stopTest();
+
+        String seen = 'plain=' + plain + ' countOnly=' + countOnly + ' grouped=' + groupedRows;
+        Assert.areEqual(4, page.total);
+        Assert.areEqual(3, plain, 'two rows plus one for the uncapped total COUNT(): ' + seen);
+        Assert.areEqual(4, total.rows[0].get('COUNT(Id)'), 'counted 4 opportunities past a cap of 2');
+        Assert.areEqual(1, countOnly, 'an ungrouped COUNT(Id) reads one row and runs no pre-count: ' + seen);
+        Assert.areEqual(2, grouped.shown);
+        Assert.areEqual(2, groupedRows, 'a grouped COUNT(Id) reads one row per group: ' + seen);
     }
 
     @IsTest
