@@ -245,6 +245,22 @@ describe('c-account-brief-panel', () => {
             expect(text(el)).toContain('Message answer.');
         });
 
+        it('drops a page-context resolve that lands after the page moved on', async () => {
+            const lateA = deferred();
+            resolve.mockReturnValueOnce(lateA.promise).mockResolvedValueOnce({ status: 'RESOLVED', accountId: BETA, accountName: 'Beta' });
+            const el = await mount();
+            CurrentPageReference.emit(ACCOUNT_PAGE(ACME));
+            await flush();
+            CurrentPageReference.emit(ACCOUNT_PAGE(BETA));
+            await flush();
+            lateA.resolve({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            await flush();
+
+            expect($(el, '.abp-bar-row lightning-button').label).toBe('Brief Beta');
+            expect(history).toHaveBeenCalledTimes(1);
+            expect(history).toHaveBeenCalledWith({ accountId: BETA });
+        });
+
         it('drops a drill reply that a newer request superseded', async () => {
             explore.mockResolvedValueOnce(dealResult());
             const el = await mount();
