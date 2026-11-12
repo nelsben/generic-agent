@@ -1,0 +1,27 @@
+---
+id: BE-29
+title: FR2: summary engine limits become fixes — N1, N2, N3, N7 and N8 from the Apex re-review are fixed and tested, and an accuracy check proves every count, amount and date in a live summary comes from the gathered sections
+domain: backend
+tier: frontier
+tier_reason: governor-limit behaviour, user-mode field access and prompt rules, deployed and measured live in a production-classified org
+status: blocked
+blocked_by: [OPS-30, BE-24]
+fixes: []
+scope: [force-app/main/default/classes/CustomerSummary.cls, force-app/main/default/classes/CustomerSummaryTest.cls, force-app/main/default/classes/CustomerSummaryResolver.cls, force-app/main/default/classes/CustomerSummaryResolverTest.cls, force-app/main/default/classes/CustomerSummaryGetAction.cls, force-app/main/default/classes/CustomerSummaryGetActionTest.cls, force-app/main/default/classes/CustomerSummaryGetActionTest.cls-meta.xml, force-app/main/default/classes/CustomerSummarySection.cls, force-app/main/default/classes/CustomerSummary*Section.cls, force-app/main/default/classes/CustomerSummary*SectionTest.cls, force-app/main/default/staticresources/AgentPrompt_BriefSynthesis.resource, scripts/summary-accuracy.apex, docs/research/fr2-summary-accuracy.md]
+forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
+resources: [org-live]
+red_test: new tests in CustomerSummaryTest, CustomerSummaryResolverTest and one section test fail on main (many requests in one call, one unreadable field, a resolver query error, an over-long answer) and pass after
+gate: test, org
+budget: 2-attempts
+spend: 10
+---
+## Why
+
+Feature revision 2 (FR2), Ben's chapter notes on pattern 01. He asked to "cover limits and open items as part of future cards to cut", and to "make sure that the summary is accurate". Pattern 01 lists five should-fix items from the Apex re-review, and nothing yet measures accuracy. Covers ledger rows F47 and F52 in docs/plans/feature-revision-2.md.
+
+## Done when
+
+- Read first: docs/plans/feature-revision-2.md (rows F47 and F52), docs/reviews/apex-review-2.md (N1, N2, N3, N7, N8 and its notes), docs/patterns/01-route-gather-reduce.md and docs/patterns/07-trust-access-and-failure.md. Load the skills salesforce-development:platform-apex-generate, salesforce-development:platform-apex-test-generate and salesforce-development:platform-metadata-deploy first
+- **N1:** a caller that sends many requests in one call can no longer hit a limit it cannot catch. Process up to a fixed number per call, and give each request past the cap a fixed plain-English line, with a test at the cap and one past it. **N2:** a field the user cannot read is left out of its section instead of failing the section (for example with Security.stripInaccessible), and the section says which part was left out, in plain words; tested with runAs a minimum-access user created in the test. **N3:** the synthesis prompt gains a rule for a section marked ERROR: it says that part could not be loaded and never states "none" or "no open cases" for it. **N7:** a resolver query error returns a distinct error status with fixed text, not NOT_FOUND. **N8:** an answer cut at the output cap ends on a clear marker, not mid-sentence
+- **Accuracy check:** scripts/summary-accuracy.apex runs the summary for up to five sample accounts in agent-probe. For each one it lists every count, amount and date in the answer that does not appear in that account's gathered sections, and it prints only counts and true/false checks (no names, no Ids). Record the results in docs/research/fr2-summary-accuracy.md, with every mismatch explained. If the model states a number the sections do not hold, record it plainly, and propose either a prompt rule or a runtime check as a follow-up; do not build the runtime check in this card
+- Living docs are not edited here; OPS-38 rewrites pattern 01 from this card's research page. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never sign in or out, never create a user in the org, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit

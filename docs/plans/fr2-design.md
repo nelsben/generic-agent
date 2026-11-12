@@ -106,6 +106,33 @@ site or permission metadata.
 - **One service:** the panel calls it through `@AuraEnabled`, the agent through invocable actions, and MCP through
   the same invocables.
 
+## Pattern page shape
+
+From Ben's notes on pattern 01 (F45, F53). Every pattern page follows it.
+
+1. **A simple header:** the pattern's name and one line on what it gives a seller or service rep.
+2. **The business problem:** who has it, what it costs them today, and what changes. Plain words, no class names.
+3. **The architecture in a few steps:** three to five numbered steps a non-developer can follow, before any detail.
+4. **How it works:** the sequence diagram, then the steps in detail, each matching a diagram number.
+5. **Why you can trust it** and **how it scales**, each claim linked to a test, a review or a recorded run.
+6. **Adopt it** for a builder.
+7. **Limits and open items**, each linked to the card that owns it, or marked "no card yet".
+
+## Diagrams
+
+From Ben's notes on pattern 01 (F49). Every Mermaid diagram in the repo follows it.
+
+- **Numbered steps.** Sequence diagrams start with `autonumber`. The text under the diagram refers to the same numbers
+  ("steps 3 to 6"), so a reader can follow one step from the picture to the words.
+- **Colour that carries meaning.** Shaded `rect` blocks group the phases (for example route, gather, reduce), each in
+  its own soft tint, with a `Note` naming the phase. Participants are grouped with `box` where it helps (the page, Apex,
+  the model). Model calls use one accent colour everywhere, so a reader sees at a glance where a model is involved.
+- **Type and theme.** An `%%{init: ...}%%` block sets the theme variables and the font family once per diagram, from
+  one shared snippet so every page matches. Colours keep text at WCAG AA contrast and read in both GitHub's light and
+  dark themes.
+- **Checked on GitHub.** A diagram counts as done only when it renders on GitHub (the GitHub markdown API or the pushed
+  page), not just in a local preview.
+
 ## Gotchas carried forward
 
 - Lightning's single-key shortcuts fire inside an input unless the input stops propagation. A document listener
