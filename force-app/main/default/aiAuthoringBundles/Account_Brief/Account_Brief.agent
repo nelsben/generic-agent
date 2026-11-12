@@ -18,7 +18,7 @@ variables:
     explore_answer: mutable string = ""
         description: "The answer text of the explore_data run in the current explore turn. Cleared before each run."
     explore_history: mutable string = ""
-        description: "The last explore question and its answer as one string (explore_data's history output). Passed to the next explore_data run so a follow-up keeps its context. Cleared when resolve_account or get_brief runs, so it is non-empty only while the latest data reply came from explore."
+        description: "The last explore question and answer (explore_data's history output), passed to the next explore_data run. Cleared when resolve_account or get_brief runs, so it is non-empty only while the latest data reply came from explore."
 
 language:
     default_locale: "en_US"

@@ -292,6 +292,15 @@ class TestAgentStructure(unittest.TestCase):
         self.assertIn("named most recently", unresolved)
         self.assertIn("never an account named before it", unresolved)
 
+    def test_variable_descriptions_fit_the_publish_limit(self):
+        # Publish stores a variable description in a 255-character field and rejects a longer one.
+        text = AGENT.read_text(encoding="utf-8")
+        block = text.split("\nvariables:", 1)[1].split("\n\n", 1)[0]
+        descriptions = re.findall(r'(?m)^\s+description:\s*"(.*)"\s*$', block)
+        self.assertTrue(descriptions)
+        for description in descriptions:
+            self.assertLessEqual(len(description), 255, description[:60])
+
     def test_explore_history_is_kept_bound_and_cleared_when_a_brief_starts(self):
         # N3: the last explore question and answer reach the next explore run, and a brief clears them.
         self.assertIn('explore_history: mutable string = ""', AGENT.read_text(encoding="utf-8"))
