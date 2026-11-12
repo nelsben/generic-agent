@@ -4,6 +4,14 @@
     "saveRefs": true,
     "resolveRefs": true,
     "files": [
+      "account-parents.json"
+    ]
+  },
+  {
+    "sobject": "Account",
+    "saveRefs": true,
+    "resolveRefs": true,
+    "files": [
       "accounts.json"
     ]
   },
