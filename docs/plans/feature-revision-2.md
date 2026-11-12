@@ -105,6 +105,19 @@ in for the confidential operating guide he sent; its name and client stay out of
 | F52 | "cover limits and open items as part of future cards to cut" | `BE-29` (N1, N2, N3, N7 and N8 from the Apex re-review, and the accuracy check); the non-admin run stays with `FE-5` and Ben's to-do; `OPS-38` links each limit to its card |
 | F53 | "having a simple header and articulating the business problem this solves and high architecture steps would be ideal" | `OPS-38` for pattern 01; the brain applies the same page shape to every pattern page ([fr2-design.md](fr2-design.md#pattern-page-shape)) |
 
+### Chapter notes: pattern 02, ask-anything explorer
+
+Ben's notes on [02-ask-anything-explorer.md](../patterns/02-ask-anything-explorer.md), 2026-11-12.
+
+| # | Feedback | Status |
+|---|----------|--------|
+| F54 | The business outcome: "typically in Agentforce, we provide a brief, we provide a summary, and each follow-up question needs to be a flow, repurposed or rebuilt with context shoved back through ... rerouting context, endless build cycles, and hours that our customer isn't counting on when they can just use Claude, which can do all of these things already" | `OPS-39` |
+| F55 | "support follow-up questions to that summary we just provided organically and make sure that it scales to any object, any combination of data. And that is a core operating principle for us. So our customers aren't in an endless scale of agentic capability scaling for something as simple as a follow-up question" | [fr2-design.md](fr2-design.md#operating-principles) (principle 1); `BE-30` (follow-ups to the summary); `BE-31` (discovery: any object, any combination); `BE-28` (follow-ups in the agent); `OPS-39` (states it) |
+| F56 | Pattern 02's "How it works" gets the same treatment: "beautiful sequence diagrams with auto number, with numbered steps that correspond to each" | `OPS-39`; rule in [fr2-design.md](fr2-design.md#diagrams) |
+| F57 | "considering we're bringing in a bunch of different capability and surfaces, in the see it section, we want to record or highlight and capture images for each see it" | `OPS-36` (captures for every pattern page, per surface); rule in [fr2-design.md](fr2-design.md#pattern-page-shape) |
+| F58 | "tackle limits and open items as our follow-up to this set of this feature, as especially as we expand it into more capability" | `BE-30` (Apex N4: the agent keeps tables read before a model failure; panel N1: drill headers as labels), `FE-12` (panel N3: show when a question is tied to the summarized account), `BE-28` (agent N3: follow-ups carry the question before; agent N6: table relay proven), `BE-31` (OR filters, deeper parent paths, long-text filters, model calls per question, catalog size); the non-admin run stays with `FE-5` |
+| F59 | "make sure cards are cut for that discovery" | `BE-31` (discovery spike; it proposes the build cards, and the brain cuts them) |
+
 ## Decisions the brain made (Ben may overrule)
 
 - **Default agent name:** "Customer Summary". Internal API names become `Customer_Summary` / `CustomerSummary` /
@@ -144,10 +157,10 @@ in for the confidential operating guide he sent; its name and client stay out of
 ## Order
 
 1. Running: `BE-20`. On Ben's word, before any build: the plan review `OPS-37`.
-2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`.
+2. Spikes, which need no rename: `OPS-29`, `BE-21`, `BE-22`, and the explorer discovery `BE-31`.
 3. Rename: `BE-23`, then `OPS-30`, then `OPS-31`.
-4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`.
+4. Foundations: `BE-24`, `FE-11`, `BE-25`, `BE-26`, `BE-27`, `BE-29`, `BE-30`.
 5. Surfaces: `FE-12`, then `FE-13`, then `FE-15`; `FE-14` after `FE-12` and `BE-27`; `BE-28` (one publish) after
    `BE-27`.
-6. Close: `OPS-32`, the chapter cards (`OPS-38` for pattern 01), `OPS-35`, `OPS-36`, then OPS-28.
+6. Close: `OPS-32`, the chapter cards (`OPS-38` for pattern 01, `OPS-39` for pattern 02), `OPS-35`, `OPS-36`, then OPS-28.
 7. Parked: `OPS-33`, `OPS-34`.
