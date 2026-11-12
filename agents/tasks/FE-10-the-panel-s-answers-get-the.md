@@ -4,7 +4,7 @@ title: The panel's answers get the room: the pinned bar above the conversation i
 domain: frontend
 tier: frontier
 tier_reason: UI layout judgement, a production-classified deploy, and a full privacy-masked recapture read by eye
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/lwc/accountBriefPanel/**, e2e/panel.spec.js, e2e/support/panel.js, e2e/capture/**, e2e/README.md, docs/assets/**, README.md, docs/patterns/**]
 forbid: [force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, tests/**, scripts/**, data/**, agents/**, docs/plans/**, docs/research/**, .chassis-delegation.json, reference/**, playwright.config.js, playwright.capture.config.js]
@@ -31,3 +31,19 @@ FE-8 found that in the 340x480 utility panel the pinned bar takes about 185 CSS 
 - After BE-16 (#85; read docs/research/agent-iteration-1.md): docs/patterns/06-agent-routing-and-verbatim-relay.md still quotes the old not-found text ("open the account and ask again"); quote the new one ("Try a fuller or different account name."). README.md and docs/patterns/** say version 2 is active in agent-probe where they say version 1 is (v2 passed 16 of 16 spec cases; explore history checked only in a preview of the local bundle). The README row "A version 2 published over an active version" is now proven in agent-probe by agent-iteration-1.md. Every agent-slot caption names the version it was captured from
 - About 40 model calls at most. No Ids, usernames, emails, hostnames or tokens in any file or image
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Accepted after one attempt and one review pass: 22 confirmed, 0 refuted, 6 unverifiable.
+
+- Layout: Brief and Ask the agent now share one row. The Brief button is a native slds-button whose visible label truncates, and its title and accessible name stay "Brief <Account>". "Sections" and "Earlier briefs" moved to the top of the scroll box and scroll away, which is the card's second option. A brief now shows its headline, and the rest sits behind a "Full summary" toggle that sets aria-expanded and aria-controls.
+- Measured at 340x480 on Edge Communications: the bar is 49 px (183 before) and the scroll box 273 px. The new e2e step in spec 3 asserts a bar of at most 80 px and a box of at least 240 px. It failed on the old panel with 183 px.
+- Deviations, both disclosed:
+  - The explore capture question ends with "Answer in one sentence." so that the answer and the table header fit. The captions say "one-sentence answer over five lines".
+  - Sections and Earlier briefs live in the conversation box, so they are hidden while a record is open in the drill view.
+- Finding for a later card: the explorer still lists every row in its answer, against AgentPrompt_Explore rule 9 ("summarize rather than list every row"). That is why the capture question had to be tailored.
+- Org, agent-probe only: the LWC was validated (RunLocalTests) and quick-deployed once with CONFIRM_PROD=1. e2e passed 8 of 8 in 3.1 minutes, spec 2 included. The recapture took 2 of the 3 allowed runs, and every asset comes from run 2.
+- The brain read by eye panel-brief, explore-answer, drill-view, agent-brief and agent-explore, plus the middle or last frames of hotkey-open, brief-flow and explore-drill. They show sample data only, with no Ids, URL bars, emails or hostnames.
+- Docs: they say version 2 is active in agent-probe, quote the new not-found text, mark the README v2 row as proven, name v2 in the agent-slot captions, and drop the 139 px sentence.
+- Unverifiable in the tree: the exact px figures, the deploy jobs, the capture-run count, the frame-by-frame privacy checks, the call count and the layout rationale.
+- Gates: test (86), jest (40), org (61 components, 154 Apex tests) and check-docs (30 pages, 0 broken) all pass. Privacy grep of the 347 added lines: 0 deny-list hits, 0 emails, 0 hosts, 0 query-string URLs and 0 home paths. The 1 Id-shaped hit is the Jest placeholder 0Xx000000000001AAA.
