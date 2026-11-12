@@ -65,6 +65,12 @@ approved skips it and reports. Only Ben changes a line; the brain records his an
 | Create a throwaway agent `Publish_Probe` if the CLI publish fails, and delete it afterwards | approved (Ben, 2026-11-11, answered in chat) |
 | Activate version 2 once the 12-case test passes | approved (Ben, 2026-11-11, answered in chat, on the condition that version 1 is reactivated if the check after activation fails) |
 | Org setup for the MCP server and its External Client App (stretch), up to the sign-in | approved (Ben, 2026-11-11, answered in chat) |
+| Production-classified deploys to `agent-probe` (validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1) without asking each time | approved, standing (Ben, 2026-11-12, in chat: "Keep the standing approval"); `agent-probe` only |
+| The panel calls the registered agent directly (BE-15 re-cut as one org-live card in `agent-probe`) | approved (Ben, 2026-11-12, in chat) |
+| Run OPS-23 in `agent-probe`, including the MCP org setup line above, up to the sign-in | approved (Ben, 2026-11-12, in chat: "Run ops23") |
+| Run the README quick-start end to end in a brand-new org: first a scratch org created from the `my-devhub` Dev Hub (never the `experimental` hub), then a new Developer Edition org Ben signs up for and logs in as `ga-fresh` | approved (Ben, 2026-11-12, in chat: "Both: scratch now, DE later"); the standing deploy approval does not cover these orgs, so the card states its own deploy steps |
+| Another explorer answer-length iteration in `agent-probe` | approved (Ben, 2026-11-12, in chat) |
+| Make the repo public | method chosen (Ben, 2026-11-12): a separate public snapshot repo built from one squashed commit after a whole-tree privacy pass; this repo's history is never rewritten. Each publish of the snapshot needs Ben's go |
 | Post on forcedotcom/cli issue 3634 | not approved; draft only |
 | Create the user `experimental-enduser` | Ben does this himself; FE-5 stays parked |
 | Make the repo public | not approved |
