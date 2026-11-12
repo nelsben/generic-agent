@@ -19,9 +19,15 @@
   `BillingCountry` as `USA` and `UK`, which that picklist rejects. The fix is a data change in
   `data/sample/accounts.json` (`USA` to `United States`, `UK` to `United Kingdom`), a forbidden path
   for this card, so it was not made. See "Seed" below.
-- **The 12-case agent test, the two-turn check and e2e were not run.** Each needs the account Edge
-  Communications, and most cases need more seeded accounts. With no data they would only spend
-  model calls on known failures. 0 model calls were made in the org.
+- **The agent answers in this org (verified, 1 model call).** One `generateAiAgentResponse` turn,
+  "Give me a brief on Edge Communications", returned success in 6.2 s with the resolver's reply,
+  verbatim: `No account matches "Edge Communications". Try the full name or open the account and
+  ask again.` That is the right answer for an org with no accounts.
+- **The 12-case agent test, the second turn of the two-turn check and e2e were not run.** Seven
+  of the 12 cases (1, 2, 5, 6, 7, 8, 9) and all of e2e depend on seeded accounts and would fail on
+  data, not on the agent. Cases 3, 4, 10, 11 and 12 do not need the seed, but a partial run would
+  spend model calls without giving the 12-case result; the whole spec is better run once after the
+  seed lands. 1 model call was made in the org.
 - The memory test that failed validate 2 was fixed in `main` by PR #70 (the brain): the test's own
   setup `update` is now `Database.update(..., true, AccessLevel.SYSTEM_MODE)`. With that change,
   validate 3 passed 150 of 150 Apex tests (verified).
@@ -36,7 +42,7 @@
 
 ## What was done, in order
 
-Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 27.
+Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 28.
 
 | # | Step | Command (abridged) | Outcome |
 |---|---|---|---|
@@ -66,7 +72,8 @@ Attempts 1 and 2 changed nothing in the org. Attempt 3 is rows 14 to 27.
 | 24 | Validate agent access | `sf project deploy validate --source-dir force-app/main/default/permissionsets/Account_Brief_Agent_Access.permissionset-meta.xml --test-level RunLocalTests -o agent-probe --wait 30 --json` | **Succeeded.** 1 component, 150 of 150 tests, completed 05:58:13Z (verified) |
 | 25 | Quick deploy, then assign | `CONFIRM_PROD=1 sf project deploy quick --job-id <row 24> ...`; `sf org assign permset --name Account_Brief_Agent_Access -o agent-probe --json` | Deployed 1 of 1, completed 05:58:25Z; assignment 1 success, 0 failures (verified) |
 | 26 | Evaluation definition | `sf agent test create --json --spec tests/agent/Account_Brief-testSpec.yaml --api-name Account_Brief_Test --test-runner testing-center -o agent-probe` | Created (legacy `AiEvaluationDefinition`, the CLI default). A read-only retrieve to a scratch folder shows `subjectName Account_Brief`, `subjectType AGENT`, `subjectVersion v1`, the active version (verified). The CLI also wrote the definition into `force-app/main/default/aiEvaluationDefinitions/`; that untracked file was deleted, so the tree stays clean |
-| 27 | 12-case run, two-turn check, e2e | not run | No sample data; see below |
+| 27 | Two-turn check, turn 1 only | `sf apex run --file <scratch>/turn1.apex -o agent-probe --json` (`generateAiAgentResponse`, "Give me a brief on Edge Communications") | success, 6.2 s, the resolver's no-match reply (verified). 1 model call. Turn 2 not run |
+| 28 | 12-case run, e2e | not run | No sample data; see below |
 
 ## Deploy and test totals
 
@@ -105,11 +112,22 @@ labels: `United States` and `United Kingdom` are valid, and every `BillingStateC
 uses exists in the picklist (verified from the Account describe). Whether other orgs that took
 this file have the picklists off was not checked.
 
-The fix is two value changes in `data/sample/accounts.json`: `"BillingCountry": "USA"` to
-`"United States"` (12 rows) and `"UK"` to `"United Kingdom"` (1 row). Those labels are also valid
-free text in an org without the picklists. `data/**` is forbidden for this card, so the change is
-an amend for the brain. The seed was not retried with edited copies, because the card allows only
-the seed as written.
+The likely fix is in `data/sample/accounts.json` alone (unproven: the import stopped on the first
+file, so the other seed files never ran):
+
+- `"BillingCountry": "USA"` to `"United States"` (12 rows) and `"UK"` to `"United Kingdom"`
+  (1 row). This is the error the org reported.
+- Probably also `BillingState` from the two-letter code to the state name (`"TX"` to `"Texas"`,
+  12 rows). The file writes codes into the text field `BillingState`, and with the picklists on
+  that field takes the state's integration value, which defaults to the name, not the code
+  (unproven: each record reported only its country error, so a state error could be hidden).
+- Names in both fields are also valid free text in an org without the picklists. No other file
+  under `data/sample/` has a country or state field, and no unit test, e2e spec or Apex test
+  asserts `USA`, `UK` or a state code (verified by search). `tests/test_sample_data.py` checks
+  names and cities only.
+
+`data/**` is forbidden for this card, so the change is an amend for the brain. The seed was not
+retried with edited copies, because the card allows only the seed as written.
 
 ## Agent versions
 
@@ -139,9 +157,14 @@ BotDefinition had 0 rows before the publish.
 
 ## Two-turn check
 
-Not run. It needs the account Edge Communications. The prepared check uses
+Turn 1 ran once; turn 2 was not run. The check uses
 `Invocable.Action.createCustomAction('generateAiAgentResponse', 'Account_Brief')` with "Give me a
 brief on Edge Communications", then a second turn on the returned session (`docs/research/agent-api.md`).
+
+| Turn | Result |
+|---|---|
+| 1 | `isSuccess` true, no errors, 6182 ms, a session was returned. Reply: `{"type":"Text","value":"No account matches \"Edge Communications\". Try the full name or open the account and ask again."}` (verified) |
+| 2 | not run: with no Edge Communications account there is no brief for the follow-up to build on |
 
 ## e2e
 
@@ -176,8 +199,10 @@ Not run. Global setup needs the account Edge Communications.
    then delete the file it writes under `force-app/main/default/aiEvaluationDefinitions/`. Check
    that the org definition's `subjectVersion` is the active version.
 
-**Not yet shown (needs the seed):** `sf agent test run` and `results` for the 12 cases, the
-two-turn `generateAiAgentResponse` check and `npm run test:e2e`.
+10. One `generateAiAgentResponse` turn shows the active agent answers (turn 1 above).
+
+**Not yet shown (needs the seed):** `sf agent test run` and `results` for the 12 cases, turn 2 of
+the two-turn check and `npm run test:e2e`.
 
 **What did not work, and why:**
 
@@ -206,7 +231,8 @@ Attempt 3, after the Agent Access deploy (verified):
 - Nothing was rolled back. The org now holds `main` (60 components), the active Account_Brief v1,
   both permission set assignments and the evaluation definition `Account_Brief_Test`. No sample
   data.
-- No data was written except what the card allows: the permission set assignments and the
-  evaluation definition. The failed seed wrote nothing.
+- No data was written except what the card allows: the permission set assignments, the
+  evaluation definition and whatever the agent itself stored for its one turn. The failed seed
+  wrote nothing.
 - The only lasting local change outside git is the project's default org setting in
   `.sf/config.json` (git-ignored).
