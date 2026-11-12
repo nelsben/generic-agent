@@ -97,7 +97,7 @@ sequenceDiagram
 ## Limits and open items
 
 - `sf agent publish authoring-bundle` is blocked in the org this was built in. The server returns
-  `401` "Error saving or updating agent graph" for every publish, including a new throwaway agent.
+  `401` "Error saving or updating agent graph" for every CLI publish, including a new throwaway agent.
   The `404` the CLI shows is its HTTP library resending after that `401`. Studio's Commit Version
   fails too, so there is no working path in that org today
   ([agent-publish-spike.md](../research/agent-publish-spike.md)). The plan notes report that the

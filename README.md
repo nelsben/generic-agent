@@ -82,11 +82,12 @@ exist yet, that set may not deploy: leave it out of steps 1 and 2 and add it onc
 published. The panel needs only `Account_Brief_Data_Access`.
 
 The agent in the built-in Agentforce panel needs one more step: publish and activate the
-`Account_Brief` bundle. In the org this was built in, every publish fails with a server `401`,
-from the CLI and from Studio's Commit Version alike
-([agent-publish-spike.md](docs/research/agent-publish-spike.md)). The same minimal agent is
-reported to publish in a fresh Developer Edition org, so the fault looks specific to that org.
-The panel path above does not depend on it.
+`Account_Brief` bundle. In the org this was built in, every CLI publish fails with a server
+`401`, and Studio's Commit Version fails too, with its error not captured
+([agent-publish-spike.md](docs/research/agent-publish-spike.md)). The plan's morning notes report,
+second-hand, that a minimal agent that failed there publishes in a fresh Developer Edition org, so
+the fault looks specific to that org ([gtm-burn-plan.md](docs/plans/gtm-burn-plan.md)). The panel
+path above does not depend on it.
 
 ## How it is tested
 
@@ -135,6 +136,6 @@ The method behind the layers is in [08: Test and release lifecycle](docs/pattern
 | A run as a non-admin user | **Not yet proven** | Only Apex `runAs` tests so far; see [07](docs/patterns/07-trust-access-and-failure.md) |
 | A real MCP tool call | **Not yet proven** | See [09](docs/patterns/09-outside-door-mcp.md) |
 | The panel calling the registered agent | **Not yet proven**, not built | See [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
-| Agent version 2 published and active | **Not yet proven** | Every publish returns `401`; version 1, the script before the fixes, is still active. See [agent-publish-spike.md](docs/research/agent-publish-spike.md) |
+| Agent version 2 published and active | **Not yet proven** | Every CLI publish returns `401` and Studio's Commit Version also fails; version 1, the script before the fixes, is still active. See [agent-publish-spike.md](docs/research/agent-publish-spike.md) |
 | Agent test spec run in the org | **Not yet proven** | Written and shape-tested in Python; not run, because it needs the fixed version active |
 | A clean install from "See it in 5 minutes" | **Not yet proven** | Main has been deployed to the org it was built in, not installed into a new org from these steps |

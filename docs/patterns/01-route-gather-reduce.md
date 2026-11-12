@@ -114,7 +114,7 @@ sequenceDiagram
 - The brief is for one Account. Other objects need their own resolver and registry.
 - Should-fix from the Apex re-review ([apex-review-2.md](../reviews/apex-review-2.md)):
   - N1: a caller that sends many briefs in one call can hit a platform limit that cannot be
-    caught, and then gets no answer at all. The agent sends one request, so it is not affected.
+    caught, and then gets no answer at all. The agent normally sends one request.
   - N2: one field the rep cannot read fails the whole section, and the message reads like a
     passing fault.
   - N3: the synthesis prompt has no rule for a failed section, so the model can write "no open
