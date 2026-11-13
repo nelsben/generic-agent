@@ -4,8 +4,7 @@ title: FR2: rename in agent-probe — deploy the Customer Summary metadata, assi
 domain: ops
 tier: frontier
 tier_reason: production-classified deploy of the renamed metadata, then the full e2e run in a live org
-status: blocked
-blocked_by: [BE-23]
+status: queued
 fixes: []
 scope: [docs/research/fr2-rename-org.md, docs/research/fr2-rename-go.md, e2e/**, tests/**, force-app/**]
 forbid: [force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
