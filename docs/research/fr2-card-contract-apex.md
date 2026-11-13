@@ -25,7 +25,7 @@ Read with: [fr2-card-architecture.md](fr2-card-architecture.md) (FE-18: the cont
 | `Field` | `key`, `label`, `value`, `ref`, `state` (`missing` or `choose`), `choices` (ref keys) | Record and action cards. |
 | `Column` | `key`, `label`, `kind` (`text`, `number`, `currency`, `percent` or `date`) | |
 | `Row` | `ref`, `cells` (List<String>) | Cells are in column order. `ref` is null for a group. |
-| `Item` | `at`, `kind`, `label`, `value`, `detail`, `ref` | `at` and `kind` are for a timeline; `kind` is `related` for a record's related lists. |
+| `Item` | `at`, `kind`, `label`, `value`, `detail`, `status`, `ref` | `at` and `kind` are for a timeline; `kind` is `related` for a record's related lists. `status` is FE-18's optional item status: no builder sets it yet, so it is null and absent from the JSON. |
 | `Control` | `key`, `label`, `kind` (`primary`, `neutral` or `link`) | Action cards. |
 | `Ref` | `key`, `recordId`, `objectName`, `label` | The only place an Id appears. |
 

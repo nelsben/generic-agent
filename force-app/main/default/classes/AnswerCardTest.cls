@@ -444,6 +444,22 @@ private class AnswerCardTest {
     }
 
     @IsTest
+    static void anItemStatusRoundTripsThroughTheJson() {
+        AnswerCard.Item withStatus = AnswerCard.newItem('Renewal', '$120,000', 'Closes 2026-12-01', null);
+        withStatus.status = 'ERROR';
+        AnswerCard.Item without = AnswerCard.newItem('Upsell', '$40,000', null, null);
+        String cardJson = AnswerCard.toJson(new List<AnswerCard>{
+            AnswerCard.metric('met', 'Open deals', new List<AnswerCard.Item>{ withStatus, without })
+        });
+        Assert.isTrue(cardJson.contains('"status":"ERROR"'), 'a set item status is in the JSON');
+        List<AnswerCard> back = AnswerCard.fromJson(cardJson);
+        Assert.areEqual(1, back.size());
+        Assert.areEqual('ERROR', back[0].items[0].status, 'the item status parses back');
+        Assert.isNull(back[0].items[1].status, 'an item with no status has none after the round trip');
+        Assert.areEqual(cardJson, AnswerCard.toJson(back), 'the JSON parses back to the same cards');
+    }
+
+    @IsTest
     static void cardsOverTheCapGiveEmptyJsonNeverCutJson() {
         String big = 'x'.repeat(AnswerCard.MAX_JSON_CHARS);
         String cardJson = AnswerCard.toJson(new List<AnswerCard>{ AnswerCard.text('ans', 'OK', big, null) });
