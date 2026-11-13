@@ -10,6 +10,7 @@ Usage:
   python3 spikes/actions/run.py commit [runs]                   # draft from fields + commit + undo, rolled back
   python3 spikes/actions/run.py callout                         # DML then a model call in one transaction
   python3 spikes/actions/run.py names                           # does a method named 'commit' compile?
+  python3 spikes/actions/run.py precheck                        # no org call: the action-verb pre-check on requests.json
   python3 spikes/actions/run.py report                          # no org call: medians and checks
 Requests are in requests.json. Results append to spikes/actions/results/<mode>.jsonl: codes, counts, timings,
 booleans and dates only. The per-run Apex file is written to the system temp folder and deleted after the run.
@@ -138,6 +139,28 @@ def names():
                           "cli": cli.split(" (line")[0]})
 
 
+# The pre-check draftFromText could run before its model call: skip filler words, then test the first word.
+FILLER = {"uh", "um", "so", "ok", "okay", "hey", "please", "can", "could", "would", "you", "i", "need", "to", "want", "let's"}
+VERBS = {"create", "add", "schedule", "set", "book", "log", "remind", "update", "change", "open", "push", "move", "make"}
+
+
+def first_verb(text):
+    for word in text.lower().replace(",", " ").replace(":", " ").split():
+        if word not in FILLER:
+            return word
+    return ""
+
+
+def precheck():
+    for r in requests():
+        w = first_verb(r["request"])
+        hit = w in VERBS
+        want = r["expect"] != "none"
+        anywhere = any(v in r["request"].lower().replace(",", " ").split() for v in VERBS)
+        record("precheck", {"id": r["id"], "firstWord": w, "startsWithVerb": hit, "verbAnywhere": anywhere,
+                            "isAction": want, "right": hit == want})
+
+
 def expected_date(rule, today):
     if rule == "tomorrow":
         return today + datetime.timedelta(days=1)
@@ -203,6 +226,8 @@ def main():
         callout()
     elif mode == "names":
         names()
+    elif mode == "precheck":
+        precheck()
     elif mode == "report":
         report()
     else:

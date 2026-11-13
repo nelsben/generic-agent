@@ -28,13 +28,16 @@ the cards.
 - **`commit` cannot be a method name.** It is a reserved word in Apex: `Integer commit(Integer x)` fails to compile
   with "Unexpected token 'commit'". `commitDraft`, `draft` and `undo` all compile. `BE-27`'s card names a method
   `commit(draft)`, so it has to use another name.
-- **The model invents a person.** When a request named nobody, the model still filled `contact` with words that
-  matched no contact. This happened in all 5 action drafts with no named person, despite a rule against inventing
-  values. The draft step caught it: the field came back unresolved for the user to fill or clear, and nothing was
-  guessed. The draft step has to check every value the model returns.
-- **Every sentence pays for one model call.** A question took one model call (2.2 to 3.2 seconds) before it could go
-  to the explorer. "Create a follow-up" came back as "not an action" in 1 of 3 runs. The recommendation below limits
-  both. A chip makes no model call at all.
+- **The model fills a person the request did not name.** When a request named nobody, the model still put words in
+  `contact`, and those words matched no contact on the account. This happened in all 5 action drafts with no named
+  person, despite a rule against inventing values. What the words were was not recorded (where their shape was
+  recorded, they were two words). The draft step caught it: the field came back unresolved for the user to fill or
+  clear, and nothing was guessed. The draft step has to check every value the model returns.
+- **Every sentence pays for one model call, unless a pre-check stops it.** A question took one model call (2.2 to 3.2
+  seconds) before it could go to the explorer. "Create a follow-up" came back as "not an action" in 1 of 3 runs. A
+  fixed pre-check that skips filler words and tests the first word against a verb list sorted all 9 requests right,
+  offline. Matching a verb anywhere in the text sorted the question wrong, because it contains "open". A chip makes
+  no model call at all.
 - **Recommendation:** one Apex service, `CustomerSummaryActions`, with two doors.
   - The panel reaches it through `@AuraEnabled` methods.
   - MCP clients reach it through two invocable actions, one for the draft and one for Confirm.
@@ -61,6 +64,7 @@ Apex so nothing is deployed.
 | `commit` | [commit-run.apex](../../spikes/actions/commit-run.apex) | No callout. Inside one savepoint: a draft for each action, built from the fields a chip or an edited draft card sends. Each draft is serialized as the panel would receive it, then committed from that JSON in user mode. The two updates are then undone. Last, it checks where each Log a Call shape lands, rolls back and counts what is left. |
 | `callout` | [callout-after-dml.apex](../../spikes/actions/callout-after-dml.apex) | One insert inside a savepoint, then a model call, then a rollback. |
 | `names` | inside run.py | Compiles a method named `commit`, `commitDraft`, `draft` and `undo`. |
+| `precheck` | inside run.py | No org call. Runs the filler-skipping, first-word verb check on each request in `requests.json`. |
 
 - **The model call.** `router.apex` calls `aiplatform.ModelsAPI` itself, with `AgentLlmModelsApi.MODEL`, so it can read
   token counts from the response. That is the same model, through the same API, that `AgentLlm.complete` uses.
@@ -105,7 +109,7 @@ Three passes over nine requests, plus one first trial of the task request: 28 ru
   was 116 ms, most of it describe calls. The build card should cache describe once per transaction.
 - **Missing fields:** for "Create a follow-up" the model and the draft step listed the same missing fields, the
   subject and the due date.
-- **The invented person:** in the case request and in "Create a follow-up", the model put a value in `contact` though
+- **The unnamed person:** in the case request and in "Create a follow-up", the model put a value in `contact` though
   the request named nobody. Where the shape was recorded, it was two words. The draft step found no matching contact
   and marked the field unresolved, so the case draft was not ready to confirm.
   - The prompt should say to leave out a key the request does not give.
@@ -152,14 +156,18 @@ One service, `CustomerSummaryActions`, holds every rule. Each door is a thin wra
 - **The panel**
   - It calls `@AuraEnabled` methods, none of them cacheable: `draftAction` for a chip or an edited draft,
     `draftFromText` for typed or spoken words, `commitAction` for Confirm and `undoAction` for Undo.
-  - Put them on `CustomerSummaryPanelController`. Its header promises that it is the panel's only Apex door, and
-    `FE-14` imports from it. `BE-27`'s scope lists only `CustomerSummaryAction*` classes, so `BE-27` needs that file
-    added to its scope.
+  - Put them on `CustomerSummaryPanelController`. Its header promises that it is the panel's only Apex door.
+    `BE-27`'s scope lists only `CustomerSummaryAction*` classes, so `BE-27` needs that file added to its scope.
   - If that is not wanted, the fallback is a `CustomerSummaryActionsController` inside `BE-27`'s current scope. The
     panel would then have two Apex doors.
 - **An MCP client**
   - The server definition binds one invocable class per tool (`aa:apex-<Class>`), so the service gets two invocable
     classes.
+  - **The invocables are a draft and commit pair: not one per action, and not one router.**
+    - One per action would mean six to twelve classes and tools, each repeating the same checks.
+    - One router that drafts and writes in one call would leave no gap for the client's approval prompt between
+      seeing the draft and writing it.
+    - Two classes match the two steps every action already has. The action name travels in the input.
   - `draft_action` returns a draft and writes nothing. `commit_action` takes the draft back and writes it.
   - Invocable variables cannot be a map, so the input and the draft cross as JSON text. The panel uses the same JSON,
     so both doors send one shape.
@@ -211,14 +219,22 @@ One service, `CustomerSummaryActions`, holds every rule. Each door is a thin wra
 
 - Every typed or spoken sentence that `draftFromText` sees costs one model call, about 2.3 seconds, before a
   question can go to the explorer, which takes 5 to 9 seconds.
-- To keep questions from paying it, the panel calls `draftFromText` only when the text starts with an action verb. A
-  fixed list in `CustomerSummaryActionCatalog` (create, add, schedule, set up, book, log, remind, update, change,
-  open, push, move) decides this in Apex, with no model.
-  - Other text goes straight to the explorer.
-  - A false "not an action" also falls through to the explorer, so the worst case is one extra model call.
+- The baseline is to classify every sentence. Each question then pays 2.2 to 3.2 seconds before the explorer starts.
+- To keep questions from paying it, `draftFromText` runs a fixed pre-check before its model call. The panel
+  (`FE-14`) always calls `draftFromText`, so the check belongs inside it, not in the panel.
+  - It skips filler words (uh, um, so, ok, hey, please, can, could, would, you, I, need, to, want, let's).
+  - It tests the first remaining word against a verb list in `CustomerSummaryActionCatalog` (create, add, schedule,
+    set, book, log, remind, update, change, open, push, move, make).
+  - If the word is not on the list, `draftFromText` returns "not an action" with no model call, and the text goes to
+    the explorer.
+- **Measured offline (`run.py precheck`, no org call):** the check sorted 9 of 9 requests right. The spoken request
+  starts with filler, and its first real word is "remind". Matching a verb anywhere in the text instead sorted the
+  question wrong, because the question contains "open".
+- **What a miss costs:** an action request whose first word is not on the list goes to the explorer, so no draft is
+  made at all. That is worse than one extra model call. Nine requests are too few to call the list proven, so
+  `BE-27`'s tests should pin it with more phrasings.
+- A model "not an action" on a real action ("Create a follow-up", 1 run in 3) has the same result: no draft.
 - Chips and slash commands skip the model entirely.
-- **Not measured here:** in the nine requests, all eight action requests start with such a verb and the question does
-  not. That is too few requests to call the list proven. `BE-27`'s tests should pin it.
 
 ## Class and method plan
 
@@ -253,10 +269,10 @@ The ledger's default is an Event, held in one constant. This spike describes bot
 
 | | A completed Task (what Salesforce's Log a Call saves) | An Event (Ben's words, the current default) |
 |---|---|---|
-| What the org shows | The `LogACall` quick action's describe targets Task. `TaskSubtype` offers Call. This org's Task describe has no `Type` field, so "type Call" here means `TaskSubtype` Call. | `EventSubtype` offers only Event. |
+| What the org shows | The `LogACall` quick action's describe targets Task. `TaskSubtype` offers Call. Neither the Apex describe nor a `FieldDefinition` query (both as admin) lists a `Type` field on Task in this org, so "type Call" here means `TaskSubtype` Call. | `EventSubtype` offers only Event. |
 | What the spike wrote | `Status` Completed, `TaskSubtype` Call, due today: `IsClosed` true. | 15 minutes ending now: `EndDateTime` at or before now. |
 | Where it lands on the account (queried) | `ActivityHistories`, with `ActivitySubtype` Call, in 3 of 3 runs. | `ActivityHistories`, with `ActivitySubtype` Event, in 3 of 3 runs. |
-| How the activity timeline shows it (from Salesforce's documented behaviour; not seen on screen in this run) | Under past activity, with the call icon, as a logged call. | Under past activity, with the calendar icon, as a meeting. It also sits on the user's calendar at that time. |
+| How the activity timeline shows it (unverified: not seen on screen, and no Salesforce doc was opened in this run) | Under past activity, with the call icon, as a logged call. | Under past activity, with the calendar icon, as a meeting. It also sits on the user's calendar at that time. |
 | Reports (not checked in a report here) | Counts as a call in activity reports that filter on the Call subtype. | Counts as an event, not a call. |
 | Fits when | Calls are logged after they happen, and call counts matter. | Calls are booked ahead, or reps want them on the calendar. |
 
@@ -268,8 +284,8 @@ draft card shows which object will be written either way.
 
 - **Per typed or spoken action:** one Models API call of about 960 input and 76 output tokens.
 - **Per chip, Edit, Confirm or Undo:** no model call.
-- **Per question:** with the verb pre-check, no extra call. Without it, the same one call of about 950 input and 35
-  output tokens.
+- **Per question:** with the verb pre-check, no extra call when the first word is not on the list. Without it, one
+  call of about 950 input and 35 output tokens and 2.2 to 3.2 seconds.
 - **For comparison:** one explorer question uses about 10,078 input tokens and 3 model calls (median, BE-31). The
   standard agent adds its own reasoning calls to every turn (BE-32).
 - **No credit price is given here.** Models API calls count against the org's generative AI usage. A price per call
@@ -286,16 +302,24 @@ draft card shows which object will be written either way.
 - **The undo token.** It carries the previous values unsigned, as `BE-27` specifies. A changed token can do only what
   the user could do by an update, but a changed timestamp can stretch the 15 seconds. Signing it would need a key kept
   in the org.
-- **The verb pre-check** is a design, not a measurement (see above).
+- **The verb pre-check** was checked offline on nine requests only (see above). A miss means no draft, so it needs
+  many more phrasings in `BE-27`'s tests.
 
 ## Model use and data written
 
-- **Model calls:** 28 through the Models API, one per draft run. The callout probe made none, because it threw first.
-  In all, 26,772 input tokens and 2,036 output tokens.
-- **Records:** 21 writes, plus 6 throwaway inserts and 6 undos, all inside savepoints. All were rolled back, and the
-  count after each rollback was 0. One more throwaway Task in the callout probe was rolled back too, with a count of 0.
-- **Read-only runs:** one inventory run read the sample account's contact and open-deal names, the picklists and the
-  `LogACall` describe.
+- **Model calls:** 28 through the Models API, one per draft run. The two callout probe runs made none, because each
+  threw first. In all, 26,772 input tokens and 2,036 output tokens.
+- **Commit runs:** four, not three. The first run's activity line had keys that clashed with other keys, so its rows
+  were deleted from `commit.jsonl` and the run was repeated. That first run still wrote 7 actions, 2 throwaways and
+  2 undos, and printed a count of 0 after its rollback.
+- **Records:** across the four commit runs, 28 action writes, 8 throwaway inserts and 8 undos, all inside savepoints.
+  All were rolled back, and the count after each rollback was 0. The tables above use the three kept runs (21 writes).
+- **Callout probe:** run twice, because the first run's message check was wrong and the second prints the message.
+  Each inserted one throwaway Task inside a savepoint, threw before the model call, rolled back and counted 0.
+- **Read-only runs:** the inventory script took four tries: two failed to compile, one failed at run time after its
+  reads, and one succeeded. It read the sample account's contact and open-deal names, the picklists and the
+  `LogACall` describe. One `FieldDefinition` query checked Task's fields.
+- **Compile-only runs:** the `names` probe ran four compiles and wrote nothing.
 - Nothing was deployed, and no trace flag was set.
 
 ## Undo
