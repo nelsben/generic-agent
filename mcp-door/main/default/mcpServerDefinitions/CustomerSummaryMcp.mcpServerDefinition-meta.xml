@@ -1,7 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <McpServerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Account summaries for one Salesforce account, as the signed-in user: resolve the account, then brief it, or ask the Customer Summary agent.</description>
+    <description>Account summaries and data questions for Salesforce, as the signed-in user: resolve an account, then summarize it, or ask anything about the CRM data the user can see.</description>
     <masterLabel>Customer Summary</masterLabel>
+    <tools>
+        <apiDefinition>
+            <apiIdentifier>aa:apex-ExploreAction</apiIdentifier>
+            <apiSource>API_CATALOG</apiSource>
+            <operation>ExploreAction</operation>
+        </apiDefinition>
+        <descriptionOverride>Answer a question about the Salesforce data the signed-in user can see, such as which open deals close this quarter or which accounts have the most open cases. Runs safe, read-only queries and returns the answer with a short table of the last result. Pass the question in plain words; for a follow-up, also pass the History value the previous answer returned.</descriptionOverride>
+        <destructive>false</destructive>
+        <idempotent>false</idempotent>
+        <openWorld>false</openWorld>
+        <readOnly>false</readOnly>
+        <returnDirect>false</returnDirect>
+        <toolName>ask_anything</toolName>
+        <toolTitle>ExploreAction</toolTitle>
+    </tools>
+    <tools>
+        <apiDefinition>
+            <apiIdentifier>aa:apex-CustomerSummaryGetAction</apiIdentifier>
+            <apiSource>API_CATALOG</apiSource>
+            <operation>CustomerSummaryGetAction</operation>
+        </apiDefinition>
+        <descriptionOverride>Write a summary of one account, given an account Id that resolve_account returned as RESOLVED. Covers profile, open deals, cases, contacts and recent activity, as the signed-in user can see them. Optionally pass the question as asked, or the sections wanted.</descriptionOverride>
+        <destructive>false</destructive>
+        <idempotent>false</idempotent>
+        <openWorld>false</openWorld>
+        <readOnly>false</readOnly>
+        <returnDirect>false</returnDirect>
+        <toolName>get_account_summary</toolName>
+        <toolTitle>CustomerSummaryGetAction</toolTitle>
+    </tools>
     <tools>
         <apiDefinition>
             <apiIdentifier>aa:apex-CustomerSummaryResolver</apiIdentifier>
@@ -16,35 +46,5 @@
         <returnDirect>false</returnDirect>
         <toolName>resolve_account</toolName>
         <toolTitle>CustomerSummaryResolver</toolTitle>
-    </tools>
-    <tools>
-        <apiDefinition>
-            <apiIdentifier>ag:Customer_Summary</apiIdentifier>
-            <apiSource>API_CATALOG</apiSource>
-            <operation>invoke</operation>
-        </apiDefinition>
-        <descriptionOverride>Ask the Customer Summary agent in plain language: a brief on one account, or a question about the CRM data the signed-in user can see. The agent finds the account itself and answers in prose.</descriptionOverride>
-        <destructive>false</destructive>
-        <idempotent>false</idempotent>
-        <openWorld>false</openWorld>
-        <readOnly>false</readOnly>
-        <returnDirect>false</returnDirect>
-        <toolName>ask_account_summary</toolName>
-        <toolTitle>invoke</toolTitle>
-    </tools>
-    <tools>
-        <apiDefinition>
-            <apiIdentifier>aa:apex-CustomerSummaryGetAction</apiIdentifier>
-            <apiSource>API_CATALOG</apiSource>
-            <operation>CustomerSummaryGetAction</operation>
-        </apiDefinition>
-        <descriptionOverride>Write a brief on one account, given an account Id that resolve_account returned as RESOLVED. Covers profile, open deals, cases, contacts and recent activity, as the signed-in user can see them. Optionally pass the question as asked, or the sections wanted.</descriptionOverride>
-        <destructive>false</destructive>
-        <idempotent>false</idempotent>
-        <openWorld>false</openWorld>
-        <readOnly>false</readOnly>
-        <returnDirect>false</returnDirect>
-        <toolName>get_account_summary</toolName>
-        <toolTitle>CustomerSummaryGetAction</toolTitle>
     </tools>
 </McpServerDefinition>

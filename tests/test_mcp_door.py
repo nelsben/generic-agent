@@ -9,6 +9,7 @@ import json
 import os
 import re
 import unittest
+import xml.etree.ElementTree as ET
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOOR = os.path.join(ROOT, "mcp-door")
@@ -24,6 +25,26 @@ def salesforce_ids(text):
 
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 ORG_HOST = re.compile(r"my\.salesforce\.com", re.IGNORECASE)
+
+
+def server_definition_path():
+    return os.path.join(DOOR, "main", "default", "mcpServerDefinitions",
+                        "CustomerSummaryMcp.mcpServerDefinition-meta.xml")
+
+
+def server_tools():
+    """Each <tools> element of the server definition as a flat dict of its child texts."""
+    ns = "{http://soap.sforce.com/2006/04/metadata}"
+    root = ET.parse(server_definition_path()).getroot()
+    tools = []
+    for el in root.findall(ns + "tools"):
+        tool = {child.tag[len(ns):]: (child.text or "") for child in el if len(child) == 0}
+        api = el.find(ns + "apiDefinition")
+        if api is not None:
+            for child in api:
+                tool[child.tag[len(ns):]] = child.text or ""
+        tools.append(tool)
+    return tools
 
 
 def door_files():
@@ -70,20 +91,40 @@ class TestDoorMetadata(unittest.TestCase):
         defs = [f for f in os.listdir(path) if f.endswith(".mcpServerDefinition-meta.xml")]
         self.assertEqual(len(defs), 1, defs)
 
-    def test_server_definition_names_the_three_tools(self):
+    def test_server_is_customer_summary_mcp(self):
         path = os.path.join(DOOR, "main", "default", "mcpServerDefinitions")
-        self.assertTrue(os.path.isdir(path))
-        (name,) = [f for f in os.listdir(path) if f.endswith(".mcpServerDefinition-meta.xml")]
-        with open(os.path.join(path, name), encoding="utf-8") as f:
+        self.assertEqual(os.listdir(path), ["CustomerSummaryMcp.mcpServerDefinition-meta.xml"])
+
+    def test_tools_are_the_three_apex_actions_and_no_agent(self):
+        # OPS-31: the door's tools are Apex actions (resolve, summary, ask anything through the
+        # explorer). The optional agent is not a tool, so no tool points at an agent (ag:...).
+        tools = server_tools()
+        self.assertEqual(
+            sorted((t["toolName"], t["apiIdentifier"], t["operation"]) for t in tools),
+            [
+                ("ask_anything", "aa:apex-ExploreAction", "ExploreAction"),
+                ("get_account_summary", "aa:apex-CustomerSummaryGetAction", "CustomerSummaryGetAction"),
+                ("resolve_account", "aa:apex-CustomerSummaryResolver", "CustomerSummaryResolver"),
+            ],
+        )
+        for tool in tools:
+            with self.subTest(tool=tool["toolName"]):
+                self.assertEqual(tool["apiSource"], "API_CATALOG")
+                self.assertTrue(tool["apiIdentifier"].startswith("aa:apex-"), tool["apiIdentifier"])
+        with open(server_definition_path(), encoding="utf-8") as f:
             text = f.read()
-        tools = re.findall(r"<toolName>([^<]+)</toolName>", text)
-        self.assertEqual(sorted(tools), ["ask_account_summary", "get_account_summary", "resolve_account"])
-        # Every tool carries its own description, so the agent-facing Apex and agent wording
+        self.assertNotIn("ag:", text, "an agent is listed as a tool")
+        self.assertNotIn("agent", text.lower(), "the server or a tool still points clients at the agent")
+
+    def test_every_tool_has_its_own_client_description(self):
+        # Every tool carries its own description, so the agent-facing Apex wording
         # ("Relay the answer verbatim") does not reach MCP clients.
-        overrides = re.findall(r"<descriptionOverride>([^<]+)</descriptionOverride>", text)
-        self.assertEqual(len(overrides), 3, "each tool needs a descriptionOverride")
-        for text_ in overrides:
-            self.assertNotIn("verbatim", text_.lower())
+        for tool in server_tools():
+            with self.subTest(tool=tool["toolName"]):
+                text = tool.get("descriptionOverride") or ""
+                self.assertTrue(text.strip(), "each tool needs a descriptionOverride")
+                self.assertNotIn("verbatim", text.lower())
+                self.assertNotIn("'", text, "an apostrophe comes back HTML-escaped")
 
     def test_no_secrets_ids_emails_or_org_hosts(self):
         files = door_files()
@@ -100,6 +141,27 @@ class TestDoorMetadata(unittest.TestCase):
                 self.assertIsNone(ORG_HOST.search(text), "a my.salesforce.com host")
                 for url in re.findall(r"https?://[^\s<\"']+", text):
                     self.assertNotIn("?", url, "a URL with a query string")
+
+
+class TestClientApp(unittest.TestCase):
+    def test_description_names_the_scopes_as_the_metadata_does(self):
+        # OPS-23 left the description naming mcp_api and refresh_token while the metadata
+        # carries MCP and RefreshToken. The description now uses the metadata's names.
+        base = os.path.join(DOOR, "main", "default")
+        with open(os.path.join(base, "extlClntAppOauthSettings",
+                               "CustomerSummaryMcpClient.ecaOauth-meta.xml"), encoding="utf-8") as f:
+            scopes_text = re.search(r"<commaSeparatedOauthScopes>([^<]+)</commaSeparatedOauthScopes>",
+                                    f.read()).group(1)
+        scopes = sorted(s.strip() for s in scopes_text.split(","))
+        self.assertEqual(scopes, ["MCP", "RefreshToken"])
+        with open(os.path.join(base, "externalClientApps", "CustomerSummaryMcpClient.eca-meta.xml"),
+                  encoding="utf-8") as f:
+            description = re.search(r"<description>([^<]+)</description>", f.read()).group(1)
+        for scope in scopes:
+            self.assertRegex(description, r"(?<![A-Za-z_])%s(?![A-Za-z_])" % scope)
+        for other in ("mcp_api", "refresh_token"):
+            self.assertNotIn(other, description)
+        self.assertIn("CustomerSummaryMcp", description)
 
 
 if __name__ == "__main__":
