@@ -17,11 +17,13 @@ row F66 in [feature-revision-2.md](../plans/feature-revision-2.md); OPS-41 (chap
   agent's action stopped at 36 of 47. The repo's "keep each action's answer under about 6,000 characters" rule
   ([06](../patterns/06-agent-routing-and-verbatim-relay.md)) has no measurement behind it, and this run did not find
   the limit it guards against.
-- **The agent did not relay the brief verbatim.** In 6 of 6 brief runs no section went missing: all six section labels
-  were present. But the layout changed every time. The direct action put each label on its own line (6 of 6) with 4
-  bullet lines. The relayed reply had 1 of 6 labels on its own line, the others starting a line that carries body
-  text, and 0 bullet lines. That is 22 lines down to 17 or 18, although the script tells the agent to keep every line
-  break, label line and "- " bullet.
+- **The agent did not relay the brief verbatim.** The layout changed in 6 of 6 brief runs: the direct action put all six
+  section labels on their own line, and the relayed reply put 1 of 6 there, with lines falling from 21 or 22 to 17 or
+  18. In the 3 runs that also counted where the labels went (runs 4 to 6), no section went missing: all six labels
+  started a line, the others now sharing it with body text. In those runs the direct action had 4 lines starting with
+  "- " and the relay had 0. Whether those bullets lost only their marker or were merged into other lines is not
+  known; the line counts fit the labels merging more than whole bullets going. The script tells the agent to keep
+  every line break, label line and "- " bullet.
 - **Turns are slow.** 13 to 36 seconds an agent turn, against 5 to 9 seconds for the same explore question on the
   direct path.
 - **Cards and the panel, from public docs.** A card in Agentforce's own panel needs a custom Lightning type, an Apex
@@ -58,7 +60,10 @@ the relay is judged on the relay alone, not by pairing:
   and lines in all.
 
 The scripts print counts and booleans only, never text, names or Ids. Results:
-[results/](../../spikes/standard-limits/results/).
+[results/](../../spikes/standard-limits/results/). `run.py report` reads them with no org call and prints each
+agent run's sizes and PASS or FAIL against the direct run of the same rung and number: 18 of 18 explore runs pass
+(rows, footer, columns and names all match), and 6 of 6 brief runs fail on labels on their own line (runs 4 to 6
+also on lines starting "- ").
 
 **Rungs.** The explorer's table grows with rows and columns. Six wordings, frozen after a calibration on the direct path
 (no agent turns), land at about 1.7k, 2.4k, 3.1k, 4.7k, 5.6k and 5.8k characters. The last one asks for 11 columns of
@@ -102,7 +107,7 @@ The direct calls took 5 to 9 seconds each.
 Runs 1 to 3 counted labels on their own line only. Runs 4 to 6 added the line-start, anywhere and bullet counts, to
 tell a reformatted section from a dropped one.
 
-| Run | Action returned (chars) | Lines | Labels on own line | Bullet lines | Agent relayed (chars) | Lines | Labels on own line | Labels at a line start | Bullet lines | Sections missing | Turn time |
+| Run | Action returned (chars) | Lines | Labels on own line | Lines starting "- " | Agent relayed (chars) | Lines | Labels on own line | Labels at a line start | Lines starting "- " | Sections missing | Turn time |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | 2,587 | 21 | 6 of 6 | not counted | 2,371 | 18 | 1 of 6 | not counted | not counted | not counted | 30.8 s |
 | 2 | 2,722 | 22 | 6 of 6 | not counted | 2,275 | 18 | 1 of 6 | not counted | not counted | not counted | 31.0 s |
@@ -122,12 +127,13 @@ tell a reformatted section from a dropped one.
    `ExploreAction` clipped them. The panel path showed 47 of 47. A custom surface does not need the cap; the agent does,
    by our own rule.
 3. **Verbatim relay holds for tables and not for formatted prose.** The script's relay instruction kept every table row,
-   but the brief's layout was rewritten in 6 of 6 runs: labels pulled up onto body lines and bullet markers dropped.
-   The content was not checked word for word (the scripts print no text), so only the label and line counts are
+   but the brief's layout was rewritten in 6 of 6 runs: labels pulled up onto body lines, and in the 3 runs that
+   counted them, no line left starting with "- ". The content was not checked word for word (the scripts print no text), so only the label and line counts are
    proven. Whether the reasoning model or the platform reformats is not visible from Apex. Either way, Agentforce's
    own chat decides the final layout of a text answer, and the action's author does not.
-4. **Latency is the cost that grows.** Turn time rose with answer size: 13 to 18 s at 1.7k, 28 to 33 s at 5.8k. The
-   direct path took 5 to 9 s at every size.
+4. **Latency is the cost that grows.** Turn time rose across the rungs: 13 to 18 s at 1.7k, 28 to 33 s at 5.8k. The
+   top rung also asks for 11 columns and two related names, so size is not the only change. The direct path took 5 to
+   9 s at every rung.
 
 ## Rich cards in the standard chat (public docs)
 
