@@ -6,6 +6,13 @@
         <!-- Brief bar: one row, pinned. Sections and Earlier summaries sit at the top of the scroll box. -->
         <div class="slds-p-around_x-small abp-bar">
             <div class="abp-bar-row">
+                <!-- The brand: the logo and the agent name from the Default brand record, once it has loaded. -->
+                <template lwc:if={brand}>
+                    <div class="abp-brand">
+                        <img class="abp-logo" src={logoUrl} alt={logoAlt} width="20" height="20">
+                        <span class="abp-agent-name slds-truncate" title={agentName}>{agentName}</span>
+                    </div>
+                </template>
                 <template lwc:if={isAccountPage}>
                     <!-- A native button: its text truncates when the row is short, and stays its accessible name. -->
                     <button class="slds-button slds-button_brand abp-brief" title={briefButtonLabel}
@@ -259,9 +266,7 @@
                     </template>
                 </template>
                 <template lwc:else>
-                    <p class="slds-text-color_weak slds-text-body_small slds-m-vertical_small">
-                        Ask anything about your data, or type /brief and an account name. Cmd/Ctrl-K focuses this box.
-                    </p>
+                    <p class="abp-empty slds-text-color_weak slds-text-body_small slds-m-vertical_small">{emptyText}</p>
                 </template>
             </div>
         </div>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Tone__c</fullName>
+    <description>One line on how the agent writes. Added to the end of the summary synthesis and explorer system prompts.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>One short line, such as: Plain, warm and concise. Line breaks are joined into one line.</inlineHelpText>
+    <label>Tone</label>
+    <length>1000</length>
+    <type>LongTextArea</type>
+    <visibleLines>3</visibleLines>
+</CustomField>

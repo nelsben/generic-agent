@@ -9,6 +9,7 @@ import explore from '@salesforce/apex/CustomerSummaryPanelController.explore';
 import drill from '@salesforce/apex/CustomerSummaryPanelController.drill';
 import history from '@salesforce/apex/CustomerSummaryPanelController.history';
 import sources from '@salesforce/apex/CustomerSummaryPanelController.sources';
+import getSettings from '@salesforce/apex/BrandSettings.getSettings';
 
 const mockNavigate = jest.fn();
 
@@ -32,6 +33,14 @@ jest.mock('@salesforce/apex/CustomerSummaryPanelController.drill', () => ({ defa
 jest.mock('@salesforce/apex/CustomerSummaryPanelController.history', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock(
     '@salesforce/apex/CustomerSummaryPanelController.sources',
+    () => {
+        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
+        return { default: createApexTestWireAdapter(jest.fn()) };
+    },
+    { virtual: true }
+);
+jest.mock(
+    '@salesforce/apex/BrandSettings.getSettings',
     () => {
         const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
         return { default: createApexTestWireAdapter(jest.fn()) };
@@ -910,6 +919,104 @@ describe('c-customer-summary-panel', () => {
             await flush();
             $(el, '.abp-row-button').click();
             await flush();
+            await expect(el).toBeAccessible();
+        });
+    });
+
+    // 11: brand settings (BE-24). The Default record's values reach the host and the text.
+    describe('brand', () => {
+        const NORTHWIND = {
+            agentName: 'Northwind Assist',
+            companyName: 'Northwind Health',
+            logoUrl: '/resource/BrandLogo',
+            primaryColor: '#0b6e4f',
+            accentColor: '#08415c',
+            surfaceColor: '#f7faf8',
+            inkColor: '#1b2a24',
+            displayFont: 'Georgia, serif',
+            bodyFont: 'Verdana, sans-serif',
+            radius: '0.5rem',
+            tone: 'Warm and brief.'
+        };
+        const VARS = {
+            '--cs-color-primary': '#0b6e4f',
+            '--cs-color-accent': '#08415c',
+            '--cs-color-surface': '#f7faf8',
+            '--cs-color-ink': '#1b2a24',
+            '--cs-font-display': 'Georgia, serif',
+            '--cs-font-body': 'Verdana, sans-serif',
+            '--cs-radius': '0.5rem'
+        };
+
+        async function mountBranded(brand) {
+            const el = await mount();
+            getSettings.emit(brand);
+            await flush();
+            return el;
+        }
+
+        it('sets every theme variable as an inline custom property on its host', async () => {
+            const el = await mountBranded(NORTHWIND);
+            Object.entries(VARS).forEach(([name, value]) => {
+                expect(el.style.getPropertyValue(name)).toBe(value);
+            });
+        });
+
+        it('sets no theme variable before the brand settings arrive, so the stylesheet fallbacks apply', async () => {
+            const el = await mount();
+            Object.keys(VARS).forEach((name) => {
+                expect(el.style.getPropertyValue(name)).toBe('');
+            });
+            expect($(el, '.abp-composer')).not.toBeNull();
+        });
+
+        it('keeps the stylesheet fallbacks and shows no name when the brand settings fail to load', async () => {
+            const el = await mount();
+            getSettings.error();
+            await flush();
+            Object.keys(VARS).forEach((name) => {
+                expect(el.style.getPropertyValue(name)).toBe('');
+            });
+            expect($(el, '.abp-composer')).not.toBeNull();
+            expect($(el, '.abp-agent-name')).toBeNull();
+        });
+
+        it('shows the agent name from the brand settings in its header', async () => {
+            const el = await mountBranded(NORTHWIND);
+            const name = $(el, '.abp-bar .abp-brand .abp-agent-name');
+            expect(name).not.toBeNull();
+            expect(name.textContent).toBe('Northwind Assist');
+            expect(text(el)).not.toContain('Customer Summary');
+        });
+
+        it('shows the logo from the brand settings in its header, named by the company', async () => {
+            const el = await mountBranded(NORTHWIND);
+            const logo = $(el, '.abp-bar .abp-brand img.abp-logo');
+            expect(logo).not.toBeNull();
+            expect(logo.getAttribute('src')).toBe('/resource/BrandLogo');
+            expect(logo.getAttribute('alt')).toBe('Northwind Health logo');
+        });
+
+        it('names the company in its empty state', async () => {
+            const el = await mountBranded(NORTHWIND);
+            const empty = $(el, '.abp-empty');
+            expect(empty).not.toBeNull();
+            expect(empty.textContent).toContain('Northwind Health');
+        });
+
+        it('keeps one bar row, with the brand next to the Summarize button', async () => {
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+            const el = await mountBranded(NORTHWIND);
+            CurrentPageReference.emit(ACCOUNT_PAGE(ACME));
+            await flush();
+            const rows = $$(el, '.abp-bar .abp-bar-row');
+            expect(rows).toHaveLength(1);
+            expect(rows[0].querySelector('.abp-brand')).not.toBeNull();
+            expect(rows[0].querySelector('button.abp-brief').textContent).toBe('Summarize Acme');
+        });
+
+        it('is accessible with the brand settings applied', async () => {
+            const el = await mountBranded(NORTHWIND);
             await expect(el).toBeAccessible();
         });
     });

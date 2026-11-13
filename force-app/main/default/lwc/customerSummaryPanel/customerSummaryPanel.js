@@ -29,8 +29,21 @@ import explore from '@salesforce/apex/CustomerSummaryPanelController.explore';
 import drill from '@salesforce/apex/CustomerSummaryPanelController.drill';
 import history from '@salesforce/apex/CustomerSummaryPanelController.history';
 import sources from '@salesforce/apex/CustomerSummaryPanelController.sources';
+import getSettings from '@salesforce/apex/BrandSettings.getSettings';
 
 const BRIEF_COMMAND = /^\/brief\s+/i;
+
+// Brand settings field -> the theme variable the panel sets on its host (fr2-design.md, Theming).
+// The stylesheet reads only these variables, each with a neutral fallback, so a value left out keeps it.
+const THEME_VARIABLES = [
+    ['primaryColor', '--cs-color-primary'],
+    ['accentColor', '--cs-color-accent'],
+    ['surfaceColor', '--cs-color-surface'],
+    ['inkColor', '--cs-color-ink'],
+    ['displayFont', '--cs-font-display'],
+    ['bodyFont', '--cs-font-body'],
+    ['radius', '--cs-radius']
+];
 const HISTORY_TURNS = 5;
 const ACCOUNT_PREFIX = '001';
 // An 18-character record Id inside a line of text, e.g. an AMBIGUOUS candidate line.
@@ -114,6 +127,7 @@ export default class CustomerSummaryPanel extends NavigationMixin(LightningEleme
     @api objectApiName;
 
     draft = '';
+    brand = null;
     pending = false;
     turns = [];
     drillStack = [];
@@ -150,6 +164,46 @@ export default class CustomerSummaryPanel extends NavigationMixin(LightningEleme
     wiredPageRef(ref) {
         this._pageRef = ref;
         this._syncContext();
+    }
+
+    /**
+     * The brand (BrandSettings, the Default record). Until it arrives, or if it fails, the header shows no
+     * name or logo and the stylesheet's neutral fallbacks apply.
+     */
+    @wire(getSettings)
+    wiredBrand({ data }) {
+        if (!data) {
+            return;
+        }
+        this.brand = data;
+        const style = this.template.host.style;
+        THEME_VARIABLES.forEach(([field, variable]) => {
+            if (data[field]) {
+                style.setProperty(variable, data[field]);
+            } else {
+                style.removeProperty(variable);
+            }
+        });
+    }
+
+    get agentName() {
+        return this.brand ? this.brand.agentName : '';
+    }
+
+    get logoUrl() {
+        return this.brand ? this.brand.logoUrl : '';
+    }
+
+    get logoAlt() {
+        return this.brand && this.brand.companyName ? this.brand.companyName + ' logo' : '';
+    }
+
+    get emptyText() {
+        const company = this.brand && this.brand.companyName;
+        return (
+            'Ask anything about ' + (company ? company + "'s" : 'your') +
+            ' data, or type /brief and an account name. Cmd/Ctrl-K focuses this box.'
+        );
     }
 
     @wire(sources)

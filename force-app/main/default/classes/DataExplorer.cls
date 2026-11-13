@@ -96,10 +96,12 @@ public with sharing class DataExplorer {
                 'history' => historyText(historyJson),
                 'question' => question.trim()
             };
+            // The brand's company and tone lines go after the explorer prompt's own system text (BE-24).
+            String brandLines = BrandSettings.promptLines();
             for (Integer turn = 1; turn <= MAX_TURNS; turn++) {
                 vars.put('turns', run.turns.isEmpty() ? NONE : String.join(run.turns, '\n\n'));
                 vars.put('queries_left', String.valueOf(MAX_QUERIES - run.queries));
-                String reply = AgentLlm.complete(PROMPT, vars, MAX_TOKENS);
+                String reply = AgentLlm.complete(PROMPT, vars, MAX_TOKENS, brandLines);
                 String outcome = step(run, reply);
                 if (outcome == null) {
                     return run.result;
