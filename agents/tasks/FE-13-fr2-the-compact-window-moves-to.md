@@ -4,7 +4,7 @@ title: FR2: the compact window — moves to the corner the surface spike picked,
 domain: frontend
 tier: frontier
 tier_reason: changes the live panel's position, hotkey handling and utility-bar setup, with e2e and captures
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/flexipages/**, force-app/main/default/applications/**, force-app/main/default/messageChannels/**, e2e/**, docs/patterns/03-hotkey-panel.md, docs/assets/fr2-compact-*.png, tests/test_app.py]
 forbid: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -28,3 +28,27 @@ Feature revision 2 (FR2): Ben keeps the compact agent as one surface, wants it o
 - **What FE-12 left (merged after this card was cut):** customerSummaryPanel is now only the frame; it hosts c-customer-summary-conversation, whose public interface is written at the top of customerSummaryConversation.js (`@api recordId`, `@api sessionId`, `@api brand`, `@api focusComposer()`, `@api ask()`, `@api summarize()`, event `sessionchange`). Build on that interface and do not edit the conversation folder. The panel Jest tests reach into the conversation through the shadow-root helpers at the top of customerSummaryPanel.test.js; keep using them. The accessibility matcher in this repo is @sa11y/jest `toBeAccessible` (axe-core), which is what 'zero jest-axe violations' means here. In FE-12's capture the frame's header and the conversation's brand row both show "Customer Summary": in the new frame show the agent name once, in the frame's own header or launcher, and leave the brand row as it is. e2e/support/panel.js already closes a "Welcome to Data Cloud!" pop-up; keep that handler
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - Jest covers the hotkey (and that it yields when another handler prevented default), the key hint per platform, minimize keeps the thread, expand event payload, Esc and focus return, and zero jest-axe violations. e2e: the existing panel tests updated for the new corner and launcher; all pass. Paste the Playwright summary line in the hand-back. tests/test_app.py follows any change to the app or its utility bar. Update docs/patterns/03-hotkey-panel.md (corner and why, hotkeys and why they are free on Chrome for Mac, launcher, minimize, expand). Capture docs/assets/fr2-compact-open.png and docs/assets/fr2-compact-launcher.png at 1440x900. Every still and GIF is taken through e2e/capture/kit.js. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never create a user, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-13). Two worker attempts; the mod counts three because attempt 1's hand-back arrived after a no-report verdict and was verified with verify=24b4ff8, then re-emitted.
+
+Attempt 1 (24b4ff8): the stage (launcher plus a dialog sheet) moves to document.body, @api expandEnabled (false) and @api corner (right), the CustomerSummaryExpand channel, a hotkey that opens or refocuses, focus return through dialog.show/close with the launcher as fallback, and the utility item reduced to a note plus an Open button at height 200. The brain found that e2e spec 8 claimed to use @axe-core/playwright's axe-core but resolved @sa11y's copy.
+
+Attempt 2 (672b43e): axe-core 4.10.3 is an exact direct devDependency, and the lock changed only the root entry. The spec comment and e2e/README.md are corrected. MANIFEST has rows for the two new stills, and 13 older captures are marked "captured, old utility-panel frame". Granted amend: scope+=package.json, package-lock.json, docs/assets/MANIFEST.md.
+
+Review: 15 confirmed, 0 refuted, 8 unverifiable (the org runs, deploys, captures and the choices past the cut-off list). The reviewer did not open the brief.
+
+Org: three validate-with-RunLocalTests plus quick-deploy runs succeeded in agent-probe, the last after the final force-app edit. e2e: 10 passed (3.3m). First paint after Cmd/Ctrl-K: median 9 ms, max 14 ms (budget 300). Spec 8 alone at 672b43e: 1 passed (38.1s).
+
+The brain viewed docs/assets/fr2-compact-launcher.png and fr2-compact-open.png. The launcher reads "Ask Customer Summary ⌘K" at the bottom right, and the window shows the agent name once. Only sample data appears, with the owner and emails masked.
+
+Privacy grep over 1267 added lines: 0 hits in every category.
+
+Still open:
+- @axe-core/playwright is unused but kept in package.json (Ben's call)
+- the older capture scripts have not been re-run against the new frame
+- corner "left" has not been tried in an org
+- the e2e axe scan covers the stage only; Jest @sa11y covers the utility note
+- there is no app brand block, and the brand shows in the launcher only
+- the body mount (moveToBody) works under LWS but is undocumented
