@@ -1,7 +1,7 @@
 // @ts-check
 /**
- * The Account Brief panel in a real org, one journey per test. Each test loads the record page of
- * Edge Communications fresh inside the Account Brief app (see support/panel.js).
+ * The Customer Summary panel in a real org, one journey per test. Each test loads the record page of
+ * Edge Communications fresh inside the Customer Summary app (see support/panel.js).
  *
  * Model calls per full run (briefs and questions): (3) 1, (4) 2, (5) 1, (6) 0, (7) 1,
  * (8) 1-2, so 6 to 7. Spec 8 asks one question only when no brief section line
@@ -49,7 +49,7 @@ async function drillOrigin(panel, { briefed = false, requireSectionDrill = true 
 }
 
 async function axeScan(page, testInfo, state) {
-    const results = await new AxeBuilder({ page }).include('c-account-brief-panel').withTags(WCAG_TAGS).analyze();
+    const results = await new AxeBuilder({ page }).include('c-customer-summary-panel').withTags(WCAG_TAGS).analyze();
     const violations = results.violations.map((v) => ({
         id: v.id,
         impact: v.impact,
@@ -111,8 +111,8 @@ test('3. a brief renders with its headline and collapsed accordions, announced b
     await panel.open();
     await expect(panel.briefButton).toBeVisible();
     await panel.briefButton.click();
-    await expect(panel.liveRegion).toHaveText('Loading brief for ' + ACCOUNT_NAME);
-    await expect(panel.liveRegion).toHaveText(/^Brief ready: \S/, { timeout: ANSWER_TIMEOUT });
+    await expect(panel.liveRegion).toHaveText('Loading summary for ' + ACCOUNT_NAME);
+    await expect(panel.liveRegion).toHaveText(/^Summary ready: \S/, { timeout: ANSWER_TIMEOUT });
     await expect(panel.spinner).toBeHidden();
 
     const turn = panel.turns.last();
@@ -122,7 +122,7 @@ test('3. a brief renders with its headline and collapsed accordions, announced b
     await expect(headline).toBeVisible();
     const headlineText = ((await headline.textContent()) || '').trim();
     expect(headlineText.length).toBeGreaterThan(0);
-    await expect(panel.liveRegion).toHaveText('Brief ready: ' + headlineText);
+    await expect(panel.liveRegion).toHaveText('Summary ready: ' + headlineText);
 
     const headers = panel.sectionHeaders(turn);
     expect(await headers.count()).toBeGreaterThan(0);
@@ -144,7 +144,7 @@ test('3. a brief renders with its headline and collapsed accordions, announced b
         const bar = body.y - (header.y + header.height);
         expect(Math.round(bar), 'CSS px from the panel header to the top of the scroll box').toBeLessThanOrEqual(80);
         expect(Math.round(body.height), 'the scroll box height in CSS px').toBeGreaterThanOrEqual(240);
-        // The bar holds the Brief button alone: "Ask the agent" is gone (FR2).
+        // The bar holds the Summarize button alone: "Ask the agent" is gone (FR2).
         await expect(panel.briefButton).toBeVisible();
         await expect(panel.host.getByRole('button', { name: 'Ask the agent', exact: true })).toHaveCount(0);
     });

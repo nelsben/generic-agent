@@ -19,7 +19,7 @@
   "sourceApiVersion": "68.0",
   "replacements": [
     {
-      "filename": "mcp-door/main/default/externalClientApps/AccountBriefMcpClient.eca-meta.xml",
+      "filename": "mcp-door/main/default/externalClientApps/CustomerSummaryMcpClient.eca-meta.xml",
       "stringToReplace": "__MCP_CONTACT_EMAIL__",
       "replaceWithEnv": "MCP_CONTACT_EMAIL"
     }

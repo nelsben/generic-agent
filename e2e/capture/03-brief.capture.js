@@ -50,7 +50,7 @@ test('brief-flow.gif, panel-brief.png, panel-sections-open.png, memory-followup.
     await page.waitForTimeout(500);
     await panel.composer.press('Enter');
     const sent = at(t0);
-    await expect(panel.liveRegion).toHaveText(/^Brief ready: /, { timeout: ANSWER_TIMEOUT });
+    await expect(panel.liveRegion).toHaveText(/^Summary ready: /, { timeout: ANSWER_TIMEOUT });
     await expect(panel.spinner).toBeHidden();
     const arrived = at(t0);
     const turn = panel.turns.last();

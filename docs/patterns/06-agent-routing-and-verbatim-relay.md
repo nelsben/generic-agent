@@ -9,7 +9,7 @@ through without rewording it. It gives the same brief and the same data answers 
 custom panel.
 
 The current script runs live in `agent-probe`, a fresh Developer Edition org. There, version 2
-of `Account_Brief`, published from main with this script, is the active version. The
+of `Customer_Summary`, published from main with this script, is the active version. The
 screenshots below come from it, and the 16-case agent test passed against it
 ([agent-iteration-1.md](../research/agent-iteration-1.md)). Version 1 was published there first
 and passed the 12-case test ([org-migration.md](../research/org-migration.md)). In the org it was first built in, version 1
@@ -29,14 +29,14 @@ that text as it is.
 sequenceDiagram
     actor U as Rep
     participant R as agent_router
-    participant AB as subagent account_brief
-    participant RA as AccountBriefResolver
-    participant GA as AccountBriefGetAction
+    participant AB as subagent account_summary
+    participant RA as CustomerSummaryResolver
+    participant GA as CustomerSummaryGetAction
     participant EX as subagent explore
     participant EA as ExploreAction
     Note over U,R: A message sent to the agent goes straight to the router.
     U->>R: Brief me on Edge Communications
-    R->>AB: go_to_account_brief
+    R->>AB: go_to_account_summary
     AB->>RA: resolve_account(accountName)
     RA-->>AB: RESOLVED, set briefed_account_id and briefed_account_name
     AB->>GA: get_brief(accountId, userQuestion, include)
@@ -52,11 +52,11 @@ sequenceDiagram
 1. **Every turn starts at the router.** `agent_router` applies six rules in order, and the first
    match wins. An org-wide count, list or total that names no account goes to explore, even
    after a brief. A named account, a pick from a candidate list, or "their" after a brief goes to
-   account_brief. Anything else gets one fixed line.
-2. **Resolve first.** In `account_brief`, `resolve_account` (`AccountBriefResolver`) always sets
+   account_summary. Anything else gets one fixed line.
+2. **Resolve first.** In `account_summary`, `resolve_account` (`CustomerSummaryResolver`) always sets
    `briefed_account_id` and `briefed_account_name`, so a failed resolve clears the earlier
    account instead of leaving it in place.
-3. **Brief only a resolved Id.** `get_brief` (`AccountBriefGetAction`) is available only when
+3. **Brief only a resolved Id.** `get_brief` (`CustomerSummaryGetAction`) is available only when
    `briefed_account_id` is not None and not empty.
 4. **AMBIGUOUS and NOT_FOUND** are relayed as the resolver's message, and nothing else is called.
 5. **Explore runs without the model choosing.** The `explore` subagent's `before_reasoning` block
@@ -85,7 +85,7 @@ sequenceDiagram
   (`test_explore_runs_explore_data_deterministically`), rule 1 coming before the follow-up rule,
   and the off-topic line.
 - **The spec is checked for shape.** The same file checks that
-  [Account_Brief-testSpec.yaml](../../tests/agent/Account_Brief-testSpec.yaml) has 16 utterances,
+  [Customer_Summary-testSpec.yaml](../../tests/agent/Customer_Summary-testSpec.yaml) has 16 utterances,
   including AMBIGUOUS, a two-turn follow-up, an org-wide count after a brief, and NOT_FOUND then
   a follow-up.
 - **It ran live.** All 12 cases routed correctly in Studio preview against the draft version
@@ -119,9 +119,9 @@ sequenceDiagram
 
 ## Adopt it
 
-1. Copy `force-app/main/default/aiAuthoringBundles/Account_Brief/` and the three action classes:
-   `AccountBriefResolver`, `AccountBriefGetAction` and `ExploreAction`.
-2. Copy `Account_Brief_Agent_Access`. It grants the agent and nothing else.
+1. Copy `force-app/main/default/aiAuthoringBundles/Customer_Summary/` and the three action classes:
+   `CustomerSummaryResolver`, `CustomerSummaryGetAction` and `ExploreAction`.
+2. Copy `Customer_Summary_Agent_Access`. It grants the agent and nothing else.
 3. **Change the routes.** Edit the six rules in `agent_router`, and keep the org-wide rule first.
 4. **Change the jobs.** Point each subagent's actions at your own `apex://` classes. Keep each
    action's answer ready to relay, under about 6,000 characters.

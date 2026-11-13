@@ -17,7 +17,7 @@ a stub.
 
 ```mermaid
 sequenceDiagram
-    participant F as AccountBrief or DataExplorer
+    participant F as CustomerSummary or DataExplorer
     participant L as AgentLlm
     participant SR as StaticResource AgentPrompt_Name
     participant PR as AgentLlm.Provider

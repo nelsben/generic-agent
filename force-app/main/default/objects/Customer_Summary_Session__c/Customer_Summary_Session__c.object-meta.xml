@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Customer Summary Session</label>
+    <pluralLabel>Customer Summary Sessions</pluralLabel>
+    <nameField>
+        <label>Customer Summary Session Name</label>
+        <type>AutoNumber</type>
+        <displayFormat>ABS-{0000}</displayFormat>
+        <startingNumber>1</startingNumber>
+    </nameField>
+    <description>One row per user and account: the rolling history of Customer Summary requests. Written only by CustomerSummaryMemory.</description>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>Private</sharingModel>
+    <externalSharingModel>Private</externalSharingModel>
+    <enableActivities>false</enableActivities>
+    <enableHistory>false</enableHistory>
+    <enableReports>true</enableReports>
+    <enableSearch>false</enableSearch>
+    <enableBulkApi>true</enableBulkApi>
+    <enableSharing>true</enableSharing>
+    <enableStreamingApi>true</enableStreamingApi>
+</CustomObject>

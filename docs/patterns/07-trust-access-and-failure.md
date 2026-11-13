@@ -4,7 +4,7 @@
 
 The assistant shows a rep only records that rep can already open in Salesforce. When something
 goes wrong, the rep reads one plain sentence that says what to do next, never a stack trace.
-Granting access is one step: assign the permission set group `Account_Brief_User` (two narrow
+Granting access is one step: assign the permission set group `Customer_Summary_User` (two narrow
 sets that grant nothing extra), plus Salesforce's standard Agentforce user set for the built-in agent.
 
 ## The problem it removes
@@ -21,10 +21,10 @@ use.
 sequenceDiagram
     actor U as Rep
     participant P as Panel or agent
-    participant C as AccountBriefPanelController
-    participant R as AccountBriefResolver
-    participant B as AccountBrief
-    participant S as AccountBrief sections
+    participant C as CustomerSummaryPanelController
+    participant R as CustomerSummaryResolver
+    participant B as CustomerSummary
+    participant S as CustomerSummary sections
     participant DB as CRM records
     U->>P: /brief an account the rep cannot see
     P->>C: resolve(text)
@@ -55,13 +55,13 @@ sequenceDiagram
    shows them as buttons without the raw Id.
 5. **A failed part stays a part.** A section that throws becomes ERROR with "Couldn't load
    <title> right now." The brief still returns the other sections.
-6. **No raw errors.** `AccountBriefPanelController` catches every exception. Expected ones carry
+6. **No raw errors.** `CustomerSummaryPanelController` catches every exception. Expected ones carry
    their own user text. Anything else is logged and becomes an `AuraHandledException` with
    "I couldn't finish that right now. Try again in a minute."
 7. **No markup.** The panel renders model text as plain text, never as HTML.
-8. **Two narrow permission sets.** `Account_Brief_Data_Access` shows the app, grants the five
-   entry-point classes, and gives read-only access to the memory object. `Account_Brief_Agent_Access`
-   grants the agent and nothing else. `Account_Brief_User` is a permission set group holding both.
+8. **Two narrow permission sets.** `Customer_Summary_Data_Access` shows the app, grants the five
+   entry-point classes, and gives read-only access to the memory object. `Customer_Summary_Agent_Access`
+   grants the agent and nothing else. `Customer_Summary_User` is a permission set group holding both.
 
 ## See it
 
@@ -71,17 +71,17 @@ sequenceDiagram
 
 ## Why you can trust it
 
-- **Fail-closed sections are tested.** [AccountBriefSectionErrorTest](../../force-app/main/default/classes/AccountBriefSectionErrorTest.cls)
+- **Fail-closed sections are tested.** [CustomerSummarySectionErrorTest](../../force-app/main/default/classes/CustomerSummarySectionErrorTest.cls)
   `everySectionFailsClosedAndKeepsTheCauseForAUserWithoutAccess` runs every section as a user
-  without access. [AccountBriefTest](../../force-app/main/default/classes/AccountBriefTest.cls)
+  without access. [CustomerSummaryTest](../../force-app/main/default/classes/CustomerSummaryTest.cls)
   `brokenSourceBecomesErrorSection` and `someErrorSectionsStillGiveAnOkBrief`.
-- **Resolver texts are tested.** [AccountBriefResolverTest](../../force-app/main/default/classes/AccountBriefResolverTest.cls)
+- **Resolver texts are tested.** [CustomerSummaryResolverTest](../../force-app/main/default/classes/CustomerSummaryResolverTest.cls)
   `unknownNameIsNotFound`, `tenMatchesAreAmbiguousWithEightLinesAndMore` and `blankInputIsNotFound`.
-- **No raw errors reach the panel.** [AccountBriefPanelControllerTest](../../force-app/main/default/classes/AccountBriefPanelControllerTest.cls)
+- **No raw errors reach the panel.** [CustomerSummaryPanelControllerTest](../../force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls)
   `unexpectedExceptionsBecomeFixedText` and `drillTurnsEveryExceptionIntoTheFixedText`, and the
   Jest tests "shows the fixed fallback, never raw script text" and "renders markup in answers,
   cells, section lines and follow-ups as text" in
-  [accountBriefPanel.test.js](../../force-app/main/default/lwc/accountBriefPanel/__tests__/accountBriefPanel.test.js).
+  [customerSummaryPanel.test.js](../../force-app/main/default/lwc/customerSummaryPanel/__tests__/customerSummaryPanel.test.js).
 - **The permission sets are tested.** [test_permission_sets.py](../../tests/test_permission_sets.py)
   checks that only the entry-point classes are granted, that the session object is never given
   delete, view all or modify all, and that the agent set has no class or object access.
@@ -103,15 +103,15 @@ sequenceDiagram
 1. Copy both permission sets from `force-app/main/default/permissionsets/`, the group from
    `force-app/main/default/permissionsetgroups/`, and `tests/test_permission_sets.py` and
    `tests/test_access_group.py`.
-   **Give a user access:** assign the group `Account_Brief_User` and the standard Agentforce user
+   **Give a user access:** assign the group `Customer_Summary_User` and the standard Agentforce user
    permission set `CopilotSalesforceUser` (the name agent-review-2 cites; the org-migration run did
    not confirm it, so check it in your org). Assign the group, not the two sets one by one: a
    missing set can make every agent turn fail.
 2. Keep `with sharing` and `WITH USER_MODE` on every new query. Make every new source return
-   `AccountBriefSection.failed(...)` from its catch block.
+   `CustomerSummarySection.failed(...)` from its catch block.
 3. Keep every user-facing failure as a constant in Apex, and wrap every new `@AuraEnabled` method
    in the controller's catch-all.
-4. **Change the grants.** Add a class to `Account_Brief_Data_Access` only when it becomes an entry
+4. **Change the grants.** Add a class to `Customer_Summary_Data_Access` only when it becomes an entry
    point called from the panel or the agent. Update the Python test in the same change.
 
 ## Limits and open items
@@ -126,7 +126,7 @@ sequenceDiagram
 - Two queries, for the prompt files and the agent's definition, run without an explicit access
   mode. Whether a non-admin can read the prompt files from Apex has not been checked; if not, every
   brief and question fails (N11).
-- Access is the group `Account_Brief_User` plus the standard Agentforce user set, named in the
+- Access is the group `Customer_Summary_User` plus the standard Agentforce user set, named in the
   "Give a user access" step above and in the README (agent re-review N5,
   [agent-review-2.md](../reviews/agent-review-2.md)). Whether the Models API callout needs anything
   extra for a rep is unknown.
@@ -137,7 +137,7 @@ sequenceDiagram
   `WITH USER_MODE` explicitly, so they do not depend on that.
 
 > [!WARNING]
-> **Not yet proven:** a live run as a non-admin user with only the group `Account_Brief_User` and
+> **Not yet proven:** a live run as a non-admin user with only the group `Customer_Summary_User` and
 > the standard set. The Apex
 > tests use `runAs` for users without access, which checks the code paths, not the real profile,
 > the app and the agent together.

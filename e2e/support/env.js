@@ -6,8 +6,8 @@ const { spawnSync } = require('child_process');
 const ORG = process.env.SF_E2E_ORG || process.env.SF_TARGET_ORG || 'agent-probe';
 const SF = '/usr/local/bin/sf';
 const ACCOUNT_NAME = 'Edge Communications';
-// Account_Brief.app-meta.xml: a custom app, so its Lightning URL name is c__<API name>.
-const APP_PATH = '/lightning/app/c__Account_Brief';
+// Customer_Summary.app-meta.xml: a custom app, so its Lightning URL name is c__<API name>.
+const APP_PATH = '/lightning/app/c__Customer_Summary';
 const AUTH_DIR = path.join(__dirname, '..', '.auth');
 const STATE_FILE = path.join(AUTH_DIR, 'user.json');
 const RUN_FILE = path.join(AUTH_DIR, 'run.json');

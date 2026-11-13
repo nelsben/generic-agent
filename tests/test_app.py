@@ -1,6 +1,6 @@
-"""Static checks for the Account Brief Lightning app, its utility bar and visibility.
+"""Static checks for the Customer Summary Lightning app, its utility bar and visibility.
 
-The app hosts the accountBriefPanel LWC in a utility bar; the data-access permission set
+The app hosts the customerSummaryPanel LWC in a utility bar; the data-access permission set
 makes the app visible. XML parsing only, no org needed.
 """
 import unittest
@@ -9,10 +9,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT = ROOT / "force-app/main/default"
-APP = DEFAULT / "applications/Account_Brief.app-meta.xml"
-BAR = DEFAULT / "flexipages/Account_Brief_UtilityBar.flexipage-meta.xml"
-DATA_SET = DEFAULT / "permissionsets/Account_Brief_Data_Access.permissionset-meta.xml"
-AGENT_SET = DEFAULT / "permissionsets/Account_Brief_Agent_Access.permissionset-meta.xml"
+APP = DEFAULT / "applications/Customer_Summary.app-meta.xml"
+BAR = DEFAULT / "flexipages/Customer_Summary_UtilityBar.flexipage-meta.xml"
+DATA_SET = DEFAULT / "permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml"
+AGENT_SET = DEFAULT / "permissionsets/Customer_Summary_Agent_Access.permissionset-meta.xml"
 NS = {"m": "http://soap.sforce.com/2006/04/metadata"}
 
 
@@ -29,7 +29,7 @@ def panel_instance():
     found = [
         c
         for c in root.iter("{%s}componentInstance" % NS["m"])
-        if c.findtext("m:componentName", namespaces=NS) == "accountBriefPanel"
+        if c.findtext("m:componentName", namespaces=NS) == "customerSummaryPanel"
     ]
     return found
 
@@ -53,7 +53,7 @@ class TestUtilityBarFlexipage(unittest.TestCase):
 
     def test_panel_utility_item_properties(self):
         props = panel_props()
-        self.assertEqual(props["label"], "Account Brief")
+        self.assertEqual(props["label"], "Customer Summary")
         self.assertEqual(props["width"], "340")
         self.assertEqual(props["height"], "480")
         self.assertEqual(props["eager"], "true")
@@ -65,13 +65,13 @@ class TestApp(unittest.TestCase):
         self.root = load(APP)
 
     def test_app_is_a_lightning_standard_nav_large_app(self):
-        self.assertEqual(self.root.findtext("m:label", namespaces=NS), "Account Brief")
+        self.assertEqual(self.root.findtext("m:label", namespaces=NS), "Customer Summary")
         self.assertEqual(self.root.findtext("m:uiType", namespaces=NS), "Lightning")
         self.assertEqual(self.root.findtext("m:navType", namespaces=NS), "Standard")
         self.assertEqual(texts(self.root, "formFactors"), ["Large"])
 
     def test_app_references_the_utility_bar(self):
-        self.assertEqual(texts(self.root, "utilityBar"), ["Account_Brief_UtilityBar"])
+        self.assertEqual(texts(self.root, "utilityBar"), ["Customer_Summary_UtilityBar"])
 
     def test_app_tabs(self):
         self.assertEqual(
@@ -91,7 +91,7 @@ class TestAppVisibility(unittest.TestCase):
         visibilities = load(DATA_SET).findall("m:applicationVisibilities", NS)
         self.assertEqual(len(visibilities), 1)
         entry = visibilities[0]
-        self.assertEqual(entry.findtext("m:application", namespaces=NS), "Account_Brief")
+        self.assertEqual(entry.findtext("m:application", namespaces=NS), "Customer_Summary")
         self.assertEqual(entry.findtext("m:visible", namespaces=NS), "true")
         # PermissionSetApplicationVisibility has no default element: absent means not default.
         self.assertIsNone(entry.find("m:default", NS))
