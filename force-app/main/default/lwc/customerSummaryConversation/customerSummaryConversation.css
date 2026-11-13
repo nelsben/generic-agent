@@ -364,7 +364,7 @@ h2,
     line-height: 1.35;
     color: var(--cs-color-ink, #181818);
     border: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 14%, transparent);
-    border-radius: 6px;
+    border-radius: var(--cs-radius, 0.25rem);
     transition: background-color 160ms cubic-bezier(0.2, 0, 0, 1);
 }
 
@@ -452,6 +452,15 @@ c-customer-summary-voice-input {
     background-color: var(--cs-color-primary, #0176d3);
     border-color: var(--cs-color-primary, #0176d3);
     border-radius: var(--cs-radius, 0.25rem);
+}
+
+/* Disabled Send drops the brand fill: the surface, a faint ink border and a muted label. */
+.abp-send.slds-button_brand:disabled,
+.abp-send.slds-button_brand:disabled:hover {
+    background-color: var(--cs-color-surface, #ffffff);
+    border: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 18%, transparent);
+    color: color-mix(in srgb, var(--cs-color-ink, #181818) 50%, var(--cs-color-surface, #ffffff));
+    cursor: default;
 }
 
 /* Reduced motion: no pulse, no transitions, no smooth scrolling. */

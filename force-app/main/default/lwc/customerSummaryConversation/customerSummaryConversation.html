@@ -17,9 +17,9 @@
                     </div>
                 </template>
                 <template lwc:if={isAccountPage}>
-                    <!-- A native button: its text truncates when the row is short, and stays its accessible name. -->
-                    <button class="slds-button slds-button_brand abp-brief" title={briefButtonLabel}
-                        onclick={handleBriefThisAccount}><span class="slds-truncate">{briefButtonLabel}</span></button>
+                    <!-- A native button: it shows "Summarize"; its accessible name and tooltip keep the account. -->
+                    <button class="slds-button slds-button_brand abp-brief" title={briefButtonLabel} aria-label={briefButtonLabel}
+                        onclick={handleBriefThisAccount}><span class="slds-truncate">Summarize</span></button>
                 </template>
             </div>
         </div>
@@ -331,7 +331,7 @@
                 </template>
             </div>
             <div class="abp-composer-row">
-                <textarea class="abp-composer" aria-label="Ask or /brief an account" placeholder="Ask anything, or /brief Account name"
+                <textarea class="abp-composer" aria-label="Ask or /brief an account" placeholder="Ask or /brief an account"
                     rows="1" oninput={handleComposerInput} onkeydown={handleComposerKeydown}
                     onkeyup={handleComposerKeyOther} onkeypress={handleComposerKeyOther}></textarea>
                 <c-customer-summary-voice-input class="abp-mic" agent-name={micAgentName}
