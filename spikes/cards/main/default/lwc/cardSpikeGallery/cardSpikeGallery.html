@@ -1,0 +1,26 @@
+<template>
+    <div class="cg-page" style={brandStyle} oncardopen={handleCardEvent} oncardchoose={handleCardEvent}
+        oncardask={handleCardEvent} oncardaction={handleCardEvent}>
+        <h1 class="cg-h1">Card contract spike (FE-18)</h1>
+        <p class="cg-note" role="status" aria-live="polite">{lastEvent}</p>
+        <template for:each={groups} for:item="g">
+            <section key={g.key} class="cg-group" aria-label={g.title}>
+                <h2 class="cg-h2">{g.title}</h2>
+                <div class="cg-columns">
+                    <div class="cg-col cg-340" data-capture={g.id340}>
+                        <div class="cg-label">Compact window · 340 px</div>
+                        <template for:each={g.cards} for:item="c">
+                            <c-card-spike-card key={c.key} class="cg-card" card={c.card} density="compact"></c-card-spike-card>
+                        </template>
+                    </div>
+                    <div class="cg-col cg-640" data-capture={g.id640}>
+                        <div class="cg-label">Rail · 640 px</div>
+                        <template for:each={g.cards} for:item="c">
+                            <c-card-spike-card key={c.key} class="cg-card" card={c.card} density="comfortable"></c-card-spike-card>
+                        </template>
+                    </div>
+                </div>
+            </section>
+        </template>
+    </div>
+</template>

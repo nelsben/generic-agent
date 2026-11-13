@@ -1,0 +1,438 @@
+/*
+ * Every colour, font and radius comes from the brand variables the surface sets on its host
+ * (fr2-design.md, Theming), with neutral fallbacks. The card has no outer border of its own when it
+ * sits in the agent's turn; it uses a hairline and the surface colour so cards never double-border.
+ */
+:host {
+    display: block;
+    min-width: 0;
+    --cs-card-ink: var(--cs-color-ink, var(--slds-g-color-on-surface-3, #181818));
+    --cs-card-muted: var(--cs-color-muted, var(--slds-g-color-on-surface-1, #5c5c5c));
+    --cs-card-surface: var(--cs-color-surface, var(--slds-g-color-surface-container-1, #ffffff));
+    --cs-card-wash: var(--cs-color-wash, var(--slds-g-color-surface-container-2, #f3f3f3));
+    --cs-card-line: var(--cs-color-line, var(--slds-g-color-border-1, #e5e5e5));
+    --cs-card-primary: var(--cs-color-primary, var(--slds-g-color-accent-2, #0b5cab));
+    --cs-card-accent: var(--cs-color-accent, var(--slds-g-color-accent-container-1, #e9f2fb));
+    --cs-card-error: var(--cs-color-error, var(--slds-g-color-error-1, #b0281a));
+    --cs-card-error-wash: var(--cs-color-error-wash, var(--slds-g-color-error-container-1, #fef1ee));
+    --cs-card-radius: var(--cs-radius, 6px);
+}
+
+.cs-card {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--cs-card-line);
+    border-radius: var(--cs-card-radius);
+    background: var(--cs-card-surface);
+    color: var(--cs-card-ink);
+    font-family: var(--cs-font-body, var(--slds-g-font-family, system-ui, sans-serif));
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.cs-card-error {
+    border-left: 3px solid var(--cs-card-error);
+    background: var(--cs-card-error-wash);
+}
+
+.cs-prose {
+    font-family: var(--cs-font-display, var(--cs-font-body, Georgia, serif));
+}
+
+.cs-density-comfortable .cs-prose {
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+/* ----------------------------------------------------------- head (pinned) */
+
+.cs-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    margin-bottom: 6px;
+}
+
+.cs-title {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.cs-toggle {
+    display: inline-flex;
+    gap: 6px;
+    align-items: baseline;
+    padding: 2px 0;
+    min-height: 24px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cs-chevron {
+    flex: none;
+    width: 12px;
+    color: var(--cs-card-muted);
+}
+
+.cs-meta {
+    color: var(--cs-card-muted);
+    font-size: 12px;
+}
+
+.cs-badge {
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--cs-card-wash);
+    color: var(--cs-card-ink);
+    font-family: var(--cs-font-mono, ui-monospace, Menlo, monospace);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.cs-badge-error {
+    background: var(--cs-card-surface);
+    color: var(--cs-card-error);
+    border: 1px solid var(--cs-card-error);
+}
+
+/* ----------------------------------------------------------- prose */
+
+.cs-p {
+    margin: 0 0 6px;
+}
+
+.cs-ul,
+.cs-ol,
+.cs-notes {
+    margin: 0 0 6px;
+    padding-left: 18px;
+}
+
+.cs-ul {
+    list-style: disc;
+}
+
+.cs-ol {
+    list-style: decimal;
+}
+
+.cs-code {
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--cs-card-wash);
+    font-family: var(--cs-font-mono, ui-monospace, Menlo, monospace);
+    font-size: 0.92em;
+}
+
+/* A record link is a button that reads as a link: the host navigates by Id. */
+.cs-link {
+    display: inline;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--cs-card-primary);
+    font: inherit;
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.cs-link:focus-visible,
+.cs-toggle:focus-visible,
+.cs-chip:focus-visible,
+.cs-btn:focus-visible,
+.cs-more:focus-visible,
+.cs-table-wrap:focus-visible {
+    outline: 2px solid var(--cs-card-primary);
+    outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------- list */
+
+.cs-items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cs-item {
+    display: flex;
+    gap: 8px;
+    padding: 5px 0;
+    border-top: 1px solid var(--cs-card-line);
+    min-height: 24px;
+}
+
+.cs-item:first-child {
+    border-top: 0;
+}
+
+.cs-item-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.cs-density-comfortable .cs-item-main {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 8px;
+}
+
+.cs-item-detail,
+.cs-at {
+    color: var(--cs-card-muted);
+    font-size: 12px;
+}
+
+.cs-at {
+    flex: none;
+    width: 76px;
+    font-family: var(--cs-font-mono, ui-monospace, Menlo, monospace);
+}
+
+/* ----------------------------------------------------------- fields */
+
+.cs-fields,
+.cs-stack-fields {
+    margin: 0;
+}
+
+.cs-field {
+    display: grid;
+    grid-template-columns: minmax(80px, 34%) 1fr;
+    gap: 8px;
+    padding: 4px 0;
+    border-top: 1px solid var(--cs-card-line);
+}
+
+.cs-field:first-child {
+    border-top: 0;
+}
+
+.cs-dt {
+    color: var(--cs-card-muted);
+    font-size: 12px;
+}
+
+.cs-dd {
+    margin: 0;
+    min-width: 0;
+}
+
+.cs-dd-missing {
+    color: var(--cs-card-error);
+    font-style: italic;
+}
+
+.cs-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.cs-meta-p {
+    margin-top: 6px;
+    color: var(--cs-card-muted);
+    font-size: 12px;
+}
+
+.cs-notes {
+    margin-top: 6px;
+    color: var(--cs-card-muted);
+    font-size: 12px;
+}
+
+.cs-controls,
+.cs-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.cs-btn,
+.cs-chip,
+.cs-more {
+    min-height: 28px;
+    padding: 2px 12px;
+    border: 1px solid var(--cs-card-line);
+    border-radius: var(--cs-card-radius);
+    background: var(--cs-card-surface);
+    color: var(--cs-card-ink);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cs-btn-primary {
+    border-color: var(--cs-card-primary);
+    background: var(--cs-card-primary);
+    color: var(--cs-color-on-primary, #ffffff);
+}
+
+.cs-btn-link {
+    border-color: transparent;
+    background: none;
+    color: var(--cs-card-primary);
+}
+
+.cs-chips .cs-chip {
+    border-radius: 999px;
+}
+
+/* ----------------------------------------------------------- grid */
+
+/* A wide table scrolls inside its card, never the page. */
+.cs-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.cs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    /* A cell wraps between words, never inside one; a table too wide scrolls in its wrapper. */
+    overflow-wrap: normal;
+}
+
+.cs-th,
+.cs-td {
+    padding: 4px 8px 4px 0;
+    border-bottom: 1px solid var(--cs-card-line);
+    text-align: left;
+    vertical-align: top;
+}
+
+.cs-th {
+    color: var(--cs-card-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.cs-rowhead {
+    font-weight: 400;
+}
+
+.cs-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.cs-stack {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cs-stack-row {
+    padding: 6px 0;
+    border-top: 1px solid var(--cs-card-line);
+}
+
+.cs-stack-row:first-child {
+    border-top: 0;
+}
+
+.cs-stack-head {
+    font-weight: 600;
+}
+
+.cs-stack-field {
+    display: flex;
+    gap: 8px;
+}
+
+.cs-stack-field .cs-dt {
+    flex: none;
+    width: 96px;
+}
+
+/* A comparison's stacked labels are record names: give them more room than a column label. */
+.cs-family-grid[data-type='comparison'] .cs-stack-field .cs-dt {
+    width: 50%;
+}
+
+.cs-count {
+    margin: 6px 0 0;
+    color: var(--cs-card-muted);
+    font-size: 12px;
+}
+
+.cs-more {
+    margin-top: 6px;
+}
+
+/* ----------------------------------------------------------- metric */
+
+.cs-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 0;
+}
+
+.cs-metric {
+    display: flex;
+    flex-direction: column;
+}
+
+.cs-metric-hero {
+    flex-basis: 100%;
+}
+
+.cs-density-comfortable .cs-metric-hero {
+    flex-basis: auto;
+}
+
+.cs-metric-label,
+.cs-metric-detail {
+    margin: 0;
+    color: var(--cs-card-muted);
+    font-size: 12px;
+}
+
+.cs-metric-value {
+    order: -1;
+    margin: 0;
+    font-family: var(--cs-font-display, var(--cs-font-body, Georgia, serif));
+    font-size: 20px;
+    font-variant-numeric: tabular-nums;
+}
+
+.cs-metric-hero .cs-metric-value {
+    font-size: 28px;
+}
+
+/* ----------------------------------------------------------- fallback */
+
+.cs-fallback {
+    white-space: pre-wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-card * {
+        transition: none;
+    }
+}

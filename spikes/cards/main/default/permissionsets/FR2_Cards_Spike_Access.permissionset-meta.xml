@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>FE-18 throwaway spike: shows the Cards Spike tab. Assigned only to the signed-in admin who captures it.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>FR2 Cards Spike Access</label>
+    <tabSettings>
+        <tab>FR2_Cards_Spike</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>
