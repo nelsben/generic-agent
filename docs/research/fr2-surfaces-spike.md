@@ -1,14 +1,14 @@
 # FR2 surfaces spike: corner launcher, right rail, hotkeys and mic (OPS-29)
 
-- Date: 2026-11-12, about 03:50 to 04:40 UTC. Org `agent-probe` (API 68.0), signed in as the
-  org's own admin. Chrome for Testing through Playwright on a Mac, viewport 1440x900.
+- Date: 2026-11-12 (US Central evening). Org `agent-probe` (API 68.0), signed in as the org's
+  own admin. Playwright's bundled Chromium (headless, its default) on a Mac, viewport 1440x900.
 - Code: [spikes/surface](../../spikes/surface/), a throwaway LWC `surfaceSpike` and its own app
   "FR2 Surface Spike" with its own utility bar. Nothing in `force-app` changed. The capture file is
   [07-surface-spike.capture.js](../../e2e/capture/07-surface-spike.capture.js).
 - Status words: verified (seen in the org, in a capture or in a logged measurement), documented
   (a published page says so), unverified (inference).
-- Evidence lines are quoted as the capture printed them (`SPIKE <name> <json>`). Sizes are CSS
-  pixels in a 1440x900 window.
+- Evidence lines come from the capture's output (`SPIKE <name> <json>`), shortened and rounded
+  where marked. Sizes are CSS pixels in a 1440x900 window.
 - Read with [fr2-design.md](../plans/fr2-design.md) and
   [03-hotkey-panel.md](../patterns/03-hotkey-panel.md).
 
@@ -17,7 +17,9 @@
 - **Corner: put the launcher at the bottom right and leave the utility bar at its default, left
   alignment.** The softphone is an ordinary utility item, so it lives in the bar at the bottom
   left. A launcher mounted on the page body at bottom 48 px, right 16 px sits above the bar row on
-  the far side, and covers neither the bar nor a softphone panel (verified).
+  the far side (verified). It cannot cover the bar's items or a softphone panel opening from
+  them: the items end at x=365 and the launcher starts at x=1212 (inferred from those measured
+  boxes; the stand-in's panel was not opened and measured).
 - **The bar can be moved to the right**, all of it, not one item: the app's utility bar setting
   "Utility Bar Alignment" (Default or Mirrored), which is `isLeftAligned=false` on the utility bar
   FlexiPage (verified). Mirroring would put the softphone under a bottom-right launcher, so it is
@@ -28,8 +30,10 @@
   Salesforce's own `.viewport` element, and that worked in this org (the page's right edge moved
   from 1440 to 960). No published API lets a custom component do this, the markup belongs to
   Salesforce and can change in any release, so do not build on it.
-- **Hotkeys: Cmd/Ctrl-K and Cmd/Ctrl-Shift-K are safe.** Both reached a document listener on a
-  record page, the home page and an app page, with nothing preventing them first (verified).
+- **Hotkeys: Cmd/Ctrl-K and Cmd/Ctrl-Shift-K are safe.** Cmd-K and Cmd-Shift-K reached a document
+  listener on a record page, the home page and an app page on a Mac, with nothing preventing them
+  first (verified). The Ctrl forms for Windows and Linux use the same listener code but were not
+  pressed in this run (unverified).
   Lightning's own shortcut list has no K shortcut (verified in the org). Chrome on a Mac does not
   list either key; on Windows and Linux, Ctrl-K is Chrome's "search from anywhere", which a page
   may override (documented).
@@ -76,12 +80,13 @@ background (documented: Genesys, Natterbox, Avaya, Fastcall setup guides).
 
 ```
 SPIKE mirrored.bar [{"label":"Phone (softphone stand-in)","left":1073,"right":1298},{"label":"Surface Spike","left":1300,"right":1438}]
-SPIKE mirrored.launcher {"x":1212,"y":814.5,"width":212,"height":37.5}
+SPIKE mirrored.launcher {"x":1212,"y":814.5,"width":212,"height":37.5}    (x and width rounded)
 SPIKE final.bar [{"label":"Phone (softphone stand-in)","left":0,"right":225},{"label":"Surface Spike","left":227,"right":365}]
 SPIKE final.portal [{"role":"overlay","portal":{"ok":true,"inBody":true,"launcher":{"left":1212,"right":1424,"top":815,"bottom":852}}}]
 ```
 
-(Labels shortened: the raw text repeats each label two or three times.)
+(Labels shortened: the raw text repeats each label two or three times. The `push` line in the
+Rail section is trimmed to its two edge values.)
 
 - Mirrored, the items keep their order and move to the right end of the bar, so the softphone's
   450 px panel would open under a bottom-right launcher.
@@ -147,8 +152,8 @@ SPIKE home.keys [{"role":"overlay","compact":1,"rail":1,"prevented":0}]
 SPIKE apppage.keys [{"role":"probe","compact":1,"rail":1,"prevented":2},{"role":"overlay","compact":1,"rail":1,"prevented":0}]
 ```
 
-- Record page, home page and app page: each key arrived exactly once at the overlay, and nothing
-  prevented it first. On the app page the probe's two "prevented" events are the overlay's own
+- Record page, home page and app page: each key (pressed as `Meta+k` and `Meta+Shift+k` on a
+  Mac) arrived exactly once at the overlay, and nothing prevented it first. On the app page the probe's two "prevented" events are the overlay's own
   `preventDefault`, since the probe's listener runs after it.
 - Lightning's shortcuts (Cmd-/ on a Mac, standard navigation), read from its own dialog in the
   org: Esc, e, ⌘+., m, n, ⌘+Enter, ⌘+s, /, ⌘+/, c, ⇧+c, ⌘+F6, and ⌘+⌥+g then d, f, p or u. **No K
@@ -170,9 +175,13 @@ SPIKE apppage.keys [{"role":"probe","compact":1,"rail":1,"prevented":2},{"role":
 ## Launcher
 
 "Ask Customer Summary" with a ⌘K key cap (Ctrl K elsewhere) at the bottom right, on every page of
-the app (record, home, app page; verified). Hidden until pressed: the compact window and the rail
-are not in the page until the launcher, a hotkey or the strip opens them; Esc returns to the
-launcher alone.
+the app (record, home, app page; verified). Hidden until pressed, read as the agent being hidden
+until the seller presses the key or the button (F25 in
+[feature-revision-2.md](../plans/feature-revision-2.md)): only the launcher shows at first; the
+compact window appears on Cmd-K and is gone again after Esc, and the rail appears on Cmd-Shift-K
+(verified: the capture asserts the compact window visible after Cmd-K and hidden after Esc,
+and the rail's backdrop visible after Cmd-Shift-K; the stills are the launcher, compact and
+rail-sheet ones above).
 
 ## Mic
 
@@ -206,7 +215,8 @@ quick deploy of that validation.
 | Validate and quick deploy, final, default (left) bar alignment | Passed, 260 tests, 0 failures |
 
 Commands: `sf project deploy validate --source-dir spikes/surface --test-level RunLocalTests -o
-agent-probe`, then `sf project deploy quick --job-id <validation id> -o agent-probe`.
+agent-probe`, then `CONFIRM_PROD=1 sf project deploy quick --job-id <validation id> -o
+agent-probe`.
 
 The admin needed the app's permission set to see it: `FR2_Surface_Spike_Access` was assigned to
 the signed-in admin only. No other user was touched.
@@ -221,8 +231,7 @@ the signed-in admin only. No other user was touched.
 - [Lightning Console JavaScript API: utility bar](https://developer.salesforce.com/docs/atlas.en-us.api_console.meta/api_console/sforce_api_console_js_lex_intro.htm),
   [updatePanel](https://developer.salesforce.com/docs/atlas.en-us.api_console.meta/api_console/sforce_api_console_lwc_updatePanel.htm),
   [utility pop-out](https://developer.salesforce.com/docs/atlas.en-us.api_console.meta/api_console/sforce_api_console_lightning_utility_popout.htm).
-- [Background utility items](https://developer.salesforce.com/docs/atlas.en-us.lightning.meta/lightning/sforce_api_console_js_lightning_background_utility_item.htm)
-  (an Aura interface).
+- Lightning Aura Components Developer Guide, "Background utility items" (an Aura interface).
 - [Open CTI setSoftphonePanelWidth](https://developer.salesforce.com/docs/service/api-cti/guide/sforce-api-cti-setsoftphonepanelwidth-lex.html);
   softphone setup:
   [Genesys](https://help.genesys.com/pureconnect/mergedprojects/wh_tr/mergedprojects/wh_tr_salesforce_int/desktop/enable_the_open_cti_softphone.htm),
@@ -243,8 +252,10 @@ The spike is left deployed in `agent-probe`. Removing it is Ben's call.
   - CustomTab `FR2_Surface_Spike`
   - LightningComponentBundle `surfaceSpike`
   - PermissionSet `FR2_Surface_Spike_Access`
-- Before that, remove the one assignment:
-  `sf org unassign permset --name FR2_Surface_Spike_Access -o agent-probe`.
+- Before that, remove the one assignment (to the signed-in admin). Either in Setup, on that user's
+  Permission Set Assignments, or with the CLI: find it with
+  `sf data query --query "SELECT Id FROM PermissionSetAssignment WHERE PermissionSet.Name = 'FR2_Surface_Spike_Access'" -o agent-probe`,
+  then `sf data delete record --sobject PermissionSetAssignment --record-id <assignment id> -o agent-probe`.
 - Local only: the OPS-29 worktree has `target-org` set to `agent-probe` in its own `.sf/config.json`
   (git-ignored), so the deploy gate would accept the validate commands. The main checkout is
   unchanged.
