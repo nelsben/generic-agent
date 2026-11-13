@@ -392,6 +392,25 @@ describe('c-customer-summary-conversation', () => {
         it('lets the composer shrink: min-width 0', () => {
             expect(SOURCE_CSS).toMatch(/\.abp-composer\s*\{[^}]*min-width:\s*0/);
         });
+
+        it('uses the short placeholder that matches its accessible name', async () => {
+            const el = await mount();
+            expect(composer(el).getAttribute('placeholder')).toBe('Ask or /brief an account');
+            expect(composer(el).getAttribute('aria-label')).toBe('Ask or /brief an account');
+        });
+
+        it('drops the brand fill from Send while it is disabled', async () => {
+            const el = await mount();
+            expect($(el, '.abp-send').disabled).toBe(true);
+            const rule = SOURCE_CSS.match(/\.abp-send\.slds-button_brand:disabled[^{]*\{([^}]*)\}/);
+            expect(rule).not.toBeNull();
+            const body = rule[1];
+            expect(body).toMatch(/background-color:\s*var\(--cs-color-surface, #ffffff\)/);
+            expect(body).toMatch(/border:\s*1px solid color-mix\(in srgb, var\(--cs-color-ink, #181818\) 18%, transparent\)/);
+            expect(body).toMatch(/color:\s*color-mix\(in srgb, var\(--cs-color-ink, #181818\) 50%, var\(--cs-color-surface, #ffffff\)\)/);
+            expect(body).toMatch(/cursor:\s*default/);
+            expect(body).not.toMatch(/--cs-color-primary/);
+        });
     });
 
     describe('quick actions', () => {
@@ -444,6 +463,20 @@ describe('c-customer-summary-conversation', () => {
         it('keeps the mic round through --cs-radius, and turns motion off for reduced motion', () => {
             expect(SOURCE_CSS).toMatch(/c-customer-summary-voice-input\s*\{[^}]*--cs-radius:\s*50%/);
             expect(SOURCE_CSS).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
+        });
+
+        it('takes every border-radius from --cs-radius, apart from 50% shapes', () => {
+            const values = [...SOURCE_CSS.matchAll(/border-radius:\s*([^;]+);/g)].map((m) => m[1].trim());
+            expect(values.length).toBeGreaterThan(0);
+            values.forEach((value) => expect(value).toMatch(/^(var\(--cs-radius\b.*\)|50%)$/));
+        });
+
+        it('the header button shows "Summarize" and is named for the account', async () => {
+            const el = await mountOnAccount();
+            const brief = $(el, '.abp-bar .abp-brief');
+            expect(brief.textContent).toBe('Summarize');
+            expect(brief.getAttribute('aria-label')).toBe('Summarize Acme');
+            expect(brief.getAttribute('title')).toBe('Summarize Acme');
         });
     });
 

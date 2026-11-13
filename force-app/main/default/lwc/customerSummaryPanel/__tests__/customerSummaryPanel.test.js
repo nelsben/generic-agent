@@ -267,7 +267,7 @@ describe('c-customer-summary-panel', () => {
             lateA.resolve({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
             await flush();
 
-            expect($(el, '.abp-bar-row .abp-brief').textContent).toBe('Summarize Beta');
+            expect($(el, '.abp-bar-row .abp-brief').getAttribute('aria-label')).toBe('Summarize Beta');
             expect(history).toHaveBeenCalledTimes(1);
             expect(history).toHaveBeenCalledWith({ accountId: BETA });
         });
@@ -815,8 +815,9 @@ describe('c-customer-summary-panel', () => {
             const rows = bar.querySelectorAll('.abp-bar-row');
             expect(rows).toHaveLength(1);
             const brief = rows[0].querySelector('button.abp-brief');
-            // A native button named by its text: the label may truncate on screen, the name does not.
-            expect(brief.textContent).toBe('Summarize Acme');
+            // A native button: it shows "Summarize"; its aria-label and title keep the account.
+            expect(brief.textContent).toBe('Summarize');
+            expect(brief.getAttribute('aria-label')).toBe('Summarize Acme');
             expect(brief.getAttribute('title')).toBe('Summarize Acme');
             expect(brief.querySelector('.slds-truncate')).not.toBeNull();
             // Nothing else is pinned: the include chips and the history list are not in the bar.
@@ -1036,7 +1037,7 @@ describe('c-customer-summary-panel', () => {
             const rows = $$(el, '.abp-bar .abp-bar-row');
             expect(rows).toHaveLength(1);
             expect(rows[0].querySelector('.abp-brand')).not.toBeNull();
-            expect(rows[0].querySelector('button.abp-brief').textContent).toBe('Summarize Acme');
+            expect(rows[0].querySelector('button.abp-brief').getAttribute('aria-label')).toBe('Summarize Acme');
         });
 
         it('is accessible with the brand settings applied', async () => {
