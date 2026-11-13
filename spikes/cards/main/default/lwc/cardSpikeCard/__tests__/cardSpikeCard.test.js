@@ -205,13 +205,18 @@ describe('fallbacks render the card text', () => {
 });
 
 describe('safety', () => {
-    test('no record Id is in the rendered text or any attribute but the click detail', () => {
-        FIXTURES.forEach((card) => {
-            const el = mount(card, 'comfortable');
-            const html = el.shadowRoot.innerHTML;
-            expect(html).not.toContain('record-id:');
-            document.body.removeChild(el);
-        });
+    test('no record Id is in the rendered markup, at either density, with every fold open', async () => {
+        for (const density of ['compact', 'comfortable']) {
+            for (const card of FIXTURES) {
+                const el = mount(card, density);
+                qa(el, '.cs-toggle').forEach((t) => t.getAttribute('aria-expanded') === 'false' && t.click());
+                await flush();
+                qa(el, '.cs-more').forEach((m) => m.click());
+                await flush();
+                expect(el.shadowRoot.innerHTML).not.toContain('record-id:');
+                document.body.removeChild(el);
+            }
+        }
     });
 
     test('markup in a value stays text', () => {

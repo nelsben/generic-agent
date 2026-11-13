@@ -12,7 +12,7 @@ Read with: [fr2-design.md](../plans/fr2-design.md) ('Theming', 'Cards inline', '
 - **Every card carries its plain text.** `text` is filled by one rule per type. It is what an MCP client reads and what a screen shows when the card cannot be drawn, and it never holds a record Id.
 - **The prototype proves both widths and all three fallbacks.** 82 Jest tests pass across 3 suites, and every card has zero axe violations at both densities (see 'The LWC prototype').
 - **Recommendation: yes, build one shared card component** (`customerSummaryCard`) and give FE-22 an explicit go. The card picks its layout from a type→family registry, and the surface passes only a density.
-- **MCP: keep today's text and add the cards as JSON text.** No MCP tool on the door has ever been called, so nothing here is observed in a client. The transcript below is constructed from the spec and from `ExploreAction.compose()`.
+- **MCP: keep today's text and add the cards as JSON text.** No tool on the door has ever been called, so nothing here is observed in a client. The transcript below is constructed from the spec and from the door's three tools; the explorer reaches a client only through the agent tool.
 
 ## The catalog
 
@@ -1038,7 +1038,7 @@ There are four bundles. `cardSpikeContract` holds the parser, the registry, the 
 - **Brand:** the card reads only the variables in fr2-design.md 'Theming' (`--cs-color-primary`, `--cs-color-accent`, `--cs-color-surface`, `--cs-color-ink`, `--cs-font-display`, `--cs-font-body`, `--cs-radius`), each with an SLDS styling hook and then a neutral value as fallback. The surface sets them on its host. The gallery sets them inline the way the panel would.
 - **Accessibility:** each card is an `article` named by its `h3`, or by its type when it has no title. A folding title is a button with `aria-expanded` and `aria-controls`. Tables have `th scope=col` and `scope=row`, and the scroll area is a focusable named region. A timeline item is a `time` element. A missing field says "Needed" in words as well as colour. Status shows as a word in a badge, never as colour alone.
 - **Evidence:** `npx sfdx-lwc-jest -- --roots spikes/cards` gives `Tests: 82 passed, 82 total` across 3 suites. The suites cover the grammar vectors, every fixture against `checkCard` and the page, one render test per type, the three fallbacks, the four events, the folds at both densities, the Id-in-markup check, markup-as-text, and `toBeAccessible()` (axe through @sa11y/jest, which this repo already uses in place of jest-axe) for every fixture at both densities with the folds open.
-- **Live:** the bundles were deployed to `agent-probe` (validate with RunLocalTests: 260 of 260 local Apex tests passed, 0 component errors, both times it was deployed, then a quick deploy), and the captures below are the gallery tab in that org. The capture (spikes/cards/__tests__/cards.capture.js, which reuses the e2e sign-in and the capture kit's privacy guard unedited) also checks that no card at 340 is wider than its column: 0 of 20 cards overflow at 340, and 0 of 20 at 640. The first capture found a 3-column comparison at 340 scrolling inside its card and breaking words, so a comparison now stacks at compact and table cells wrap only between words.
+- **Live:** the bundles were deployed to `agent-probe` (validate with RunLocalTests: 260 of 260 local Apex tests passed, 0 component errors, on each of the two deploys, then a quick deploy), and the captures below are the gallery tab in that org. The capture (spikes/cards/__tests__/cards.capture.js, which reuses the e2e sign-in and the capture kit's privacy guard unedited) also checks that no card at 340 is wider than its column: 0 of 20 cards overflow at 340, and 0 of 20 at 640. The check also fails if a table's own scroll area is wider than the area itself at 340. That case was first seen by eye: in the first capture, a 3-column comparison scrolled inside its card and broke words. A comparison now stacks at compact, and table cells wrap only between words.
 
 The summary group: the summary, a section, a failed section, a metric and a timeline.
 
@@ -1063,33 +1063,40 @@ Out of scope (F83). BE-32 found that the standard chat rewrites a formatted brie
 
 From the MCP specification (2025-06-18, 'Tools'): a tool result has `content`, a list of text, image, audio, resource link or embedded resource items, each with optional `annotations` (`audience`, `priority`). It may also have `structuredContent`, an object, which a tool declares through an optional `outputSchema`. The spec says "For backwards compatibility, a tool that returns structured content SHOULD also return the serialized JSON in a TextContent block". `isError: true` marks a failed tool run, and a client SHOULD ask a person to confirm a sensitive operation.
 
-The door (mcp-door/) offers `resolve_account`, `ask_account_summary` and `get_account_summary`. None has ever been called from a client (its runbook marks them unproven), and the platform's REST description gives no input or output schema. What a client would see is therefore constructed, not observed. The text today is what `ExploreAction.compose()` makes: the answer, a blank line, a `|` table of the last result set with cells clipped to 40 characters, and `(shown of total rows)`, all under 5,900 characters. With BE-39, the same tools gain one more output: the cards as JSON text.
+The door (mcp-door/, `CustomerSummaryMcp`) offers three tools:
+
+- **`resolve_account`** runs the resolver's invocable and returns its Response: a status (RESOLVED, AMBIGUOUS or NOT_FOUND), the account's Id and name, and a message.
+- **`get_account_summary`** runs `CustomerSummaryGetAction` and returns two outputs, `Status` and `Answer` (the brief, "relay it verbatim").
+- **`ask_account_summary`** invokes the Customer Summary agent and returns its prose.
+
+The explorer has no tool of its own. It reaches a client only through `ask_account_summary`, where the agent calls `ExploreAction`, whose text is made by `compose()`: the answer, a blank line, a `|` table of the last result set with cells clipped to 40 characters, and `(shown of total rows)`, all under 5,900 characters. The agent may then reword that text before it reaches the client. None of the three tools has ever been called from a client (the runbook marks them unproven), and the platform's REST description gives no input or output schema. Exactly how an invocable's outputs are laid out in a tool result is therefore unknown, and what follows is constructed, not observed. With BE-39, `get_account_summary` gains one more output, the cards as JSON text, and so does `ExploreAction` behind the agent.
 
 ```text
-Constructed, not observed: one tools/call result for an explorer question, as a client would log it.
+Constructed, not observed: two tools/call results as a client would log them.
 
-content[0] (text, audience: user, assistant)
-  There are 212 open opportunities; the 6 largest are below. The top one is Edge Emergency Generator, at $250,000.
+1. resolve_account { "query": "edge" }
+content[0] (text)
+  {"status":"AMBIGUOUS","message":"More than one account matches \"edge\". Which one?", ...}
+  (today: the Response as it is; with a choice card proposed below, the candidates as a card)
 
-  Name | Stage | Amount | Close date
-  Edge Emergency Generator | Proposal | $250,000 | 2026-12-18
-  Juniper Project B | Negotiation | $180,000 | 2026-12-04
-  ... 4 more rows ...
-  (6 of 212 rows)
-
-content[1] (text, audience: assistant)   <- new with BE-39: cardsJson
-  [{"type":"text","version":1,"key":"ans",...},{"type":"table","version":1,"key":"tbl",...},
-   {"type":"trail",...},{"type":"followups",...}]
+2. get_account_summary { "accountId": "<Id from step 1>" }
+content[0] (text)
+  Status: OK
+  Answer: Edge Communications: steady service, one large renewal at risk
+  Open deals: 3 worth $412,000; the largest closes this quarter.
+  ...
+content[1] (text)   <- new with BE-39: cardsJson
+  [{"type":"summary","version":1,"key":"sum",...},{"type":"section","version":1,"key":"sec-deals",...},...]
 
 structuredContent (only if the hosted server passes it through; unproven)
-  {"cards":[ ...the same list... ]}
+  {"status":"OK","answer":"...","cards":[ ...the same list... ]}
 ```
 
 Findings:
 
-- **The text stays the contract with a model.** It is unchanged, it holds no Id, and it reads well on its own. A client that knows nothing about cards loses nothing.
+- **The text stays the contract with a model.** `Answer` is unchanged, it holds no Id, and it reads well on its own. A client that knows nothing about cards loses nothing.
 - **The cards travel as JSON text** next to it, because an invocable output is a string. A client that renders cards can parse them. A model can read them too, but it gains little from them over the text.
-- **Ids reach an MCP client only inside `refs`** in the cards JSON. The client is the signed-in user's own tool, and Ids are what it needs to open a record. Even so, nothing puts an Id in the text.
+- **`resolve_account` already returns an Id**, because `get_account_summary` needs it. Beyond that, Ids reach an MCP client only inside `refs` in the cards JSON. The client is the signed-in user's own tool, and Ids are what it needs to open a record. Even so, nothing puts an Id in the text.
 - **`structuredContent` with an `outputSchema`** is the right home for the cards once the hosted server is shown to pass it through. Until a client call is logged, that is unknown. The first card below proves it.
 - **An action draft over MCP** is a card with controls a client cannot press. Its `text` says what would be written and asks for a yes. The commit is a separate tool call, which is where the spec's confirmation rule applies.
 
@@ -1108,7 +1115,7 @@ What none of them does, and this design keeps: the model never writes markup, an
 1. **Yes to one shared card component, `customerSummaryCard`**, for FE-22. It takes `card` and `density`, picks one of six layouts from the type's family, and fires the four events. The conversation, the compact window and the rail all use it and pass only a density. Port `cardSpikeCard` and `cardSpikeContract` as they are, and keep their tests.
 2. **BE-39 builds the envelope as written here**, including the parser, so a service can put rich text in a card without the surface parsing anything. Its JSON examples should equal the fixtures above, Ids aside.
 3. **Keep the current conversation core's runs** (FE-12's `toRuns`) until FE-22 lands, then retire them. The grammar here is a superset: it adds code, links by ref and lists.
-4. **Over MCP, add the cards as JSON text and change nothing else.** Move to `structuredContent` once one client call shows it passes through.
+4. **Over MCP, add the cards as JSON text to `get_account_summary` (and to `ExploreAction` behind the agent) and change nothing else.** Move to `structuredContent` once one client call shows it passes through.
 
 ## Risks
 
