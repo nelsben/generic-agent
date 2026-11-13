@@ -4,7 +4,7 @@ title: FR2: customer outcomes — one generic store of what the product did for 
 domain: backend
 tier: frontier
 tier_reason: a new durable object every skill writes to, with sharing, retention and a context contract the panel, the agent and MCP share, in a production-classified org
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/objects/Customer_Outcome__c/**, force-app/main/default/objects/Customer_Outcome_Type__mdt/**, force-app/main/default/customMetadata/Customer_Outcome_Type.*, force-app/main/default/classes/CustomerOutcome*.cls, force-app/main/default/classes/CustomerOutcome*.cls-meta.xml, force-app/main/default/classes/CustomerSummary.cls, force-app/main/default/classes/CustomerSummaryTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, force-app/main/default/classes/DataExplorer.cls, force-app/main/default/classes/DataExplorerTest.cls, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, force-app/main/default/reportTypes/**, scripts/schedule-outcome-retention.apex, docs/research/fr2-customer-outcomes.md, tests/test_permission_sets.py]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/staticresources/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -31,3 +31,34 @@ Feature revision 2 (FR2), Ben's chapter notes on pattern 05. The session object 
 - **Old classes in the org:** the old AccountBrief* classes and tests are still deployed in agent-probe and compile against these classes. Keep every signature and interface method they use. If RunLocalTests fails in an AccountBrief* class, stop and hand back; never delete, stub or redeploy an old class
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - docs/research/fr2-customer-outcomes.md records the design, storage per outcome, the governor cost, and the live check: two summaries and one saved answer for a sample account, then listOutcomes, printing types and counts only. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never sign in or out, never create a user in the org, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-13). Two attempts, both at the same sha (6c18777).
+- Attempt 1: 22 confirmed, 1 refuted, 4 unverifiable. The refuted row was a line in the hand-back, not anything in the tree: it said nobody records outcomes yet, but the developer user holds the outcome set from the live check. The doc already said this correctly.
+- Attempt 2: the worker re-sent the hand-back with that line corrected and changed no file. A second review returned 22 confirmed, 0 refuted, 4 unverifiable. Every unverifiable row is an org fact: the validate and quick deploy figures, the live-check figures, who holds the outcome set, and that the purge job is unscheduled.
+
+Findings:
+- New object Customer_Outcome__c is a master-detail child of Account, named by AutoNumber CO-{000000}. Its fields are title, headline, body, sentiment label, score and reason, expiry, record link, skill, surface, model and outcome type.
+- New custom metadata type Customer_Outcome_Type__mdt holds retention days and share text. It has three records: Summary (kept forever), Action (730 days) and Saved_Answer (730 days).
+- CustomerOutcomes is `with sharing`. Title, headline, body and reason have no field access and are written and read in system context, under markers. Other reps see the type, the date, a fixed phrase and the sentiment label. remove() checks the author in user mode, then deletes in system context; it is not exposed to Lightning.
+- CustomerOutcomeSaveAnswer is an invocable that saves an answer. CustomerOutcomeRetentionBatch purges rows whose expiry is before today. scripts/schedule-outcome-retention.apex only schedules the batch and was not run.
+- CustomerSummary records OK and EMPTY summaries, one write per invocation after the memory write, in its own try/catch, under a savepoint (3 DML statements). The outcome context, capped at 160 characters a line and 900 in all and never containing a body, goes after the brand lines in the synthesis system text. DataExplorer adds it to its context value when the open record is an Account. No prompt file changed.
+- Access lives in a new set, Customer_Summary_Outcome_Access (amended into scope): Account Read; Customer_Outcome__c Read and Create; read and edit on 8 non-text fields. The data-access set gains class access to the two entry classes only.
+- New report type Customer_Outcomes_with_Account. docs/research/fr2-customer-outcomes.md follows BE-34. The one existing test changed: CustomerSummaryTest's DML count went from 1 to 4.
+
+Org (worker's account): a validate with RunLocalTests (408 tests, 0 failures) and a quick deploy of this card's 31 components, under the standing row. No AccountBrief* class was touched, nothing was published and no user was created.
+
+Org write outside the deploy, under the approved live-checks row: the worker assigned Customer_Summary_Outcome_Access to the developer user in agent-probe, and it is still assigned. The live check on the seed account wrote 3 outcome rows (2 summaries, 1 saved answer) and 1 session with 2 turns.
+
+Disclosed and accepted:
+- The org figures are the worker's account; nothing in git shows them.
+- A tests/__pycache__ made by the verifier's gate run was removed before each review and before merge.
+
+Still open:
+- Only the developer user records outcomes. Everyone else needs the outcome set added to the Customer_Summary_User group; a follow-up card does that.
+- Who sees customer outcomes is built to the default and remains Ben's call. Our surfaces hide everything but type, date, phrase and label from other reps. But any holder of the outcome set can read the record link, skill, surface, model and score through the API or a list view, and skill, surface, model and score are report-type columns. The doc names only the record link as an exception. Sentiment_Score__c's field description ("Shown to anyone who can see the account") contradicts view().
+- The purge job is not scheduled (Ben's go).
+- The tests cannot exercise record-level sharing here, because agent-probe's account sharing is Public Read/Write.
+
+Privacy grep over the diff (2,119 added lines): 0 hits.
