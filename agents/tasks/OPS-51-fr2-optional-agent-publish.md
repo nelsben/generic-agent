@@ -1,0 +1,32 @@
+---
+id: OPS-51
+title: FR2: the optional agent, published on its own — one publish and one activation of Customer_Summary after the rename deploy, one proof, and a read-only check that its actions name the renamed classes; a failure here stops nothing else
+domain: ops
+tier: frontier
+tier_reason: an agent publish and activation in a live org, where publishing has failed before, under a stop condition Ben set
+status: blocked
+blocked_by: [OPS-30]
+fixes: []
+scope: [docs/research/fr2-agent-publish.md]
+forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
+resources: [org-live]
+red_test: none (an org step): the evidence is docs/research/fr2-agent-publish.md and a read-only listing of the agent's versions (names, version numbers and statuses only)
+gate: test, agent
+budget: 2-attempts
+spend: 10
+---
+## Why
+
+Feature revision 2 (FR2): Ben approved the rename of the agent "as long as we can do it effectively. If we hit the same friction ... we can skip". As first cut the publish sat inside the rename deploy (OPS-30), so thirty-two cards waited on a step that has failed before, for an agent no surface uses (ledger F82 to F84; findings 12, 13, 14 and 26 in docs/reviews/fr2-plan-review.md). This card is the publish on its own. Seven cards wait on it, and none of them is a build.
+
+## Done when
+
+- **Approval first:** read the row "FR2: publish and activate a copy of the agent as `Customer_Summary`" in the Approvals table of docs/plans/gtm-burn-plan.md. If its status does not start with "approved", change nothing in the org and hand back. Ben's condition on that row is this card's stop rule: if the publish meets the friction written up in docs/research/agent-publish-failure.md again, stop, write down what happened and hand back. Never push through it, and never make a third attempt
+- Read first: docs/research/fr2-rename-go.md (BE-21: GO or NO-GO, and what the spike copy left in the org), docs/research/fr2-rename-org.md (OPS-30: what is deployed under the new names), docs/research/agent-publish-spike.md, docs/research/agent-publish-failure.md, docs/research/agent-iteration-1.md and scripts/agent-check.sh. Load the skills agentforce-adlc:agentforce-generate and salesforce-development:platform-metadata-deploy first and follow the documented lifecycle (validate, preview, publish, activate); diagnose before any retry
+- **On GO:** the spike left an agent named Customer_Summary whose version calls the old classes. Run bash scripts/agent-check.sh, then make one publish of the Customer_Summary bundle in force-app and one activation of the version it creates, so the active version's actions name the renamed classes. At most two publish attempts, with the diagnosis written down between them (the error, one hypothesis, the check that decided it). Never deactivate, change or delete the old Account_Brief agent or any version of either agent: list them in the Undo list instead
+- **On NO-GO:** the bundle keeps the name Account_Brief. Read the row "FR2: if the rename is NO-GO, one publish of `Account_Brief` for the new label" in the same table. If its status starts with "approved": one publish and one activation of Account_Brief under the same two-attempt rule, so the agent carries the new label and its actions name the renamed classes. If not: publish nothing, and write on the research page that the agent keeps its old label and that its active version still calls the old AccountBrief* classes, which OPS-54 must then leave in place
+- **Proof, one of three:** if the row "FR2: create and run the functional Testing Center suite" starts with "approved", run the agent spec under tests/agent/ once against the active version and record the pass and fail counts only. Otherwise, if the row "FR2: live checks in `agent-probe`" starts with "approved", run one turn against the active version from anonymous Apex with the generateAiAgentResponse invocable action (never the REST Agent API, a client app or a consumer key), asking for a summary of an existing seed-data account, and record that it answered, which account, and how many session and outcome rows it wrote. If neither row is approved, the proof is the read-only confirmation in the next line alone, and the page says so
+- **Read-only confirmation (needs no row):** list the agent's versions and which one is active, and list the actions of the active version with the Apex class each one calls. Print names, version numbers and statuses only, never an Id. The page says for each action whether it calls a class the repo has today or an old AccountBrief* class
+- Write docs/research/fr2-agent-publish.md: the path taken (GO or NO-GO; published or not, and why), each step with its timing, each attempt with its diagnosis, the proof and its counts, which agent and version is active, and one line each on what OPS-44 (the appendix page), OPS-31 (the MCP door) and OPS-54 (the removal of leftovers) need to know. The page ends with an 'Undo' list of everything this card left in agent-probe and how to remove each item
+- **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
+- Org, agent-probe only. This card deploys nothing: OPS-30 deployed the metadata, and a publish is not a deploy. Never publish or activate any other agent, never delete an agent or a version, never create a user, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/agent-check.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit

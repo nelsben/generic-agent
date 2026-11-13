@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: agent publish and activate in a live org, with write actions routed by a model
 status: parked
-blocked_by: [BE-27, BE-24, OPS-30, BE-30, FE-18, BE-35]
+blocked_by: [BE-27, BE-24, OPS-51, BE-30, FE-18, BE-35]
 fixes: []
 scope: [force-app/main/default/aiAuthoringBundles/Customer_Summary/**, tests/agent/**, docs/research/fr2-agent-next.md, docs/patterns/06-agent-routing-and-verbatim-relay.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/classes/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -17,7 +17,7 @@ spend: 20
 ---
 ## Why
 
-**Parked.** Ben dropped the built-in Agentforce panel and "Ask the agent" as ways in (ledger F82, F83), so the agent gets no tone, write actions, follow-up fixes or rich answers in FR2. OPS-30's rename publish keeps it working as an optional add-on (pattern 06, rewritten by OPS-44). Re-cut this card only if Ben asks for the agent in a channel.
+**Parked.** Ben dropped the built-in Agentforce panel and "Ask the agent" as ways in (ledger F82, F83), so the agent gets no tone, write actions, follow-up fixes or rich answers in FR2. OPS-51's publish keeps it working as an optional add-on (pattern 06, rewritten by OPS-44). Re-cut this card only if Ben asks for the agent in a channel.
 
 Feature revision 2 (FR2): the same branded agent should speak in the prospect's tone and create follow-ups and updates in Agentforce's own panel too, not only in our surfaces. Publishes are slow and have failed before, so tone and actions go into one publish. Covers ledger rows F02, F08 (tone in the agent), F15 and F16 (agent side) in docs/plans/feature-revision-2.md.
 
@@ -29,4 +29,5 @@ Feature revision 2 (FR2): the same branded agent should speak in the prospect's 
 - Follow-ups (ledger F55 and F58, agent review docs/reviews/agent-review-2.md): the ask-anything route passes the history the explorer action returns (it now carries the summary context from BE-30) back in on the next turn, so a follow-up keeps the question before it and a pronoun means the records in the last turn, not the summarized account by default (agent N3). Fix agent N4 too if the fix is in the bundle. The verbatim relay of an explorer table is proven in a live run, and the result is recorded (agent N6). The agent spec gains a summary followed by two follow-ups, and a table relay case
 - **Rich answers (ledger F65):** the agent's replies and action outputs follow FE-18's recommendation in docs/research/fr2-card-architecture.md for Agentforce's own panel (for example custom Lightning types for action outputs, if FE-18 recommends them); where FE-18 marked something unproven, prove it in this card's one publish or record why not
 - One publish and one activate of Customer_Summary in agent-probe, under the Approvals line for FR2 agent publishes. If the publish fails, diagnose before retrying (at most two attempts) and record what happened in docs/research/fr2-agent-next.md. Old agent versions are left as they are
+- **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - The agent spec (tests/agent/Customer_Summary-testSpec.yaml after BE-23, used by scripts/agent-check.sh) gains cases: tone line present in a greeting, a follow-up request yields a draft and a confirmation question, a 'no' cancels, a 'yes' commits once (the test task is deleted afterwards), and the summary and ask-anything cases still pass. bash scripts/agent-check.sh passes. MCP write tools are out of scope (they need Ben's go). Never create a user, never touch experimental, never sign in. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/validate-org.sh, bash scripts/agent-check.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
