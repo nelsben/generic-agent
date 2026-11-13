@@ -78,3 +78,11 @@ A `without sharing` or `inherited sharing` top-level class is the same: the mark
 - The parser is tested on small inline Apex samples (`TestRules` in `tests/test_trust_rule.py`): one for each rule,
   for the marker's reach, and for the five-word reason.
 - Not covered: SOSL (`[FIND ...]`) and `Search.query`. No class uses them today.
+
+## Org run (agent-probe, standing approval)
+
+- `sf project deploy validate --source-dir force-app --test-level RunLocalTests -o agent-probe`: **succeeded**, 62 of
+  62 components, 251 of 251 Apex tests, 0 failures. No failure in any old `AccountBrief*` class.
+- `CONFIRM_PROD=1 sf project deploy quick --job-id <that validate> -o agent-probe`: **succeeded**, 62 of 62
+  components. No agent was published or activated. `experimental` was not touched.
+- `bash scripts/validate-org.sh`: pass (61 components, 158 of our own tests).
