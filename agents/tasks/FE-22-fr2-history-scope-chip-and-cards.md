@@ -4,8 +4,7 @@ title: FR2: the conversation gains history, the scope chip and cards — a sessi
 domain: frontend
 tier: frontier
 tier_reason: extends the component every surface shares, renders a contract from two services, and must keep the interface the compact window already uses
-status: blocked
-blocked_by: [BE-26]
+status: queued
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryCard/**, e2e/**]
 forbid: [force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, agents/**, docs/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
