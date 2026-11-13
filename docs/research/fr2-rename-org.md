@@ -1,6 +1,6 @@
 # FR2 rename in agent-probe: deploy Customer Summary, assign the group, prove the panel (OPS-30)
 
-- Date: 2026-11-13, 02:02 to 02:26 UTC (the evening of 2026-11-12 local). Org `agent-probe`
+- Date: 2026-11-13, 02:02 to 02:31 UTC (the evening of 2026-11-12 local). Org `agent-probe`
   (Developer Edition, `IsSandbox` false). This covers FR2 ledger rows F03 and F07 in
   [feature-revision-2.md](../plans/feature-revision-2.md).
 - CLI: `@salesforce/cli` 2.158.7. Playwright 1.64.1. Every `sf` command ran with `-o agent-probe`.
@@ -41,7 +41,7 @@
 | 3 | Org and state | `sf org list --skip-connection-status --json`; `sf data query` (read-only) | 02:03 | Not scratch, not sandbox, not a Dev Hub, no trial date. Developer Edition. See "Before and after" |
 | 4 | Default org | `sf config set target-org agent-probe` (project-local, `.sf/` is git-ignored) | n/a | As in [org-migration.md](org-migration.md), so the deploy gate finds a target |
 | 5 | Red | `SF_TARGET_ORG=agent-probe npm run test:e2e` | 02:02:04 to 02:14:46 | **8 failed**, each at `expect(locator('c-customer-summary-panel')).toBeAttached()` after 90 s: the app and panel did not exist yet |
-| 6 | Validate 1 | `sf project deploy validate --source-dir force-app --test-level RunLocalTests -o agent-probe --wait 4 --json` | 02:04:33 to 02:07:00 | **Failed.** 62 of 62 components, 251 tests, **4 failures**, all in `AccountBriefTest`. See "The fix" |
+| 6 | Validate 1 | `sf project deploy validate --source-dir force-app --test-level RunLocalTests -o agent-probe --wait 4 --json` | 02:04:33 to 02:07:00, check-only, while the red run was still going | **Failed.** 62 of 62 components, 251 tests, **4 failures**, all in `AccountBriefTest`. See "The fix" |
 | 7 | Fix | rename the synthesis prompt; commit | n/a | `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests` 108 OK, `npm run test:unit` 41 passed |
 | 8 | Validate 2 | the same command | 02:15:50 to 02:17:42 | **Succeeded.** 62 of 62 components, 251 of 251 tests, 0 failures, tests 93.3 s, no coverage warnings |
 | 9 | Quick deploy | `CONFIRM_PROD=1 sf project deploy quick --job-id <validate 2> -o agent-probe --wait 10 --json` | 02:18:01 to 02:18:13 | **Succeeded.** 62 of 62 components |
@@ -53,8 +53,9 @@
 | 15 | Utility item | a one-off Playwright script in the session's scratch folder, using the suite's saved session | 02:25:24 to 02:25:29 | **Pass.** See "The utility item opens the panel" |
 | 16 | Gates | the four gate commands; `git status --short` | n/a | See "Gates" |
 
-Elapsed, from the first validate to the passing e2e run: about 21 minutes, 10 of them the fix and
-the second validate. The red run took 12.7 minutes, because each of the 8 specs waited 90 s for a
+Elapsed, from the first validate to the passing e2e run: about 21 minutes. Most of the 9 minutes
+between the two validates was waiting for the red run to finish before any source changed. The red
+run took 12.7 minutes, because each of the 8 specs waited 90 s for a
 panel that did not exist.
 
 ## The fix
@@ -164,7 +165,7 @@ All read-only `sf data query` and `sf org list metadata` calls.
 |---|---|---|
 | BotVersion `Account_Brief` | v1 Inactive, v2 Active, both last modified 2026-11-12T07:51:53Z | the same |
 | BotVersion `Customer_Summary` | v1 Active, last modified 2026-11-13T01:28:53Z | the same |
-| ApexClass `AccountBrief%` | 28 | 28 |
+| ApexClass `AccountBrief%` | 28 | 28; the newest last modified 2026-11-13T01:11:06Z, before this run started |
 | ApexClass `CustomerSummary%` | 0 | 26 |
 | StaticResource `AgentPrompt_%` | `BriefDealHistory`, `BriefEngagement`, `BriefSynthesis` (all 2026-11-12T05:50:59Z), `Explore` | the same four, unchanged, plus `SummarySynthesis` |
 | PermissionSet | `Account_Brief_Data_Access`, `Account_Brief_Agent_Access` | the same, plus `Customer_Summary_Data_Access` and `Customer_Summary_Agent_Access` |
@@ -175,11 +176,15 @@ All read-only `sf data query` and `sf org list metadata` calls.
 | `Customer_Summary_Session__c` rows | (no object) | 1 |
 | AiAuthoringBundle (list metadata) | `Account_Brief_1`, `Account_Brief_2`, `Customer_Summary_1` (per [fr2-rename-go.md](fr2-rename-go.md)) | `Account_Brief_1`, `Account_Brief_2`, `Customer_Summary_1`, **`Customer_Summary_2`** |
 
-- The quick deploy put the agent bundle into the org as source. The org now lists a
+- The quick deploy put the agent bundle into the org as source. After it, the org lists a
   `Customer_Summary_2` authoring bundle. BotVersion still has only v1, so nothing was published or
   activated (verified).
-- That `Customer_Summary_2` is the draft made by this source deploy is an inference from the
-  before and after lists. OPS-51's publish should make version 2 from it; that is unproven.
+- That this source deploy made `Customer_Summary_2` is an inference, and a weak one:
+  - The "before" list comes from [fr2-rename-go.md](fr2-rename-go.md), not from a query in this run.
+  - The listing dates `Customer_Summary_2` 2026-11-13T01:28:28Z, the same as `Customer_Summary_1`
+    and before this run, so the date does not confirm it. The listing's dates look shared across a
+    bundle's versions (`Account_Brief_1` and `_2` also share one).
+  - Whether OPS-51's publish makes version 2 from it is unproven.
 - Only the admin's one new group assignment was added. No assignment was removed, and no user
   was created.
 
@@ -205,8 +210,9 @@ none of them in the repo):**
 - The static resource `AgentPrompt_BriefSynthesis`, which the old `AccountBrief` still reads.
 - **RunLocalTests runs these 13 old test classes in every later deploy** to agent-probe, until
   OPS-54 removes them. OPS-54 waits on its own row in the Approvals table.
-  - RunLocalTests ran 169 tests in BE-21 (before the new classes) and 251 here. So about 82 are the
-    new `CustomerSummary*` tests (inference: it assumes the shared tests did not change).
+  - **93 test methods** are in these 13 classes: RunLocalTests ran 251 here, and
+    `validate-org.sh`, which runs only the repo's `*Test` classes, ran 158. That agrees with BE-21's
+    169 (93 old and 76 shared), so 82 are the new `CustomerSummary*` tests.
 - `AccountBriefResolver` and `AccountBriefGetAction` stay pinned by agent versions: Account_Brief
   v1 and v2 and Customer_Summary v1 all target them ([fr2-rename-go.md](fr2-rename-go.md)).
 
