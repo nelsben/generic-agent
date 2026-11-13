@@ -4,8 +4,7 @@ title: FR2: surface spike in agent-probe — which utility-bar corner, whether a
 domain: ops
 tier: frontier
 tier_reason: live-org spike with judgement on Lightning layout limits, hotkeys and LWS behaviour
-status: blocked
-blocked_by: [OPS-50]
+status: queued
 fixes: []
 scope: [spikes/surface/**, docs/research/fr2-surfaces-spike.md, docs/assets/fr2-spike-*.png, docs/assets/MANIFEST.md, e2e/capture/**]
 forbid: [force-app/**, mcp-door/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

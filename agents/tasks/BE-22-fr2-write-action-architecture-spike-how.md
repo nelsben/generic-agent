@@ -4,8 +4,7 @@ title: FR2: write-action architecture spike — how a request to create a task o
 domain: backend
 tier: frontier
 tier_reason: architecture decision across panel, agent and MCP doors from live-org probes
-status: blocked
-blocked_by: [OPS-50]
+status: queued
 fixes: []
 scope: [spikes/actions/**, docs/research/fr2-actions-spike.md]
 forbid: [sfdx-project.json, tests/**, force-app/**, mcp-door/**, spikes/surface/**, spikes/rename/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
