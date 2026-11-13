@@ -36,7 +36,8 @@ Recent activity merges five sources:
 - Runs as the signed-in user: the class is `with sharing` and all 8 queries run `WITH USER_MODE`, so object, field
   and record access apply.
 - System context: none on this path. The last summary is read from the user's own row of
-  `Customer_Summary_Session__c` in user mode; `Customer_Summary_Data_Access` already grants read on it.
+  `Customer_Summary_Session__c` in user mode; `Customer_Summary_Data_Access` already grants read on it. The test
+  `aRepWithTheDataAccessSetReadsTheirOwnLastSummary` runs this as a Standard User with only that set added.
 - The account is read first. An account the user cannot see, or no Account access at all, gives an empty context.
 - Each part loads on its own. A part the user cannot read (no EmailMessage access, say) comes back empty and its key
   is listed in `unavailable`; the other parts still load. An unexpected failure becomes an `AuraHandledException`
@@ -54,7 +55,7 @@ picklist order.
 
 ## A live call
 
-On 2026-11-13, after a RunLocalTests validate (3 components, 286 tests, 0 failures, 91% of the class's lines
+On 2026-11-13, after a RunLocalTests validate (3 components, 287 tests, 0 failures, 91% of the class's lines
 covered) and a quick deploy to `agent-probe`, one anonymous Apex call ran `getContext` as the org's admin user for
 the sample account with the most open deals. The script picks the account and prints sizes only.
 
