@@ -13,6 +13,28 @@ private class AgentLlmModelsApiTest {
     }
 
     @IsTest
+    static void thePromptsModelIsSentAndABlankOneFallsBack() {
+        aiplatform.ModelsAPI.createChatGenerations_Request request = AgentLlmModelsApi.buildRequest('s', 'u', 'sfdc_ai__SomeOtherModel');
+        Assert.areEqual('sfdc_ai__SomeOtherModel', request.modelName, 'the model named on the prompt\'s setting');
+
+        Assert.areEqual(AgentLlmModelsApi.MODEL, AgentLlmModelsApi.buildRequest('s', 'u', ' ').modelName, 'blank falls back');
+        Assert.areEqual(AgentLlmModelsApi.MODEL, AgentLlmModelsApi.buildRequest('s', 'u', null).modelName, 'null falls back');
+        Assert.areEqual(AgentLlmModelsApi.MODEL, AgentLlmModelsApi.buildRequest('s', 'u').modelName, 'the old signature keeps the default');
+    }
+
+    @IsTest
+    static void theRequestCarriesNoGenerationSettings() {
+        // The chat generations body takes messages, localization, tags and contentModeration only (API 68.0):
+        // no maximum tokens or temperature, so the reply length is capped in AgentLlm instead.
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(
+            JSON.serialize(AgentLlmModelsApi.buildRequest('s', 'u', null).body));
+        for (String key : body.keySet()) {
+            Assert.isTrue(new Set<String>{ 'messages', 'localization', 'tags', 'contentModeration' }.contains(key.removeEnd('_set')), key);
+        }
+        Assert.isTrue(body.containsKey('messages'));
+    }
+
+    @IsTest
     static void blankSystemPromptSendsOnlyTheUserMessage() {
         String body = JSON.serialize(AgentLlmModelsApi.buildRequest(' ', null));
         Assert.isFalse(body.contains('"role":"system"'));

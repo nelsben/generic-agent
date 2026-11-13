@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Max_Tokens__c</fullName>
+    <description>The maximum length of the reply, in tokens. Sent as the request's own maximum-token setting where the call takes one (the prompt template path; the Models API chat request takes none). The reply is also cut at about 4 characters a token as a backstop. Blank means the length the calling code passes.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>Tokens, about 4 characters each. Blank means the calling code's length.</inlineHelpText>
+    <label>Maximum Tokens</label>
+    <precision>6</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

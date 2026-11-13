@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <label>Explore</label>
+    <protected>false</protected>
+    <values>
+        <field>Max_Tokens__c</field>
+        <value xsi:type="xsd:double">2000.0</value>
+    </values>
+    <values>
+        <field>Model__c</field>
+        <value xsi:type="xsd:string">sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet</value>
+    </values>
+    <values>
+        <field>Source__c</field>
+        <value xsi:type="xsd:string">Static_Resource</value>
+    </values>
+    <values>
+        <field>Template_Inputs__c</field>
+        <value xsi:nil="true"/>
+    </values>
+    <values>
+        <field>Template_Name__c</field>
+        <value xsi:nil="true"/>
+    </values>
+    <values>
+        <field>Trace__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+</CustomMetadata>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Template_Inputs__c</fullName>
+    <description>How the prompt's variables map to the template's inputs: variable=Input_Name pairs separated by semicolons, such as deal_history=Deal_History. The variable system_suffix carries the lines the caller adds after the system text (the brand's company and tone). A variable not listed is not sent.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>variable=Input_Name pairs separated by semicolons, such as deal_history=Deal_History.</inlineHelpText>
+    <label>Template Inputs</label>
+    <length>255</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

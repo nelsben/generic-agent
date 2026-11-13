@@ -34,7 +34,7 @@ A marker above a class covers the whole class, above a method the whole method, 
 
 | Class | Member | Reason in the code |
 | --- | --- | --- |
-| `AgentLlm` | `loadPrompt`, the `StaticResource` query | the product's own shipped prompt files; reps have no read access to static resources |
+| `AgentLlm` | `querySettings`, the `Agent_Prompt_Setting__mdt` query (BE-33) | the product's own prompt configuration, the same for every user; reps hold no read access to the type |
 | `CustomerSummaryMemory` | `write` (two inserts, the update, the racing-rows insert) | the product's own session rows, written for the running user; reps have no write access to the object |
 | `CustomerSummaryMemory` | `purgeOverflow` (the query and the delete) | deletes the running user's own old session rows; reps have no delete access to the object |
 | `CustomerSummaryMemory` | `findRows` | reads the running user's own session rows; reps have no access to the object |
@@ -50,6 +50,10 @@ One. No behaviour changed for the memory class, which was already explicit in sy
 | Statement | Before | After | Why |
 | --- | --- | --- | --- |
 | `AgentLlm.loadPrompt`, the `StaticResource` query | implicit mode (no `WITH` clause) | `WITH SYSTEM_MODE`, with a marker | The prompt is the product's own file, read the same way for every user. Naming the mode keeps the behaviour and closes N11 for this query. |
+
+BE-33 moved the `StaticResource` query in `AgentLlm.loadPrompt` on to `WITH USER_MODE` and removed its marker:
+a rep who holds only the user group can read static resources in user mode. See
+[fr2-model-door.md](fr2-model-door.md#prompt-files-for-reps-n11).
 
 No CRM read or write moved to user mode in this card: every query and call on CRM objects already used
 `WITH USER_MODE` or `AccessLevel.USER_MODE`.
