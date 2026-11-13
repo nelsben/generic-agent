@@ -5,7 +5,7 @@ domain: frontend
 tier: frontier
 tier_reason: changes the live panel's position, hotkey handling and utility-bar setup, with e2e and captures
 status: blocked
-blocked_by: [FE-12, OPS-29]
+blocked_by: [FE-12]
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/flexipages/**, force-app/main/default/applications/**, force-app/main/default/messageChannels/**, e2e/**, docs/patterns/03-hotkey-panel.md, docs/assets/fr2-compact-*.png, tests/test_app.py]
 forbid: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

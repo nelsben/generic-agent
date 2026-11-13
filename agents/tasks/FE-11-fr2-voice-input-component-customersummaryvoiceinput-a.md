@@ -4,8 +4,7 @@ title: FR2: voice input component — customerSummaryVoiceInput, a mic toggle us
 domain: frontend
 tier: standard
 tier_reason: one self-contained LWC from a written pattern, with Jest and a docs page
-status: blocked
-blocked_by: [OPS-29]
+status: queued
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryVoiceInput/**, docs/patterns/11-voice-input.md]
 forbid: [force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/flexipages/**, force-app/main/default/applications/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
