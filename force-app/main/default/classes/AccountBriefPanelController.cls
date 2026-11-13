@@ -4,13 +4,11 @@
  * One engine, two front ends: every method delegates to the same classes the agent's actions
  * call (AccountBriefResolver, AccountBrief, AccountBriefMemory, DataExplorer). Nothing here
  * calls a model, writes prose or adds visibility: it runs with sharing and passes through.
- * askAgent is the one door to the registered agent itself (AccountBriefAgentClient).
  * Engine failures that carry user-facing text come back as AuraHandledException with that text.
  * Anything unexpected is logged and comes back as AuraHandledException with ERROR_TEXT, the fixed
  * line the engine uses for ERROR: raw exception text never reaches the panel.
  */
 public with sharing class AccountBriefPanelController {
-    @TestVisible private static final String AGENT_DEVELOPER_NAME = 'Account_Brief';
     /** Matches DataExplorer's fixed ERROR text (docs/ARCHITECTURE.md: ERROR carries fixed user-facing text). */
     @TestVisible private static final String ERROR_TEXT = 'I couldn\'t finish that right now. Try again in a minute.';
     /** Test seam: when set, every @AuraEnabled call below throws it before delegating. */
@@ -97,38 +95,6 @@ public with sharing class AccountBriefPanelController {
             return AccountBrief.sources();
         } catch (Exception e) {
             throw unexpected('sources', e);
-        }
-    }
-
-    /**
-     * Ask the agent: one user message to the registered Account_Brief agent, through
-     * AccountBriefAgentClient. sessionId continues an earlier turn's agent session; contextRecordId
-     * is the record the user has open (the panel sends it on a session's first turn only). Never
-     * throws: any failure comes back as AccountBriefAgentClient.FAILURE_TEXT with failed = true.
-     * Not cacheable: every call is a new agent turn.
-     */
-    @AuraEnabled
-    public static AccountBriefAgentClient.Reply askAgent(String message, String sessionId, Id contextRecordId) {
-        try {
-            failIfInjected();
-            return AccountBriefAgentClient.ask(message, sessionId, contextRecordId);
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'AccountBriefPanelController.askAgent: ' + e.getTypeName() + ': ' + e.getMessage());
-            return AccountBriefAgentClient.failure();
-        }
-    }
-
-    /** The BotDefinition Id of the Account_Brief agent, or null when the org has none or the user can't see it. */
-    @AuraEnabled(cacheable=true)
-    public static String agentId() {
-        String developerName = AGENT_DEVELOPER_NAME;
-        try {
-            List<SObject> rows = Database.query(
-                'SELECT Id FROM BotDefinition WHERE DeveloperName = :developerName LIMIT 1');
-            return rows.isEmpty() ? null : String.valueOf(rows[0].Id);
-        } catch (Exception e) {
-            System.debug(LoggingLevel.WARN, 'AccountBriefPanelController.agentId: ' + e.getMessage());
-            return null;
         }
     }
 

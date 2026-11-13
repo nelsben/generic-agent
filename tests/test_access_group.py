@@ -1,7 +1,8 @@
 """Static checks for the Account Brief permission set group.
 
-Account_Brief_User holds exactly the two custom permission sets. The standard Agentforce
-user set is named in the setup step, not added to the group.
+Account_Brief_User holds only the data-access set: reps reach the product through our
+surfaces, not the agent. Account_Brief_Agent_Access stays in the repo, outside the group,
+for a team that adds the agent to a channel later.
 """
 import unittest
 import xml.etree.ElementTree as ET
@@ -12,7 +13,7 @@ GROUPS = ROOT / "force-app/main/default/permissionsetgroups"
 PERMSETS = ROOT / "force-app/main/default/permissionsets"
 GROUP = GROUPS / "Account_Brief_User.permissionsetgroup-meta.xml"
 NS = {"p": "http://soap.sforce.com/2006/04/metadata"}
-EXPECTED = {"Account_Brief_Agent_Access", "Account_Brief_Data_Access"}
+EXPECTED = {"Account_Brief_Data_Access"}
 
 
 class TestAccessGroup(unittest.TestCase):
@@ -20,11 +21,16 @@ class TestAccessGroup(unittest.TestCase):
         self.assertTrue(GROUP.is_file(), "group file is missing")
         self.root = ET.parse(GROUP).getroot()
 
-    def test_group_names_exactly_the_two_sets(self):
+    def test_group_holds_only_the_data_access_set(self):
         names = [e.text for e in self.root.findall("p:permissionSets", NS)]
         self.assertEqual(sorted(names), sorted(EXPECTED))
 
-    def test_both_set_files_exist(self):
+    def test_agent_access_set_stays_in_the_repo_but_not_in_the_group(self):
+        self.assertTrue((PERMSETS / "Account_Brief_Agent_Access.permissionset-meta.xml").is_file())
+        names = [e.text for e in self.root.findall("p:permissionSets", NS)]
+        self.assertNotIn("Account_Brief_Agent_Access", names)
+
+    def test_set_files_exist(self):
         for name in EXPECTED:
             self.assertTrue((PERMSETS / (name + ".permissionset-meta.xml")).is_file(), name)
 

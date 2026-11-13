@@ -19,7 +19,7 @@ metadata: prompts are plain-text static resources.
 | 3 | Hotkey panel | Cmd/Ctrl-K from any page in the app. No tab switching and no lost place. | [03](docs/patterns/03-hotkey-panel.md) |
 | 4 | Model provider seam | One class decides which model runs. You can swap it without touching the features. | [04](docs/patterns/04-model-provider-seam.md) |
 | 5 | Conversation memory | Follow-ups work, and earlier briefs of an account are listed when you come back. | [05](docs/patterns/05-conversation-memory.md) |
-| 6 | Agent routing and verbatim relay | The built-in Agentforce panel sends each ask to the same Apex as the custom panel, and the custom panel's "Ask the agent" talks to the same agent and shows its reply in place. Version 2 of the current script is active in `agent-probe`; the org it was first built in still runs the older version 1. | [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
+| 6 | Agent routing and verbatim relay | The agent reaches the same Apex through its actions. The built-in Agentforce panel and the custom panel's "Ask the agent" are no longer ways in. Version 2 of the current script is active in `agent-probe`; the org it was first built in still runs the older version 1. | [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
 | 7 | Trust, access and failure | Users see only what they can already see. Failures read as one plain sentence, never a stack trace. | [07](docs/patterns/07-trust-access-and-failure.md) |
 | 8 | Test and release lifecycle | Every change passes local, org and agent checks before anyone relies on it. | [08](docs/patterns/08-test-and-release-lifecycle.md) |
 | 9 | Outside door (MCP) | AI clients outside Salesforce can ask for the same brief under the same rules. Designed, not yet proven. | [09](docs/patterns/09-outside-door-mcp.md) |
@@ -29,12 +29,9 @@ metadata: prompts are plain-text static resources.
 ```mermaid
 flowchart LR
     U(["Rep in Lightning"]) --> P["accountBriefPanel<br/>utility bar, Cmd/Ctrl-K"]
-    U -- "built-in Agentforce panel" --> AG["Account_Brief agent"]
     X["MCP client<br/>not yet proven"] -.-> ACT
     P --> C["AccountBriefPanelController"]
-    C -- "Ask the agent" --> AC["AccountBriefAgentClient<br/>generateAiAgentResponse"]
-    AC --> AG
-    AG --> ACT["Invocable actions<br/>AccountBriefResolver<br/>AccountBriefGetAction<br/>ExploreAction"]
+    AG["Account_Brief agent"] --> ACT["Invocable actions<br/>AccountBriefResolver<br/>AccountBriefGetAction<br/>ExploreAction"]
     C --> B["AccountBrief<br/>7 sources, 2 pre-reduces, synthesis"]
     ACT --> B
     C --> DX["DataExplorer<br/>JSON plan, ExploreQuery"]
@@ -49,10 +46,6 @@ flowchart LR
 
 The panel calls Apex directly, so it answers in one request. The agent reaches the same Apex
 through invocable actions. Both paths share one engine, one model door and one access rule.
-The panel's "Ask the agent" button sends the typed question to the registered agent through
-`AccountBriefAgentClient` and shows the reply in the panel; it no longer opens the built-in
-Agentforce panel. A follow-up reuses the agent session, so "What about their open cases?" stays
-on the account of the first turn.
 
 ## See it in 5 minutes
 
@@ -101,25 +94,19 @@ signed in to it, and at least one Account with some contacts, deals and cases.
    reports (1 in a new org). Publishing rewrites files in the bundle folder: run
    `git checkout -- force-app/main/default/aiAuthoringBundles/Account_Brief` afterwards.
 
-4. **Deploy `Account_Brief_Agent_Access` now that the agent exists, then the group.** Assign the
-   group, not the sets one by one:
+4. **Deploy the group.** Assign the group, not the set by itself:
 
    ```sh
-   sf project deploy start -o <org-alias> \
-     --source-dir force-app/main/default/permissionsets/Account_Brief_Agent_Access.permissionset-meta.xml
    sf project deploy start -o <org-alias> \
      --source-dir force-app/main/default/permissionsetgroups
    sf org assign permset -o <org-alias> -n Account_Brief_User
    ```
 
-   The group `Account_Brief_User` holds `Account_Brief_Data_Access` and `Account_Brief_Agent_Access`,
-   so assign it only after both sets exist. Assigning only one of the two can make every agent
-   turn fail. For the built-in Agentforce panel the user also needs Salesforce's standard
-   `CopilotSalesforceUser` permission set. The [agent re-review](docs/reviews/agent-review-2.md)
-   cites that name and the org-migration run did not confirm it, so check it exists in your org
-   (Setup, Permission Sets) before assigning it. The run in `agent-probe` assigned the two sets
-   directly; the group deploy and assignment are not part of that record. Not yet proven: use by
-   a non-admin user.
+   The group `Account_Brief_User` holds only `Account_Brief_Data_Access`: reps reach the product
+   through the panel, not the agent. `Account_Brief_Agent_Access` stays in the repo, outside the
+   group, for a team that adds the agent to a channel later. The run in `agent-probe` assigned
+   the sets directly; the group deploy and assignment are not part of that record. Not yet
+   proven: use by a non-admin user.
 
 5. Open the org with `sf org open -o <org-alias>` and pick **Account Brief** in the App Launcher.
    Press **Cmd-K** on a Mac or **Ctrl-K** elsewhere. Type `/brief <account name>` and press Enter.
@@ -157,7 +144,7 @@ The method behind the layers is in [08: Test and release lifecycle](docs/pattern
 | `force-app/main/default/lwc/accountBriefPanel/` | The utility-bar panel and its Jest tests |
 | `force-app/main/default/staticresources/` | The four prompts (`AgentPrompt_*`) |
 | `force-app/main/default/objects/Account_Brief_Session__c/` | The memory object |
-| `force-app/main/default/permissionsets/` | `Account_Brief_Data_Access` and `Account_Brief_Agent_Access` |
+| `force-app/main/default/permissionsets/` | `Account_Brief_Data_Access` (in the group) and `Account_Brief_Agent_Access` (outside it) |
 | `force-app/main/default/applications/`, `flexipages/`, `messageChannels/` | The app, its utility bar and the `AccountBriefOpen` channel |
 | `tests/` | Python metadata tests and the agent test spec |
 | `e2e/` | The Playwright suite |
@@ -176,12 +163,12 @@ The method behind the layers is in [08: Test and release lifecycle](docs/pattern
 | Calling the agent from Apex | Proven by a two-turn probe | [agent-api.md](docs/research/agent-api.md) |
 | An MCP server lists and adds the actions as tools | Proven by a probe | [salesforce-mcp.md](docs/research/salesforce-mcp.md) |
 | Real deploy of main to the org | Proven in the org this was first built in and in `agent-probe`: 60 components, 150 of 150 Apex tests in each | [deploy-verify.md](docs/research/deploy-verify.md), [org-migration.md](docs/research/org-migration.md) |
-| Panel in a real org | Proven as an admin user: 8 of 8 Playwright specs, on the first run in the org this was built in, and in `agent-probe` (3.1 minutes, the run in the e2e report; the first run there passed 7 of 8, and spec 2 has failed now and then since, cause not found, see [e2e/README.md](e2e/README.md)). With spec 9 ("Ask the agent") added, 9 of 9 in `agent-probe` (3.3 minutes); the e2e report image is still the 8 of 8 run | [deploy-verify.md](docs/research/deploy-verify.md), [panel-agent-1.md](docs/research/panel-agent-1.md), [e2e report](docs/assets/e2e-report.png) |
+| Panel in a real org | Proven as an admin user: 8 of 8 Playwright specs, on the first run in the org this was built in, and in `agent-probe` (3.1 minutes, the run in the e2e report; the first run there passed 7 of 8, and spec 2 has failed now and then since, cause not found, see [e2e/README.md](e2e/README.md)). Spec 9 ("Ask the agent") was added and has since been removed with the button (FR2); the e2e report image is the 8 of 8 run | [deploy-verify.md](docs/research/deploy-verify.md), [panel-agent-1.md](docs/research/panel-agent-1.md), [e2e report](docs/assets/e2e-report.png) |
 | Code reviews of main | Apex: ready with fixes. Panel: ready with fixes. Agent: **not ready**, one blocker (no fixed version can be published in the org this was built in; it has since been published in `agent-probe`) | [apex-review-2.md](docs/reviews/apex-review-2.md), [lwc-review-2.md](docs/reviews/lwc-review-2.md), [agent-review-2.md](docs/reviews/agent-review-2.md) |
 | A run as a non-admin user | **Not yet proven** | Only Apex `runAs` tests so far; see [07](docs/patterns/07-trust-access-and-failure.md) |
 | A real MCP tool call | **Not yet proven** | See [09](docs/patterns/09-outside-door-mcp.md) |
-| The panel calling the registered agent | Proven in `agent-probe` as an admin user: an Apex probe of two turns in one session, then Playwright spec 9 (a question and a follow-up that reuses the session, both replies in the panel), red on the old panel and green after the deploy. Not yet proven for a non-admin user | [panel-agent-1.md](docs/research/panel-agent-1.md), [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
+| The panel calling the registered agent | Retired (FR2): the button, its Apex client and spec 9 are removed. Proven once in `agent-probe` as an admin user before that: an Apex probe of two turns in one session, then Playwright spec 9 (a question and a follow-up that reuses the session, both replies in the panel), red on the old panel and green after the deploy. Not yet proven for a non-admin user | [panel-agent-1.md](docs/research/panel-agent-1.md), [06](docs/patterns/06-agent-routing-and-verbatim-relay.md) |
 | The fixed script published and active | Proven in `agent-probe`: version 2, published from main, is active. In the org this was first built in, every CLI publish returns `401` and Studio's Commit Version also fails, and version 1 there is still the script before the fixes | [agent-iteration-1.md](docs/research/agent-iteration-1.md), [org-migration.md](docs/research/org-migration.md), [agent-publish-spike.md](docs/research/agent-publish-spike.md) |
 | A version 2 published over an active version | Proven in `agent-probe`: version 2 was published while version 1 was active, then activated in its place | [agent-iteration-1.md](docs/research/agent-iteration-1.md) |
-| Agent test spec run in the org | Proven in `agent-probe`: 16 of 16 cases against the active version 2. A rerun after "Ask the agent" was built scored 16 of 16 on actions and 15 of 16 on replies: case 14, the known weak "Which of them close this quarter?" case, got the same 27-opportunity answer as before and was graded 2 this time ([panel-agent-1.md](docs/research/panel-agent-1.md)). Explore history across turns was checked only in a preview of the local bundle. Version 1 passed the earlier 12 cases, 36 of 36 assertions | [agent-iteration-1.md](docs/research/agent-iteration-1.md), [org-migration.md](docs/research/org-migration.md) |
+| Agent test spec run in the org | Proven in `agent-probe`: 16 of 16 cases against the active version 2. A rerun after the "Ask the agent" button was built (since removed) scored 16 of 16 on actions and 15 of 16 on replies: case 14, the known weak "Which of them close this quarter?" case, got the same 27-opportunity answer as before and was graded 2 this time ([panel-agent-1.md](docs/research/panel-agent-1.md)). Explore history across turns was checked only in a preview of the local bundle. Version 1 passed the earlier 12 cases, 36 of 36 assertions | [agent-iteration-1.md](docs/research/agent-iteration-1.md), [org-migration.md](docs/research/org-migration.md) |
 | A clean install from "See it in 5 minutes" | **Not fully proven.** Main was stood up in a fresh org (`agent-probe`) in the order recorded in org-migration.md, and needed two sample-data fixes on the way (PR #72 and PR #74). The steps above, as now written, have not been run end to end in a new org | [org-migration.md](docs/research/org-migration.md) |
