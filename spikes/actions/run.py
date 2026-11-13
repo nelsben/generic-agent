@@ -10,10 +10,12 @@ Usage:
   python3 spikes/actions/run.py commit [runs]                   # draft from fields + commit + undo, rolled back
   python3 spikes/actions/run.py callout                         # DML then a model call in one transaction
   python3 spikes/actions/run.py names                           # does a method named 'commit' compile?
-  python3 spikes/actions/run.py precheck                        # no org call: the action-verb pre-check on requests.json
+  python3 spikes/actions/run.py inventory                       # read-only: LogACall target, subtype values, Task fields
+  python3 spikes/actions/run.py precheck                     # no org call: the action-verb pre-check on requests.json
   python3 spikes/actions/run.py report                          # no org call: medians and checks
 Requests are in requests.json. Results append to spikes/actions/results/<mode>.jsonl: codes, counts, timings,
-booleans and dates only, plus, for precheck, the first non-filler word of each sample request. The per-run Apex file is written to the system temp folder and deleted after the run.
+booleans and dates only, plus, for precheck, the first non-filler word of each sample request, and, for inventory,
+field, object and picklist value names (no Ids). The per-run Apex file is written to the system temp folder and deleted after the run.
 """
 import calendar
 import datetime
@@ -139,6 +141,41 @@ def names():
                           "cli": cli.split(" (line")[0]})
 
 
+INVENTORY = r"""
+List<String> parts = new List<String>();
+for (String qa : new List<String>{ 'LogACall', 'Global.LogACall' }) {
+    try {
+        QuickAction.DescribeQuickActionResult r = QuickAction.describeQuickActions(new List<String>{ qa })[0];
+        parts.add('quickAction_' + qa.replace('.', '_') + '_target=' + r.getTargetSobjectType());
+    } catch (Exception e) {
+        parts.add('quickAction_' + qa.replace('.', '_') + '_target=error:' + e.getTypeName());
+    }
+}
+Map<String, Schema.SObjectField> taskFields = Schema.SObjectType.Task.fields.getMap();
+parts.add('taskDescribeHasType=' + taskFields.containsKey('type'));
+List<String> vals = new List<String>();
+for (Schema.PicklistEntry p : Schema.SObjectType.Task.fields.TaskSubtype.getPicklistValues()) vals.add(p.getValue());
+parts.add('taskSubtypeValues=' + String.join(vals, ','));
+vals = new List<String>();
+for (Schema.PicklistEntry p : Schema.SObjectType.Event.fields.EventSubtype.getPicklistValues()) vals.add(p.getValue());
+parts.add('eventSubtypeValues=' + String.join(vals, ','));
+vals = new List<String>();
+for (FieldDefinition f : [SELECT QualifiedApiName FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Task'
+        AND QualifiedApiName IN ('Type', 'TaskSubtype', 'Status') ORDER BY QualifiedApiName]) vals.add(f.QualifiedApiName);
+parts.add('fieldDefinitionFound=' + String.join(vals, ','));
+parts.add('dml=' + Limits.getDmlStatements());
+System.debug(LoggingLevel.ERROR, 'BE22I|' + String.join(parts, '|'));
+"""
+
+
+def inventory():
+    rows, cli, wall = run_apex(INVENTORY)
+    row = {"cli": cli, "wallMs": wall, "probe": "inventory"}
+    if rows:
+        row.update({k: v for k, v in rows[0].items() if k != "marker"})
+    record("inventory", row)
+
+
 # The pre-check draftFromText could run before its model call: skip filler words, then test the first word.
 FILLER = {"uh", "um", "so", "ok", "okay", "hey", "please", "can", "could", "would", "you", "i", "need", "to", "want", "let's"}
 VERBS = {"create", "add", "schedule", "set", "book", "log", "remind", "update", "change", "open", "push", "move", "make"}
@@ -228,6 +265,8 @@ def main():
         names()
     elif mode == "precheck":
         precheck()
+    elif mode == "inventory":
+        inventory()
     elif mode == "report":
         report()
     else:

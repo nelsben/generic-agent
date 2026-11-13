@@ -1,0 +1,1 @@
+{"cli": "", "dml": 0, "eventSubtypeValues": "Event", "fieldDefinitionFound": "Status,TaskSubtype", "probe": "inventory", "quickAction_Global_LogACall_target": "error:System.ListException", "quickAction_LogACall_target": "Task", "taskDescribeHasType": "false", "taskSubtypeValues": "Task,Email,ListEmail,Cadence,Call,LinkedIn", "wallMs": 1718}
