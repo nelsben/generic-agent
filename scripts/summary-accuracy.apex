@@ -25,16 +25,15 @@ String label = 'sample=' + (SAMPLE + 1);
 
 List<Account> picked = [SELECT Id FROM Account WHERE Name = :SAMPLE_NAMES[SAMPLE] WITH USER_MODE ORDER BY CreatedDate LIMIT 1];
 if (picked.isEmpty()) {
-    System.debug(LoggingLevel.ERROR, 'ACC|' + label + ' found=false');
-    return;
+    throw new IllegalArgumentException('ACC|' + label + ' found=false');
 }
 Id accountId = picked[0].Id;
-Integer sessionsBefore = [SELECT COUNT() FROM Customer_Summary_Session__c WHERE User__c = :UserInfo.getUserId() WITH SYSTEM_MODE];
+Integer sessionsBefore = [SELECT COUNT() FROM Customer_Summary_Session__c WHERE User__c = :UserInfo.getUserId()];
 
 CustomerSummary.Result r = CustomerSummary.run(accountId, null, null);
 
-Integer sessionsAfter = [SELECT COUNT() FROM Customer_Summary_Session__c WHERE User__c = :UserInfo.getUserId() WITH SYSTEM_MODE];
-Integer sessionsTouched = [SELECT COUNT() FROM Customer_Summary_Session__c WHERE User__c = :UserInfo.getUserId() AND Account__c = :accountId AND LastModifiedDate = TODAY WITH SYSTEM_MODE];
+Integer sessionsAfter = [SELECT COUNT() FROM Customer_Summary_Session__c WHERE User__c = :UserInfo.getUserId()];
+Integer sessionsTouched = [SELECT COUNT() FROM Customer_Summary_Session__c WHERE User__c = :UserInfo.getUserId() AND Account__c = :accountId AND LastModifiedDate = TODAY];
 
 // ---- The gathered sections: every token they hold. ----
 Map<String, Integer> monthOf = new Map<String, Integer>{
@@ -137,13 +136,13 @@ for (Integer p = 0; p < datePatterns.size(); p++) {
         if (!found) {
             unmatched.put('date', unmatched.get('date') + 1);
             Integer at = m.start();
-            String where = 'headline';
+            String place = 'headline';
             for (Integer i = 0; i < labelAt.size(); i++) {
                 if (labelAt[i] <= at) {
-                    where = labelName[i];
+                    place = labelName[i];
                 }
             }
-            misses.add('date ' + token + ' in=' + where);
+            misses.add('date ' + token + ' in=' + place);
         }
         rest = rest.substring(0, m.start()) + ' '.repeat(m.end() - m.start()) + rest.substring(m.end());
     }
@@ -156,7 +155,7 @@ while (m.find()) {
     Decimal mult = unit == 'k' || unit == 't' ? 1000 : unit == 'm' ? 1000000 : unit == 'b' ? 1000000000 : 1;
     Integer decimals = m.group(2) == null ? 0 : m.group(2).length();
     // Half a unit of the last digit written: "$1.2M" covers 1,150,000 to 1,250,000; "$45,000" only 45,000 (to the dollar).
-    Decimal tolerance = mult == 1 ? 0.5 : mult * 0.5 / Math.pow(10, decimals);
+    Decimal tolerance = mult == 1 ? 0.5 : mult * 0.5 / Decimal.valueOf(Math.pow(10, decimals));
     Decimal amount = value * mult;
     Boolean found = false;
     for (Decimal s : sectionAmounts) {
@@ -165,13 +164,13 @@ while (m.find()) {
     seen.put('amount', seen.get('amount') + 1);
     if (!found) {
         unmatched.put('amount', unmatched.get('amount') + 1);
-        String where = 'headline';
+        String place = 'headline';
         for (Integer i = 0; i < labelAt.size(); i++) {
             if (labelAt[i] <= m.start()) {
-                where = labelName[i];
+                place = labelName[i];
             }
         }
-        misses.add('amount ' + amount.setScale(0) + ' in=' + where);
+        misses.add('amount ' + amount.setScale(0) + ' in=' + place);
     }
 }
 rest = money.matcher(rest).replaceAll(' ');
@@ -193,13 +192,13 @@ while (m.find()) {
     seen.put('percent', seen.get('percent') + 1);
     if (!sectionPercents.contains(value)) {
         unmatched.put('percent', unmatched.get('percent') + 1);
-        String where = 'headline';
+        String place = 'headline';
         for (Integer i = 0; i < labelAt.size(); i++) {
             if (labelAt[i] <= m.start()) {
-                where = labelName[i];
+                place = labelName[i];
             }
         }
-        misses.add('percent ' + value + ' in=' + where);
+        misses.add('percent ' + value + ' in=' + place);
     }
 }
 rest = rest.replaceAll('(\\d+(?:\\.\\d+)?)\\s?%', '');
@@ -220,13 +219,13 @@ while (m.find()) {
     seen.put('count', seen.get('count') + 1);
     if (!sectionNumbers.contains(value)) {
         unmatched.put('count', unmatched.get('count') + 1);
-        String where = 'headline';
+        String place = 'headline';
         for (Integer i = 0; i < labelAt.size(); i++) {
             if (labelAt[i] <= m.start()) {
-                where = labelName[i];
+                place = labelName[i];
             }
         }
-        misses.add('count ' + value + ' in=' + where);
+        misses.add('count ' + value + ' in=' + place);
     }
 }
 
@@ -242,7 +241,7 @@ System.debug(LoggingLevel.ERROR, 'ACC|' + label + ' dates=' + seen.get('date') +
     + ' amounts=' + seen.get('amount') + '/' + unmatched.get('amount')
     + ' percents=' + seen.get('percent') + '/' + unmatched.get('percent')
     + ' counts=' + seen.get('count') + '/' + unmatched.get('count')
-    + ' (found/unmatched) tokens=' + totalSeen + ' unmatched=' + totalMissed + ' all_matched=' + (totalMissed == 0));
+    + ' (seen/unmatched) tokens=' + totalSeen + ' unmatched=' + totalMissed + ' all_matched=' + (totalMissed == 0));
 System.debug(LoggingLevel.ERROR, 'ACC|' + label + ' error_sections=' + failedSections
     + ' says_not_loaded=' + saysNotLoaded + ' error_rule_ok=' + (failedSections == 0 || saysNotLoaded));
 System.debug(LoggingLevel.ERROR, 'ACC|' + label + ' session_rows_before=' + sessionsBefore + ' session_rows_after=' + sessionsAfter
