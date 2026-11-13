@@ -7,6 +7,10 @@
     {
       "path": "mcp-door",
       "default": false
+    },
+    {
+      "path": "spikes",
+      "default": false
     }
   ],
   "name": "generic-agent",
