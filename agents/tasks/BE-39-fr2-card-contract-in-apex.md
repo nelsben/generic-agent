@@ -11,7 +11,7 @@ forbid: [force-app/main/default/lwc/**, force-app/main/default/objects/**, force
 resources: [org-live]
 red_test: a new AnswerCardTest, and new cases in CustomerSummaryTest and DataExplorerTest that read the cards on a result, fail on main (the class and the cards member do not exist) and pass after
 gate: test, org
-budget: 2-attempts
+budget: 3-attempts
 spend: 12
 ---
 ## Why
