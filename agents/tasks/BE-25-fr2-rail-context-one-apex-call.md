@@ -4,8 +4,7 @@ title: FR2: rail context — one Apex call returns open deals, recent activity (
 domain: backend
 tier: frontier
 tier_reason: user-mode reads across six objects with a live deploy and timing in a production-classified org
-status: blocked
-blocked_by: [BE-24]
+status: queued
 fixes: []
 scope: [force-app/main/default/classes/CustomerSummaryContext*.cls, force-app/main/default/classes/CustomerSummaryContext*.cls-meta.xml, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/research/fr2-rail-context.md, tests/test_permission_sets.py]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

@@ -4,8 +4,7 @@ title: FR2: follow-ups to the summary — the explorer answers the next question
 domain: backend
 tier: frontier
 tier_reason: changes the explorer's context contract that the panel, the agent and MCP share, measured live in a production-classified org
-status: blocked
-blocked_by: [BE-24]
+status: queued
 fixes: []
 scope: [force-app/main/default/classes/DataExplorer.cls, force-app/main/default/classes/DataExplorerTest.cls, force-app/main/default/classes/ExploreAction.cls, force-app/main/default/classes/ExploreActionTest.cls, force-app/main/default/classes/ExplorePlan.cls, force-app/main/default/classes/ExplorePlanTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, force-app/main/default/staticresources/AgentPrompt_Explore.resource, scripts/follow-up-set.apex, docs/research/fr2-follow-ups.md, tests/test_explore_prompt.py]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

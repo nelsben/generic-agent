@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: the repo's lead chapter, written for a business reader and an architect at once, from Ben's own notes
 status: blocked
-blocked_by: [BE-24, BE-29, BE-30, BE-33, BE-35, BE-36]
+blocked_by: [BE-29, BE-30, BE-33, BE-35, BE-36]
 fixes: []
 scope: [docs/patterns/01-route-gather-reduce.md, docs/patterns/_diagram-theme.md, tests/test_pattern_01.py, tests/pattern_shape.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
