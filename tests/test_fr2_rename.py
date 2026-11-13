@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OLD_NAME = re.compile("account" + r"[ _-]?" + "brief", re.IGNORECASE)
+OLD_NAME = re.compile("account" + r"[ _-]?" + r"brief\b", re.IGNORECASE)
 OLD_BUNDLE = "Account" + "_" + "Brief"
 NEW_BUNDLE = "Customer_Summary"
 VERDICT = ROOT / "docs/research/fr2-rename-go.md"
@@ -104,6 +104,16 @@ class OldNameGoneTest(unittest.TestCase):
     def test_no_old_name_outside_historical_folders(self):
         hits = old_name_hits(is_go())
         self.assertEqual([], hits, "old product name still present:\n" + "\n".join(hits))
+
+    def test_no_rename_slip_outside_historical_folders(self):
+        # BE-23's mechanical rename left a bad past-tense form of the verb in several files. The pattern is built from parts so this file never matches itself.
+        pattern = "summ" + "aryed|summ" + "arys\\b"
+        result = subprocess.run(
+            ["git", "grep", "-n", "-i", "-E", pattern, "--", ".",
+             ":!docs/research", ":!docs/reviews", ":!docs/plans", ":!agents"],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        self.assertEqual(1, result.returncode, "rename slip still present:\n" + result.stdout + result.stderr)
 
     def test_markdown_allowance_is_narrow(self):
         old = "Account" + " " + "Brief"
