@@ -275,6 +275,28 @@ is "not approved; needs Ben's go", and its card is OPS-54.
   See "What this means for the rename cards".
 - The 3 session rows go with the object, so they need the same go.
 
+## After the rename (FR2 org card)
+
+OPS-30 deployed the renamed `force-app` to agent-probe on 2026-11-13 (02:18Z) and assigned
+`Customer_Summary_User` to the admin. It removed, deactivated and changed nothing above. Read-only
+checks after the deploy ([fr2-rename-org.md](fr2-rename-org.md#before-and-after)) show this left
+behind, beside the new Customer Summary components:
+
+| Item | What is in the org after OPS-30 |
+|---|---|
+| The old agent | Unchanged: `Account_Brief` v1 Inactive, v2 Active (last modified 2026-11-12T07:51:53Z); authoring bundles `Account_Brief_1` and `Account_Brief_2` |
+| The spike agent | `Customer_Summary` v1 Active, unchanged. It is the name the renamed bundle will publish into (OPS-51). The deploy added a `Customer_Summary_2` authoring bundle; nothing was published |
+| Its evaluation definition | AiEvaluationDefinition `Account_Brief_Test` (not re-checked; OPS-30 did not touch it) |
+| Apex | The same 28 `AccountBrief%` classes, 13 of them tests. They now exist only in the org, and RunLocalTests runs the 13 tests in every deploy |
+| A prompt | Static resource `AgentPrompt_BriefSynthesis`, unchanged. The old `AccountBrief` reads it; the new code reads `AgentPrompt_SummarySynthesis` (OPS-30's fix) |
+| The session object | `Account_Brief_Session__c`, still 3 rows |
+| Permission sets and group | `Account_Brief_Data_Access`, `Account_Brief_Agent_Access` and the group `Account_Brief_User`, with their 3 assignments. No assignment was removed |
+| The message channel, panel, utility bar and app | `AccountBriefOpen`, `accountBriefPanel`, `Account_Brief_UtilityBar` and CustomApplication `Account_Brief` (still in the app menu), each listed next to its Customer Summary counterpart |
+| The MCP door | `AccountBriefMcpClient` (still in the app menu) and `AccountBriefMcp`, not re-checked |
+
+**Removing any of these still needs Ben's go:** the Approvals row for OPS-54 is "not approved;
+needs Ben's go".
+
 ## Gates
 
 On the final commit:
