@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: a chapter that positions the product against a new platform feature, written for a business reader and an architect at once
 status: blocked
-blocked_by: [OPS-38, BE-35, BE-36, FE-19]
+blocked_by: [OPS-38, BE-36, FE-19]
 fixes: []
 scope: [docs/patterns/05-conversation-memory.md, tests/test_pattern_05.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
