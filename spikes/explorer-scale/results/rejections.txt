@@ -1,0 +1,44 @@
+REJ :: 1 :: want=REJ got=REJ :: Unknown object "Customer_Summary_Session__c".
+REJ :: 2 :: want=REJ got=REJ :: Unknown object "Account_Brief_Session__c".
+REJ :: 3 :: want=REJ got=REJ :: Unknown object "AccountHistory".
+REJ :: 4 :: want=REJ got=REJ :: Unknown object "No_Such__c".
+REJ :: 5 :: want=REJ got=REJ :: "Account.Owner.Manager.Name" goes more than two lookups deep.
+REJ :: 6 :: want=REJ got=REJ :: Unknown field "Account.Owner.No_Such__c" on Opportunity.
+REJ :: 7 :: want=REJ got=REJ :: Unknown lookup "No_Such" in "No_Such.Name".
+REJ :: 8 :: want=REJ got=REJ :: Unknown field "No_Such__c" on Account.
+REJ :: 9 :: want=REJ got=REJ :: Unknown object "Customer_Summary_Session__c" in "sub".
+REJ :: 10 :: want=REJ got=REJ :: Task can't be in "sub"; query it first and use a step value.
+REJ :: 11 :: want=REJ got=REJ :: Account can't be in "sub"; query it first and use a step value.
+REJ :: 12 :: want=REJ got=REJ :: "sub" must be at the top level of "where", not inside "or" or "not".
+REJ :: 13 :: want=REJ got=REJ :: "sub" must be at the top level of "where", not inside "or" or "not".
+REJ :: 14 :: want=REJ got=REJ :: Use "sub" at most twice.
+REJ :: 15 :: want=REJ got=REJ :: Subject is not a lookup on Case.
+REJ :: 16 :: want=REJ got=REJ :: "sub" needs Id or a lookup on Contact.
+REJ :: 17 :: want=REJ got=REJ :: "sub" takes IN or NOT IN.
+REJ :: 18 :: want=REJ got=REJ :: Unknown field "No_Such__c" on Case.
+REJ :: 19 :: want=REJ got=REJ :: Description is long text: use CONTAINS.
+REJ :: 20 :: want=REJ got=REJ :: CONTAINS on long text Description must be at the top level of "where".
+REJ :: 21 :: want=REJ got=REJ :: Description can't be sorted.
+REJ :: 22 :: want=REJ got=REJ :: Description can't be grouped.
+REJ :: 23 :: want=REJ got=REJ :: "where" parts must be conditions or groups, at most 4 deep.
+REJ :: 24 :: want=REJ got=REJ :: Use at most 20 conditions.
+REJ :: 25 :: want=REJ got=REJ :: Unknown op "NOT LIKE" on Name.
+REJ :: 26 :: want=REJ got=REJ :: IN on Industry needs a list of 1 to 200 values.
+REJ :: 27 :: want=REJ got=REJ :: A step value needs IN or NOT IN and an earlier query (1 to 1).
+REJ :: 28 :: want=REJ got=REJ :: Unknown child list "No_Such__r" on Account.
+REJ :: 29 :: want=REJ got=REJ :: "having" must use one of the aggregates and a comparison.
+REJ :: 30 :: want=REJ got=REJ :: "lots" does not fit Amount (CURRENCY).
+REJ :: 31 :: want=OK got=OK :: rows=1 soql=SELECT COUNT(Id) a0 FROM Case WHERE (Status = :b0 OR Priority = :b1)
+REJ :: 32 :: want=OK got=OK :: rows=47 soql=SELECT Name, Account.Owner.Name, Id FROM Opportunity WHERE Account.Owner.IsActive = :b0 LIMIT 50
+REJ :: 33 :: want=OK got=OK :: rows=1 soql=SELECT Name, Id, Description FROM Account LIMIT 2001
+REJ :: 34 :: want=OK got=OK :: rows=2 soql=SELECT Name, Id FROM Account WHERE Id IN (SELECT AccountId FROM Case WHERE IsClosed = :b0) LIMIT 50
+REJ :: 35 :: want=OK got=OK :: rows=1 soql=SELECT COUNT(Id) a0 FROM Lead
+REJ :: 36 :: want=OK got=OK :: rows=1 soql=SELECT Name, Id FROM Account WHERE Id NOT IN (SELECT AccountId FROM Opportunity) LIMIT 50
+REJ :: 37 :: want=OK got=OK :: rows=6 soql=SELECT Name, Id FROM Contact WHERE (AccountId IN (SELECT AccountId FROM Case) AND (NOT (Email = null))) LIMIT 50
+REJ :: 38 :: want=OK got=OK :: rows=14 soql=SELECT Name, Id, (SELECT Id, Name, Amount FROM Opportunities WHERE IsClosed = :b0 LIMIT 3) FROM Account LIMIT 50
+REJ :: 39 :: want=OK got=OK :: rows=1 soql=SELECT AccountId g0, COUNT(Id) a1 FROM Opportunity WHERE IsClosed = :b0 GROUP BY AccountId HAVING COUNT(Id) > :b1 LIMIT 50
+REJ :: 40 :: want=OK got=OK :: rows=0 soql=SELECT Name, Id FROM Account WHERE Id IN :b0 LIMIT 50
+REJ :: 41 :: want=OK got=OK :: rows=0 soql=SELECT Name, Id FROM Account WHERE Name = :b0 LIMIT 50
+REJ :: 42 :: want=OK got=OK :: rows=7 soql=SELECT Role, Opportunity.Account.Name, Id FROM OpportunityContactRole WHERE Contact.Account.Type = :b0 LIMIT 50
+REJ :: 43 :: want=OK got=OK :: rows=1 soql=SELECT COUNT(Id) a0 FROM Product2 WHERE IsActive = :b0
+REJ :: summary :: 43 of 43 as expected; cpuMs=263 soql=13 heap=72288

@@ -1,0 +1,6 @@
+CAT :: index :: objects=1100 of 1916 stoppedEarly=false chars=49327 cpuMs=174 heap=293161
+CAT :: lines :: n=8 chars=35373 approxTokens=8843 cpuMs=474 heap=552290
+CAT :: lines :: n=10 chars=39285 approxTokens=9821 cpuMs=516 heap=545183
+CAT :: lines :: n=50 chars=73851 approxTokens=18462 cpuMs=1351 heap=554747
+CAT :: lines :: n=200 chars=181556 approxTokens=45389 cpuMs=2168 heap=628813
+CAT :: lines :: n=1083 of 1100 stoppedEarly=true chars=935269 approxTokens=233817 cpuMs=8766 heap=1197488
