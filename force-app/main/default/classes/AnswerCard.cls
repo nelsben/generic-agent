@@ -115,13 +115,17 @@ public with sharing class AnswerCard {
         @AuraEnabled public List<String> cells = new List<String>();
     }
 
-    /** One line of a list. at is a date for a timeline; kind is a timeline kind or 'related'. */
+    /**
+     * One line of a list. at is a date for a timeline; kind is a timeline kind or 'related'. status is FE-18's
+     * optional per-item status; no builder sets it yet, so it stays null and out of the JSON.
+     */
     public class Item {
         @AuraEnabled public String at;
         @AuraEnabled public String kind;
         @AuraEnabled public String label;
         @AuraEnabled public String value;
         @AuraEnabled public String detail;
+        @AuraEnabled public String status;
         @AuraEnabled public String ref;
     }
 
