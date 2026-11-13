@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: the chapter that carries the product's core operating principle, written for a business reader and an architect at once
 status: blocked
-blocked_by: [OPS-38, BE-30, BE-26, BE-35, FE-22, FE-14]
+blocked_by: [OPS-38, BE-26, BE-35, FE-22, FE-14]
 fixes: []
 scope: [docs/patterns/02-ask-anything-explorer.md, tests/test_pattern_02.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

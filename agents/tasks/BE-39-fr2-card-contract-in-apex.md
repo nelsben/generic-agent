@@ -4,8 +4,7 @@ title: FR2: the card contract in Apex — the summary and the explorer return ty
 domain: backend
 tier: frontier
 tier_reason: a contract every surface and the action service build on, added to two live services without changing anything they return today
-status: blocked
-blocked_by: [BE-30]
+status: queued
 fixes: []
 scope: [force-app/main/default/classes/AnswerCard*.cls, force-app/main/default/classes/AnswerCard*.cls-meta.xml, force-app/main/default/classes/CustomerSummary.cls, force-app/main/default/classes/CustomerSummaryTest.cls, force-app/main/default/classes/CustomerSummaryGetAction.cls, force-app/main/default/classes/CustomerSummaryGetActionTest.cls, force-app/main/default/classes/DataExplorer.cls, force-app/main/default/classes/DataExplorerTest.cls, force-app/main/default/classes/ExploreAction.cls, force-app/main/default/classes/ExploreActionTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, docs/research/fr2-card-contract-apex.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/objects/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
