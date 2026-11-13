@@ -34,6 +34,8 @@ the pages still link them, until the chapter cards and `OPS-36` rewrite those pa
 | `not-found.png` | The fixed NOT_FOUND line for an unknown account, "Try a fuller or different account name." | [07](../patterns/07-trust-access-and-failure.md) | captured | 1520x1500 | 187 KB |
 | `ambiguous.png` | The AMBIGUOUS reply with its three candidate buttons | [07](../patterns/07-trust-access-and-failure.md) | captured | 1520x1500 | 207 KB |
 | `e2e-report.png` | The Playwright HTML report for a full run: 8 of 8 passed, 3.1 minutes | [README](../../README.md), [03](../patterns/03-hotkey-panel.md), [08](../patterns/08-test-and-release-lifecycle.md) | captured | 1600x1800 | 274 KB |
+| `brand-swap-before.png` | The open panel on Edge Communications with the shipped Default brand record: the plain blue logo mark and "Customer Summary" at the start of the bar, the blue Summarize button, and the empty state "Ask anything about Your Company's data" | [10](../patterns/10-brand-and-theming.md) | captured | 1520x1500 | 184 KB |
+| `brand-swap-after.png` | The same panel with the record swapped to the made-up Northwind Health: the green N monogram and "Northwind Assist" in Georgia, the green Summarize button, the pale green panel, Verdana text and the empty state "Ask anything about Northwind Health's data"; the utility title still reads "Customer Summary" | [10](../patterns/10-brand-and-theming.md) | captured | 1520x1500 | 185 KB |
 
 Rules for every capture: no record Ids, org Ids, usernames, the running user's name, email
 addresses, URL bars or URLs with query strings in view. Use the seeded sample data only.

@@ -77,6 +77,26 @@ private class CustomerSummaryTest {
     }
 
     @IsTest
+    static void synthesisPromptEndsWithTheBrandCompanyAndToneLines() {
+        BrandSettings.rowsForTest = new List<Brand_Setting__mdt>{
+            new Brand_Setting__mdt(Company_Name__c = 'Northwind Health', Tone__c = 'Warm and brief.')
+        };
+        Account a = mkAccount(true);
+        Stub stub = install();
+
+        Test.startTest();
+        CustomerSummary.run(a.Id, null, null);
+        Test.stopTest();
+
+        String synthesis = stub.systems[2];
+        Assert.isTrue(synthesis.contains('final account summary'), 'the prompt file\'s own text is still there');
+        Assert.isTrue(synthesis.endsWith('\n\nCompany: the user works at Northwind Health.\nTone: Warm and brief.'),
+            'the company line, then the tone line, end the synthesis system prompt: ' + synthesis.right(200));
+        Assert.isFalse(stub.systems[0].contains('Northwind Health'), 'the pre-reduce prompts are unchanged');
+        Assert.isFalse(stub.systems[1].contains('Tone: '), 'the pre-reduce prompts are unchanged');
+    }
+
+    @IsTest
     static void allSourcesByDefaultInRegistryOrder() {
         Account a = mkAccount(true);
         Stub stub = install();

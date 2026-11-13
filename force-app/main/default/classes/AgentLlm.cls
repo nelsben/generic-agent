@@ -37,8 +37,19 @@ public with sharing class AgentLlm {
     private static final Map<String, String> promptCache = new Map<String, String>();
 
     public static String complete(String promptName, Map<String, String> vars, Integer maxTokens) {
+        return complete(promptName, vars, maxTokens, null);
+    }
+
+    /**
+     * As complete(promptName, vars, maxTokens), with systemSuffix (when not blank) added after the prompt file's
+     * system text, on its own lines. The file's text is unchanged, so a caller that looks for it still finds it.
+     */
+    public static String complete(String promptName, Map<String, String> vars, Integer maxTokens, String systemSuffix) {
         String raw = loadPrompt(promptName);
         String systemPrompt = fill(part(raw, SYSTEM_MARK, USER_MARK, promptName), vars, promptName);
+        if (String.isNotBlank(systemSuffix)) {
+            systemPrompt += '\n\n' + systemSuffix.trim();
+        }
         String userPrompt = fill(part(raw, USER_MARK, null, promptName), vars, promptName);
         String text;
         try {

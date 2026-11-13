@@ -1,7 +1,18 @@
 /* The utility panel gives the host its height (480); the body scrolls, the composer stays pinned. */
+/*
+ * Theme (BE-24, fr2-design.md "Theming"): the panel sets --cs-color-primary, --cs-color-accent, --cs-color-surface,
+ * --cs-color-ink, --cs-font-display, --cs-font-body and --cs-radius on this host from the brand settings. This
+ * stylesheet reads only those, each with a neutral fallback, and maps them onto the SLDS button styling hooks.
+ * The one other colour is the SLDS error colour for error text: a status colour, not a brand colour.
+ */
 :host {
     display: block;
     height: 100%;
+    --slds-c-button-brand-color-background: var(--cs-color-primary, #0176d3);
+    --slds-c-button-brand-color-border: var(--cs-color-primary, #0176d3);
+    --slds-c-button-brand-color-background-hover: var(--cs-color-accent, #014486);
+    --slds-c-button-brand-color-border-hover: var(--cs-color-accent, #014486);
+    --slds-c-button-radius-border: var(--cs-radius, 0.25rem);
 }
 
 .abp-panel {
@@ -11,6 +22,37 @@
     max-width: 100%;
     height: 100%;
     margin: 0;
+    background-color: var(--cs-color-surface, #ffffff);
+    color: var(--cs-color-ink, #181818);
+    font-family: var(--cs-font-body, inherit);
+    border-radius: var(--cs-radius, 0.25rem);
+}
+
+.abp-panel h2,
+.abp-agent-name {
+    font-family: var(--cs-font-display, inherit);
+}
+
+/* The brand: logo and agent name, at the start of the pinned bar row. It keeps its width up to 60%
+   of the row; the Summarize button, which truncates and keeps its title, takes the squeeze. */
+.abp-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex: 0 0 auto;
+    max-width: 60%;
+    min-width: 0;
+}
+
+.abp-logo {
+    flex: 0 0 auto;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.abp-agent-name {
+    min-width: 0;
+    font-weight: 700;
 }
 
 .abp-bar,
@@ -38,6 +80,15 @@
     flex: 0 1 auto;
     min-width: 0;
     margin: 0;
+    background-color: var(--cs-color-primary, #0176d3);
+    border-color: var(--cs-color-primary, #0176d3);
+    border-radius: var(--cs-radius, 0.25rem);
+}
+
+.abp-brief:hover,
+.abp-brief:focus {
+    background-color: var(--cs-color-accent, #014486);
+    border-color: var(--cs-color-accent, #014486);
 }
 
 .abp-brief .slds-truncate {
@@ -121,6 +172,12 @@
 }
 
 .abp-row-button,
+.abp-line-link,
+.abp-summary-toggle {
+    color: var(--cs-color-primary, #0176d3);
+}
+
+.abp-row-button,
 .abp-line-link {
     white-space: normal;
     text-align: left;
@@ -132,9 +189,9 @@
 }
 
 .abp-composer-row {
-    border-top: 1px solid var(--slds-g-color-border-1, #e5e5e5);
+    border-top: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);
 }
 
 .abp-history {
-    border-bottom: 1px solid var(--slds-g-color-border-1, #e5e5e5);
+    border-bottom: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);
 }

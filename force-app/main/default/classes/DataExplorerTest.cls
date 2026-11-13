@@ -4,9 +4,11 @@ private class DataExplorerTest {
     private class Script implements AgentLlm.Provider {
         List<String> replies = new List<String>();
         List<String> prompts = new List<String>();
+        List<String> systems = new List<String>();
         Integer failAt = -1;
 
         public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
+            systems.add(systemPrompt);
             prompts.add(userPrompt);
             if (prompts.size() == failAt) {
                 throw new AgentLlm.LlmException('model down');
@@ -51,6 +53,23 @@ private class DataExplorerTest {
 
     private static Account acme() {
         return [SELECT Id, Name FROM Account WHERE Name = 'Explore Acme' LIMIT 1];
+    }
+
+    @IsTest
+    static void everyTurnsSystemPromptEndsWithTheBrandCompanyAndToneLines() {
+        BrandSettings.rowsForTest = new List<Brand_Setting__mdt>{
+            new Brand_Setting__mdt(Company_Name__c = 'Northwind Health', Tone__c = 'Warm and brief.')
+        };
+        Script s = script(new List<String>{ query(OPPS_OF_ACME), answer('Acme has three deals.') });
+
+        DataExplorer.explore('What deals does Acme have?', null, null);
+
+        Assert.areEqual(2, s.systems.size(), 'two model turns');
+        for (String sys : s.systems) {
+            Assert.isTrue(sys.startsWith('Role: You answer a sales user'), 'the prompt file\'s own text comes first');
+            Assert.isTrue(sys.endsWith('\n\nCompany: the user works at Northwind Health.\nTone: Warm and brief.'),
+                'the company line, then the tone line, end the explorer system prompt: ' + sys.right(200));
+        }
     }
 
     @IsTest

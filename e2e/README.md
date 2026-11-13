@@ -141,6 +141,20 @@ Raw videos stay in `test-results/capture/raw/` (gitignored). One frame per secon
 GIF, and its last frame, are written outside the repo for review (`$TMPDIR/abp-capture-frames/`,
 or `CAPTURE_FRAMES_DIR`).
 
+The brand pair (`brand-swap-before.png`, `brand-swap-after.png`, pattern page 10) needs a different
+brand record deployed for each shot, so a plain `npm run capture` skips it. Run it once per shot,
+right after that shot's `Brand_Setting.Default` record is deployed (the steps are in
+[10-brand-and-theming.md](../docs/patterns/10-brand-and-theming.md)), then deploy the shipped record
+again:
+
+```bash
+BRAND_SHOT=before BRAND_AGENT_NAME='Customer Summary' npx playwright test -c playwright.capture.config.js e2e/capture/06-brand.capture.js
+BRAND_SHOT=after BRAND_AGENT_NAME='Northwind Assist' npx playwright test -c playwright.capture.config.js e2e/capture/06-brand.capture.js
+```
+
+The run fails if the panel's agent name is not the one given, or is cut short. It makes no model
+call.
+
 ### Privacy rules
 
 - **Never traced.** Video and screenshots only: tracing and HAR are off, as in the e2e config. The

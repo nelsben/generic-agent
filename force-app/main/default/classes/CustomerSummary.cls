@@ -279,7 +279,8 @@ public with sharing class CustomerSummary {
         }
         synthesisVars.put('account_name', accountName);
         synthesisVars.put('question', question == null ? '' : question.trim());
-        return AgentLlm.complete(SYNTHESIS_PROMPT, synthesisVars, SYNTHESIS_MAX_TOKENS);
+        // The brand's company and tone lines go after the synthesis prompt's own system text (BE-24).
+        return AgentLlm.complete(SYNTHESIS_PROMPT, synthesisVars, SYNTHESIS_MAX_TOKENS, BrandSettings.promptLines());
     }
 
     /**

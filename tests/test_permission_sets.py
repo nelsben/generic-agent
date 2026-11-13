@@ -59,6 +59,7 @@ class TestDataAccessSet(unittest.TestCase):
     def test_only_the_entry_point_classes_are_granted(self):
         granted = {text_of(c, "apexClass") for c in children(self.root, "classAccesses")}
         entry_points = {
+            "BrandSettings",
             "CustomerSummaryGetAction",
             "CustomerSummaryMemory",
             "CustomerSummaryPanelController",
@@ -67,6 +68,13 @@ class TestDataAccessSet(unittest.TestCase):
         }
         self.assertEqual(sorted(granted), sorted(entry_points))
         self.assertEqual([n for n in granted if n.endswith("Test")], [])
+
+    def test_data_set_grants_read_on_the_brand_settings_type(self):
+        types = {text_of(t, "name"): text_of(t, "enabled") for t in children(self.root, "customMetadataTypeAccesses")}
+        self.assertEqual(types, {"Brand_Setting__mdt": "true"})
+
+    def test_agent_set_does_not_grant_brand_settings(self):
+        self.assertNotIn("BrandSettings", AGENT_SET.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

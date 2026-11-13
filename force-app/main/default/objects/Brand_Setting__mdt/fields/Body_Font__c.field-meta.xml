@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Body_Font__c</fullName>
+    <description>CSS font list for body text, such as Verdana, sans-serif.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>Letters, digits, spaces, commas, hyphens and quotes only. Blank means the system font.</inlineHelpText>
+    <label>Body Font</label>
+    <length>200</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Logo_Resource__c</fullName>
+    <description>The name of the static resource that holds the logo (an SVG or PNG).</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>A static resource name, such as BrandLogo. Blank or not a valid name means BrandLogo.</inlineHelpText>
+    <label>Logo Resource</label>
+    <length>80</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

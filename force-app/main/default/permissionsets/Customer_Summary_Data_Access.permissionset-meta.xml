@@ -5,6 +5,10 @@
         <visible>true</visible>
     </applicationVisibilities>
     <classAccesses>
+        <apexClass>BrandSettings</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>CustomerSummaryGetAction</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -24,7 +28,11 @@
         <apexClass>ExploreAction</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description>Lets a user open the Customer Summary app and run its Apex entry points, with read-only view of their own brief memory.</description>
+    <customMetadataTypeAccesses>
+        <enabled>true</enabled>
+        <name>Brand_Setting__mdt</name>
+    </customMetadataTypeAccesses>
+    <description>Lets a user open the Customer Summary app and run its Apex entry points, read the brand settings, with read-only view of their own brief memory.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Customer Summary Data Access</label>
     <objectPermissions>
