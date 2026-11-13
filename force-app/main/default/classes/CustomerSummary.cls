@@ -24,7 +24,7 @@ public with sharing class CustomerSummary {
     @TestVisible private static final String EMPTY_TEXT = 'Nothing is on record for the requested sections.';
     @TestVisible private static final String NOT_REQUESTED = 'EMPTY: not requested';
     @TestVisible private static final String SKIPPED = 'EMPTY';
-    private static final String SYNTHESIS_PROMPT = 'BriefSynthesis';
+    private static final String SYNTHESIS_PROMPT = 'SummarySynthesis';
     private static final Integer SYNTHESIS_MAX_TOKENS = 1500;
 
     /** The gather registry, in brief order. One line per source: key, then Apex class name. */
