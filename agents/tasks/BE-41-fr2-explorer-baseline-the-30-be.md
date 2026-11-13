@@ -1,0 +1,29 @@
+---
+id: BE-41
+title: FR2+: explorer baseline — the 30 BE-31 questions run three times on the deployed explorer, with pass counts, spread and per-question medians recorded before any explorer build
+domain: backend
+tier: standard
+tier_reason: reruns an existing harness with fixed questions and grading; no design choices
+status: parked
+fixes: []
+scope: [spikes/explorer-scale/results/**, docs/research/fr2-explorer-baseline.md]
+forbid: [force-app/**, mcp-door/**, data/**, tests/**, e2e/**, agents/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json, spikes/explorer-scale/questions.json, spikes/explorer-scale/harness.apex]
+resources: [org-live]
+red_test: none (discovery): the evidence is docs/research/fr2-explorer-baseline.md and the baseline result files
+gate: test
+budget: 2-attempts
+spend: 8
+---
+## Why
+
+Parked for Ben's go (the explorer build line BE-41 to BE-45). BE-31 ran each of its 30 questions once per engine, and the metered replay and the deployed explorer disagreed on 5 of 30, so its 27 against 23 or 20 cannot separate engines. Before the explorer build (BE-42 to BE-44) changes anything, the deployed explorer needs a baseline of three runs. Covers ledger rows F55, F58 and F59 in docs/plans/feature-revision-2.md.
+
+## Done when
+
+- **Parked for Ben's go:** this card and BE-42 to BE-45 are the explorer build line BE-31 proposed (docs/research/fr2-explorer-scale.md, 'Proposed build cards'). Do not start until Ben's go is recorded in the Approvals table of docs/plans/gtm-burn-plan.md
+- Read first: docs/research/fr2-explorer-scale.md whole, spikes/explorer-scale/ (run.py, harness.apex, engine-real.apex, engine-current.apex, questions.json) and docs/patterns/02-ask-anything-explorer.md. Load the skills salesforce-development:platform-soql-query and salesforce-development:platform-apex-anonymous-run first
+- Reuse BE-31's harness, questions and grading unchanged: no question, reference or grading rule changes. Run all 30 questions three times on the deployed DataExplorer.explore (engine real) and three times on the metered replay (engine current), one anonymous Apex transaction per question, read-only
+- Results go to spikes/explorer-scale/results/baseline-<engine>-<run>.jsonl in BE-31's record format (counts, statuses and limits only: no names, no Ids, no answer text)
+- docs/research/fr2-explorer-baseline.md records, per engine: the pass count of each run, the spread, per-question medians of model calls, input tokens, CPU and heap next to BE-31's, every question that failed in all three runs with its named cause, and the questions whose result changed between runs
+- **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No deploy, no record written, no security or red-team agent test. A read-only step (a query, a describe, a list) needs no row
+- Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). Say in the hand-back how many model calls the runs spent. No tests/__pycache__, and git status --short is empty after the commit
