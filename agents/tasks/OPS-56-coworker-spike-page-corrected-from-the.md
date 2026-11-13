@@ -4,7 +4,7 @@ title: Coworker spike page corrected from the developer guide read in a browser 
 domain: ops
 tier: standard
 tier_reason: one docs page corrected from facts the card lists; no code and no org
-status: queued
+status: merged
 fixes: [OPS-55]
 scope: [docs/research/fr2-coworker-spike.md]
 forbid: [force-app/**, spikes/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, mcp-door/**, e2e/**, data/**]
@@ -33,3 +33,29 @@ OPS-55 (merged 2026-11-13) could not fetch Salesforce's Agentforce Coworker deve
 - **Recommendation and options.** Keep the recommendation: option A while F83 stands, and option C rather than B if Ben reopens F83. Update the reasons: for option C the card question is no longer open on Salesforce's side (documented), only on ours (whether our envelope travels as a Lightning type); option B's 'rests on' cell drops 'undocumented cards' if it says it and keeps answers 1 and 2. Do not change any cost figure, any card id, the nine For Ben steps' numbering, or the five proposed follow-ups' numbering; reword only items this card names
 - **Keep.** The licence price row from the pricing page, the agent-probe inventory table and the 'Undo' section stay as they are, apart from the lines this card names. Do not paste long passages from the guide: paraphrase, and quote at most a few words where the exact words matter. No Ids, usernames, emails, hostnames of an org or query-string URLs. Every changed claim carries its source tag
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests passes, and bash scripts/check-docs.sh reports 0 broken. No tests/__pycache__, and git status --short is empty after the commit. The hand-back lists each row changed, whether each of the ten pages was re-read by you or taken from the card, and any place a page disagreed with the card
+
+## Review
+
+Brain review (2026-11-13). One attempt (ea07209). The verifier returned consistent with next=accept; no separate reviewer ran.
+
+The brain read ten pages of the Coworker developer guide in Chrome before cutting this card, then checked the corrected page's top answer, the cards rows, the headless table, the recommendation, the For Ben items and the Sources split against that reading.
+
+What changed on docs/research/fr2-coworker-spike.md:
+- A new status word, "read in a browser", and a Sources split between the ten pages read and the guide pages not read.
+- Cards: a delegated agent's custom Lightning type card showing in Coworker is now documented yes. What stays unproven is whether our own card envelope travels as a Lightning type.
+- Writes: create as well as update, with a proposal the user refines before confirming. Undo is still undocumented.
+- Requirements: Data Cloud or Data 360 is required for overall access; Developer Edition is not among the listed editions.
+- Product status: only the Quick Page page has Beta in its title. The Turn On page lists no terms.
+- Headless: still undocumented for Ask, now resting on the browser reading. One new lead, an Enterprise Search API under Connect API limits, whose own docs are unread.
+- The recommendation is unchanged: option A while F83 stands, C rather than B if Ben reopens it.
+
+Disclosed and accepted:
+- The worker says it re-read all ten pages in one new Chrome tab and closed it. Nothing in git shows that; the facts match the brain's own reading.
+- The worker renumbered sources: six new tags (S20 to S25), and the user-access page became S26.
+- Salesforce's own log-a-call example creates a Task. The page notes it bears on ledger F17 and changes nothing else.
+
+Still open:
+- The billing, user-access, data-source, history and monitoring pages of the guide were not read.
+- Every live step on the For Ben list still needs Ben's go.
+
+Privacy grep over the diff (96 added lines): 0 hits.
