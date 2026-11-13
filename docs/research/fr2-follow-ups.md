@@ -6,9 +6,11 @@
 - The live check is `scripts/follow-up-set.apex`. It ran on agent-probe on 2026-11-13, after BE-30 was deployed
   there (validate with RunLocalTests, 277 tests, 0 failures, then quick deploy). It ran twice: run 1 with the
   first wording of prompt rule 12, run 2 after that rule was tightened (validated and quick-deployed the same way).
-- Short answer: run 2 passed 18 of 20 follow-ups (run 1: 14 of 20). All three named follow-ups passed on both
-  accounts in run 2. The two misses are a question about who has *not* been called, which ended on the wrong
-  table once, and the unclear "which of those matter most?", which one account answered instead of asking.
+- Short answer: run 2 passed 18 of 20 follow-ups (run 1: 14 of 20). Of the three named follow-ups, "which of
+  those close this quarter?" and "any open cases on the biggest deal?" passed on both accounts in both runs.
+  "Who there have we not called?" passed on sample 2 but failed on sample 1 every time it was asked (run 1, the
+  diagnostic re-ask and run 2): its last query was on activities, not contacts. The other run 2 miss is the
+  unclear "which of those matter most?", which sample 2 answered instead of asking back.
 
 ## How a follow-up gets the summary's records
 
@@ -43,6 +45,9 @@
 | Panel | Yes | It sends the summary turn in its history and the account as the open record. |
 | Agent (Explore action) | Yes, when its History input carries the summary turn | Same `DataExplorer.explore` call, no new action input. Wiring the agent's History to include the summary turn is card BE-28's (parked). |
 | MCP | No | The ask tool needs its approval row, which is still pending. |
+
+- Only the panel's path was run live. The agent path goes through the same call and is covered by
+  `DataExplorerTest` and `ExploreActionTest`, but a live agent turn after a summary was not exercised here.
 
 ### Limits
 
@@ -103,8 +108,8 @@
   an Id or answer text.
 - Model calls: a Models API call does not count in `Limits.getCallouts()` (a summary measured 0), and the
   script cannot see the explorer's turns. Each turn is one model call that returns one query or the answer, so
-  the calls are the queries plus 1. That is exact unless a reply was refused as INVALID, which adds a call the
-  script cannot see.
+  the script reports queries plus 1 as a floor. A reply refused as INVALID, or a query that threw (it reaches no
+  result set), adds a call the script cannot see, so the real count can be higher.
 
 | # | Question | Expected | S1 run 1 | S1 run 2 | S2 run 1 | S2 run 2 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -119,11 +124,13 @@
 | 9 | When did we last log an activity there? | Task or Event | pass, 1q, 2c | pass, 1q, 2c | pass, 2q, 3c | pass, 2q, 3c |
 | 10 | Which of those matter most? | ask, no query | **fail**, did not ask, 1c | pass, asked, 1c | **fail**, did not ask, 1c | **fail**, did not ask, 1c |
 
-(q = queries run, c = model calls. Run 1 passed 14 of 20, run 2 passed 18 of 20.)
+(q = queries run, c = model calls, at least. Run 1 passed 14 of 20, run 2 passed 18 of 20.)
 
-- Run 2 used 43 model calls for the 20 follow-ups (1 to 4 each), plus up to 3 for each summary. Across both
-  runs and the diagnostic re-asks below, 46 follow-ups used 90 model calls.
-- No follow-up put a record Id in its answer, and none returned a record outside the account's own.
+- Run 2 used at least 43 model calls for the 20 follow-ups (1 to 4 each), plus up to 3 for each summary.
+  Across both runs and the diagnostic re-asks below, 46 follow-ups used at least 90 model calls.
+- No follow-up put a record Id in its answer. Every result whose rows were checked (all passes, plus the
+  script-bug miss) held only the account's own records; the wrong-object and no-query results were not checked
+  for that.
 
 ### Every failure, explained
 
@@ -147,7 +154,8 @@
   language has no NOT IN, so "contacts with no call" takes two steps: read the calls, then query Contact with
   `Id IN` the contacts left over. On sample 2 the model did that (Task, then Contact) in both runs. On sample 1
   (5 contacts, 11 tasks) it read the contacts and the activities and stopped there, so the shown table is
-  activities, not the uncalled contacts. Rule 12's "make the last query return the records that answer the
+  activities, not the uncalled contacts. (This reading comes from the order of the objects queried; the script
+  never sees the answer text.) Rule 12's "make the last query return the records that answer the
   question" did not fix it on sample 1. A NOT IN operator in the plan (an ExplorePlan change) would make it one
   query; that is a follow-up card, not this one.
 - **Run 1, sample 2, question 5: a script bug, not an explorer miss.** The contact-role query was right and
@@ -167,7 +175,8 @@
 
 - Customer Summary session rows (`Customer_Summary_Session__c`): 5 for this user before the runs and 5 after,
   so no new row. Each summary updated the existing row for its account: sample 1's row 3 times (a first check
-  of step 0, then once per run) and sample 2's row twice. These are the product's own memory rows, the same rows
-  a rep's summary writes. The follow-ups wrote nothing: the count stayed at 5 after every step.
+  of step 0, then once per run) and sample 2's row twice, 5 updates in all. These are the product's own memory
+  rows, the same rows a rep's summary writes. The follow-ups add no row: the explorer has no DML, and the count
+  stayed at 5 after every step.
 - Outcome rows: 0. The org has no object with "Outcome" in its name (checked on 2026-11-13), so nothing records
   outcomes yet.
