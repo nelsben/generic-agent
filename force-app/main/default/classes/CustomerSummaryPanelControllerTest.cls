@@ -473,7 +473,7 @@ private class CustomerSummaryPanelControllerTest {
             CustomerSummaryPanelController.Drill d = CustomerSummaryPanelController.drill(a.Id, null);
             Assert.areEqual(1, d.cards.size());
             AnswerCard c = d.cards[0];
-            AnswerCard.Field rating = fieldLabelled(c, 'Rating');
+            AnswerCard.Field rating = fieldLabelled(c, 'Account Rating');
             Assert.isNotNull(rating, 'a field the user can read is on the card');
             Assert.areEqual('Hot', rating.value);
             Assert.isNull(fieldLabelled(c, 'Industry'), 'a field the user cannot read is not');
