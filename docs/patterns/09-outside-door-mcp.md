@@ -117,11 +117,11 @@ and the API steps that build the server where that deploy is not enough.
 - Whether a called action also needs class access through a permission set is not confirmed.
 - The client app's metadata accepts the scope name `MCP`, not `mcp_api`. That `MCP` is the
   documented `mcp_api` scope is inferred from the name and not yet proven. The app's description
-  text uses the documented names.
+  uses the metadata's names, `MCP` and `RefreshToken`.
 - The server's metadata is in `mcp-door/`. Whether deploying it creates the server in a fresh
   org is not yet tested, and activation is not in source.
 - `ask_anything` opens the explorer to outside clients. It runs read-only queries as the
-  signed-in rep and calls a model, so each call may cost more than a summary.
+  signed-in rep and calls a model on each turn.
 - Write tools (create a task, log a call) are not on the server yet; they come later.
 - For a real MCP tool call, see the README's [Status table](../../README.md#status) and the
   re-reviews ([apex-review-2.md](../reviews/apex-review-2.md),
