@@ -4,8 +4,7 @@ title: FR2: the model door grows up — per-prompt settings in custom metadata (
 domain: backend
 tier: frontier
 tier_reason: changes the one door every model call goes through, adds a second provider, and settles platform facts the GTM story will quote, in a production-classified org
-status: blocked
-blocked_by: [BE-29]
+status: queued
 fixes: []
 scope: [force-app/main/default/classes/AgentLlm.cls, force-app/main/default/classes/AgentLlm.cls-meta.xml, force-app/main/default/classes/AgentLlmTest.cls, force-app/main/default/classes/AgentLlmTest.cls-meta.xml, force-app/main/default/classes/AgentLlmModelsApi.cls, force-app/main/default/classes/AgentLlmModelsApi.cls-meta.xml, force-app/main/default/classes/AgentLlmModelsApiTest.cls, force-app/main/default/classes/AgentLlmModelsApiTest.cls-meta.xml, force-app/main/default/classes/AgentLlmPromptTemplate.cls, force-app/main/default/classes/AgentLlmPromptTemplate.cls-meta.xml, force-app/main/default/classes/AgentLlmPromptTemplateTest.cls, force-app/main/default/classes/AgentLlmPromptTemplateTest.cls-meta.xml, force-app/main/default/objects/Agent_Prompt_Setting__mdt/**, force-app/main/default/customMetadata/Agent_Prompt_Setting.*, force-app/main/default/genAiPromptTemplates/**, scripts/prompt-try.apex, docs/research/fr2-model-door.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, force-app/main/default/staticresources/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
