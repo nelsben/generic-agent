@@ -13,7 +13,7 @@ Usage:
   python3 spikes/actions/run.py precheck                        # no org call: the action-verb pre-check on requests.json
   python3 spikes/actions/run.py report                          # no org call: medians and checks
 Requests are in requests.json. Results append to spikes/actions/results/<mode>.jsonl: codes, counts, timings,
-booleans and dates only. The per-run Apex file is written to the system temp folder and deleted after the run.
+booleans and dates only, plus, for precheck, the first non-filler word of each sample request. The per-run Apex file is written to the system temp folder and deleted after the run.
 """
 import calendar
 import datetime
