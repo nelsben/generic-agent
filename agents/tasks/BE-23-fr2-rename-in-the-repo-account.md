@@ -7,7 +7,7 @@ tier_reason: repo-wide rename across Apex, LWC, agent bundle, metadata, tests an
 effort: medium
 effort_reason: mechanical rename with a clear rule; judgement only on doc wording
 status: blocked
-blocked_by: [BE-21, FE-20]
+blocked_by: [BE-21]
 fixes: []
 scope: [force-app/**, mcp-door/**, sfdx-project.json, tests/**, e2e/**, scripts/**, data/**, README.md, docs/ARCHITECTURE.md, docs/patterns/**, package.json, jest.config.js, playwright.config.js, spikes/rename/**]
 forbid: [spikes/README.md, spikes/surface/**, spikes/actions/**, spikes/cards/**, spikes/standard-limits/**, spikes/explorer-scale/**, spikes/agent-memory/**, spikes/embedded/**, docs/research/**, docs/reviews/**, docs/plans/**, docs/assets/**, agents/**, .chassis-delegation.json, reference/**]

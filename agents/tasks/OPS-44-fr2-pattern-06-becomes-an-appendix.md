@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: repositions a chapter and simplifies the quick start every new reader runs, without overstating what was proven
 status: blocked
-blocked_by: [OPS-38, FE-20, OPS-51, BE-34]
+blocked_by: [OPS-38, OPS-51, BE-34]
 fixes: []
 scope: [docs/patterns/06-agent-routing-and-verbatim-relay.md, tests/test_pattern_06.py, docs/research/fr2-quick-start-change.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
