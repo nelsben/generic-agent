@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Model__c</fullName>
+    <description>The Models API model name for this prompt, such as sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet. Blank means the default in AgentLlmModelsApi.MODEL. Not used when the source is a prompt template: the template names its own model.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>A model API name from Einstein Studio. Blank means the product's default model.</inlineHelpText>
+    <label>Model</label>
+    <length>255</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

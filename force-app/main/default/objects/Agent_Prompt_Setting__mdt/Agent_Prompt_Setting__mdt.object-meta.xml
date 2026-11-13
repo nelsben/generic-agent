@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>How AgentLlm runs one prompt. The record's name is the prompt name (the static resource AgentPrompt_&lt;name&gt;): the model, the maximum length, the source (the prompt file through the Models API, the default, or a prompt template), the template and its input map, and the prompt trace. A prompt with no record runs as before. Edited by the team that tunes the prompts (docs/research/fr2-model-door.md).</description>
+    <label>Agent Prompt Setting</label>
+    <pluralLabel>Agent Prompt Settings</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>

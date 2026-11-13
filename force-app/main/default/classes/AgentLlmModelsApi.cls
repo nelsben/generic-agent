@@ -2,15 +2,22 @@
  * AgentLlmModelsApi: the default AgentLlm provider. Calls the Salesforce Models API
  * (chat generations) from Apex. The only class in the repo that touches that API.
  *
- * The chat generations request has no max-token setting, so maxTokens is accepted for the
- * Provider contract and not sent; AgentLlm.complete caps the reply length for every provider.
+ * The chat generations request takes messages, localization, tags and contentModeration only (API 68.0):
+ * no maximum-token or temperature setting. So maxTokens is accepted for the Provider contract and not sent;
+ * AgentLlm.complete caps the reply length for every provider. The model is the one named on the prompt's
+ * Agent_Prompt_Setting__mdt record (AgentLlm.ModelProvider), else MODEL.
  * No DML. Any failure is an AgentLlm.LlmException, with the original exception as its cause.
  */
-public with sharing class AgentLlmModelsApi implements AgentLlm.Provider {
+public with sharing class AgentLlmModelsApi implements AgentLlm.ModelProvider {
     public static final String MODEL = 'sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet';
 
     public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
-        return textOf(call(buildRequest(systemPrompt, userPrompt)));
+        return complete(systemPrompt, userPrompt, maxTokens, null);
+    }
+
+    /** As complete(systemPrompt, userPrompt, maxTokens), with the given model (Apex names are case-blind, so the parameter is not called model); blank means MODEL. */
+    public String complete(String systemPrompt, String userPrompt, Integer maxTokens, String modelName) {
+        return textOf(call(buildRequest(systemPrompt, userPrompt, modelName)));
     }
 
     private static Object call(aiplatform.ModelsAPI.createChatGenerations_Request request) {
@@ -34,6 +41,11 @@ public with sharing class AgentLlmModelsApi implements AgentLlm.Provider {
 
     @TestVisible
     private static aiplatform.ModelsAPI.createChatGenerations_Request buildRequest(String systemPrompt, String userPrompt) {
+        return buildRequest(systemPrompt, userPrompt, null);
+    }
+
+    @TestVisible
+    private static aiplatform.ModelsAPI.createChatGenerations_Request buildRequest(String systemPrompt, String userPrompt, String modelName) {
         List<aiplatform.ModelsAPI_ChatMessageRequest> messages = new List<aiplatform.ModelsAPI_ChatMessageRequest>();
         if (String.isNotBlank(systemPrompt)) {
             messages.add(message('system', systemPrompt));
@@ -44,7 +56,7 @@ public with sharing class AgentLlmModelsApi implements AgentLlm.Provider {
         body.messages = messages;
 
         aiplatform.ModelsAPI.createChatGenerations_Request request = new aiplatform.ModelsAPI.createChatGenerations_Request();
-        request.modelName = MODEL;
+        request.modelName = String.isBlank(modelName) ? MODEL : modelName.trim();
         request.body = body;
         return request;
     }

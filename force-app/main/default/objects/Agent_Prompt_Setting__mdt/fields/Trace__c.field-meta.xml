@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Trace__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, AgentLlm writes this prompt's filled system and user text (or the template inputs) and the reply length to the debug log, with record Ids replaced by [id]. For tuning only: turn it off again after.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>Writes the filled prompt and the reply length to the debug log. Off by default.</inlineHelpText>
+    <label>Trace</label>
+    <type>Checkbox</type>
+</CustomField>

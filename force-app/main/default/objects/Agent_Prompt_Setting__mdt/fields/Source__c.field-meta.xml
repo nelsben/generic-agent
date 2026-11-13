@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Source__c</fullName>
+    <description>Where the prompt comes from. Static resource (the default): the prompt file AgentPrompt_&lt;name&gt;, sent through the Models API. Prompt template: the prompt template named in Template Name, run with the inputs in Template Inputs.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>Static resource unless a team needs a Prompt Builder template for this prompt.</inlineHelpText>
+    <label>Source</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Static_Resource</fullName>
+                <default>true</default>
+                <label>Static resource</label>
+            </value>
+            <value>
+                <fullName>Prompt_Template</fullName>
+                <default>false</default>
+                <label>Prompt template</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
