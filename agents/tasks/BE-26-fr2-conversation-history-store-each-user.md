@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: changes a live object and the memory path every surface uses; a sharing decision sits inside it
 status: blocked
-blocked_by: [OPS-30, BE-30, BE-34, BE-25]
+blocked_by: [BE-30, BE-34, BE-25]
 fixes: []
 scope: [force-app/main/default/objects/Customer_Summary_Session__c/**, force-app/main/default/classes/CustomerSummaryHistory*.cls, force-app/main/default/classes/CustomerSummaryHistory*.cls-meta.xml, force-app/main/default/classes/CustomerSummaryMemory*.cls, force-app/main/default/classes/CustomerSummaryMemory*.cls-meta.xml, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/research/fr2-conversation-history.md, tests/test_permission_sets.py]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

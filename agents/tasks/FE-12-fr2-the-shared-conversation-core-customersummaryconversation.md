@@ -5,7 +5,7 @@ domain: frontend
 tier: frontier
 tier_reason: moves the live panel's logic into a new shared component every later surface depends on
 status: blocked
-blocked_by: [OPS-30, BE-24, FE-11]
+blocked_by: [BE-24, FE-11]
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryPanel/**, e2e/**, docs/assets/fr2-conversation-core.png]
 forbid: [force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

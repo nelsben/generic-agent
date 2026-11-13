@@ -4,8 +4,7 @@ title: FR2: the trust rule as a test — every Apex class with sharing, every CR
 domain: backend
 tier: standard
 tier_reason: a static check over every Apex class plus small, behaviour-preserving access-mode edits, deployed to a production-classified org
-status: blocked
-blocked_by: [OPS-30]
+status: queued
 fixes: []
 scope: [tests/test_trust_rule.py, force-app/main/default/classes/*.cls, docs/research/fr2-trust-rule.md]
 forbid: [force-app/main/default/classes/*Test.cls, force-app/main/default/lwc/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, force-app/main/default/permissionsetgroups/**, force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

@@ -4,8 +4,7 @@ title: FR2: fix the rename's "account summaryed" slip — it reads "account brie
 domain: backend
 tier: economy
 tier_reason: a seven-line text fix with an exact list of lines and one grep test
-status: blocked
-blocked_by: [OPS-30]
+status: queued
 fixes: [BE-23]
 scope: [force-app/main/default/aiAuthoringBundles/Customer_Summary/Customer_Summary.agent, tests/agent/Customer_Summary-testSpec.yaml, tests/test_agent_bundle.py, tests/test_fr2_rename.py]
 forbid: [force-app/main/default/classes/**, force-app/main/default/lwc/**, mcp-door/**, spikes/**, scripts/**, docs/**, README.md, agents/**, .chassis-delegation.json, reference/**, sfdx-project.json]

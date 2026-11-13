@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: governor-limit behaviour, user-mode field access and prompt rules, deployed and measured live in a production-classified org
 status: blocked
-blocked_by: [OPS-30, BE-24, BE-37]
+blocked_by: [BE-24, BE-37]
 fixes: []
 scope: [force-app/main/default/classes/CustomerSummary.cls, force-app/main/default/classes/CustomerSummaryTest.cls, force-app/main/default/classes/CustomerSummaryResolver.cls, force-app/main/default/classes/CustomerSummaryResolverTest.cls, force-app/main/default/classes/CustomerSummaryGetAction.cls, force-app/main/default/classes/CustomerSummaryGetActionTest.cls, force-app/main/default/classes/CustomerSummaryGetActionTest.cls-meta.xml, force-app/main/default/classes/CustomerSummarySection.cls, force-app/main/default/classes/CustomerSummary*Section.cls, force-app/main/default/classes/CustomerSummary*SectionTest.cls, force-app/main/default/staticresources/AgentPrompt_SummarySynthesis.resource, scripts/summary-accuracy.apex, docs/research/fr2-summary-accuracy.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
