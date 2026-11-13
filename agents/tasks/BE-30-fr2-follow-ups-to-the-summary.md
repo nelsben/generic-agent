@@ -11,7 +11,7 @@ forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundle
 resources: [org-live]
 red_test: new DataExplorerTest cases fail on main (a follow-up after a summary loses the summary's account and deals; a model failure on the agent path drops the tables already read; drill child-row headers are API names) and pass after
 gate: test, org
-budget: 2-attempts
+budget: 3-attempts
 spend: 12
 ---
 ## Why
