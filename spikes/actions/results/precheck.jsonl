@@ -1,0 +1,9 @@
+{"firstWord": "create", "id": "task", "isAction": true, "right": true, "startsWithVerb": true, "verbAnywhere": true}
+{"firstWord": "set", "id": "event", "isAction": true, "right": true, "startsWithVerb": true, "verbAnywhere": true}
+{"firstWord": "log", "id": "call", "isAction": true, "right": true, "startsWithVerb": true, "verbAnywhere": true}
+{"firstWord": "update", "id": "contact", "isAction": true, "right": true, "startsWithVerb": true, "verbAnywhere": true}
+{"firstWord": "open", "id": "case", "isAction": true, "right": true, "startsWithVerb": true, "verbAnywhere": true}
+{"firstWord": "push", "id": "opp", "isAction": true, "right": true, "startsWithVerb": true, "verbAnywhere": true}
+{"firstWord": "which", "id": "question", "isAction": false, "right": true, "startsWithVerb": false, "verbAnywhere": true}
+{"firstWord": "create", "id": "bare", "isAction": true, "right": true, "startsWithVerb": true, "verbAnywhere": true}
+{"firstWord": "remind", "id": "spoken", "isAction": true, "right": true, "startsWithVerb": true, "verbAnywhere": true}
