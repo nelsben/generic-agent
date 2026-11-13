@@ -257,4 +257,38 @@ private class CustomerSummaryPanelControllerTest {
             }
         }
     }
+
+    // ---- BE-39: the cards reach the panel ----
+
+    @IsTest
+    static void theBriefAndTheExplorerCarryTheirCardsToThePanel() {
+        Account a = acme();
+        stub(new List<String>{
+            '{"action":"query","plan":{"object":"Opportunity","fields":["Name","Amount","StageName"],"filters":[{"field":"Account.Name","op":"=","value":"Panel Acme"}]}}',
+            '{"action":"answer","text":"One deal.","followups":[]}'
+        });
+
+        Test.startTest();
+        DataExplorer.Result explored = CustomerSummaryPanelController.explore('Deals?', a.Id, null);
+        CustomerSummary.Result brief = CustomerSummaryPanelController.getBrief(a.Id, null, new List<String>{ 'open_deals' });
+        Test.stopTest();
+
+        Map<String, Object> briefWire = wire(brief, new List<String>{ 'status', 'message', 'answer', 'sections', 'ignored', 'cards' });
+        List<Object> briefCards = (List<Object>) briefWire.get('cards');
+        Assert.areEqual(2, briefCards.size(), 'the summary card and the open deals card');
+        Map<String, Object> head = (Map<String, Object>) briefCards[0];
+        Assert.areEqual('summary', head.get('type'));
+        Assert.areEqual('Panel headline.', head.get('title'));
+        Assert.areEqual(brief.answer, head.get('text'));
+        Assert.areEqual('sec-open_deals', ((Map<String, Object>) briefCards[1]).get('key'));
+
+        Map<String, Object> exploreWire = wire(explored, new List<String>{ 'status', 'answer', 'resultSets', 'trail', 'followups', 'cards' });
+        List<Object> exploreCards = (List<Object>) exploreWire.get('cards');
+        Assert.areEqual('text', ((Map<String, Object>) exploreCards[0]).get('type'));
+        Map<String, Object> table = (Map<String, Object>) exploreCards[1];
+        Assert.areEqual('table', table.get('type'));
+        Assert.areEqual(1, ((List<Object>) table.get('rows')).size());
+        Assert.areEqual(String.valueOf(explored.resultSets[0].rows[0].get('Id')),
+            ((Map<String, Object>) ((List<Object>) table.get('refs'))[0]).get('recordId'), 'the row\'s record is in refs');
+    }
 }

@@ -616,4 +616,305 @@ private class CustomerSummaryTest {
 
         Assert.areEqual(reply.trim(), r.answer);
     }
+
+    // ---- BE-39: cards next to the text ----
+
+    private static List<String> typesOf(List<AnswerCard> cards) {
+        List<String> types = new List<String>();
+        for (AnswerCard c : cards) {
+            types.add(c.type);
+        }
+        return types;
+    }
+
+    /** Every 15- or 18-character record Id in the section bodies, from the line ends the panel reads. */
+    private static Set<String> idsInSections(CustomerSummary.Result r) {
+        Set<String> ids = new Set<String>();
+        Pattern lineId = Pattern.compile('(?m) — ([0-9][0-9A-Za-z]{17})$');
+        for (CustomerSummarySection s : r.sections) {
+            Matcher m = lineId.matcher(s.body == null ? '' : s.body);
+            while (m.find()) {
+                ids.add(m.group(1));
+            }
+        }
+        return ids;
+    }
+
+    @IsTest
+    static void cardsAgreeWithTheSummaryTextAndItsSections() {
+        Account a = mkFullAccount();
+        install();
+
+        Test.startTest();
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, null, null);
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        Assert.areEqual(r.sections.size() + 1, r.cards.size(), 'one summary card, then one card per section');
+        AnswerCard head = r.cards[0];
+        Assert.areEqual('summary', head.type);
+        Assert.areEqual('OK', head.status);
+        Assert.areEqual('Headline finding.', head.title, 'the answer\'s first line is the title');
+        Assert.areEqual(r.answer, head.text, 'an answer without markup is its own plain text');
+        for (Integer i = 0; i < r.sections.size(); i++) {
+            CustomerSummarySection s = r.sections[i];
+            AnswerCard c = r.cards[i + 1];
+            Assert.areEqual('section', c.type);
+            Assert.areEqual('sec-' + s.key, c.key, 'cards keep the sections\' order');
+            Assert.areEqual(s.title, c.title);
+            Assert.areEqual(s.status, c.status);
+            Assert.areEqual(s.total, c.total, s.key);
+            Assert.areEqual(s.shown, c.shown, s.key);
+            Map<String, AnswerCard.Ref> refs = new Map<String, AnswerCard.Ref>();
+            for (AnswerCard.Ref ref : c.refs) {
+                refs.put(ref.key, ref);
+            }
+            // Items are the section's own record lines, in its order, each pointing at its record.
+            List<String> recordLines = new List<String>();
+            for (String line : s.body.split('\n')) {
+                if (line.startsWith('- ') && Pattern.matches('.* — [0-9][0-9A-Za-z]{17}', line)) {
+                    recordLines.add(line);
+                }
+            }
+            Assert.areEqual(recordLines.size(), c.items.size(), s.key + ': ' + s.body);
+            for (Integer j = 0; j < c.items.size(); j++) {
+                AnswerCard.Item item = c.items[j];
+                Assert.isTrue(recordLines[j].startsWith('- ' + item.label + ' — '), s.key + ' item ' + j + ': ' + item.label + ' vs ' + recordLines[j]);
+                Assert.isTrue(refs.containsKey(item.ref), s.key + ' item ' + j + ' has no ref');
+                Assert.isTrue(recordLines[j].endsWith(' — ' + refs.get(item.ref).recordId), 'the ref is the line\'s own record');
+                Assert.areEqual(item.label, refs.get(item.ref).label, 'the ref is labelled as the item');
+            }
+        }
+        // Every record Id the sections carry is in a card's refs, and in no card's text.
+        Set<String> ids = idsInSections(r);
+        Assert.isFalse(ids.isEmpty(), 'the fixture names records');
+        String cardJson = AnswerCard.toJson(r.cards);
+        Set<String> inRefs = new Set<String>();
+        for (AnswerCard c : r.cards) {
+            for (AnswerCard.Ref ref : c.refs) {
+                inRefs.add(ref.recordId);
+            }
+            for (String i : ids) {
+                Assert.isFalse(c.text.contains(i), 'an Id reached the text of ' + c.key);
+            }
+            Assert.areEqual(AnswerCard.plainText(c), c.text, c.key);
+        }
+        Assert.isTrue(inRefs.containsAll(ids), 'every record line has a ref');
+        Assert.isFalse(Pattern.compile('"(text|label|value|detail|title)":"[^"]*[0-9][0-9A-Za-z]{17}"').matcher(cardJson).find(),
+            'no Id outside refs: ' + cardJson.left(400));
+    }
+
+    @IsTest
+    static void everyTextMemberACallerReadsIsUnchanged() {
+        Account a = mkFullAccount();
+        install();
+        List<CustomerSummarySection> direct = new List<CustomerSummarySection>{
+            new CustomerSummaryProfileSection().build(a.Id),
+            new CustomerSummaryOpenDealsSection().build(a.Id),
+            new CustomerSummaryCasesSection().build(a.Id),
+            new CustomerSummaryContactsSection().build(a.Id),
+            new CustomerSummaryActivitySection().build(a.Id),
+            new CustomerSummaryCallsSection().build(a.Id),
+            new CustomerSummaryDealHistorySection().build(a.Id)
+        };
+
+        Test.startTest();
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, 'Risk?', new Set<String>{ 'bogus', 'profile', 'open_deals', 'cases', 'contacts', 'activity', 'calls', 'deal_history' });
+        CustomerSummaryGetAction.Request req = new CustomerSummaryGetAction.Request();
+        req.accountId = String.valueOf(a.Id);
+        List<CustomerSummaryGetAction.Response> out = CustomerSummaryGetAction.getBriefs(new List<CustomerSummaryGetAction.Request>{ req });
+        Test.stopTest();
+
+        Map<String, Object> asJson = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(r));
+        Assert.areEqual(new Set<String>{ 'status', 'message', 'answer', 'sections', 'ignored', 'cards' }, asJson.keySet(),
+            'one new member, cards; every other member keeps its name');
+        Assert.areEqual(CustomerSummary.OK, r.status);
+        Assert.areEqual('', r.message);
+        Assert.areEqual('Headline finding.\nAccount\nBody.', r.answer);
+        Assert.areEqual(new List<String>{ 'bogus' }, r.ignored);
+        Assert.areEqual(JSON.serialize(direct), JSON.serialize(r.sections), 'the sections are what their builders return, Ids and all');
+        Map<String, Object> respJson = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(out[0]));
+        Assert.areEqual(new Set<String>{ 'status', 'answer', 'cards' }, respJson.keySet());
+        Assert.areEqual(CustomerSummary.OK, out[0].status);
+        Assert.areEqual('Headline finding.\nAccount\nBody.', out[0].answer, 'the invocable answer is unchanged');
+    }
+
+    @IsTest
+    static void invocableCardsJsonParsesBackToTheSameCards() {
+        Account a = mkFullAccount();
+        install();
+        CustomerSummaryGetAction.Request req = new CustomerSummaryGetAction.Request();
+        req.accountId = String.valueOf(a.Id);
+        CustomerSummaryGetAction.Request badId = new CustomerSummaryGetAction.Request();
+        badId.accountId = 'not-an-id';
+
+        Test.startTest();
+        List<CustomerSummaryGetAction.Response> out = CustomerSummaryGetAction.getBriefs(new List<CustomerSummaryGetAction.Request>{ req, badId });
+        Test.stopTest();
+
+        List<AnswerCard> back = AnswerCard.fromJson(out[0].cards);
+        Assert.areEqual(8, back.size(), 'the summary and its seven sections');
+        Assert.areEqual(out[0].cards, AnswerCard.toJson(back), 'the JSON parses back to the same cards');
+        Assert.areEqual('summary', back[0].type);
+        Assert.areEqual(out[0].answer, back[0].text);
+        Assert.isTrue(out[0].cards.length() <= AnswerCard.MAX_JSON_CHARS, 'length: ' + out[0].cards.length());
+        List<AnswerCard> notFound = AnswerCard.fromJson(out[1].cards);
+        Assert.areEqual(1, notFound.size());
+        Assert.areEqual('notice', notFound[0].type);
+        Assert.areEqual(CustomerSummary.NOT_FOUND, notFound[0].status);
+        Assert.areEqual(CustomerSummary.NOT_FOUND_TEXT, notFound[0].text);
+    }
+
+    @IsTest
+    static void cardsOverTheCapLeaveTheCardsOutputEmptyAndTheAnswerAsIs() {
+        Account a = mkAccount(true);
+        install();
+        AnswerCard.maxJsonChars = 50;
+        CustomerSummaryGetAction.Request req = new CustomerSummaryGetAction.Request();
+        req.accountId = String.valueOf(a.Id);
+
+        List<CustomerSummaryGetAction.Response> out = CustomerSummaryGetAction.getBriefs(new List<CustomerSummaryGetAction.Request>{ req });
+
+        Assert.areEqual('', out[0].cards, 'over the cap: empty, never cut JSON');
+        Assert.areEqual(CustomerSummary.OK, out[0].status);
+        Assert.areEqual('Headline finding.\nAccount\nBody.', out[0].answer);
+    }
+
+    @IsTest
+    static void theLargestBriefTheTestsBuildFitsTheCardsCap() {
+        Account a = mkAccount(false);
+        List<Contact> contacts = new List<Contact>();
+        for (Integer i = 0; i < 60; i++) {
+            contacts.add(new Contact(AccountId = a.Id, LastName = 'Cap contact with a long last name ' + i, Title = 'Vice President of Regional Facilities ' + i));
+        }
+        insert contacts;
+        List<Opportunity> deals = new List<Opportunity>();
+        for (Integer i = 0; i < 60; i++) {
+            deals.add(new Opportunity(AccountId = a.Id, Name = 'Cap deal with a long descriptive name ' + i, StageName = i < 30 ? 'Prospecting' : 'Closed Won',
+                Amount = 100000 + i, CloseDate = Date.today().addDays(i < 30 ? i - 10 : -i)));
+        }
+        insert deals;
+        List<Case> cases = new List<Case>();
+        for (Integer i = 0; i < 60; i++) {
+            cases.add(new Case(AccountId = a.Id, Subject = 'Cap case with a long subject line about a fault ' + i, Priority = 'High', Status = 'New'));
+        }
+        insert cases;
+        List<Task> tasks = new List<Task>();
+        for (Integer i = 0; i < 100; i++) {
+            tasks.add(new Task(WhatId = a.Id, WhoId = contacts[Math.mod(i, 60)].Id, Subject = 'Cap task with a long subject line ' + i,
+                TaskSubtype = 'Call', Status = 'Completed', ActivityDate = Date.today().addDays(-Math.mod(i, 80))));
+        }
+        insert tasks;
+        Stub stub = install();
+        stub.synthesisReply = 'Headline finding.\n' + 'This sentence is about the account and its deals. '.repeat(110);
+
+        Test.startTest();
+        List<CustomerSummaryGetAction.Response> out = CustomerSummaryGetAction.getBriefs(requestsFor(new List<Account>{ a }));
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, out[0].status, out[0].answer);
+        Assert.isTrue(String.isNotBlank(out[0].cards), 'a full brief\'s cards fit the cap');
+        System.debug(LoggingLevel.INFO, 'BE-39 largest test brief: cards JSON ' + out[0].cards.length() + ' chars, answer ' + out[0].answer.length());
+    }
+
+    @IsTest
+    static void aFailedSectionStillGivesACardAndKeepsTheRest() {
+        Account a = mkAccount(true);
+        install();
+        CustomerSummary.registry.add(new CustomerSummary.Source('broken', 'NoSuchBriefSourceZz'));
+
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, null, new Set<String>{ 'profile', 'broken' });
+
+        Assert.areEqual(new List<String>{ 'summary', 'section', 'section' }, typesOf(r.cards));
+        Assert.areEqual('sec-profile', r.cards[1].key);
+        Assert.areEqual('OK', r.cards[1].status);
+        Assert.areEqual('sec-broken', r.cards[2].key);
+        Assert.areEqual('ERROR', r.cards[2].status);
+        Assert.areEqual('broken\nCouldn\'t load broken right now.', r.cards[2].text);
+    }
+
+    @IsTest
+    static void aFailedBriefIsAnErrorCardThenItsSections() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+        stub.fail = true;
+
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, null, null);
+
+        Assert.areEqual(CustomerSummary.ERROR, r.status);
+        Assert.areEqual(1 + ALL_KEYS.size(), r.cards.size(), 'the sections that loaded are still cards');
+        Assert.areEqual('error', r.cards[0].type);
+        Assert.areEqual('ERROR', r.cards[0].status);
+        Assert.areEqual(CustomerSummary.ERROR_TEXT, r.cards[0].text);
+        Assert.areEqual('sec-profile', r.cards[1].key);
+    }
+
+    @IsTest
+    static void notFoundNoSectionsAndOverTheCapAreOneCardEach() {
+        Account a = mkAccount(false);
+        install();
+        List<CustomerSummary.Result> results = CustomerSummary.runAll(new List<CustomerSummary.Ask>{
+            new CustomerSummary.Ask(null, null, null),
+            new CustomerSummary.Ask(a.Id, null, new Set<String>{ 'bogus' }),
+            new CustomerSummary.Ask(null, null, null),
+            new CustomerSummary.Ask(a.Id, null, null)
+        });
+
+        Assert.areEqual(new List<String>{ 'notice' }, typesOf(results[0].cards));
+        Assert.areEqual(CustomerSummary.NOT_FOUND, results[0].cards[0].status);
+        Assert.areEqual(new List<String>{ 'notice' }, typesOf(results[1].cards));
+        Assert.areEqual(CustomerSummary.EMPTY, results[1].cards[0].status);
+        Assert.areEqual(results[1].answer, results[1].cards[0].text);
+        Assert.areEqual(new List<String>{ 'error' }, typesOf(results[3].cards), 'past the request cap');
+        Assert.areEqual(CustomerSummary.OVER_CAP_TEXT, results[3].cards[0].text);
+    }
+
+    @IsTest
+    static void noCardHoldsAFieldTheUserCannotRead() {
+        Account a = new Account(Name = 'Card FLS ' + String.valueOf(Math.abs(Crypto.getRandomInteger())), Type = 'Customer',
+            Industry = 'Healthcare', AnnualRevenue = 5000000, Description = 'Secret plans');
+        insert a;
+        User u = userWhoReadsOnlyAccountIndustry();
+        install();
+
+        CustomerSummary.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            r = CustomerSummary.run(a.Id, null, new Set<String>{ 'profile' });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        String cardJson = AnswerCard.toJson(r.cards);
+        Assert.isTrue(cardJson.contains('Industry: Healthcare'), cardJson);
+        for (String hidden : new List<String>{ 'Secret plans', '5,000,000', '5000000', 'Type: Customer' }) {
+            Assert.isFalse(cardJson.contains(hidden), 'an unreadable field reached a card: ' + hidden);
+        }
+    }
+
+    private static User userWhoReadsOnlyAccountIndustry() {
+        User u;
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Profile p = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+            String uniq = 'crd' + String.valueOf(Crypto.getRandomInteger()).replace('-', '');
+            u = new User(
+                Alias = 'crdmin',
+                Email = uniq + '@example.com',
+                EmailEncodingKey = 'UTF-8',
+                LastName = 'Card Minimal',
+                LanguageLocaleKey = 'en_US',
+                LocaleSidKey = 'en_US',
+                ProfileId = p.Id,
+                TimeZoneSidKey = 'America/New_York',
+                Username = uniq + '@example.com.cardtest'
+            );
+            insert u;
+            PermissionSet ps = new PermissionSet(Name = 'Crd_' + uniq.right(20), Label = 'Card test ' + uniq.right(10));
+            insert ps;
+            insert new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true, PermissionsViewAllRecords = true);
+            insert new FieldPermissions(ParentId = ps.Id, SobjectType = 'Account', Field = 'Account.Industry', PermissionsRead = true);
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        }
+        return u;
+    }
 }

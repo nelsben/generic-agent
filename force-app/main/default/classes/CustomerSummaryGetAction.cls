@@ -2,6 +2,8 @@
  * CustomerSummaryGetAction: the Get Customer Summary action. Stage two of the gate (resolve, then brief):
  * call it only with an Account Id that CustomerSummaryResolver returned as RESOLVED.
  * A thin adapter over CustomerSummary.run(); all behavior lives there.
+ * Cards (BE-39): the same brief as card JSON (AnswerCard). Over AnswerCard.MAX_JSON_CHARS it is '' and the
+ * Answer is unchanged.
  */
 public with sharing class CustomerSummaryGetAction {
     public class Request {
@@ -18,6 +20,8 @@ public with sharing class CustomerSummaryGetAction {
         public String status;
         @InvocableVariable(label='Answer' description='The brief, or the message for a non-OK status. Relay it verbatim.')
         public String answer;
+        @InvocableVariable(label='Cards' description='The same brief as structured cards in JSON, for a client that can show them: the summary, then one card per section with its records. Record Ids appear only in each card\'s refs. Empty when too long. Do not relay it to the user; relay the Answer.')
+        public String cards;
     }
 
     @InvocableMethod(
@@ -40,6 +44,7 @@ public with sharing class CustomerSummaryGetAction {
             Response resp = new Response();
             resp.status = r.status;
             resp.answer = r.answer;
+            resp.cards = AnswerCard.toJson(r.cards);
             out.add(resp);
         }
         return out;

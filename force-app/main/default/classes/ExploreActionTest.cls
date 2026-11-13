@@ -186,6 +186,84 @@ private class ExploreActionTest {
         Assert.isTrue(answer.endsWith('...'), answer.right(10));
     }
 
+    // ---- BE-39: the cards output ----
+
+    @IsTest
+    static void cardsComeAsJsonNextToAnUnchangedAnswer() {
+        Account a = new Account(Name = 'Card Acme');
+        insert a;
+        Opportunity deal = new Opportunity(AccountId = a.Id, Name = 'Card Deal', StageName = 'Prospecting', Amount = 750, CloseDate = Date.today());
+        insert deal;
+        script(new List<String>{
+            '{"action":"query","plan":{"object":"Opportunity","fields":["Name","Amount","StageName"]}}',
+            '{"action":"answer","text":"One open deal.","followups":["Who owns it?"]}'
+        });
+
+        ExploreAction.Response res = ExploreAction.explore(new List<ExploreAction.Request>{ request('Open deals?', a.Id) })[0];
+
+        Assert.isTrue(res.answer.startsWith('One open deal.\n\nName | Amount | Stage\nCard Deal | 750.00 | Prospecting'), res.answer);
+        Map<String, Object> asJson = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(res));
+        Assert.areEqual(new Set<String>{ 'status', 'answer', 'history', 'cards' }, asJson.keySet());
+        List<AnswerCard> cards = AnswerCard.fromJson(res.cards);
+        Assert.areEqual(res.cards, AnswerCard.toJson(cards), 'the JSON parses back to the same cards');
+        List<String> types = new List<String>();
+        for (AnswerCard c : cards) {
+            types.add(c.type);
+        }
+        Assert.areEqual(new List<String>{ 'text', 'table', 'trail', 'followups' }, types);
+        Assert.areEqual('One open deal.', cards[0].text);
+        Assert.areEqual(1, cards[1].rows.size());
+        Assert.areEqual(new List<String>{ 'Card Deal', '$750', 'Prospecting' }, cards[1].rows[0].cells);
+        Assert.areEqual(String.valueOf(deal.Id), cards[1].refs[0].recordId);
+        Assert.isFalse(res.answer.contains(String.valueOf(deal.Id)), 'the text never holds an Id');
+    }
+
+    @IsTest
+    static void theCardTableHoldsTheRowsTheAnswerShowsAndNoMore() {
+        ExploreQuery.ResultSet rs = new ExploreQuery.ResultSet();
+        rs.objectName = 'Opportunity';
+        rs.columns = new List<String>{ 'Name', 'Note' };
+        for (Integer i = 0; i < 200; i++) {
+            rs.rows.add(new Map<String, Object>{ 'Name' => 'Row ' + i, 'Note' => 'x'.repeat(100) });
+        }
+        rs.shown = 200;
+        rs.total = 450;
+        DataExplorer.Result r = new DataExplorer.Result();
+        r.status = 'OK';
+        r.answer = 'Summary.';
+        r.resultSets.add(rs);
+
+        String text = ExploreAction.compose(r);
+        List<AnswerCard> cards = AnswerCard.fromJson(ExploreAction.cardsJson(r));
+
+        Integer textRows = text.substringAfter('Name | Note\n').substringBeforeLast('\n(').split('\n').size();
+        Assert.isTrue(textRows < 200, 'the text cut the rows: ' + textRows);
+        Assert.areEqual('table', cards[1].type);
+        Assert.areEqual(textRows, cards[1].rows.size(), 'the same rows the text shows');
+        Assert.areEqual(textRows, cards[1].shown);
+        Assert.areEqual(450, cards[1].total);
+        Assert.areEqual('notice', cards[2].type);
+
+        r.answer = 'z'.repeat(ExploreAction.MAX_CHARS - 20);
+        List<String> types = new List<String>();
+        for (AnswerCard c : AnswerCard.fromJson(ExploreAction.cardsJson(r))) {
+            types.add(c.type);
+        }
+        Assert.areEqual(new List<String>{ 'text' }, types, 'no room for a row in the text: no table card');
+    }
+
+    @IsTest
+    static void cardsOverTheCapLeaveTheCardsOutputEmptyAndTheAnswerAsIs() {
+        script(new List<String>{ '{"action":"answer","text":"There are 36 open opportunities.","followups":[]}' });
+        AnswerCard.maxJsonChars = 20;
+
+        ExploreAction.Response res = ExploreAction.explore(new List<ExploreAction.Request>{ request('How many?', null) })[0];
+
+        Assert.areEqual('', res.cards);
+        Assert.areEqual('There are 36 open opportunities.', res.answer);
+        Assert.areEqual('EMPTY', res.status);
+    }
+
     @IsTest
     static void blankQuestionOrNullRequestGivesNoHistory() {
         List<ExploreAction.Response> out = ExploreAction.explore(new List<ExploreAction.Request>{ request('  ', null), null });

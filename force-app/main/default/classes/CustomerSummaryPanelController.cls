@@ -4,6 +4,7 @@
  * One engine, two front ends: every method delegates to the same classes the agent's actions
  * call (CustomerSummaryResolver, CustomerSummary, CustomerSummaryMemory, DataExplorer). Nothing here
  * calls a model, writes prose or adds visibility: it runs with sharing and passes through.
+ * getBrief and explore return each result's cards member (BE-39, AnswerCard) as the engine built it.
  * Engine failures that carry user-facing text come back as AuraHandledException with that text.
  * Anything unexpected is logged and comes back as AuraHandledException with ERROR_TEXT, the fixed
  * line the engine uses for ERROR: raw exception text never reaches the panel.

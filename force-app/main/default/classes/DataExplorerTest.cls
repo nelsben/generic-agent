@@ -758,4 +758,228 @@ private class DataExplorerTest {
             Assert.isTrue(got.get(k).startsWith(expected.get(k)), k + ': ' + got.get(k));
         }
     }
+
+    // ---- BE-39: cards next to the text ----
+
+    private static List<String> keysOf(List<AnswerCard> cards) {
+        List<String> keys = new List<String>();
+        for (AnswerCard c : cards) {
+            keys.add(c.key);
+        }
+        return keys;
+    }
+
+    private static AnswerCard card(DataExplorer.Result r, String key) {
+        for (AnswerCard c : r.cards) {
+            if (c.key == key) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    private static Map<String, AnswerCard.Ref> refsOf(AnswerCard c) {
+        Map<String, AnswerCard.Ref> refs = new Map<String, AnswerCard.Ref>();
+        for (AnswerCard.Ref ref : c.refs) {
+            refs.put(ref.key, ref);
+        }
+        return refs;
+    }
+
+    /** No card's text holds a record Id, and every Id in the cards JSON is a ref's recordId. */
+    private static void assertIdsOnlyInRefs(DataExplorer.Result r) {
+        Set<String> rowIds = new Set<String>();
+        for (ExploreQuery.ResultSet rs : r.resultSets) {
+            for (Map<String, Object> row : rs.rows) {
+                if (row.get('Id') != null) {
+                    rowIds.add(String.valueOf(row.get('Id')));
+                }
+            }
+        }
+        String cardJson = JSON.serialize(r.cards, true);
+        for (AnswerCard c : r.cards) {
+            Assert.areEqual(AnswerCard.plainText(c), c.text, c.key);
+            for (String i : rowIds) {
+                Assert.isFalse(c.text.contains(i), 'an Id reached the text of ' + c.key);
+            }
+        }
+        for (String i : rowIds) {
+            Assert.isTrue(cardJson.countMatches(i) <= 1, 'an Id appears outside refs: ' + i);
+        }
+    }
+
+    @IsTest
+    static void cardsAgreeWithTheAnswerTheTableTheTrailAndTheFollowups() {
+        script(new List<String>{ query(OPPS_OF_ACME), answer('Acme has **three** deals.') });
+
+        DataExplorer.Result r = DataExplorer.explore('What deals does Acme have?', null, null);
+
+        Assert.areEqual(new List<String>{ 'ans', 'tbl', 'trl', 'fol' }, keysOf(r.cards));
+        AnswerCard text = card(r, 'ans');
+        Assert.areEqual('text', text.type);
+        Assert.areEqual('OK', text.status);
+        Assert.areEqual('Acme has three deals.', text.text);
+        Assert.areEqual(true, text.body[0].runs[1].strong, 'the answer\'s markup becomes runs');
+
+        AnswerCard table = card(r, 'tbl');
+        ExploreQuery.ResultSet rs = r.resultSets[0];
+        Assert.areEqual('table', table.type);
+        Assert.areEqual('Opportunity', table.title);
+        Assert.areEqual(rs.total, table.total);
+        Assert.areEqual(rs.shown, table.shown);
+        Assert.areEqual(rs.rows.size(), table.rows.size());
+        List<String> heads = new List<String>();
+        List<String> kinds = new List<String>();
+        for (AnswerCard.Column col : table.columns) {
+            heads.add(col.label);
+            kinds.add(col.kind);
+        }
+        Assert.areEqual(DataExplorer.headers(rs), heads, 'the columns the text shows, in its order');
+        Assert.areEqual(new List<String>{ 'text', 'currency', 'text' }, kinds);
+        Map<String, AnswerCard.Ref> refs = refsOf(table);
+        for (Integer i = 0; i < rs.rows.size(); i++) {
+            AnswerCard.Row row = table.rows[i];
+            Assert.areEqual(rs.rows[i].get('Name'), row.cells[0], 'same row order as the result set');
+            Assert.areEqual(String.valueOf(rs.rows[i].get('Id')), refs.get(row.ref).recordId, 'the row points at its own record');
+            Assert.areEqual(row.cells[0], refs.get(row.ref).label, 'the ref is labelled by the row\'s first cell');
+            Assert.areEqual('Opportunity', refs.get(row.ref).objectName);
+        }
+        Assert.areEqual(new List<String>{ 'Acme Three', '$3,000', 'Closed Won' }, table.rows[0].cells, 'cells are formatted strings');
+        Assert.areEqual('Opportunity\nName | Amount | Stage\nAcme Three | $3,000 | Closed Won\nAcme Two | $2,000 | Prospecting\nAcme One | $1,000 | Closed Won',
+            table.text);
+
+        AnswerCard trail = card(r, 'trl');
+        Assert.areEqual('Ran 1 query', trail.title);
+        Assert.areEqual(r.trail.size(), trail.items.size());
+        Assert.areEqual('Opportunity where Account.Name = Explore Acme', trail.items[0].label);
+        Assert.areEqual('3 rows', trail.items[0].detail);
+
+        AnswerCard fol = card(r, 'fol');
+        Assert.areEqual(r.followups.size(), fol.items.size());
+        Assert.areEqual(r.followups[0], fol.items[0].label);
+        assertIdsOnlyInRefs(r);
+    }
+
+    @IsTest
+    static void aCutTableSaysSoAndANoticeSaysHowToNarrowIt() {
+        String limited = '{"object":"Opportunity","fields":["Name","Amount","StageName"],"limit":2,'
+            + '"filters":[{"field":"Account.Name","op":"=","value":"Explore Acme"}],"orderBy":{"field":"Amount","dir":"DESC"}}';
+        script(new List<String>{ query(limited), answer('The two largest.') });
+
+        DataExplorer.Result r = DataExplorer.explore('Largest deals?', null, null);
+
+        Assert.areEqual(new List<String>{ 'ans', 'tbl', 'not', 'trl', 'fol' }, keysOf(r.cards));
+        AnswerCard table = card(r, 'tbl');
+        Assert.areEqual(3, table.total);
+        Assert.areEqual(2, table.shown);
+        Assert.isTrue(table.text.endsWith('\n(2 of 3 rows)'), table.text);
+        Assert.areEqual('Showing 2 of 3 rows. Ask with a filter to narrow it.', card(r, 'not').text);
+        Assert.areEqual('2 of 3 rows', card(r, 'trl').items[0].detail);
+    }
+
+    @IsTest
+    static void anAggregateWithoutGroupsIsAMetric() {
+        script(new List<String>{
+            query('{"object":"Opportunity","aggregates":[{"fn":"SUM","field":"Amount"},{"fn":"COUNT","field":"Id"}],'
+                + '"filters":[{"field":"Account.Name","op":"=","value":"Explore Acme"}]}'),
+            answer('Six thousand in all.')
+        });
+
+        DataExplorer.Result r = DataExplorer.explore('How much does Acme have?', null, null);
+
+        Assert.areEqual(new List<String>{ 'ans', 'met', 'trl', 'fol' }, keysOf(r.cards));
+        AnswerCard metric = card(r, 'met');
+        Assert.areEqual('metric', metric.type);
+        Assert.areEqual('Opportunity\nSum of Amount: $6,000\nCount: 3', metric.text);
+        Assert.isTrue(metric.refs.isEmpty());
+    }
+
+    @IsTest
+    static void groupedRowsAreATableWithoutRefs() {
+        script(new List<String>{
+            query('{"object":"Opportunity","groupBy":["StageName"],"aggregates":[{"fn":"SUM","field":"Amount"}],'
+                + '"filters":[{"field":"Account.Name","op":"=","value":"Explore Acme"}],"orderBy":{"field":"StageName","dir":"ASC"}}'),
+            answer('By stage.')
+        });
+
+        DataExplorer.Result r = DataExplorer.explore('Amount by stage?', null, null);
+
+        AnswerCard table = card(r, 'tbl');
+        Assert.isNotNull(table, 'cards: ' + keysOf(r.cards));
+        Assert.areEqual(2, table.rows.size());
+        ExploreQuery.ResultSet rs = r.resultSets[0];
+        for (Integer i = 0; i < rs.rows.size(); i++) {
+            Assert.areEqual(String.valueOf(rs.rows[i].get(rs.columns[0])), table.rows[i].cells[0], 'same row order as the result set');
+        }
+        Integer won = table.rows[0].cells[0] == 'Closed Won' ? 0 : 1;
+        Assert.areEqual(new List<String>{ 'Closed Won', '$4,000' }, table.rows[won].cells, 'the sum is a formatted amount');
+        Assert.isNull(table.rows[0].ref, 'a group is no one record');
+        Assert.isTrue(table.refs.isEmpty());
+    }
+
+    @IsTest
+    static void twoColumnsOfRecordsAreARecordListFromTheLastResult() {
+        Id acmeId = acme().Id;
+        script(new List<String>{
+            query('{"object":"Account","fields":["Id","Name"],"filters":[{"field":"Name","op":"LIKE","value":"Explore A%"}]}'),
+            query('{"object":"Contact","fields":["Name","Title"],"filters":[{"field":"AccountId","op":"=","value":"' + acmeId + '"}]}'),
+            answer('Rivera is the buyer.')
+        });
+
+        DataExplorer.Result r = DataExplorer.explore('Who is the buyer at Acme?', null, null);
+
+        Assert.areEqual(new List<String>{ 'ans', 'lst', 'trl', 'fol' }, keysOf(r.cards));
+        AnswerCard lst = card(r, 'lst');
+        Assert.areEqual('recordList', lst.type);
+        Assert.areEqual('Contact', lst.title);
+        Assert.areEqual(1, lst.items.size());
+        Assert.areEqual('Rivera', lst.items[0].label);
+        Assert.areEqual('Buyer', lst.items[0].detail);
+        Assert.areEqual('Contact', refsOf(lst).get(lst.items[0].ref).objectName);
+        AnswerCard trail = card(r, 'trl');
+        Assert.areEqual('Ran 2 queries', trail.title);
+        Assert.areEqual('Contact where AccountId = a record', trail.items[1].label, 'the trail hides Ids as the text does');
+        assertIdsOnlyInRefs(r);
+    }
+
+    @IsTest
+    static void aModelFailureIsAnErrorCardThenTheTableAlreadyRead() {
+        Script s = script(new List<String>{ query(OPPS_OF_ACME) });
+        s.failAt = 2;
+
+        DataExplorer.Result r = DataExplorer.explore('What deals?', null, null);
+
+        Assert.areEqual(DataExplorer.ERROR, r.status);
+        Assert.areEqual(new List<String>{ 'err', 'tbl', 'trl' }, keysOf(r.cards), 'no followups on an error');
+        Assert.areEqual('error', r.cards[0].type);
+        Assert.areEqual(DataExplorer.ERROR_TEXT, r.cards[0].text);
+    }
+
+    @IsTest
+    static void aBlankQuestionIsOneTextCardAndTheTextMembersAreUnchanged() {
+        DataExplorer.Result r = DataExplorer.explore('  ', null, null);
+
+        Map<String, Object> asJson = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(r));
+        Assert.areEqual(new Set<String>{ 'status', 'answer', 'resultSets', 'trail', 'followups', 'cards' }, asJson.keySet(),
+            'one new member, cards; every other member keeps its name');
+        Assert.areEqual(DataExplorer.EMPTY, r.status);
+        Assert.areEqual(DataExplorer.NO_QUESTION_TEXT, r.answer);
+        Assert.areEqual(1, r.cards.size());
+        Assert.areEqual('EMPTY', r.cards[0].status);
+        Assert.areEqual(DataExplorer.NO_QUESTION_TEXT, r.cards[0].text);
+    }
+
+    @IsTest
+    static void cardsForATextThatShowsNoRowsHoldNoTable() {
+        script(new List<String>{ query(OPPS_OF_ACME), answer('Acme has three deals.') });
+        DataExplorer.Result r = DataExplorer.explore('What deals does Acme have?', null, null);
+
+        List<AnswerCard> cards = DataExplorer.cards(r, 0);
+
+        Assert.areEqual(new List<String>{ 'ans', 'trl', 'fol' }, keysOf(cards), 'a table card holds no more rows than the text shows');
+        List<AnswerCard> two = DataExplorer.cards(r, 2);
+        Assert.areEqual(2, two[1].rows.size());
+        Assert.areEqual(2, two[1].shown);
+        Assert.areEqual(3, two[1].total);
+    }
 }
