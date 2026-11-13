@@ -5,6 +5,9 @@
  * from the registry, in registry order, (3) reduces them with the model through AgentLlm,
  * (4) records the turn in CustomerSummaryMemory, (5) returns a Result. runAll() does the same for
  * several briefs in one transaction: every brief's model calls first, then one memory write.
+ * runAll() builds at most MAX_BRIEFS_PER_CALL briefs; each Ask past that gets ERROR with fixed text, so a
+ * caller that sends many requests in one call never reaches a governor limit it cannot catch (N1).
+ * An answer longer than MAX_ANSWER_CHARS is cut at a sentence or line end and ends on CUT_MARKER (N8).
  *
  * Gather is deterministic Apex (CustomerSummarySource classes, no LLM). Reduce is data-driven:
  * PRE_REDUCES says which source keys a pre-reduce prompt condenses first; every other source
@@ -24,6 +27,17 @@ public with sharing class CustomerSummary {
     @TestVisible private static final String EMPTY_TEXT = 'Nothing is on record for the requested sections.';
     @TestVisible private static final String NOT_REQUESTED = 'EMPTY: not requested';
     @TestVisible private static final String SKIPPED = 'EMPTY';
+    /**
+     * Briefs built in one runAll call. One brief runs at most about 25 SOQL queries and 3 model calls;
+     * three briefs and the memory write stay well inside the 100-query limit
+     * (CustomerSummaryTest.threeFullRequestsAtTheCapStayWellInsideTheQueryLimit). A fourth could reach it.
+     */
+    @TestVisible private static final Integer MAX_BRIEFS_PER_CALL = 3;
+    @TestVisible private static final String OVER_CAP_TEXT = 'I can build up to ' + MAX_BRIEFS_PER_CALL
+        + ' summaries in one request. Ask for this account again on its own.';
+    /** The longest answer returned, marker included: under the chat relay's limit of about 6,000 characters. */
+    @TestVisible private static final Integer MAX_ANSWER_CHARS = 5900;
+    @TestVisible private static final String CUT_MARKER = '\n[Cut short: this summary reached its length limit.]';
     private static final String SYNTHESIS_PROMPT = 'SummarySynthesis';
     private static final Integer SYNTHESIS_MAX_TOKENS = 1500;
 
@@ -121,6 +135,8 @@ public with sharing class CustomerSummary {
 
     /**
      * Several briefs in one transaction, one Result per Ask in the same order (a null Ask gives NOT_FOUND).
+     * Only the first MAX_BRIEFS_PER_CALL Asks are built; each later one gets ERROR with OVER_CAP_TEXT and
+     * runs no query and no model call.
      * Each brief's model callouts run in turn; the memory writes are collected and saved in one upsert
      * after the last callout, because a callout after uncommitted DML fails.
      */
@@ -128,7 +144,11 @@ public with sharing class CustomerSummary {
         List<Result> results = new List<Result>();
         List<CustomerSummaryMemory.Entry> memory = new List<CustomerSummaryMemory.Entry>();
         for (Ask a : asks == null ? new List<Ask>() : asks) {
-            results.add(a == null ? brief(null, null, null, memory) : brief(a.accountId, a.question, a.include, memory));
+            if (results.size() >= MAX_BRIEFS_PER_CALL) {
+                results.add(finish(new Result(), ERROR, OVER_CAP_TEXT, OVER_CAP_TEXT));
+            } else {
+                results.add(a == null ? brief(null, null, null, memory) : brief(a.accountId, a.question, a.include, memory));
+            }
         }
 
         // 4. Memory, last: DML before a callout would fail the model calls above.
@@ -186,9 +206,35 @@ public with sharing class CustomerSummary {
             System.debug(LoggingLevel.ERROR, 'CustomerSummary reduce failed: ' + e.getTypeName() + ': ' + e.getMessage());
             return finish(r, ERROR, ERROR_TEXT, ERROR_TEXT);
         }
-        finish(r, anyOk ? OK : EMPTY, anyOk ? '' : EMPTY_TEXT, answer);
+        finish(r, anyOk ? OK : EMPTY, anyOk ? '' : EMPTY_TEXT, clampAnswer(answer));
         memory.add(new CustomerSummaryMemory.Entry(accountId, r.status, question, r.answer));
         return r;
+    }
+
+    /**
+     * The answer as it is relayed: unchanged up to MAX_ANSWER_CHARS. A longer one (the model ran past the
+     * prompt's length rule, or AgentLlm cut it at the output cap) is cut back to the last sentence or line
+     * end that fits, and ends on CUT_MARKER, so it never stops mid-sentence without notice.
+     */
+    @TestVisible
+    private static String clampAnswer(String text) {
+        if (text == null || text.length() <= MAX_ANSWER_CHARS) {
+            return text;
+        }
+        String head = text.left(MAX_ANSWER_CHARS - CUT_MARKER.length());
+        Integer cut = head.lastIndexOf('\n');
+        for (String stop : new List<String>{ '. ', '! ', '? ', '.\n', '!\n', '?\n' }) {
+            Integer at = head.lastIndexOf(stop);
+            cut = at < 0 ? cut : Math.max(cut, at + 1);
+        }
+        if (head.endsWith('.') || head.endsWith('!') || head.endsWith('?')) {
+            cut = head.length();
+        }
+        // No sentence or line end in the second half: cut at the last space instead of mid-word.
+        if (cut < head.length() / 2) {
+            cut = Math.max(head.lastIndexOf(' '), head.length() / 2);
+        }
+        return head.left(cut).trim() + CUT_MARKER;
     }
 
     private static Result finish(Result r, String status, String message, String answer) {
@@ -263,13 +309,22 @@ public with sharing class CustomerSummary {
         for (PreReduce p : PRE_REDUCES) {
             Map<String, String> vars = new Map<String, String>{ 'account_name' => accountName };
             Boolean hasData = false;
+            List<String> failed = new List<String>();
             for (String key : p.sources) {
                 CustomerSummarySection s = built.get(key);
                 vars.put(key, sectionText(s));
                 hasData = hasData || (s != null && s.status != CustomerSummarySection.EMPTY);
+                if (s != null && s.status == CustomerSummarySection.ERROR) {
+                    failed.add(sectionText(s));
+                }
                 preReduced.add(key);
             }
-            synthesisVars.put(p.output, hasData ? AgentLlm.complete(p.prompt, vars, p.maxTokens) : SKIPPED);
+            String condensed = hasData ? AgentLlm.complete(p.prompt, vars, p.maxTokens) : SKIPPED;
+            // A failed source stays visible after the pre-reduce as its own 'ERROR: ...' line, so the synthesis
+            // prompt's ERROR rule applies to it and the brief never states "none" for a part that did not load.
+            List<String> lines = new List<String>{ condensed };
+            lines.addAll(failed);
+            synthesisVars.put(p.output, String.join(lines, '\n'));
         }
 
         for (Source src : registry) {

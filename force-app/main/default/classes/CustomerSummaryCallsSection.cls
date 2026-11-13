@@ -62,27 +62,41 @@ public with sharing class CustomerSummaryCallsSection implements CustomerSummary
                 + ' — ' + CustomerSummarySection.clip(nx.Subject, 100), nx.Id);
         }
 
+        // Notes and who attended are optional: a user who cannot read Description or WhoId still gets the
+        // calls, and the last line says what was left out (N2 in docs/reviews/apex-review-2.md).
+        Boolean hasNotes = CustomerSummarySection.canRead(Event.SObjectType, 'Description');
+        Boolean hasWho = CustomerSummarySection.canRead(Event.SObjectType, 'WhoId');
+        List<String> leftOut = new List<String>();
+        if (!hasNotes) {
+            leftOut.add('Call notes');
+        }
+        if (!hasWho) {
+            leftOut.add('Who attended');
+        }
+        String leftOutLine = CustomerSummarySection.leftOutLine(leftOut);
+
         List<String> blocks = new List<String>();
         if (total > 0) {
-            List<Event> past = [
-                SELECT Id, StartDateTime, Subject, DurationInMinutes, Description, Who.Name
-                FROM Event
-                WHERE AccountId = :accountId AND StartDateTime <= :nowDt
-                WITH USER_MODE
-                ORDER BY StartDateTime DESC, Id DESC
-                LIMIT :CAP
-            ];
-            // Keep room for the Next line, then add whole blocks while they fit. The budget counts the
-            // text without record Ids: what the rep reads and the model sees.
-            Integer budget = MAX_BODY - (nextLine == null ? 0 : CustomerSummarySection.withoutIds(nextLine).length() + 1);
+            // The optional columns come only from the two checks above, never from input.
+            List<Event> past = (List<Event>) Database.queryWithBinds(
+                'SELECT Id, StartDateTime, Subject, DurationInMinutes' + (hasNotes ? ', Description' : '') + (hasWho ? ', Who.Name' : '')
+                    + ' FROM Event WHERE AccountId = :accountId AND StartDateTime <= :nowDt'
+                    + ' ORDER BY StartDateTime DESC, Id DESC LIMIT ' + CAP,
+                new Map<String, Object>{ 'accountId' => accountId, 'nowDt' => nowDt },
+                AccessLevel.USER_MODE
+            );
+            // Keep room for the Next and left-out lines, then add whole blocks while they fit. The budget counts
+            // the text without record Ids: what the rep reads and the model sees.
+            Integer budget = MAX_BODY - (nextLine == null ? 0 : CustomerSummarySection.withoutIds(nextLine).length() + 1)
+                - (leftOutLine == null ? 0 : leftOutLine.length() + 1);
             Integer used = 0;
             for (Event ev : past) {
                 // The Event Id ends the event's first line, for the panel's drill; the notes line carries none.
                 String block = CustomerSummarySection.withId('- ' + CustomerSummarySection.fmtDate(ev.StartDateTime.date())
                     + ' — ' + CustomerSummarySection.clip(ev.Subject, 100)
                     + ' — ' + (ev.DurationInMinutes == null ? 'n/a' : String.valueOf(ev.DurationInMinutes)) + ' min'
-                    + ' — with ' + (ev.Who == null ? 'n/a' : CustomerSummarySection.clip(ev.Who.Name, 40)), ev.Id);
-                if (!String.isBlank(ev.Description)) {
+                    + (hasWho ? ' — with ' + (ev.Who == null ? 'n/a' : CustomerSummarySection.clip(ev.Who.Name, 40)) : ''), ev.Id);
+                if (hasNotes && !String.isBlank(ev.Description)) {
                     block += '\n notes: ' + CustomerSummarySection.clip(ev.Description, 300);
                 }
                 Integer cost = CustomerSummarySection.withoutIds(block).length() + (blocks.isEmpty() ? 0 : 1);
@@ -102,6 +116,9 @@ public with sharing class CustomerSummaryCallsSection implements CustomerSummary
         }
         if (nextLine != null) {
             lines.add(nextLine);
+        }
+        if (leftOutLine != null) {
+            lines.add(leftOutLine);
         }
 
         s.status = CustomerSummarySection.OK;

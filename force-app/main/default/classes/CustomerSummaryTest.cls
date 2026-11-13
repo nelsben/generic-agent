@@ -11,6 +11,8 @@ private class CustomerSummaryTest {
         /** DML statements already run in the transaction at each model call. A real callout after DML throws. */
         List<Integer> dmlAtCall = new List<Integer>();
         Boolean fail = false;
+        /** When set, the synthesis call returns this instead of the short fixed brief. */
+        String synthesisReply;
 
         public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
             if (fail) {
@@ -25,7 +27,7 @@ private class CustomerSummaryTest {
             if (systemPrompt.contains('deal history for one account')) {
                 return 'DEAL HISTORY SUMMARY';
             }
-            return 'Headline finding.\nAccount\nBody.';
+            return synthesisReply != null ? synthesisReply : 'Headline finding.\nAccount\nBody.';
         }
 
         Integer count(String marker) {
@@ -474,5 +476,144 @@ private class CustomerSummaryTest {
             Assert.isTrue(all.contains(text), 'the prompt lost "' + text + '"');
         }
         Assert.isFalse(Pattern.compile('(?m) — [0-9][0-9A-Za-z]{17}$').matcher(all).find(), 'a line in a prompt still ends with an Id');
+    }
+
+    // ---- BE-29: N1 (request cap), N3 (ERROR rule), N8 (answer cap) ----
+
+    /** An account with a row for every conditional section query, so a brief runs its most queries. */
+    private static Account mkFullAccount() {
+        Account a = mkAccount(false);
+        Contact c = new Contact(AccountId = a.Id, LastName = 'Full', Title = 'Buyer');
+        insert c;
+        Opportunity openDeal = new Opportunity(AccountId = a.Id, Name = 'Open full deal', StageName = 'Prospecting', Amount = 900, CloseDate = Date.today().addDays(-3));
+        insert new List<Opportunity>{
+            openDeal,
+            new Opportunity(AccountId = a.Id, Name = 'Won full deal', StageName = 'Closed Won', Amount = 700, CloseDate = Date.today().addDays(-15)),
+            new Opportunity(AccountId = a.Id, Name = 'Lost full deal', StageName = 'Closed Lost', Amount = 500, CloseDate = Date.today().addDays(-40))
+        };
+        insert new OpportunityContactRole(OpportunityId = openDeal.Id, ContactId = c.Id, Role = 'Decision Maker', IsPrimary = true);
+        insert new List<Case>{
+            new Case(AccountId = a.Id, Subject = 'Open full case', Priority = 'High', Status = 'New'),
+            new Case(AccountId = a.Id, Subject = 'Closed full case', Priority = 'Low', Status = 'Closed')
+        };
+        insert new List<Task>{
+            new Task(WhatId = a.Id, WhoId = c.Id, Subject = 'Full call', TaskSubtype = 'Call', Status = 'Completed', ActivityDate = Date.today().addDays(-1)),
+            new Task(WhatId = a.Id, Subject = 'Full overdue', Status = 'Not Started', ActivityDate = Date.today().addDays(-2))
+        };
+        insert new List<Event>{
+            new Event(WhatId = a.Id, WhoId = c.Id, Subject = 'Full meeting', StartDateTime = DateTime.now().addDays(-2), DurationInMinutes = 30, Description = 'Notes'),
+            new Event(WhatId = a.Id, Subject = 'Full next', StartDateTime = DateTime.now().addDays(3), DurationInMinutes = 30)
+        };
+        return a;
+    }
+
+    private static List<CustomerSummaryGetAction.Request> requestsFor(List<Account> accounts) {
+        List<CustomerSummaryGetAction.Request> requests = new List<CustomerSummaryGetAction.Request>();
+        for (Account a : accounts) {
+            CustomerSummaryGetAction.Request req = new CustomerSummaryGetAction.Request();
+            req.accountId = String.valueOf(a.Id);
+            requests.add(req);
+        }
+        return requests;
+    }
+
+    @IsTest
+    static void threeFullRequestsAtTheCapStayWellInsideTheQueryLimit() {
+        List<Account> accounts = new List<Account>{ mkFullAccount(), mkFullAccount(), mkFullAccount() };
+
+        Test.startTest();
+        Stub stub = install();
+        List<CustomerSummaryGetAction.Response> out = CustomerSummaryGetAction.getBriefs(requestsFor(accounts));
+        Integer queries = Limits.getQueries();
+        Test.stopTest();
+
+        Assert.areEqual(3, out.size());
+        for (CustomerSummaryGetAction.Response resp : out) {
+            Assert.areEqual(CustomerSummary.OK, resp.status, resp.answer);
+        }
+        Assert.areEqual(9, stub.systems.size(), 'every brief at the cap is built');
+        // Headroom for the memory write's DUPLICATE_VALUE retry (one more query) and a margin.
+        Assert.isTrue(queries <= 90, 'SOQL queries for three full briefs and the memory write: ' + queries);
+    }
+
+    @IsTest
+    static void requestsPastTheCapGetAFixedLineAndNoModelCall() {
+        List<Account> accounts = new List<Account>();
+        for (Integer i = 0; i < 5; i++) {
+            accounts.add(mkAccount(true));
+        }
+
+        Test.startTest();
+        Stub stub = install();
+        List<CustomerSummaryGetAction.Response> out = CustomerSummaryGetAction.getBriefs(requestsFor(accounts));
+        Test.stopTest();
+
+        Assert.areEqual(5, out.size(), 'one response per request, in order');
+        for (Integer i = 0; i < 3; i++) {
+            Assert.areEqual(CustomerSummary.OK, out[i].status, out[i].answer);
+        }
+        for (Integer i = 3; i < 5; i++) {
+            Assert.areEqual('ERROR', out[i].status);
+            Assert.areEqual('I can build up to 3 summaries in one request. Ask for this account again on its own.', out[i].answer);
+        }
+        Assert.areEqual(9, stub.systems.size(), 'no model call for a request past the cap');
+        Assert.areEqual(3, memoryRows(), 'only the briefs that ran are remembered');
+    }
+
+    @IsTest
+    static void synthesisPromptHasARuleForAFailedSection() {
+        String prompt = [SELECT Body FROM StaticResource WHERE Name = 'AgentPrompt_SummarySynthesis' LIMIT 1].Body.toString();
+        String systemText = prompt.substringBefore('---user---');
+
+        Assert.isTrue(systemText.contains('starts with "ERROR:"'), 'no rule for an ERROR input');
+        Assert.isTrue(systemText.contains('could not be loaded'), 'the rule does not say the part could not be loaded');
+        Assert.isTrue(systemText.contains('Never write "none"'), 'the rule does not forbid "none"');
+        Assert.isTrue(systemText.contains('"no open cases"'), 'the rule does not forbid "no open cases"');
+    }
+
+    @IsTest
+    static void aFailedSectionInsideAPreReduceStillReachesTheSynthesisAsError() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+        for (Integer i = 0; i < CustomerSummary.registry.size(); i++) {
+            if (CustomerSummary.registry[i].key == 'calls') {
+                CustomerSummary.registry[i] = new CustomerSummary.Source('calls', 'NoSuchBriefSourceZz');
+            }
+        }
+
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, null, null);
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        String synthesis = stub.synthesisUser();
+        Assert.isTrue(synthesis.contains('ENGAGEMENT SUMMARY\nERROR: Couldn\'t load calls right now.'),
+            'the engagement pre-reduce hides the failed calls section: ' + synthesis);
+    }
+
+    @IsTest
+    static void anAnswerPastTheLengthCapEndsOnAClearMarker() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+        stub.synthesisReply = 'Headline finding.\nAccount\n' + 'This sentence is about the account and its deals. '.repeat(200);
+
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, null, null);
+
+        String marker = '\n[Cut short: this summary reached its length limit.]';
+        Assert.areEqual(CustomerSummary.OK, r.status);
+        Assert.isTrue(r.answer.length() <= 5900, 'answer length: ' + r.answer.length());
+        Assert.isTrue(r.answer.endsWith(marker), 'no marker at the cut: ' + r.answer.right(120));
+        Assert.isTrue(r.answer.removeEnd(marker).endsWith('deals.'), 'cut mid-sentence: ' + r.answer.right(120));
+        Assert.areEqual(r.answer, CustomerSummaryMemory.lastBrief(a.Id), 'memory keeps the marked answer');
+    }
+
+    @IsTest
+    static void anAnswerUnderTheCapIsUnchanged() {
+        Account a = mkAccount(true);
+        Stub stub = install();
+        String reply = 'Headline finding.\nAccount\n' + 'Short line. '.repeat(100);
+        stub.synthesisReply = reply;
+
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, null, null);
+
+        Assert.areEqual(reply.trim(), r.answer);
     }
 }

@@ -82,6 +82,64 @@ private class CustomerSummaryProfileSectionTest {
         Assert.isTrue(s.body.length() <= 1200);
     }
 
+    /**
+     * A Minimum Access user with a permission set made in the test: read on every Account record and on
+     * Industry, and no other optional Account field (Type, Parent, Annual revenue, Description and the rest).
+     */
+    private static User userWhoReadsOnlyIndustry() {
+        User u;
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Profile p = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+            String uniq = 'prf' + String.valueOf(Crypto.getRandomInteger()).replace('-', '');
+            u = new User(
+                Alias = 'prfmin',
+                Email = uniq + '@example.com',
+                EmailEncodingKey = 'UTF-8',
+                LastName = 'Profile Minimal',
+                LanguageLocaleKey = 'en_US',
+                LocaleSidKey = 'en_US',
+                ProfileId = p.Id,
+                TimeZoneSidKey = 'America/New_York',
+                Username = uniq + '@example.com.profiletest'
+            );
+            insert u;
+            PermissionSet ps = new PermissionSet(Name = 'Prf_' + uniq.right(20), Label = 'Profile section test ' + uniq.right(10));
+            insert ps;
+            insert new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true, PermissionsViewAllRecords = true);
+            insert new FieldPermissions(ParentId = ps.Id, SobjectType = 'Account', Field = 'Account.Industry', PermissionsRead = true);
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        }
+        return u;
+    }
+
+    @IsTest
+    static void anUnreadableFieldIsLeftOutAndNamedInsteadOfFailingTheSection() {
+        String t = token();
+        Account a = new Account(Name = t + ' Partial', Type = 'Customer', Industry = 'Healthcare',
+            AnnualRevenue = 5000000, Description = 'Secret plans');
+        insert a;
+        User u = userWhoReadsOnlyIndustry();
+
+        CustomerSummarySection s;
+        System.runAs(u) {
+            s = new CustomerSummaryProfileSection().build(a.Id);
+        }
+
+        Assert.areEqual(CustomerSummarySection.OK, s.status, 'cause: ' + s.cause + ' body: ' + s.body);
+        List<String> lines = s.body.split('\n');
+        Assert.areEqual('Name: ' + t + ' Partial', lines[0]);
+        Assert.isTrue(s.body.contains('\nIndustry: Healthcare'), s.body);
+        for (String hidden : new List<String>{ 'Type:', 'Parent:', 'Annual revenue:', 'Description:', 'Website:', '5,000,000', 'Secret plans' }) {
+            Assert.isFalse(s.body.contains(hidden), 'an unreadable field reached the body: ' + hidden + ' in ' + s.body);
+        }
+        String last = lines[lines.size() - 1];
+        Assert.isTrue(last.startsWith('Left out because you can\'t see these fields: '), last);
+        for (String label : new List<String>{ 'Type', 'Parent', 'Annual revenue', 'Description' }) {
+            Assert.isTrue(last.contains(label), 'the left-out line does not name ' + label + ': ' + last);
+        }
+        Assert.isFalse(last.contains('Industry'), last);
+    }
+
     @IsTest
     static void unknownOrNullIdIsEmpty() {
         Account a = new Account(Name = token() + ' Gone');

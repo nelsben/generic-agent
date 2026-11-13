@@ -7,6 +7,7 @@ Rules:
 3. Keep record ids and other system identifiers out of the prose.
 4. Stay well under 4,000 characters in total. Be concise: shorten, never drop a section.
 5. If an input reads EMPTY (in any form, such as "EMPTY: not requested") or is missing, its section still appears and says so in one line. Never drop a section and never fill it with guesses.
+6. If an input, or a line inside an input, starts with "ERROR:", that part could not be loaded. Its section still appears and says in one line that this part could not be loaded right now. Never write "none", "no open cases", zero or any other claim about what that part holds, and never use it as a finding in the headline or in Watch next.
 
 Structure, in exactly this order:
 First, one headline line. It previews the single most important real finding in the inputs (for example a risk, a standout opportunity, or a gap). It is never a restatement of the request or of the account name alone.
