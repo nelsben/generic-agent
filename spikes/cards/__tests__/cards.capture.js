@@ -49,10 +49,14 @@ test('card gallery at 340 and 640', async ({ page }) => {
                 return Array.from(el.querySelectorAll('c-card-spike-card')).map((c) => {
                     const art = c.shadowRoot ? c.shadowRoot.querySelector('article') : c.querySelector('article');
                     const w = art ? art.scrollWidth : c.scrollWidth;
-                    return { w, inner };
+                    const wrap = c.shadowRoot ? c.shadowRoot.querySelector('.cs-table-wrap') : null;
+                    // A table's own scroll area counts too: at 340 nothing may scroll sideways.
+                    const scrolls = !!wrap && wrap.scrollWidth > wrap.clientWidth + 1;
+                    return { w, inner, scrolls };
                 });
             });
             const over = widths.filter((x) => x.w > x.inner + 1).length;
+            const scrolling = widths.filter((x) => x.scrolls).length;
             await hideOverlays(page);
             const size = await still(page, `fr2-cards-${width}-${group}.png`, {
                 x: Math.floor(box.x),
@@ -61,9 +65,10 @@ test('card gallery at 340 and 640', async ({ page }) => {
                 height: Math.ceil(box.height)
             });
             // eslint-disable-next-line no-console
-            console.log('CARDS ' + JSON.stringify({ group, width, cards: n, overflowing: over, png: size }));
+            console.log('CARDS ' + JSON.stringify({ group, width, cards: n, overflowing: over, scrolling, png: size }));
             if (width === 340) {
                 expect(over).toBe(0);
+                expect(scrolling).toBe(0);
             }
         }
     }
