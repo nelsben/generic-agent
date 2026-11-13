@@ -1,0 +1,344 @@
+<template>
+    <div class="abp-conversation">
+        <!-- Announces each request's start and its result to screen readers (WCAG 4.1.3). -->
+        <div class="slds-assistive-text" role="status" aria-live="polite" data-testid="abp-live-region">{liveMessage}</div>
+
+        <!-- Header: one row, pinned. The brand (logo beside the agent name) and, on an Account, Summarize. -->
+        <div class="abp-bar">
+            <div class="abp-bar-row">
+                <template lwc:if={hasBrand}>
+                    <div class="abp-brand">
+                        <template lwc:if={logoUrl}>
+                            <img class="abp-logo" src={logoUrl} alt={logoAlt} width="20" height="20">
+                        </template>
+                        <template lwc:if={agentName}>
+                            <span class="abp-agent-name slds-truncate" title={agentName}>{agentName}</span>
+                        </template>
+                    </div>
+                </template>
+                <template lwc:if={isAccountPage}>
+                    <!-- A native button: its text truncates when the row is short, and stays its accessible name. -->
+                    <button class="slds-button slds-button_brand abp-brief" title={briefButtonLabel}
+                        onclick={handleBriefThisAccount}><span class="slds-truncate">{briefButtonLabel}</span></button>
+                </template>
+            </div>
+        </div>
+
+        <template lwc:if={notice}>
+            <div class="abp-notice slds-text-body_small" role="alert">{notice}</div>
+        </template>
+
+        <!-- Body: the drill view over the thread; the thread stays rendered underneath. -->
+        <div class="abp-body" role="region" aria-label="Conversation" onscroll={handleBodyScroll}>
+            <template lwc:if={isDrilling}>
+                <div class="slds-m-vertical_x-small">
+                    <lightning-breadcrumbs>
+                        <lightning-breadcrumb label="Conversation" onclick={handleBackToConversation}></lightning-breadcrumb>
+                        <template for:each={breadcrumbs} for:item="crumb">
+                            <lightning-breadcrumb key={crumb.key} label={crumb.label} data-index={crumb.index}
+                                onclick={handleCrumb}></lightning-breadcrumb>
+                        </template>
+                    </lightning-breadcrumbs>
+                </div>
+                <article class="abp-card">
+                    <template lwc:if={drillTop.isRecord}>
+                        <div class="abp-card-head">
+                            <h2 class="abp-card-title abp-drill-heading" tabindex="-1">{drillTop.label}</h2>
+                            <span class="abp-meta">{drillTop.objectName}</span>
+                        </div>
+                        <dl class="slds-m-top_x-small">
+                            <template for:each={drillTop.fields} for:item="f">
+                                <div key={f.key} class="abp-field">
+                                    <dt class="abp-meta">{f.label}</dt>
+                                    <dd class="abp-pre">{f.value}</dd>
+                                </div>
+                            </template>
+                        </dl>
+                        <template lwc:if={drillTop.hasRelated}>
+                            <div class="abp-chips slds-m-top_x-small">
+                                <template for:each={drillTop.related} for:item="r">
+                                    <lightning-button key={r.key} class="abp-related" label={r.name} data-object={r.name}
+                                        onclick={handleRelated}></lightning-button>
+                                </template>
+                            </div>
+                        </template>
+                    </template>
+                    <template lwc:else>
+                        <h2 class="abp-card-title abp-drill-heading" tabindex="-1">{drillTop.table.title}</h2>
+                        <template lwc:if={drillTop.table.hasRows}>
+                            <div class="abp-table-wrap slds-m-top_x-small" data-roving onkeydown={handleRovingKeydown}
+                                onfocusin={handleRovingFocusin}>
+                                <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped">
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <template for:each={drillTop.table.columns} for:item="col">
+                                                <th key={col.key} scope="col"><div class="slds-truncate">{col.label}</div></th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={drillTop.table.rows} for:item="row">
+                                            <tr key={row.key}>
+                                                <template for:each={row.cells} for:item="cell">
+                                                    <td key={cell.key}>
+                                                        <template lwc:if={cell.isAction}>
+                                                            <button class="slds-button abp-row-button" data-roving-item data-id={row.id}
+                                                                data-focus={cell.focusKey} onclick={handleRowClick}>{cell.actionText}</button>
+                                                        </template>
+                                                        <template lwc:else><div class="abp-cell">{cell.value}</div></template>
+                                                    </td>
+                                                </template>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                    </template>
+                    <div class="slds-m-top_x-small">
+                        <lightning-button variant="base" class="abp-view-record" label="View record"
+                            onclick={handleViewRecord}></lightning-button>
+                    </div>
+                </article>
+            </template>
+
+            <div class={conversationClass}>
+                <!-- What the next brief includes, and the account's earlier briefs: they scroll away with the thread. -->
+                <div class="abp-tools">
+                    <template lwc:if={hasSources}>
+                        <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
+                            <lightning-accordion-section name="include" label={includeSummary}>
+                                <div class="abp-chips">
+                                    <template for:each={includeChips} for:item="chip">
+                                        <lightning-button-stateful key={chip.key} data-key={chip.key} selected={chip.selected}
+                                            label-when-off={chip.title} label-when-on={chip.title} label-when-hover={chip.title}
+                                            icon-name-when-off="utility:add" icon-name-when-on="utility:check"
+                                            icon-name-when-hover="utility:close" onclick={handleChip}></lightning-button-stateful>
+                                    </template>
+                                </div>
+                            </lightning-accordion-section>
+                        </lightning-accordion>
+                    </template>
+                    <template lwc:if={hasHistory}>
+                        <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
+                            <lightning-accordion-section name="history" label={historyLabel} class="abp-history-section">
+                                <ul>
+                                    <template for:each={historyItems} for:item="h">
+                                        <li key={h.key} class="abp-history">
+                                            <div class="abp-meta">
+                                                <lightning-formatted-date-time value={h.at} year="numeric" month="short" day="numeric"
+                                                    hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                                · {h.status}
+                                            </div>
+                                            <div class="slds-text-body_small">{h.headline}</div>
+                                            <div class="abp-meta">{h.question}</div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </lightning-accordion-section>
+                        </lightning-accordion>
+                    </template>
+                </div>
+
+                <template for:each={threadTurns} for:item="turn">
+                    <section key={turn.key} data-turn={turn.key} class="abp-turn">
+                        <div class="abp-you">
+                            <div class="abp-label">You</div>
+                            <div class="abp-question">{turn.question}</div>
+                        </div>
+
+                        <div class={turn.replyClass} data-kind={turn.kind}>
+                            <div class="abp-label">{turn.label}</div>
+
+                            <!-- Plain text: NOT_FOUND from the resolver, an Apex error -->
+                            <template lwc:if={turn.isText}>
+                                <div class="abp-pre abp-agent-text" data-error={turn.isError}>{turn.text}</div>
+                            </template>
+
+                            <!-- AMBIGUOUS: candidates re-resolve by Id -->
+                            <template lwc:if={turn.isAmbiguous}>
+                                <div class="abp-agent-text">{turn.header}</div>
+                                <div class="abp-candidates slds-m-top_xx-small">
+                                    <template for:each={turn.candidates} for:item="c">
+                                        <button key={c.key} class="slds-button slds-button_neutral abp-candidate"
+                                            data-id={c.id} data-label={c.label} onclick={handleCandidate}>{c.display}</button>
+                                    </template>
+                                </div>
+                                <template for:each={turn.notes} for:item="n">
+                                    <div key={n.key} class="abp-meta">{n.text}</div>
+                                </template>
+                            </template>
+
+                            <!-- Brief: summary card, then one accordion section per brief section -->
+                            <template lwc:if={turn.isBrief}>
+                                <template lwc:if={turn.showMessage}>
+                                    <div class="abp-pre abp-agent-text" data-error={turn.messageIsError}>{turn.message}</div>
+                                </template>
+                                <template lwc:if={turn.header}>
+                                    <article class="abp-card abp-summary">
+                                        <h2 class="abp-card-title" data-testid="abp-summary-headline">{turn.header}</h2>
+                                        <!-- The rest of the summary starts collapsed, so the sections are in view under the headline. -->
+                                        <template lwc:if={turn.rest}>
+                                            <button class="slds-button abp-summary-toggle slds-m-top_xx-small" aria-expanded={turn.summaryExpanded}
+                                                aria-controls={turn.restId} data-key={turn.key} onclick={handleSummaryToggle}>
+                                                <lightning-icon icon-name={turn.summaryIcon} size="xx-small"
+                                                    class="slds-m-right_x-small abp-summary-icon"></lightning-icon>Full summary</button>
+                                            <div id={turn.restId} class={turn.restClass}><template for:each={turn.restRuns} for:item="run"><template lwc:if={run.strong}><strong key={run.key}>{run.text}</strong></template><template lwc:elseif={run.em}><em key={run.key}>{run.text}</em></template><template lwc:else><span key={run.key}>{run.text}</span></template></template></div>
+                                        </template>
+                                    </article>
+                                </template>
+                                <template lwc:if={turn.ignoredText}>
+                                    <div class="abp-meta">{turn.ignoredText}</div>
+                                </template>
+                                <template lwc:if={turn.hasSections}>
+                                    <lightning-accordion allow-multiple-sections-open active-section-name={closedSections}
+                                        class="abp-accordion">
+                                        <template for:each={turn.sections} for:item="s">
+                                            <lightning-accordion-section key={s.key} name={s.key} label={s.label} class="abp-section">
+                                                <lightning-badge slot="actions" label={s.status} class={s.badgeClass}></lightning-badge>
+                                                <div class="abp-lines" data-roving onkeydown={handleRovingKeydown} onfocusin={handleRovingFocusin}>
+                                                    <template for:each={s.lines} for:item="line">
+                                                        <div key={line.key} class="abp-pre">
+                                                            <template lwc:if={line.isDrill}>
+                                                                <button class="slds-button abp-line-link" data-roving-item data-id={line.drillId}
+                                                                    data-focus={line.focusKey} onclick={handleLineDrill}>{line.text}</button>
+                                                            </template>
+                                                            <template lwc:else>{line.text}</template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </lightning-accordion-section>
+                                        </template>
+                                    </lightning-accordion>
+                                </template>
+                            </template>
+
+                            <!-- Explore: answer, result tables, query trail, follow-ups -->
+                            <template lwc:if={turn.isExplore}>
+                                <div class="abp-pre abp-agent-text abp-answer" data-error={turn.isError}><template for:each={turn.answerRuns} for:item="run"><template lwc:if={run.strong}><strong key={run.key}>{run.text}</strong></template><template lwc:elseif={run.em}><em key={run.key}>{run.text}</em></template><template lwc:else><span key={run.key}>{run.text}</span></template></template></div>
+                                <template for:each={turn.tables} for:item="t">
+                                    <div key={t.key} class="abp-card slds-m-top_x-small">
+                                        <div class="abp-meta abp-table-title">{t.title}</div>
+                                        <template lwc:if={t.hasRows}>
+                                            <div class="abp-table-wrap" data-roving onkeydown={handleRovingKeydown} onfocusin={handleRovingFocusin}>
+                                                <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped">
+                                                    <thead>
+                                                        <tr class="slds-line-height_reset">
+                                                            <template for:each={t.columns} for:item="col">
+                                                                <th key={col.key} scope="col"><div class="slds-truncate">{col.label}</div></th>
+                                                            </template>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template for:each={t.rows} for:item="row">
+                                                            <tr key={row.key}>
+                                                                <template for:each={row.cells} for:item="cell">
+                                                                    <td key={cell.key}>
+                                                                        <template lwc:if={cell.isAction}>
+                                                                            <button class="slds-button abp-row-button" data-roving-item data-id={row.id}
+                                                                                data-focus={cell.focusKey} onclick={handleRowClick}>{cell.actionText}</button>
+                                                                        </template>
+                                                                        <template lwc:else><div class="abp-cell">{cell.value}</div></template>
+                                                                    </td>
+                                                                </template>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template lwc:if={turn.hasTrail}>
+                                    <lightning-accordion allow-multiple-sections-open active-section-name={closedSections}
+                                        class="abp-accordion">
+                                        <lightning-accordion-section name="trail" label={turn.trailLabel} class="abp-trail">
+                                            <ol>
+                                                <template for:each={turn.trail} for:item="q">
+                                                    <li key={q.key} class="abp-meta abp-pre">{q.text}</li>
+                                                </template>
+                                            </ol>
+                                        </lightning-accordion-section>
+                                    </lightning-accordion>
+                                </template>
+                                <template lwc:if={turn.hasFollowups}>
+                                    <div class="abp-chips slds-m-top_x-small">
+                                        <template for:each={turn.followups} for:item="f">
+                                            <button key={f.key} class="slds-button slds-button_neutral abp-chip"
+                                                data-text={f.text} onclick={handleFollowup}>{f.text}</button>
+                                        </template>
+                                    </div>
+                                </template>
+                            </template>
+
+                            <!-- Action draft or result (FE-14): title, status and fields, as text -->
+                            <template lwc:if={turn.isAction}>
+                                <article class="abp-card abp-action">
+                                    <div class="abp-card-head">
+                                        <h2 class="abp-card-title">{turn.action.title}</h2>
+                                        <span class="abp-meta">{turn.action.status}</span>
+                                    </div>
+                                    <dl class="slds-m-top_x-small">
+                                        <template for:each={turn.action.fields} for:item="f">
+                                            <div key={f.key} class="abp-field">
+                                                <dt class="abp-meta">{f.label}</dt>
+                                                <dd class="abp-pre">{f.value}</dd>
+                                            </div>
+                                        </template>
+                                    </dl>
+                                </article>
+                            </template>
+                        </div>
+                    </section>
+                </template>
+
+                <template lwc:if={showEmpty}>
+                    <div class="abp-empty">
+                        <h2 class="abp-empty-title">{emptyTitle}</h2>
+                        <p class="abp-empty-text">{emptyText}</p>
+                        <div class="abp-suggestions">
+                            <template for:each={suggestions} for:item="s">
+                                <button key={s.key} class="slds-button abp-suggestion" data-text={s.text}
+                                    onclick={handleFollowup}>{s.text}</button>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- The pending turn: the question at once, and a pulse until the reply replaces it. -->
+            <template lwc:if={pending}>
+                <section class="abp-pending" data-testid="abp-spinner">
+                    <template lwc:if={hasPendingQuestion}>
+                        <div class="abp-you">
+                            <div class="abp-label">You</div>
+                            <div class="abp-question">{pendingQuestion}</div>
+                        </div>
+                    </template>
+                    <div class="abp-reply">
+                        <div class="abp-label">{replyLabel}</div>
+                        <div class="abp-pulse" aria-hidden="true"><span></span><span></span><span></span></div>
+                    </div>
+                </section>
+            </template>
+        </div>
+
+        <!-- Footer, pinned: the quick actions, then the composer with the mic on its row. -->
+        <div class="abp-footer">
+            <div class="abp-quick-row" role="group" aria-label="Quick actions">
+                <template for:each={quickChips} for:item="chip">
+                    <button key={chip.key} class="slds-button abp-quick" data-key={chip.key} onclick={handleQuick}>{chip.label}</button>
+                </template>
+            </div>
+            <div class="abp-composer-row">
+                <textarea class="abp-composer" aria-label="Ask or /brief an account" placeholder="Ask anything, or /brief Account name"
+                    rows="1" oninput={handleComposerInput} onkeydown={handleComposerKeydown}
+                    onkeyup={handleComposerKeyOther} onkeypress={handleComposerKeyOther}></textarea>
+                <c-customer-summary-voice-input class="abp-mic" agent-name={micAgentName}
+                    onrecordingstate={handleRecordingState} ontranscriptupdate={handleTranscript}
+                    ontranscriptfinal={handleTranscript}></c-customer-summary-voice-input>
+                <button class="slds-button slds-button_brand abp-send" disabled={sendDisabled} onclick={handleSend}>Send</button>
+            </div>
+        </div>
+    </div>
+</template>

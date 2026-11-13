@@ -15,7 +15,7 @@ npx playwright test -g "6. typing"       # one spec
 ```
 
 Chromium only (Playwright's own build, `npx playwright install chromium` if it is missing),
-one worker, no parallelism. A full run takes about three minutes (3.1 minutes for 8 of 8 in `agent-probe`, before spec 9 was added and removed).
+one worker, no parallelism. A full run takes about three minutes (3.1 minutes for 8 of 8 in `agent-probe`, before spec 9 was added and removed; 2.9 minutes for 8 of 8 after FE-12).
 
 ## What it needs
 
@@ -64,13 +64,14 @@ never been opened. Locators pierce the panel's shadow DOM with Playwright's buil
 roles and labels first, then the panel's test hooks and the data attributes it renders
 (`data-turn`, `data-id`, `data-focus`):
 
-- `c-customer-summary-panel`, the host, to scope every locator and the axe scan
+- `c-customer-summary-panel`, the host, to scope every locator and the axe scan. Since FE-12 the
+  conversation inside it is `c-customer-summary-conversation`; locators pierce both shadow roots
 - the region named `Conversation`, the scroll box (specs 3 and 4)
 - `.slds-utility-panel__header`, the utility panel's own header (title, Minimize, Pop-out), whose
   bottom edge spec 3 measures the pinned bar from: the platform renders it with no role or label
-- `data-testid="abp-live-region"`, the panel's polite live region (`lightning-textarea` renders a
-  second, empty `role=status`, so the role alone is not enough)
-- `data-testid="abp-spinner"`, the loading spinner's container
+- `data-testid="abp-live-region"`, the conversation's polite live region (the role alone is not
+  enough: the page has other `role=status` regions)
+- `data-testid="abp-spinner"`, the pending turn: the question and the pulse until the reply lands
 - `data-testid="abp-summary-headline"`, the brief's summary headline, apart from the accordion
   section headers, which are also level-2 headings
 - `lightning-breadcrumbs` and `lightning-accordion-section`, to find the drill trail, each brief
@@ -90,6 +91,8 @@ name only.
 
 Every test closes the "Meet the new Guidance Center" walkthrough of a fresh org whenever it appears
 (`Panel.gotoAccount`), because it covers the page. It was on screen when spec 2 failed in agent-probe.
+It closes the docked "Welcome to Data Cloud!" pop-up (Minimize, Pop-out, Close) the same way, with its
+Close button, because it opens over the utility panel.
 Spec 2 has also failed there with no walkthrough, cause not found, so it can still be flaky in a fresh
 org ([org-migration.md](../docs/research/org-migration.md), "e2e after FE-9").
 
@@ -124,7 +127,8 @@ What it needs:
   palette, 12 fps, at most 900 px wide).
 - Model calls per run: three, all in the custom panel (one brief, one follow-up question and one
   explorer question). The `test:e2e` run adds about seven. The resolver stills (`not-found.png`,
-  `ambiguous.png`) and `hotkey-open.gif` make none. Nothing is written to the org by the capture
+  `ambiguous.png`), `hotkey-open.gif` and the whole-window `fr2-conversation-core.png`
+  (`08-conversation-core`, the open panel's empty state) make none. Nothing is written to the org by the capture
   itself beyond the panel's own memory rows.
 
 What it produces: stills at viewport 1440x900 and deviceScaleFactor 2, cropped to the panel and

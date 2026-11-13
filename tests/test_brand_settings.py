@@ -14,6 +14,8 @@ APP = ROOT / "force-app/main/default"
 TYPE_DIR = APP / "objects/Brand_Setting__mdt"
 RECORD = APP / "customMetadata/Brand_Setting.Default.md-meta.xml"
 PANEL = APP / "lwc/customerSummaryPanel"
+# FE-12: the panel is the frame and the conversation renders inside it; the theme is read across both.
+CONVERSATION = APP / "lwc/customerSummaryConversation"
 LOGO = APP / "staticresources/BrandLogo.resource"
 GUIDE = ROOT / "docs/patterns/10-brand-and-theming.md"
 NS = {"p": "http://soap.sforce.com/2006/04/metadata"}
@@ -108,10 +110,15 @@ class TestDefaultLogo(unittest.TestCase):
 
 class TestPanelTheme(unittest.TestCase):
     def setUp(self):
-        self.css = (PANEL / "customerSummaryPanel.css").read_text(encoding="utf-8")
+        def read(name):
+            return "\n".join(
+                (folder / (folder.name + name)).read_text(encoding="utf-8") for folder in (PANEL, CONVERSATION)
+            )
+
+        self.css = read(".css")
         self.css_code = re.sub(r"/\*.*?\*/", "", self.css, flags=re.S)
-        self.js = (PANEL / "customerSummaryPanel.js").read_text(encoding="utf-8")
-        self.html = (PANEL / "customerSummaryPanel.html").read_text(encoding="utf-8")
+        self.js = read(".js")
+        self.html = read(".html")
 
     def test_the_panel_sets_every_theme_variable(self):
         for name in THEME_VARIABLES:

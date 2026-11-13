@@ -34,11 +34,11 @@ class Panel {
         this.composer = this.host.getByRole('textbox', { name: COMPOSER_LABEL });
         this.send = this.host.getByRole('button', { name: 'Send', exact: true });
         this.briefButton = this.host.getByRole('button', { name: 'Summarize ' + ACCOUNT_NAME, exact: true });
-        // The panel's own live region; lightning-textarea renders a second, empty role=status.
+        // The conversation's own live region, by test id: the page has other role=status regions.
         this.liveRegion = this.host.getByTestId('abp-live-region');
         this.spinner = this.host.getByTestId('abp-spinner');
         this.turns = this.host.locator('[data-turn]');
-        // The scroll box: the conversation and the drill view.
+        // The scroll box: the thread and the drill view.
         this.body = this.host.getByRole('region', { name: 'Conversation', exact: true });
         this.breadcrumbs = this.host.locator('lightning-breadcrumbs');
         // The utility panel's own header (title, Minimize, Pop-out), above the panel component.
@@ -63,6 +63,15 @@ class Panel {
         const walkthrough = this.page.getByRole('dialog').filter({ hasText: 'Meet the new Guidance Center' });
         await this.page.addLocatorHandler(walkthrough, async (shown) => {
             await shown.getByRole('button', { name: 'Dismiss', exact: true }).click();
+        });
+        // The same first-run org can dock "Welcome to Data Cloud!" over the bottom right corner, with
+        // Minimize, Pop-out and Close buttons, over the utility panel. Close it the same way: the trigger
+        // is its title; the Close button is the one in the smallest element that holds both.
+        const dataCloud = this.page.getByText('Welcome to Data Cloud!', { exact: false });
+        await this.page.addLocatorHandler(dataCloud.first(), async () => {
+            const close = this.page.getByRole('button', { name: 'Close', exact: true });
+            const popUp = this.page.locator('*').filter({ has: dataCloud.first() }).filter({ has: close }).last();
+            await popUp.getByRole('button', { name: 'Close', exact: true }).first().click();
         });
         await this.page.goto(this.run.origin + APP_PATH);
         await expect(this.host).toBeAttached({ timeout: 90_000 });
