@@ -39,6 +39,29 @@
 - So the internal rename (BE-23, OPS-30) can go ahead with the agent bundle included, and OPS-51
   can publish the renamed agent by the path below.
 
+## What this means for the rename cards
+
+- **The name `Customer_Summary` is now taken in agent-probe by this spike's agent.**
+  - OPS-51's publish of the renamed bundle will find this BotDefinition. It will call
+    `POST .../authoring/agents/<id>/versions` and add version 2 to this agent, not create a new one.
+  - This run exercised only the create call (`/authoring/agents`). The versions call is shown
+    working in agent-probe for Account_Brief v2 ([agent-iteration-1.md](agent-iteration-1.md)), but
+    not for `Customer_Summary` (unproven here).
+- **Two bundles with one name (untested risk).** After BE-23, `force-app` and `spikes/rename` would
+  both hold a bundle named `Customer_Summary`.
+  - Publish looks only in `force-app`, so it would take the right one.
+  - `sf agent validate authoring-bundle --api-name Customer_Summary` and `scripts/agent-check.sh`
+    search every package directory, and could pick the spike copy or fail. This is not tested.
+  - The simplest fix is for BE-23 to delete the repo folder `spikes/rename/` in the same change.
+    That deletes files in git only, not anything in the org.
+- **The old Apex stays pinned.** The skill's lifecycle reference says the org blocks deleting a
+  backing Apex class while any authoring-bundle version references it.
+  - Customer_Summary v1 targets `AccountBriefResolver`, `AccountBriefGetAction` and `ExploreAction`.
+    Account_Brief v1 and v2 target the same classes.
+  - So OPS-54 cannot remove the old `AccountBrief*` action classes while this version or the old
+    agent exists, even after OPS-51 publishes a version on the new classes (inference from the
+    reference; not tried).
+
 ## What was done, in order
 
 | # | Step | Command (abridged) | Start to end (UTC) | Outcome |
@@ -113,8 +136,11 @@ kept in a scratch file, never printed, and deleted after `end`.
 - So the resolve-then-summary path ran through the renamed agent: `AccountBriefResolver`, then
   `AccountBriefGetAction` (inference from the reply; the trace was not read).
 - Model calls: this one turn.
-- Data written: it updated the existing `Account_Brief_Session__c` row for that rep and account. It
-  created no new row (0 rows created since 01:29Z; 1 row modified).
+- Data written: one existing `Account_Brief_Session__c` row was updated, and none was created.
+  - 0 rows were created since 01:29Z, and 1 row was modified: the Edge Communications row, at
+    01:29:41Z, inside the send's window (verified).
+  - That this preview made the update is an inference from the account and the time. Other cards
+    also write to this org.
 
 ## The publish path that worked (for the rename card to repeat)
 
@@ -152,7 +178,8 @@ That is Ben's stop condition (F07). Record the capture, and do not retry the sam
 ## Account Brief API names in the repo
 
 Counted with `git grep -l -I -E 'Account_Brief|AccountBrief|accountBrief|account-brief|ACCOUNT_BRIEF'`
-plus `git ls-files` for the names in paths, before this page was added. The count excludes `spikes/rename/`. A file counts once if
+plus `git ls-files` for the names in paths, before this page was added. A case-insensitive
+`account[_-]?brief` search finds the same 194 files. The count excludes `spikes/rename/`. A file counts once if
 the name is in its path, its content or both.
 
 **194 files in all:**
@@ -220,7 +247,7 @@ in the org next to the renamed copies. Read-only checks at 01:30Z (`sf org list 
 | The message channel | LightningMessageChannel `AccountBriefOpen` |
 | The panel | LightningComponentBundle `accountBriefPanel` |
 | The utility bar and app | FlexiPage `Account_Brief_UtilityBar`, CustomApplication `Account_Brief` |
-| The MCP door | ExternalClientApplication `AccountBriefMcpClient` and McpServerDefinition `AccountBriefMcp` (the active MCP server) |
+| The MCP door | ExternalClientApplication `AccountBriefMcpClient` and McpServerDefinition `AccountBriefMcp`. Both are listed in the org. The server is Active per [mcp-door-runbook.md](mcp-door-runbook.md); its status was not re-checked in this run |
 
 **Removing any of these is a destructive change and needs Ben's go.** The Approvals row "FR2:
 remove old Account Brief metadata, the old agent, or the old MCP server and app from `agent-probe`"
@@ -229,7 +256,10 @@ is "not approved; needs Ben's go", and its card is OPS-54.
 - Until then, the old Apex classes and their tests stay deployed and run in every RunLocalTests
   deploy. A later card must keep the signatures they use.
 - The old agent cannot simply be deleted while a version is Active. It would be deactivated first,
-  which is also Ben's call.
+  which is also Ben's call. Per the skill's lifecycle reference, a published agent is then deleted
+  in Setup, not by a destructive deploy.
+- The old action classes are referenced by every Account_Brief version and by Customer_Summary v1.
+  See "What this means for the rename cards".
 - The 3 session rows go with the object, so they need the same go.
 
 ## Gates
@@ -243,25 +273,38 @@ On the final commit:
 ## Undo
 
 Everything this card left in agent-probe, and how to remove it. Every removal is Ben's call. Each
-one either deactivates an agent or is a destructive deploy, which needs its own Approvals row.
-Nothing here needs removing for the rename to proceed.
+one either deactivates an agent or deletes it, which needs its own Approvals row. None of the Undo
+steps has been run, so each is unproven in this org.
 
-1. **The active Customer_Summary agent version.**
-   - Run `sf agent deactivate --api-name Customer_Summary -o agent-probe --json`.
+Nothing here has to be removed before BE-23 and OPS-30. But keep the agent if OPS-51 is to publish
+the renamed bundle as this agent's version 2 (see "What this means for the rename cards"). If the
+agent is removed first, OPS-51's publish becomes a create.
+
+What the org lists for this card (`sf org list metadata`, read-only, after the run):
+
+- Bot `Customer_Summary` and AiAgentDefinition `Customer_Summary`
+- AiAgentDefinitionVersion `Customer_Summary#1`, which is BotVersion v1
+- GenAiPlannerBundle `Customer_Summary_v1`
+- AiAuthoringBundle `Customer_Summary_1`
+
+No GenAiPlugin or GenAiFunction carries the name. The quick deploy's unversioned
+`Customer_Summary` bundle is not listed separately after the publish.
+
+1. **The active Customer_Summary version.**
+   - Run `sf agent deactivate --api-name Customer_Summary -o agent-probe --json`. The command and
+     its flags exist in CLI 2.158.7, and the skill documents it (`salesforce-cli-for-agents.md`,
+     section 6).
    - Account_Brief is a separate agent and is not affected.
-2. **The agent `Customer_Summary`** (Bot and AiAgentDefinition `Customer_Summary`, BotVersion v1,
-   GenAiPlannerBundle `Customer_Summary_v1`).
-   - After step 1, use a destructive deploy of `Bot:Customer_Summary` with its planner bundle, or
-     delete it in Setup under Agentforce Agents.
-   - The agentforce-generate skill's delete section gives the order.
-3. **The authoring bundle `Customer_Summary_1`**, the one the org lists.
-   - It goes with the agent in step 2, or by a destructive deploy of `AiAuthoringBundle:Customer_Summary_1`.
-   - The quick deploy's unversioned `Customer_Summary` bundle is not listed separately after the
-     publish (verified from `sf org list metadata`). If it shows up later, remove it the same way.
-4. **One modified `Account_Brief_Session__c` row.** The preview updated the existing row for that
-   rep and Edge Communications. It created no row. Nothing to remove: the row was already there,
-   and the panel writes it the same way.
-5. **Model calls.** One preview turn. Nothing to undo.
+2. **The agent and everything in the list above.**
+   - The skill's lifecycle reference (`agent-metadata-and-lifecycle.md`, "Delete") says a published
+     agent cannot be deleted through the CLI or the Metadata API, because of circular dependencies.
+     Use Setup under Agentforce Agents, after step 1.
+   - `sf project delete source --metadata AiAuthoringBundle:<name>` is documented only for a
+     bundle that was never published, so it does not apply here.
+3. **One modified `Account_Brief_Session__c` row.** The Edge Communications row was updated, and no
+   row was created. There is nothing to remove: the row existed before, and the panel writes it the
+   same way.
+4. **Model calls.** One preview turn. Nothing to undo.
 
 Local only, outside git: the publish capture, the command outputs and the temporary publish project
 are in the session's scratch folder. The preview traces are in the worktree's git-ignored `.sfdx/`.
