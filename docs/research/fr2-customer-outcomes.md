@@ -6,8 +6,8 @@
   outlives access) in [apex-review-2.md](../reviews/apex-review-2.md).
 - Read first: [fr2-agent-memory.md](fr2-agent-memory.md) (BE-34). This card follows its recommendation: keep our own
   store of outcomes against the account, because neither Agent Memory nor Data 360's agentic memory keys anything
-  to an account, keeps it per type, or reaches the panel, the rail or MCP. Where it differs: nowhere in substance.
-  BE-34 left open whether reps would need a second permission set; they do (see [Field access](#field-access)).
+  to an account, keeps it per type, or reaches the panel, the rail or MCP. Where it differs: nowhere in substance;
+  this card adds a second permission set (see [Field access](#field-access)).
 - The conversation history is BE-26's ([fr2-conversation-history.md](fr2-conversation-history.md)). Sentiment is
   BE-36's: this card stores its score, label and reason, and BE-36 fills them.
 
@@ -19,8 +19,9 @@
   outcomes, and a rep who loses the account loses them (N6).
 - **What others see (F79).** The author sees everything. Anyone else who can see the account sees the type, the
   date, a fixed phrase for the kind of outcome ("Task created", never the task's subject) and the sentiment label.
-  They never see the title, headline, body, record link or sentiment reason, unless the type's custom metadata
-  record is marked to share its text. That is off for all three types as shipped; Ben decides per type.
+  Our surfaces never show them the title, headline, body, record link or sentiment reason, unless the type's custom
+  metadata record is marked to share its text. The title, headline, body and reason are also closed to them
+  everywhere else; the record link is a plain field the outcome set can read (see [Field access](#field-access)). That is off for all three types as shipped; Ben decides per type.
 - **Retention by type.** Summaries are kept forever; actions and saved answers for two years. A batch deletes
   expired outcomes. It is scheduled by a script that was **not** run in agent-probe (its Approvals row is not
   approved).
@@ -81,7 +82,10 @@ or in a report, sees no title, headline, body or reason; the panel and the outco
 grants Read on the master (Account). The data-access set grants no Account access, and adding it there broke
 BE-26's test of a rep who loses the account. So the outcome access lives in its own set,
 `Customer_Summary_Outcome_Access`: Read on Account, Read and Create on `Customer_Outcome__c`, and read and edit on
-the eight non-text fields. It grants no edit, no delete, no View All and no class. The data-access set gains class
+the eight non-text fields. It grants no edit, no delete, no View All and no class. One of those eight is
+`Related_Record_Id__c`: our surfaces and the report type withhold it from anyone but the author, but a rep with
+the set can read it through the API, a list view or the record page. The card closes only the four text fields;
+closing the link too would mean moving it into system context like them. The data-access set gains class
 access to `CustomerOutcomes` and `CustomerOutcomeSaveAnswer` only.
 
 Reps need both sets. A rep with only the data-access set still gets every summary, with no outcome context and no
@@ -118,6 +122,8 @@ same for its two years. The 32,768-character body does not change the count.
 
 ### Governor cost
 
+Only the DML count is asserted by a test; the SOQL counts are read from the code.
+
 | Path | SOQL | DML statements |
 |---|---|---|
 | A summary's outcome context (`CustomerSummary`, the account already read) | 2, plus 1 when any line is the rep's own | 0 |
@@ -125,7 +131,7 @@ same for its two years. The 32,768-character body does not change the count.
 | The explorer's outcome context | 3, plus 1 when any line is the rep's own | 0 |
 | `listOutcomes` / `getOutcome` | 2 or 3 / 2 or 3 | 0 |
 
-Measured in `threeRequestsMakeNoModelCallAfterDml`: three briefs in one invocation make 4 DML statements, the
+Asserted in `threeRequestsMakeNoModelCallAfterDml`: three briefs in one invocation make 4 DML statements, the
 memory upsert and the one outcome write. Every model call still runs before any DML.
 
 ## Proof that the MCP path receives the context
