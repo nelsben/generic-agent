@@ -5,7 +5,6 @@ domain: ops
 tier: frontier
 tier_reason: External Client App deploy and MCP server creation through a REST path in a live org
 status: parked
-blocked_by: [OPS-51]
 fixes: []
 scope: [mcp-door/**, tests/test_mcp_door.py, docs/research/mcp-door-runbook.md, docs/patterns/09-outside-door-mcp.md]
 forbid: [force-app/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
