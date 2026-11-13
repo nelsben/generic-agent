@@ -21,7 +21,11 @@ class TestSfdxProject(unittest.TestCase):
     def test_package_directories(self):
         self.assertEqual(
             self.project["packageDirectories"],
-            [{"path": "force-app", "default": True}, {"path": "mcp-door", "default": False}],
+            [
+                {"path": "force-app", "default": True},
+                {"path": "mcp-door", "default": False},
+                {"path": "spikes", "default": False},
+            ],
         )
 
     def test_name_and_namespace(self):
