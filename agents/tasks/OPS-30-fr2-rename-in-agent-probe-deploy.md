@@ -4,7 +4,7 @@ title: FR2: rename in agent-probe — deploy the Customer Summary metadata, assi
 domain: ops
 tier: frontier
 tier_reason: production-classified deploy of the renamed metadata, then the full e2e run in a live org
-status: queued
+status: merged
 fixes: []
 scope: [docs/research/fr2-rename-org.md, docs/research/fr2-rename-go.md, e2e/**, tests/**, force-app/**]
 forbid: [force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -28,3 +28,7 @@ Feature revision 2 (FR2): after the repo rename (BE-23), agent-probe must run Cu
 - Prove it: the Customer Summary app's utility item opens the panel, and npm run test:e2e passes in full under the new names (if spec 2 flakes on focus, rerun once and report both). Run no agent spec, agent test or preview here: the agent proof is OPS-51's. Record timings, the steps in order and the results in docs/research/fr2-rename-org.md. Paste the Playwright summary line in the hand-back
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - Never sign in or out, never create a user, never touch experimental, never publish or activate an agent. No record Ids, org Ids, usernames, emails, tokens, session Ids, instance hostnames or URLs with query strings in any file. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain read the diff by hand: the fix (AgentPrompt_SummarySynthesis, content unchanged, one constant and one test line) stays inside the card's fix-for-the-rename clause, and validate 2 then passed 251 of 251 tests. Attempt 1's one refute was tests/__pycache__, made by the mod's own gate run; the budget went to 3 and the worker re-emitted the same report. Privacy grep on 263 added lines: clean. Follow-ups carried in PR #131: BE-29 scope path; prompt name in OPS-38, OPS-42 and OPS-49; README step 4 in OPS-36; the e2e "Welcome to Data Cloud!" pop-up in FE-12.
