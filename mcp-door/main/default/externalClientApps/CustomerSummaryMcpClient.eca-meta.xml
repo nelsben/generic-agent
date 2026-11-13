@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExternalClientApplication xmlns="http://soap.sforce.com/2006/04/metadata">
     <contactEmail>__MCP_CONTACT_EMAIL__</contactEmail>
-    <description>OAuth client for the CustomerSummaryMcp hosted MCP server. Per-user sign-in with PKCE; scopes mcp_api and refresh_token only.</description>
+    <description>OAuth client for the CustomerSummaryMcp hosted MCP server. Per-user sign-in with PKCE; scopes MCP and RefreshToken only.</description>
     <distributionState>Local</distributionState>
     <isProtected>false</isProtected>
     <label>Customer Summary MCP Client</label>
