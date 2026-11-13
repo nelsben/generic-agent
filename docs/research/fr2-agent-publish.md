@@ -52,8 +52,8 @@
 | 3 | Org class | `sf org list --skip-connection-status --json` (local read) | 06:50 | `agent-probe`: not scratch, not sandbox, not a Dev Hub, no trial date |
 | 4 | Red: versions before | BotVersion query (below), read-only | 06:50 | Account_Brief v1 Inactive, v2 Active; Customer_Summary v1 Active |
 | 5 | Red: actions before | `sf project retrieve start --metadata GenAiPlannerBundle:Customer_Summary_v1 --target-metadata-dir <scratch> --unzip`, read-only, outside the repo | 06:50 | v1's actions call `AccountBriefResolver`, `AccountBriefGetAction` and `ExploreAction` (the red evidence) |
-| 6 | Classes present | `sf data query` ApexClass by name, read-only | 06:52 | `CustomerSummaryResolver`, `CustomerSummaryGetAction`, `ExploreAction` Active and valid |
-| 7 | Gate before publish | `bash scripts/agent-check.sh` | 06:50:58 to 06:51:01 | pass: local compile ok (0 warnings), org validate ok |
+| 6 | Gate before publish (validate) | `bash scripts/agent-check.sh` | 06:50:58 to 06:51:01 | pass: local compile ok (0 warnings), org validate ok |
+| 7 | Classes present | `sf data query` ApexClass by name, read-only | 06:52 | `CustomerSummaryResolver`, `CustomerSummaryGetAction`, `ExploreAction` Active and valid |
 | 8 | (not an attempt) | the publish line wrapped in `timeout 280` | 06:52:45 | The shell has no `timeout` command: exit 127, `command not found: timeout`. The CLI never started (no capture line written), so no call reached the org |
 | 9 | **Publish, attempt 1** | `SF_LOG_LEVEL=debug PUBLISH_CAPTURE_FILE=<scratch> NODE_OPTIONS="--require <scratch>/fetch-capture.cjs" sf agent publish authoring-bundle --api-name Customer_Summary -o agent-probe --skip-retrieve --json`, from the worktree | 06:53:05 to 06:53:27 | **Succeeded.** `success` true, `botDeveloperName` `Customer_Summary`, 3 deployed, 0 retrieved. Capture below |
 | 10 | Tree check | `git status --short`; `git checkout -- force-app/main/default/aiAuthoringBundles/Customer_Summary` | 06:53 | The publish left the bundle `-meta.xml` reformatted (the same one element on four lines, no `<target>` line). Restored; tree clean |
@@ -65,6 +65,11 @@
 | 16 | **Proof turn** | `sf apex run --file <scratch>/turn1.apex -o agent-probe --json` | 06:54:47 to 06:55:21 | Pass. See "Proof" |
 | 17 | Session rows after | the same counts, plus rows modified since 06:54:00Z | 06:55 | See "Proof" |
 | 18 | Gates | see "Gates" | n/a | pass |
+
+**No separate preview.** The lifecycle is validate, preview, publish, activate. No
+`sf agent preview` was run: the bundle is the one OPS-30 deployed and its e2e run exercised, the
+card allows one proof turn, and that turn (step 16) ran through the published, active version
+itself. It is the behavioural check for this card.
 
 ### The publish capture (attempt 1)
 
@@ -124,8 +129,9 @@ Agent metadata the org lists after the run (`sf org list metadata`, read-only):
 - GenAiPlannerBundle: `Account_Brief_v1`, `Account_Brief_v2`, `Customer_Summary_v1`,
   **`Customer_Summary_v2`** (new).
 - AiAuthoringBundle: `Account_Brief_1`, `Account_Brief_2`, `Customer_Summary_1`,
-  `Customer_Summary_2`. `Customer_Summary_2` was already listed after OPS-30's deploy; this publish
-  locked it to v2 (inference from the lifecycle the skill documents; no `_3` draft is listed).
+  `Customer_Summary_2`. `Customer_Summary_2` was already listed after OPS-30's deploy. Retrieved to
+  scratch after the publish, its `-meta.xml` holds `<target>Customer_Summary.v2</target>`, so this
+  publish locked it to v2 (verified). No `_3` draft is listed.
 
 ## Proof
 
@@ -160,8 +166,9 @@ and the raw run output was deleted after reading.
 - **OPS-54 (removing leftovers):** `AccountBriefResolver` and `AccountBriefGetAction` are still
   referenced by Account_Brief v1 and v2 (v2 still Active) and by the now Inactive Customer_Summary
   v1, so per [fr2-rename-go.md](fr2-rename-go.md) they stay pinned until those versions are gone.
-  The org also reports `AccountBriefGetAction` as not valid (`IsValid` false), which only means it
-  is due for a recompile.
+  At 06:52Z, before the publish, the org reported `AccountBriefGetAction` as not valid (`IsValid`
+  false; verified), while Account_Brief v2, still Active, calls it. That this only means the class
+  is due for a recompile is unproven; the old agent was not run here.
 
 ## Gates
 
@@ -183,9 +190,10 @@ and each is Ben's call. Deactivating or deleting an agent needs its own Approval
    `sf agent deactivate --api-name Customer_Summary -o agent-probe --json`.
 2. **The new version's metadata:** BotVersion v2 of `Customer_Summary`, AiAgentDefinitionVersion
    `Customer_Summary#2`, GenAiPlannerBundle `Customer_Summary_v2` and the authoring bundle
-   `Customer_Summary_2`, now locked to v2. A published version cannot be deleted through the CLI
-   or the Metadata API (the skill's lifecycle reference, "Delete"). To remove it, remove the whole
-   agent in Setup under Agentforce Agents, after step 1's deactivate.
+   `Customer_Summary_2`, now locked to v2 (verified). A published agent cannot be deleted through
+   the CLI or the Metadata API ([fr2-rename-go.md](fr2-rename-go.md#undo), citing the skill's
+   lifecycle reference). To remove it, remove the whole agent in Setup under Agentforce Agents,
+   after step 1's deactivate.
 3. **Customer_Summary v1 is now Inactive** (a side effect of step 12). To restore the state before
    this card, run step 1's activate of version 1.
 4. **One updated `Customer_Summary_Session__c` row** (Edge Communications). No row was created.
