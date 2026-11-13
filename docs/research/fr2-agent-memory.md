@@ -105,9 +105,11 @@ deletes after the turn.
 - **What "lost" shows.** At 30 minutes the call still succeeded and returned the same session, but no brief was
   built, and it answered in under 3 seconds. Whether `resolve_account` ran is not shown (it writes nothing). The
   reply text was not kept, so whether it was a session-ended message or a re-greeting is unproven.
-- **The cause is unproven.** One sample, and a confound: the 30-minute session was also the oldest of eight
-  sessions open at once for the same user and agent, so idle time is not separated from session age or count. A
-  routing slip cannot be ruled out either.
+- **The cause is unproven.** One sample, and a confound: the 30-minute session was the first of the four measured
+  sessions to start (07:13:38 UTC; the others started at 07:14:11, 07:14:43 and 07:15:12), and eight sessions were
+  open at once for the same user and agent (the four from the wasted first pass, started 07:10:38 to 07:12:14,
+  were older still), so idle time is not separated from session age or the number of open sessions. A routing
+  slip cannot be ruled out either.
 - **What it means for the product:** nothing breaks. The panel and MCP keep their own history (BE-26) and never
   lean on the agent's session. A team using the optional agent should not count on a follow-up after 30 idle
   minutes keeping its context: it was lost at 30 on one sample, cause unproven.
