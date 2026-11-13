@@ -4,7 +4,7 @@ title: FR2: summary engine limits become fixes — N1, N2, N3, N7 and N8 from th
 domain: backend
 tier: frontier
 tier_reason: governor-limit behaviour, user-mode field access and prompt rules, deployed and measured live in a production-classified org
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/classes/CustomerSummary.cls, force-app/main/default/classes/CustomerSummaryTest.cls, force-app/main/default/classes/CustomerSummaryResolver.cls, force-app/main/default/classes/CustomerSummaryResolverTest.cls, force-app/main/default/classes/CustomerSummaryGetAction.cls, force-app/main/default/classes/CustomerSummaryGetActionTest.cls, force-app/main/default/classes/CustomerSummaryGetActionTest.cls-meta.xml, force-app/main/default/classes/CustomerSummarySection.cls, force-app/main/default/classes/CustomerSummary*Section.cls, force-app/main/default/classes/CustomerSummary*SectionTest.cls, force-app/main/default/staticresources/AgentPrompt_SummarySynthesis.resource, scripts/summary-accuracy.apex, docs/research/fr2-summary-accuracy.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -27,3 +27,34 @@ Feature revision 2 (FR2), Ben's chapter notes on pattern 01. He asked to "cover 
 - **Old classes in the org:** the old AccountBrief* classes and tests are still deployed in agent-probe and compile against these classes. Keep every signature and interface method they use. If RunLocalTests fails in an AccountBrief* class, stop and hand back; never delete, stub or redeploy an old class
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - Living docs are not edited here; OPS-38 rewrites pattern 01 from this card's research page. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never sign in or out, never create a user in the org, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-13). One attempt (1f28445); the first hand-back came while the worker still waited on its own deploy validation, and the verify run counted it as attempt 2 of 2.
+
+- 17 confirmed, 0 refuted, 5 unverifiable. Every unverifiable row is an org fact: the live accuracy numbers, the RunLocalTests validate and quick deploy, the query count per run, the session row counts, and a platform claim about anonymous Apex.
+
+Findings (the review's N1, N2, N3, N7, N8):
+- N1: one call builds at most 3 summaries; each request past that gets ERROR with a fixed line and no query or model call. The cap holds on the agent action and the panel batch path, which both go through runAll.
+- N2: unreadable fields are checked before the query and left out, with a "Left out because you can't see these fields: …" line, in the profile, calls and open deals sections. Only the profile path has a new runAs test.
+- N3: the synthesis prompt gains rule 6: an ERROR section says it could not be loaded and is never read as "none" or zero. An ERROR source inside a pre-reduce is passed on as its own line.
+- N7: a resolver query error returns ERROR with fixed text, not NOT_FOUND.
+- N8: an answer over 5,900 characters is cut at a line or sentence end with a marker; the memory row holds the same text.
+
+Accuracy check (docs/research/fr2-summary-accuracy.md): five seed accounts, 83 of 84 numbers traced to a section. The one miss is a correct sum (two overdue deals) that no section states. Follow-ups proposed, none built.
+
+Org: deployed to agent-probe under the standing row (validate with RunLocalTests, then quick deploy). Six live runs under the approved live-checks row wrote session rows only (four new, one updated). No AccountBrief* class touched, nothing published, no user created.
+
+Disclosed and accepted:
+- The live numbers, the deploy record and the row counts are the worker's account; nothing in git shows them.
+- The worktree's gitignored .sf/config.json was set to agent-probe for the deploy hook.
+- A tests/__pycache__ found at review time was removed before merge.
+
+Still open:
+- Opportunity.Amount and the sections the review did not name (Cases, Activity and others) still fail the whole section on an unreadable field.
+- Rule 6 was not exercised live (no section failed); unit tests cover it.
+- The pre-reduce prompts have no ERROR rule of their own.
+- CustomerSummary.visibleAccount still maps a query error to NOT_FOUND.
+- The calls and open deals N2 paths have no new tests.
+
+Privacy grep over the diff (812 added lines): 0 hits.
