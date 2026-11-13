@@ -22,8 +22,6 @@ sequenceDiagram
     participant P as accountBriefPanel
     participant UB as platformUtilityBarApi
     participant C as AccountBriefPanelController
-    participant AC as AccountBriefAgentClient
-    participant AG as Account_Brief agent
     participant LMS as AccountBriefOpen channel
     U->>DOC: Cmd-K or Ctrl-K
     DOC->>P: event.code KeyK, no Shift or Alt
@@ -34,15 +32,6 @@ sequenceDiagram
     C-->>P: reply
     P->>P: render only if the token is still the latest
     P->>U: polite live region announces the result
-    U->>P: type, then Ask the agent
-    P->>U: live region announces "Asking the agent"
-    P->>C: askAgent(message, sessionId, open record on the first turn)
-    C->>AC: ask
-    AC->>AG: generateAiAgentResponse
-    AG-->>AC: reply envelope and sessionId
-    AC-->>C: reply text and sessionId, or the fixed failure line
-    C-->>P: reply
-    P->>P: keep the sessionId for the next turn, render only if still the latest
     LMS-->>P: prompt and recordId from another component
     U->>P: Esc
     P->>UB: minimize(utilityId)
@@ -66,21 +55,10 @@ sequenceDiagram
 8. **Other components can drive it.** A message on the `AccountBriefOpen` channel opens the panel
    and runs a prompt with that message's record as context, or briefs an Account Id sent alone.
 9. **The answer gets the room.** Only one row is pinned above the conversation: the Brief button,
-   whose label truncates when it is long but keeps "Brief <Account name>" as its accessible name,
-   and "Ask the agent". "Sections" and "Earlier briefs" sit at the top of the scroll box and
+   whose label truncates when it is long but keeps "Brief <Account name>" as its accessible name.
+   "Sections" and "Earlier briefs" sit at the top of the scroll box and
    scroll away. A brief's summary shows its headline, with the rest behind a "Full summary"
    toggle, so the section headers are in view under it.
-10. **Ask the agent, in the panel.** "Ask the agent" sends the composer text to the registered
-    `Account_Brief` agent through `AccountBriefPanelController.askAgent`, and the reply shows in
-    the panel as a text turn. Nothing opens the built-in Agentforce panel. The first turn carries
-    the open record; later turns carry the agent session instead, so a follow-up such as "What
-    about their open cases?" stays on the same account. A new account or a new panel session
-    starts a new agent session. The live region says "Asking the agent" during the wait, which
-    took 15 and 10 seconds for the two turns of the probe in `agent-probe`, and "Agent replied" after. Latest wins applies,
-    as for every other request. On any failure the panel shows only "The agent could not answer
-    right now. Try again in a minute." The button is disabled while the composer is empty. See
-    [06](06-agent-routing-and-verbatim-relay.md) and
-    [panel-agent-1.md](../research/panel-agent-1.md).
 
 ## See it
 
@@ -88,7 +66,7 @@ sequenceDiagram
 
 ![The panel with the Open deals section expanded under the one-row bar: "Open deals · 5 of 5" with an OK badge, "5 open, $634,180 total pipeline, 2 overdue", then Edge Core Router Refresh and Edge Support Plan Renewal, each marked OVERDUE with its contacts, and the start of Edge Fiber Backhaul Expansion, above the composer](../assets/panel-sections-open.png)
 
-![The panel on the Edge Communications page after "Ask the agent": the question "What are the open deals at this account?" at the top of the conversation and the start of the agent's reply under it, above the composer](../assets/panel-ask-agent.png)
+![Retired in FR2: the panel on the Edge Communications page after the removed "Ask the agent" button: the question "What are the open deals at this account?" at the top of the conversation and the start of the agent's reply under it, above the composer](../assets/panel-ask-agent.png)
 
 ## Why you can trust it
 
@@ -96,9 +74,7 @@ sequenceDiagram
   has tests for the hotkey by key code on and off Mac, Shift, Alt and Cmd being ignored off Mac,
   yielding to an earlier handler, six latest-wins cases, Esc returning focus, Tab never trapped,
   Enter and IME, the live region, markup rendered as text, the one-row bar, the "Full summary"
-  toggle, three axe checks, and ten "Ask the agent" cases: the send with the open record, the
-  follow-up that reuses the agent session, a new session for a new account and a new panel
-  session, the fixed failure line, latest wins, the disabled button and axe.
+  toggle, three axe checks, and a case that no "Ask the agent" button renders.
 - **The metadata shape is tested.** [test_app.py](../../tests/test_app.py) checks the utility bar
   has exactly one item, the panel, with its properties, and that the app references it.
 - **Review findings are fixed in code.** The LWC review ([lwc-review.md](../reviews/lwc-review.md))
@@ -115,17 +91,14 @@ sequenceDiagram
   run in the org this was built in ([deploy-verify.md](../research/deploy-verify.md)) and in
   `agent-probe`, where the [e2e report](../assets/e2e-report.png) was taken (3.1 minutes). The first
   run in `agent-probe` passed 7 of 8, and spec 2 (Esc returning focus) has failed now and then since,
-  cause not found ([e2e/README.md](../../e2e/README.md)). Spec 9, "Ask the agent" with a
-  follow-up that reuses the agent session, failed on the old panel (the button handed off to the
-  built-in panel) and passed after the deploy; the full suite then passed 9 of 9 in `agent-probe`
-  (3.3 minutes, [panel-agent-1.md](../research/panel-agent-1.md)). The e2e report image is still
-  the earlier 8 of 8 run.
+  cause not found ([e2e/README.md](../../e2e/README.md)). The earlier spec 9, "Ask the
+  agent", was removed with the button (FR2). The e2e report image is the earlier 8 of 8 run.
 
 ## Adopt it
 
 1. Copy `force-app/main/default/lwc/accountBriefPanel/` with its `__tests__/` folder, and the
    Jest mocks it maps in `jest.config.js`.
-2. Copy `AccountBriefPanelController.cls`, `AccountBriefAgentClient.cls` and their tests, the `AccountBriefOpen` message channel,
+2. Copy `AccountBriefPanelController.cls` and its test, the `AccountBriefOpen` message channel,
    the `Account_Brief_UtilityBar` flexipage and the `Account_Brief` app.
 3. **Change the back end.** The panel only calls `AccountBriefPanelController`. Point its methods
    at your own engine and keep the reply shapes.
@@ -145,6 +118,6 @@ sequenceDiagram
 - The panel needs a desktop browser. It is not built for the Salesforce mobile app.
 
 > [!WARNING]
-> **Not yet proven:** a run as a non-admin user (for "Ask the agent" too), the second hotkey branch (one run exercises only
+> **Not yet proven:** a run as a non-admin user, the second hotkey branch (one run exercises only
 > Cmd-K or only Ctrl-K), the dark theme and its contrast, and real screen-reader output. The live
 > region has been checked in the page markup only.

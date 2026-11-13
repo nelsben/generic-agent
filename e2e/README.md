@@ -15,7 +15,7 @@ npx playwright test -g "6. typing"       # one spec
 ```
 
 Chromium only (Playwright's own build, `npx playwright install chromium` if it is missing),
-one worker, no parallelism. A full run takes about four minutes (3.3 minutes for 9 of 9 in `agent-probe`).
+one worker, no parallelism. A full run takes about three minutes (3.1 minutes for 8 of 8 in `agent-probe`, before spec 9 was added and removed).
 
 ## What it needs
 
@@ -38,7 +38,7 @@ go to `test-results/`, the HTML report to `playwright-report/`; both are gitigno
 
 ## Model calls
 
-A full run makes **at most about nine model calls** (briefs, questions and two agent turns), so
+A full run makes **at most about seven model calls** (briefs and questions), so
 it costs money and writes brief memory rows, as any use of the panel does:
 
 | Spec | Calls |
@@ -51,7 +51,6 @@ it costs money and writes brief memory rows, as any use of the panel does:
 | 6. Typing enables Send; Enter sends | 0 |
 | 7. Drill and breadcrumb | 1 (it fails if no brief section line is drillable) |
 | 8. axe in the brief and drill states | 1, or 2 when no brief section line is drillable |
-| 9. Ask the agent, then a follow-up that reuses its agent session | 2 agent turns (each runs the agent's own actions) |
 
 Specs 5 and 6 send `/brief` of a name that matches no account: the resolver answers from SOQL
 with no model call. Spec 5 uses it as the second request because it lands well before the first
@@ -81,23 +80,13 @@ roles and labels first, then the panel's test hooks and the data attributes it r
 
 Spec 3 measures the panel at 340x480 after one brief, with the account's "Earlier briefs" list
 rendered: from the panel header's bottom edge to the top of the scroll box is at most 80 CSS px,
-the scroll box is at least 240 CSS px tall, and the Brief and "Ask the agent" buttons share one row.
+the scroll box is at least 240 CSS px tall, and the bar holds the Brief button with no "Ask the agent" button.
 
 Every brief line that describes one record (a deal, a contact, a case, a task, a call) is a
 drill button; spec 7 fails if none is. Spec 2 checks that focus is back where the hotkey was
 pressed after Esc, and is still there 2.5 seconds later, once the utility bar's own late focus
 moves are over. Spec 5 waits on the Aura response of the panel's Apex method, matched by method
 name only.
-
-Spec 9 types "What are the open deals at this account?" and presses "Ask the agent", then asks
-"What about their open cases?", which only makes sense after the first turn. It reads each
-`askAgent` call's params and return value from the Aura request and response in memory
-(`Panel.apexCall`) and compares them as booleans only, so no Id, session or reply text reaches an
-assertion message: turn 1 sends the open account and no session, turn 2 sends turn 1's session and
-no record, the agent keeps the session, turn 2 does not ask which account, and each reply shows
-in its turn in the custom panel. The live region must say "Asking the agent" during each wait. On
-the panel before the direct call, the button handed off to the built-in Agentforce panel, so the
-spec failed at the live region; it took 42.6 seconds alone after the deploy.
 
 Every test closes the "Meet the new Guidance Center" walkthrough of a fresh org whenever it appears
 (`Panel.gotoAccount`), because it covers the page. It was on screen when spec 2 failed in agent-probe.
@@ -108,6 +97,8 @@ Accessibility checks use `@axe-core/playwright` scoped to `c-account-brief-panel
 A and AA rules; the violations of each state are attached to the test as JSON.
 
 ## Capture
+
+The capture scripts for the built-in panel (`06-agent`) and for "Ask the agent" (`07-ask-agent`) were deleted with the feature (FR2); the three images they wrote stay in `docs/assets/`, marked retired in the manifest.
 
 The screenshots and GIFs in `docs/assets/` (listed in `docs/assets/MANIFEST.md`) come from the
 live org with one command:
@@ -128,24 +119,13 @@ What it needs:
 - Everything the e2e suite needs (above): the deployed panel, a signed-in sf CLI session for the
   alias, and the seeded sample account Edge Communications. Sign-in is the e2e global setup;
   capture never logs in itself.
-- For `06-agent.capture.js` (`agent-brief.png`, `agent-explore.png`): the `Account_Brief` agent
-  published and active, with the running user granted it. **Stale since the direct call:** the
-  script opened the built-in Agentforce panel through the custom panel's "Ask the agent" button,
-  which now asks the agent itself and shows the reply in the custom panel. It is skipped (`test.skip`)
-  until it is pointed at the built-in panel's own entry point; the committed
-  stills are from before the change and still show the built-in panel correctly.
-- For `07-ask-agent.capture.js` (`panel-ask-agent.png`): the same agent, and the deployed panel
-  with "Ask the agent" calling it directly. One agent turn. On a
-  user's first use it closes the "Agentforce Learns from Your Conversations" pop-up with "Cancel
-  and close" (memory is not turned on) and accepts the generative AI notice with "Got It".
 - `playwright-report/index.html` from a full `npm run test:e2e` run, for `e2e-report.png`.
 - `/opt/homebrew/bin/ffmpeg` and `ffprobe`, which turn the recorded video into GIFs (two-pass
   palette, 12 fps, at most 900 px wide).
-- Model calls per run: four. Three in the custom panel (one brief, one follow-up question and one
-  explorer question) and one agent turn through "Ask the agent". The skipped `06-agent.capture.js`
-  made two more agent turns in the built-in panel (a brief, then an org-wide count). The `test:e2e` run adds about nine. The resolver stills (`not-found.png`, `ambiguous.png`) and
-  `hotkey-open.gif` make none. Nothing is written to the org by the capture itself beyond the
-  panel's own memory rows and what the platform keeps for the two agent turns.
+- Model calls per run: three, all in the custom panel (one brief, one follow-up question and one
+  explorer question). The `test:e2e` run adds about seven. The resolver stills (`not-found.png`,
+  `ambiguous.png`) and `hotkey-open.gif` make none. Nothing is written to the org by the capture
+  itself beyond the panel's own memory rows.
 
 What it produces: stills at viewport 1440x900 and deviceScaleFactor 2, cropped to the panel and
 the record header (at most 1600 px wide); GIFs cut from the test's video, 6 to 20 seconds, each
@@ -182,7 +162,6 @@ or `CAPTURE_FRAMES_DIR`).
   address, a 15 or 18 character Id, or `URL_Redacted`. The error names the asset and the category
   only, never the text.
 - **Cropped.** Stills and GIFs show the panel and enough of the record page for context, not the
-  global header. The two agent stills crop the right of the page, where the built-in panel docks.
-- **Sample data only.** Captures use the sample account Edge Communications and the other records
+  global header. - **Sample data only.** Captures use the sample account Edge Communications and the other records
   seeded from `data/sample/`. Explorer questions in captures do not ask for owners.
 - **Review by eye before committing:** every PNG, and the frames written for each GIF.

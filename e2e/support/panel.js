@@ -34,7 +34,6 @@ class Panel {
         this.composer = this.host.getByRole('textbox', { name: COMPOSER_LABEL });
         this.send = this.host.getByRole('button', { name: 'Send', exact: true });
         this.briefButton = this.host.getByRole('button', { name: 'Brief ' + ACCOUNT_NAME, exact: true });
-        this.agentButton = this.host.getByRole('button', { name: 'Ask the agent', exact: true });
         // The panel's own live region; lightning-textarea renders a second, empty role=status.
         this.liveRegion = this.host.getByTestId('abp-live-region');
         this.spinner = this.host.getByTestId('abp-spinner');
@@ -173,27 +172,6 @@ class Panel {
             },
             { timeout }
         );
-    }
-
-    /**
-     * A promise for one AccountBriefPanelController call: the params the panel sent and the value
-     * Apex returned, parsed from the Aura request and response in memory. Callers compare them
-     * with booleans only, so no Id, session or reply text reaches an assertion message.
-     */
-    async apexCall(method, timeout = ANSWER_TIMEOUT) {
-        const response = await this.apexResponse(method, timeout);
-        const message = new URLSearchParams(response.request().postData() || '').get('message') || '{}';
-        const action = (JSON.parse(message).actions || []).find(
-            (a) => a.params && a.params.classname === 'AccountBriefPanelController' && a.params.method === method
-        );
-        const body = await response.text();
-        const parsed = JSON.parse(body.slice(body.indexOf('{')));
-        const returned = (parsed.actions || []).find((a) => action && a.id === action.id) || {};
-        let value = returned.returnValue;
-        if (value && Object.prototype.hasOwnProperty.call(value, 'returnValue')) {
-            value = value.returnValue;
-        }
-        return { params: (action && action.params.params) || {}, state: returned.state, value: value || null };
     }
 
     /** Lets the page run the callbacks of a response that just arrived, and render: two frames. */

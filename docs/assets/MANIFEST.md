@@ -14,6 +14,10 @@ script, is the active version (see [agent-iteration-1](../research/agent-iterati
 `panel-ask-agent.png` shows the same agent answering inside the custom panel, through "Ask the
 agent", in the same org (see [panel-agent-1](../research/panel-agent-1.md)).
 
+FR2 retired `agent-brief.png`, `agent-explore.png` and `panel-ask-agent.png`: the built-in panel and
+"Ask the agent" are no longer ways in, and their capture scripts are deleted. The files stay, and
+the pages still link them, until the chapter cards and `OPS-36` rewrite those pages.
+
 | File | What it shows | Used by | Status | Pixel size | File size |
 |---|---|---|---|---|---|
 | `brief-flow.gif` | The panel opens, "/brief Edge Communications" is typed and sent, a spinner shows, and the GIF ends on a settled frame with the headline, the "Full summary" toggle and the Account, Open deals and Service health rows | [README](../../README.md), [01](../patterns/01-route-gather-reduce.md) | captured | 760x750 | 1.83 MB (12.0 s) |
@@ -24,9 +28,9 @@ agent", in the same org (see [panel-agent-1](../research/panel-agent-1.md)).
 | `hotkey-open.gif` | Cmd/Ctrl-K opens the panel with the composer focused, a question is typed, and Esc minimizes it | [03](../patterns/03-hotkey-panel.md) | captured | 760x750 | 1.56 MB (8.3 s) |
 | `panel-sections-open.png` | The panel at 340 px wide with the Open deals section expanded under the one-row bar | [03](../patterns/03-hotkey-panel.md) | captured | 1520x1500 | 256 KB |
 | `memory-followup.png` | A follow-up question answered from the earlier brief, then four suggested follow-ups | [05](../patterns/05-conversation-memory.md) | captured | 1520x1500 | 232 KB |
-| `agent-brief.png` | Version 2 of the agent in the built-in Agentforce panel in the Account Brief app, answering "Brief me on Edge Communications" | [06](../patterns/06-agent-routing-and-verbatim-relay.md) | captured | 1520x1500 | 288 KB |
-| `agent-explore.png` | Version 2 of the agent in the built-in Agentforce panel, answering an org-wide count question | [06](../patterns/06-agent-routing-and-verbatim-relay.md) | captured | 1520x1500 | 153 KB |
-| `panel-ask-agent.png` | "Ask the agent" in the custom panel on the Edge Communications page: the question "What are the open deals at this account?" at the top of the conversation and the start of the agent's reply ("Five open deals totaling $634,180 with two overdue opportunities requiring immediate attention." and the Open deals paragraph), with no built-in panel open | [03](../patterns/03-hotkey-panel.md), [06](../patterns/06-agent-routing-and-verbatim-relay.md) | captured | 1520x1500 | 241 KB |
+| `agent-brief.png` | Version 2 of the agent in the built-in Agentforce panel in the Account Brief app, answering "Brief me on Edge Communications" | [06](../patterns/06-agent-routing-and-verbatim-relay.md) | retired, still linked | 1520x1500 | 288 KB |
+| `agent-explore.png` | Version 2 of the agent in the built-in Agentforce panel, answering an org-wide count question | [06](../patterns/06-agent-routing-and-verbatim-relay.md) | retired, still linked | 1520x1500 | 153 KB |
+| `panel-ask-agent.png` | "Ask the agent" in the custom panel on the Edge Communications page: the question "What are the open deals at this account?" at the top of the conversation and the start of the agent's reply ("Five open deals totaling $634,180 with two overdue opportunities requiring immediate attention." and the Open deals paragraph), with no built-in panel open | [03](../patterns/03-hotkey-panel.md), [06](../patterns/06-agent-routing-and-verbatim-relay.md) | retired, still linked | 1520x1500 | 241 KB |
 | `not-found.png` | The fixed NOT_FOUND line for an unknown account, "Try a fuller or different account name." | [07](../patterns/07-trust-access-and-failure.md) | captured | 1520x1500 | 187 KB |
 | `ambiguous.png` | The AMBIGUOUS reply with its three candidate buttons | [07](../patterns/07-trust-access-and-failure.md) | captured | 1520x1500 | 207 KB |
 | `e2e-report.png` | The Playwright HTML report for a full run: 8 of 8 passed, 3.1 minutes | [README](../../README.md), [03](../patterns/03-hotkey-panel.md), [08](../patterns/08-test-and-release-lifecycle.md) | captured | 1600x1800 | 274 KB |
