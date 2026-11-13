@@ -74,6 +74,8 @@ public with sharing class DataExplorer {
         /** One line per query that ran: object | filters | row count. */
         @AuraEnabled public List<String> trail = new List<String>();
         @AuraEnabled public List<String> followups = new List<String>();
+        /** The same answer as cards (BE-39): built from the members above, never from a new query or model call. */
+        @AuraEnabled public List<AnswerCard> cards = new List<AnswerCard>();
     }
 
     /** Loop state for one question. */
@@ -94,6 +96,15 @@ public with sharing class DataExplorer {
         Result r = run(question, contextRecordId, historyJson);
         for (ExploreQuery.ResultSet rs : r.resultSets) {
             forDisplay(rs);
+        }
+        // The panel shows every row of the last result set, so its table card holds them all.
+        try {
+            ExploreQuery.ResultSet last = r.resultSets.isEmpty() ? null : r.resultSets[r.resultSets.size() - 1];
+            r.cards = cards(r, last == null ? 0 : last.rows.size());
+        } catch (Exception e) {
+            // Cards never change the answer: a failure building them leaves the text as it is.
+            System.debug(LoggingLevel.ERROR, 'DataExplorer cards not built: ' + e.getTypeName() + ': ' + e.getMessage());
+            r.cards = new List<AnswerCard>();
         }
         return r;
     }
@@ -219,6 +230,158 @@ public with sharing class DataExplorer {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // ---------------------------------------------------------------- cards (BE-39)
+
+    @TestVisible private static final String CUT_TEXT = 'Showing {0} of {1} rows. Ask with a filter to narrow it.';
+    private static final Pattern AGGREGATE_LABEL = Pattern.compile('^(Sum|Average|Min|Max|Count) of (.+)$');
+
+    /**
+     * The result as cards, in order: the answer ('ans', or 'err' on ERROR); then the last result set, at most
+     * maxRows of its rows, as a metric ('met', an aggregate with no groups), a recordList ('lst', records with at most
+     * two shown columns) or a table ('tbl'); a notice ('not') when that card holds fewer rows than matched; the
+     * trail ('trl'); the follow-ups ('fol'). maxRows is what the caller's text shows, so no card holds a row the
+     * text leaves out; 0 gives no result card. Cells are formatted strings; record Ids are only in refs.
+     * @param r the explorer's result, shaped for display
+     * @param maxRows the most rows of the last result set a card may hold
+     * @return the cards
+     */
+    public static List<AnswerCard> cards(Result r, Integer maxRows) {
+        List<AnswerCard> out = new List<AnswerCard>();
+        if (r == null) {
+            return out;
+        }
+        out.add(r.status == ERROR ? AnswerCard.error('err', r.answer) : AnswerCard.text('ans', r.status, r.answer, null));
+        ExploreQuery.ResultSet rs = r.resultSets.isEmpty() ? null : r.resultSets[r.resultSets.size() - 1];
+        Integer rows = rs == null || maxRows == null ? 0 : Math.min(maxRows, rs.rows.size());
+        if (rows > 0) {
+            out.add(resultCard(rs, rows));
+            if (rs.total > rows) {
+                out.add(AnswerCard.notice('not', OK, String.format(CUT_TEXT, new List<Object>{ rows, rs.total })));
+            }
+        }
+        if (!r.trail.isEmpty()) {
+            List<AnswerCard.Item> steps = new List<AnswerCard.Item>();
+            for (String line : r.trail) {
+                List<String> parts = line.split(' \\| ');
+                String what = parts.remove(0);
+                String count = parts.isEmpty() ? null : parts.remove(parts.size() - 1);
+                String filters = String.join(parts, ' | ');
+                steps.add(AnswerCard.newItem(what + (String.isBlank(filters) || filters == 'no filters' ? '' : ' where ' + filters),
+                    null, count, null));
+            }
+            out.add(AnswerCard.trail('trl', steps));
+        }
+        if (!r.followups.isEmpty()) {
+            out.add(AnswerCard.followups('fol', r.followups));
+        }
+        return out;
+    }
+
+    /** The first rows of a result set as a metric, a recordList or a table. */
+    private static AnswerCard resultCard(ExploreQuery.ResultSet rs, Integer rows) {
+        ExploreCatalog.Entry entry = String.isBlank(rs.objectName) ? null : ExploreCatalog.find(rs.objectName);
+        List<String> heads = headers(rs);
+        List<String> kinds = new List<String>();
+        for (Integer i = 0; i < rs.columns.size(); i++) {
+            kinds.add(columnKind(entry, rs.columns[i], heads[i]));
+        }
+        Boolean aggregate = rs.plan != null && !rs.plan.aggregates.isEmpty();
+        if (aggregate && rs.plan.groupBy.isEmpty()) {
+            List<AnswerCard.Item> figures = new List<AnswerCard.Item>();
+            for (Integer i = 0; i < rs.columns.size(); i++) {
+                figures.add(AnswerCard.newItem(heads[i], cell(rs.rows[0].get(rs.columns[i]), kinds[i]), null, null));
+            }
+            return AnswerCard.metric('met', rs.objectName, figures);
+        }
+        List<AnswerCard.Ref> refs = new List<AnswerCard.Ref>();
+        Boolean records = !aggregate && rowId(rs.rows[0]) != null;
+        if (records && rs.columns.size() <= 2) {
+            List<AnswerCard.Item> items = new List<AnswerCard.Item>();
+            for (Integer n = 0; n < rows; n++) {
+                Map<String, Object> row = rs.rows[n];
+                AnswerCard.Item i = AnswerCard.newItem(cell(row.get(rs.columns[0]), kinds[0]), null,
+                    rs.columns.size() > 1 ? cell(row.get(rs.columns[1]), kinds[1]) : null, null);
+                i.ref = AnswerCard.addRef(refs, rowId(row), i.label);
+                items.add(i);
+            }
+            return AnswerCard.recordList('lst', rs.objectName, items, rs.total, refs);
+        }
+        List<AnswerCard.Column> columns = new List<AnswerCard.Column>();
+        for (Integer i = 0; i < rs.columns.size(); i++) {
+            columns.add(AnswerCard.newColumn(rs.columns[i], heads[i], kinds[i]));
+        }
+        List<AnswerCard.Row> grid = new List<AnswerCard.Row>();
+        for (Integer n = 0; n < rows; n++) {
+            Map<String, Object> row = rs.rows[n];
+            List<String> cells = new List<String>();
+            for (Integer i = 0; i < rs.columns.size(); i++) {
+                cells.add(cell(row.get(rs.columns[i]), kinds[i]));
+            }
+            grid.add(AnswerCard.newRow(AnswerCard.addRef(refs, rowId(row), cells.isEmpty() ? '' : cells[0]), cells));
+        }
+        return AnswerCard.table('tbl', rs.objectName, columns, grid, rs.total, refs);
+    }
+
+    /** The record Id a row carries for drill-down, or null (a group, or a hand-built row). */
+    private static Id rowId(Map<String, Object> row) {
+        Object raw = row.get('Id');
+        return raw != null && isRecordId(String.valueOf(raw)) ? Id.valueOf(String.valueOf(raw)) : null;
+    }
+
+    /** A column's card kind (text, number, currency, percent or date), from its catalog field, by path or by label. */
+    private static String columnKind(ExploreCatalog.Entry entry, String column, String label) {
+        if (label == 'Count' || (label != null && label.startsWith('Count of '))) {
+            return 'number';
+        }
+        Matcher m = label == null ? null : AGGREGATE_LABEL.matcher(label);
+        String fieldLabel = m != null && m.matches() ? m.group(2) : label;
+        ExploreCatalog.Field f = entry == null ? null : entry.field(column);
+        for (ExploreCatalog.Field candidate : entry == null || f != null ? new List<ExploreCatalog.Field>() : entry.fields) {
+            if (candidate.label == fieldLabel) {
+                f = candidate;
+                break;
+            }
+        }
+        switch on f?.type {
+            when 'currency' {
+                return 'currency';
+            }
+            when 'percent' {
+                return 'percent';
+            }
+            when 'double', 'integer', 'long' {
+                return 'number';
+            }
+            when 'date', 'datetime' {
+                return 'date';
+            }
+            when else {
+                return 'text';
+            }
+        }
+    }
+
+    /** One value as a card cell: money as $1,250, a percent with %, a date as yyyy-MM-dd, a flag as Yes or No. */
+    private static String cell(Object v, String kind) {
+        if (v == null) {
+            return '';
+        }
+        if (v instanceof Date) {
+            return CustomerSummarySection.fmtDate((Date) v);
+        }
+        if (v instanceof Datetime) {
+            return ((Datetime) v).format('yyyy-MM-dd HH:mm');
+        }
+        if (v instanceof Boolean) {
+            return (Boolean) v ? 'Yes' : 'No';
+        }
+        if (v instanceof Decimal || v instanceof Integer || v instanceof Long || v instanceof Double) {
+            Decimal d = Decimal.valueOf(String.valueOf(v));
+            return kind == 'currency' ? CustomerSummarySection.money(d) : d.format() + (kind == 'percent' ? '%' : '');
+        }
+        return String.valueOf(v);
     }
 
     // ---------------------------------------------------------------- drill

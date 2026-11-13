@@ -9,6 +9,9 @@
  * the status stays ERROR and the fixed failure line is followed by the last table already read, as the
  * panel shows it. Read-only: no DML.
  *
+ * Cards (BE-39): the Cards output is the same answer as card JSON (AnswerCard), its table holding exactly the
+ * rows the Answer text shows. Over AnswerCard.MAX_JSON_CHARS it is '' and the Answer is unchanged.
+ *
  * History (N3): the History output is this question and its answer as one string, in the shape
  * DataExplorer reads ([{"question":"...","answer":"..."}], each part clipped to HISTORY_CHARS). The agent
  * keeps it and passes it back as the History input on the next explore turn, so a follow-up such as
@@ -36,6 +39,8 @@ public with sharing class ExploreAction {
         public String answer;
         @InvocableVariable(label='History' description='This question and its answer as one string, to pass as History on the next explore turn. Not for the user.')
         public String history;
+        @InvocableVariable(label='Cards' description='The same answer as structured cards in JSON, for a client that can show them: the answer, the result table with exactly the rows the Answer shows, the queries that ran and the suggested follow-up questions. Record Ids appear only in each card\'s refs. Empty when too long. Do not relay it to the user; relay the Answer.')
+        public String cards;
     }
 
     @InvocableMethod(callout=true label='Explore Data' description='Answers a question about Salesforce data by running safe, read-only queries the user has access to.')
@@ -51,7 +56,9 @@ public with sharing class ExploreAction {
                 : DataExplorer.explore(req.question, req.contextRecordId, String.isBlank(req.history) ? null : req.history);
             Response res = new Response();
             res.status = r.status;
-            res.answer = compose(r);
+            Composed c = composeRows(r);
+            res.answer = c.text;
+            res.cards = cardsOf(r, c.rows);
             res.history = historyOf(req?.question, res.answer);
             out.add(res);
         }
@@ -79,20 +86,52 @@ public with sharing class ExploreAction {
         return text.length() > HISTORY_CHARS ? text.left(HISTORY_CHARS - 3) + '...' : text;
     }
 
+    /** The answer text and how many rows of the last result set it shows. */
+    private class Composed {
+        String text;
+        Integer rows = 0;
+        Composed(String text, Integer rows) {
+            this.text = text;
+            this.rows = rows;
+        }
+    }
+
     /** The answer text, then the last result set as a table, kept under MAX_CHARS. ERROR included. */
     @TestVisible
     private static String compose(DataExplorer.Result r) {
+        return composeRows(r).text;
+    }
+
+    /**
+     * The Cards output for this answer: DataExplorer's cards, the table cut to the rows the Answer shows, as JSON.
+     * '' when over the cap, or when the cards could not be built: the Answer never depends on them.
+     */
+    @TestVisible
+    private static String cardsJson(DataExplorer.Result r) {
+        return cardsOf(r, composeRows(r).rows);
+    }
+
+    private static String cardsOf(DataExplorer.Result r, Integer rows) {
+        try {
+            return AnswerCard.toJson(DataExplorer.cards(r, rows));
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'ExploreAction cards not built: ' + e.getTypeName() + ': ' + e.getMessage());
+            return '';
+        }
+    }
+
+    private static Composed composeRows(DataExplorer.Result r) {
         String text = r.answer == null ? '' : r.answer.trim();
         if (text.length() > MAX_CHARS) {
-            return text.left(MAX_CHARS - 3) + '...';
+            return new Composed(text.left(MAX_CHARS - 3) + '...', 0);
         }
         // An ERROR answer is the fixed failure line; the table read before the failure still follows it (N4).
         if (r.resultSets.isEmpty()) {
-            return text;
+            return new Composed(text, 0);
         }
         ExploreQuery.ResultSet rs = r.resultSets[r.resultSets.size() - 1];
         if (rs.rows.isEmpty()) {
-            return text;
+            return new Composed(text, 0);
         }
         String header = String.join(DataExplorer.headers(rs), ' | ');
         String body = text + '\n\n' + header;
@@ -113,11 +152,11 @@ public with sharing class ExploreAction {
             shown++;
         }
         if (shown == 0) {
-            return text;
+            return new Composed(text, 0);
         }
         if (shown < rs.total) {
             body += '\n(' + shown + ' of ' + rs.total + ' rows)';
         }
-        return body;
+        return new Composed(body, shown);
     }
 }

@@ -64,6 +64,8 @@ public with sharing class CustomerSummary {
         @AuraEnabled public String answer;
         @AuraEnabled public List<CustomerSummarySection> sections = new List<CustomerSummarySection>();
         @AuraEnabled public List<String> ignored = new List<String>();
+        /** The same brief as cards (BE-39), built from the members above: no new query or model call. */
+        @AuraEnabled public List<AnswerCard> cards = new List<AnswerCard>();
     }
 
     /** One brief for runAll: the same three inputs run() takes. */
@@ -151,6 +153,10 @@ public with sharing class CustomerSummary {
             }
         }
 
+        for (Result r : results) {
+            r.cards = cardsOf(r);
+        }
+
         // 4. Memory, last: DML before a callout would fail the model calls above.
         if (!memory.isEmpty()) {
             try {
@@ -235,6 +241,31 @@ public with sharing class CustomerSummary {
             cut = Math.max(head.lastIndexOf(' '), head.length() / 2);
         }
         return head.left(cut).trim() + CUT_MARKER;
+    }
+
+    /**
+     * The brief as cards (BE-39): the answer, then one card per section in the sections' order. The answer is a
+     * summary card (its first line the title), an error card on ERROR, or one notice when there is nothing to
+     * summarise (NOT_FOUND, or no valid sections). A failure building them gives no cards and changes nothing else.
+     */
+    private static List<AnswerCard> cardsOf(Result r) {
+        List<AnswerCard> cards = new List<AnswerCard>();
+        try {
+            if (r.status == NOT_FOUND || (r.status == EMPTY && r.sections.isEmpty())) {
+                cards.add(AnswerCard.notice('not', r.status, r.answer));
+                return cards;
+            }
+            cards.add(r.status == ERROR ? AnswerCard.error('err', r.answer) : AnswerCard.summary('sum', r.status, r.answer));
+            for (CustomerSummarySection s : r.sections) {
+                if (s != null) {
+                    cards.add(AnswerCard.section(s));
+                }
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'CustomerSummary cards not built: ' + e.getTypeName() + ': ' + e.getMessage());
+            cards.clear();
+        }
+        return cards;
     }
 
     private static Result finish(Result r, String status, String message, String answer) {
