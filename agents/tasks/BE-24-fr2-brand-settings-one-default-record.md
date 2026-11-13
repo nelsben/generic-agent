@@ -4,8 +4,7 @@ title: FR2: brand settings — one Default record sets the agent name, company n
 domain: backend
 tier: frontier
 tier_reason: new metadata type, Apex, prompt change, LWC theming, deploy and a before/after capture in one card
-status: blocked
-blocked_by: [BE-37]
+status: queued
 fixes: []
 scope: [force-app/main/default/objects/Brand_Setting__mdt/**, force-app/main/default/customMetadata/**, force-app/main/default/classes/BrandSettings*.cls, force-app/main/default/classes/BrandSettings*.cls-meta.xml, force-app/main/default/classes/CustomerSummary*.cls, force-app/main/default/classes/DataExplorer*.cls, force-app/main/default/staticresources/BrandLogo*, force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/patterns/10-brand-and-theming.md, docs/assets/brand-swap-*.png, docs/assets/MANIFEST.md, e2e/**, tests/**]
 forbid: [force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
