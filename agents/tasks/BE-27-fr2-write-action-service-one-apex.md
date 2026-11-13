@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: the first code that writes customer records; security, user mode and the draft/commit contract all carry risk
 status: blocked
-blocked_by: [BE-35, BE-39]
+blocked_by: [BE-35]
 fixes: []
 scope: [force-app/main/default/classes/CustomerSummaryActions*.cls, force-app/main/default/classes/CustomerSummaryActions*.cls-meta.xml, force-app/main/default/classes/CustomerSummaryAction*.cls, force-app/main/default/classes/CustomerSummaryAction*.cls-meta.xml, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/patterns/13-write-actions.md, force-app/main/default/staticresources/AgentPrompt_Action*, tests/test_permission_sets.py, force-app/main/default/customMetadata/Agent_Prompt_Setting.*, force-app/main/default/classes/AnswerCard.cls, force-app/main/default/classes/AnswerCardTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

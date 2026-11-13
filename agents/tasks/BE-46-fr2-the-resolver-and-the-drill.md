@@ -4,8 +4,7 @@ title: FR2: the resolver and the drill return cards — several matching account
 domain: backend
 tier: standard
 tier_reason: three builders on a contract BE-39 already built, added next to outputs that must not change
-status: blocked
-blocked_by: [BE-39]
+status: queued
 scope: [force-app/main/default/classes/CustomerSummaryResolver.cls, force-app/main/default/classes/CustomerSummaryResolverTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, force-app/main/default/classes/AnswerCard.cls, force-app/main/default/classes/AnswerCardTest.cls, docs/research/fr2-card-contract-apex.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/objects/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
 resources: [org-live]
