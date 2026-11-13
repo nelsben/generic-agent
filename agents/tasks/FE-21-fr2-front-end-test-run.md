@@ -5,7 +5,7 @@ domain: frontend
 tier: standard
 tier_reason: e2e reliability work in a real browser against a live org, where a false failure teaches people to ignore the suite
 status: blocked
-blocked_by: [FE-13, FE-16]
+blocked_by: [FE-16]
 fixes: []
 scope: [e2e/**, playwright.config.js, package.json, docs/research/fr2-front-end-tests.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
