@@ -106,7 +106,7 @@ The panel calls `CustomerSummaryPanelController`, which passes each result throu
 
 ## What an MCP client gets
 
-The door (mcp-door/, `CustomerSummaryMcp`) has three tools. How a hosted MCP server lays out an invocable's outputs in a tool result is still not observed (FE-18, 'MCP clients'), so this is what each tool returns as outputs:
+The door (mcp-door/, `CustomerSummaryMcp`) has three tools. How a hosted MCP server lays out an invocable's outputs in a tool result is still not observed (FE-18, 'MCP clients'), so this is what each tool returns as outputs. The door's definition names each tool's invocable (its API catalog operation), not the outputs, so a tool's outputs are the invocable's. `cards` was not checked through a signed-in MCP client, because BE-39 does not sign in.
 
 | Tool | Outputs | Cards |
 |---|---|---|
@@ -151,7 +151,7 @@ On 2026-11-13, under the approved live-checks row, in `agent-probe`:
 - **Deploy.** The eleven changed classes were validated with RunLocalTests (338 tests, 0 failures, every AccountBrief* test among them) and then quick deployed. 11 components deployed, 0 errors.
 - **Explorer.** From anonymous Apex, `DataExplorer.explore` was asked "What are the open opportunities for this account and their amounts?" with the seed account Edge Communications as context. It returned 4 cards: `text`, `table` (5 rows, `total` 5, `shown` 5), `trail` (1 item) and `followups` (4 items). Their JSON is 2,895 characters.
 - **Summary.** From anonymous Apex, `CustomerSummary.run` for Edge Communications returned status OK and 8 cards: `summary`, then 7 `section` cards. Six sections held records (5, 5, 5, 5 of 10, 4 and 5 items, `total` and `shown` matching the text's counts) and one held none. Their JSON is 19,398 characters, under the cap.
-- **Rows written.** Session rows: 0 created and 1 updated. `Customer_Summary_Session__c` held 5 rows before and after. The summary's turn was added to the account's existing row, which is how `CustomerSummaryMemory` stores turns, and the explorer wrote nothing. Outcome rows: 0. The org has no outcome object (no custom object with "outcome" in its name).
+- **Rows written.** Session rows: 0 created and 1 updated (Edge Communications' row, the only one modified during the run). `Customer_Summary_Session__c` held 5 rows before and after. The summary's turn was added to the account's existing row, which is how `CustomerSummaryMemory` stores turns, and the explorer wrote nothing. Outcome rows: 0. The org has no outcome object (no custom object with "outcome" in its name).
 - The scripts printed card types and counts only, with no Ids or record contents.
 
 ## The JSON examples
