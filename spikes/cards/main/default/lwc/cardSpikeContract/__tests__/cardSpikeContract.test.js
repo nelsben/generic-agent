@@ -8,7 +8,10 @@ import { parseRich, parseInline, plainText, viewOf, checkCard, TYPES } from 'c/c
 import { FIXTURES } from 'c/cardSpikeFixtures';
 
 const PAGE = path.join(__dirname, '..', '..', '..', '..', '..', '..', '..', 'docs', 'research', 'fr2-card-architecture.md');
-const REFS = { o1: { key: 'o1', recordId: 'record-id:o1', objectName: 'Opportunity', label: 'Edge SLA' } };
+const REFS = {
+    o1: { key: 'o1', recordId: 'record-id:o1', objectName: 'Opportunity', label: 'Edge SLA' },
+    o3: { key: 'o3', recordId: 'record-id:o3', objectName: 'Opportunity', label: 'Edge SLA' }
+};
 
 describe('rich text: the grammar vectors in the page', () => {
     const vectors = [
@@ -21,7 +24,13 @@ describe('rich text: the grammar vectors in the page', () => {
         ['see [Edge SLA](ref:zz)', [{ text: 'see ' }, { text: 'Edge SLA' }]],
         ['[site](https://example.com)', [{ text: '[site](https://example.com)' }]],
         ['<b>x</b>', [{ text: '<b>x</b>' }]],
-        ['**unclosed', [{ text: '**unclosed' }]]
+        ['**unclosed', [{ text: '**unclosed' }]],
+        // The page's table, row for row.
+        ['plain words', [{ text: 'plain words' }]],
+        ['**212** open, *high priority*', [{ text: '212', strong: true }, { text: ' open, ' }, { text: 'high priority', em: true }]],
+        ['costs `$250,000`', [{ text: 'costs ' }, { text: '$250,000', code: true }]],
+        ['[Edge SLA](ref:o3)', [{ text: 'Edge SLA', ref: 'o3' }]],
+        ['[Edge SLA](ref:zz)', [{ text: 'Edge SLA' }]]
     ];
     test.each(vectors)('%s', (input, runs) => {
         expect(parseInline(input, REFS)).toEqual(runs);

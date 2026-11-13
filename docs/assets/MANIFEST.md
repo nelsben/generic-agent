@@ -48,6 +48,12 @@ the pages still link them, until the chapter cards and `OPS-36` rewrite those pa
 | `fr2-spike-rail-hover.png` | OPS-29 spike: hovering the strip slides the rail back over the page without a backdrop | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 132 KB |
 | `fr2-spike-lightning-shortcuts.png` | OPS-29 spike: Lightning's own Keyboard Shortcuts dialog (Mac, standard navigation), which has no K shortcut | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 231 KB |
 | `fr2-spike-app-page.png` | OPS-29 spike: the spike's app page with the probe counting one Cmd-K and one Cmd-Shift-K, and the launcher at the bottom right; the opportunity list card is hidden because it shows an owner alias | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 75 KB |
+| `fr2-cards-340-summary.png` | FE-18 spike: the summary group at 340 px (compact): the summary card with its headline, bold and italic runs and two bullets; the Open deals section folded; the Calls section folded with its error rule and Error badge; the Open pipeline metric with 212 as the hero; the Recent activity timeline | [fr2-card-architecture](../research/fr2-card-architecture.md) | captured | 728x1590 | 123 KB |
+| `fr2-cards-640-summary.png` | FE-18 spike: the same summary group at 640 px (rail): the metric figures side by side and the timeline on one line per item | [fr2-card-architecture](../research/fr2-card-architecture.md) | captured | 1328x1262 | 129 KB |
+| `fr2-cards-340-explorer.png` | FE-18 spike: the explorer group at 340 px: the answer with a record link and inline code; the 4-column result table stacked, 5 rows then "Show 1 more" under "Showing 6 of 212 rows"; the "Showing 50 of 212 rows" note; the trail folded; the Ask next chips; the comparison stacked by field; a record card with related chips; a list of records with its count | [fr2-card-architecture](../research/fr2-card-architecture.md) | captured | 728x3648 | 299 KB |
+| `fr2-cards-640-explorer.png` | FE-18 spike: the same explorer group at 640 px: the result table and the comparison as real tables, the list on one line per record | [fr2-card-architecture](../research/fr2-card-architecture.md) | captured | 1328x2496 | 258 KB |
+| `fr2-cards-340-actions.png` | FE-18 spike: the actions group at 340 px: the ambiguous-account choice with its Choose one badge; the Create a task draft (Needs input, two contact choices, Priority "Needed", Confirm, Edit and Cancel); the Task created result; the error card; and the three fallbacks (unknown type, newer version, a broken card) shown as their plain text | [fr2-card-architecture](../research/fr2-card-architecture.md) | captured | 728x2360 | 177 KB |
+| `fr2-cards-640-actions.png` | FE-18 spike: the same actions group at 640 px | [fr2-card-architecture](../research/fr2-card-architecture.md) | captured | 1328x2046 | 182 KB |
 
 The `fr2-spike-*.png` stills are whole-window captures kept at CSS scale (1440x900), not device
 scale 2. They come from `e2e/capture/07-surface-spike.capture.js`, which a plain `npm run capture`
@@ -55,6 +61,10 @@ skips; see its header. `fr2-conversation-core.png` is the same kind of whole-win
 from `e2e/capture/08-conversation-core.capture.js` (no model call).
 `fr2-compact-launcher.png` and `fr2-compact-open.png` are whole-window CSS-scale stills too, from
 `e2e/capture/09-compact.capture.js` (no model call).
+The `fr2-cards-*.png` stills are device-scale 2 crops of one gallery column each (364 or 664 CSS px
+wide, as tall as the group), not whole-window stills. They come from
+`spikes/cards/__tests__/cards.capture.js`, run with its own config (see its header), not from
+`npm run capture`; the cards are the spike's fixtures, with no model call and no org data.
 
 Rows marked "old utility-panel frame" were captured before FE-13, when the conversation sat in
 the 340x480 utility panel above the utility bar. Since FE-13 it is in the 420x560 compact window
