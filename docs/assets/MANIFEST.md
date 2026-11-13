@@ -36,6 +36,19 @@ the pages still link them, until the chapter cards and `OPS-36` rewrite those pa
 | `e2e-report.png` | The Playwright HTML report for a full run: 8 of 8 passed, 3.1 minutes | [README](../../README.md), [03](../patterns/03-hotkey-panel.md), [08](../patterns/08-test-and-release-lifecycle.md) | captured | 1600x1800 | 274 KB |
 | `brand-swap-before.png` | The open panel on Edge Communications with the shipped Default brand record: the plain blue logo mark and "Customer Summary" at the start of the bar, the blue Summarize button, and the empty state "Ask anything about Your Company's data" | [10](../patterns/10-brand-and-theming.md) | captured | 1520x1500 | 184 KB |
 | `brand-swap-after.png` | The same panel with the record swapped to the made-up Northwind Health: the green N monogram and "Northwind Assist" in Georgia, the green Summarize button, the pale green panel, Verdana text and the empty state "Ask anything about Northwind Health's data"; the utility title still reads "Customer Summary" | [10](../patterns/10-brand-and-theming.md) | captured | 1520x1500 | 185 KB |
+| `fr2-spike-mirrored-bar.png` | OPS-29 spike: the bottom 200 px of a record page with the utility bar mirrored, "Phone (softphone stand-in)" and "Surface Spike" at the bottom right and the "Ask Customer Summary ⌘K" launcher just above them | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x200 | 34 KB |
+| `fr2-spike-launcher.png` | OPS-29 spike: a record page in the FR2 Surface Spike app, the utility bar at the default left with the softphone stand-in, and the launcher at the bottom right | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 171 KB |
+| `fr2-spike-compact.png` | OPS-29 spike: the 420 px compact window opened by Cmd-K above the launcher | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 137 KB |
+| `fr2-spike-rail-sheet.png` | OPS-29 spike: the 480 px right rail as a slide-over sheet with a backdrop, opened by Cmd-Shift-K | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 127 KB |
+| `fr2-spike-rail-push.png` | OPS-29 spike: the rail pushing the page, the header and the record reflowed into the left 960 px (an undocumented hack) | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 161 KB |
+| `fr2-spike-rail-min.png` | OPS-29 spike: the rail minimized to a "Customer Summary" strip on the right edge, the page back at full width | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 175 KB |
+| `fr2-spike-rail-hover.png` | OPS-29 spike: hovering the strip slides the rail back over the page without a backdrop | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 132 KB |
+| `fr2-spike-lightning-shortcuts.png` | OPS-29 spike: Lightning's own Keyboard Shortcuts dialog (Mac, standard navigation), which has no K shortcut | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 231 KB |
+| `fr2-spike-app-page.png` | OPS-29 spike: the spike's app page with the probe counting one Cmd-K and one Cmd-Shift-K, and the launcher at the bottom right; the opportunity list card is hidden because it shows an owner alias | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 75 KB |
+
+The `fr2-spike-*.png` stills are whole-window captures kept at CSS scale (1440x900), not device
+scale 2. They come from `e2e/capture/07-surface-spike.capture.js`, which a plain `npm run capture`
+skips; see its header.
 
 Rules for every capture: no record Ids, org Ids, usernames, the running user's name, email
 addresses, URL bars or URLs with query strings in view. Use the seeded sample data only.

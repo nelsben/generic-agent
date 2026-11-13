@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>OPS-29 throwaway spike: the FR2 Surface Spike app page.</description>
+    <flexiPage>FR2_Surface_Spike_Page</flexiPage>
+    <label>Surface Spike</label>
+    <motif>Custom53: Bell</motif>
+</CustomTab>

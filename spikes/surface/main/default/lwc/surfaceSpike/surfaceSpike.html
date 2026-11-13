@@ -1,0 +1,59 @@
+<template>
+    <div class="spike-probe">
+        <p class="slds-text-title_caps">FR2 surface spike ({role})</p>
+        <p class="slds-text-body_small">
+            Compact {keyHint}: <span data-count="compact">{state.compact}</span> · Rail {railHint}:
+            <span data-count="rail">{state.rail}</span> · Last: {state.lastKey}
+        </p>
+        <p class="slds-text-body_small">{micSupport}</p>
+        <button class="slds-button slds-button_neutral" data-id="mic" onclick={handleMic}>Test mic</button>
+        <div data-spike-state data-state={stateJson} hidden></div>
+    </div>
+
+    <template lwc:if={inTemplate}>
+        <button class={launcherClass} data-id="launcher" aria-label={launcherLabel} onclick={handleLauncher}>
+            <span class="spike-launcher-text">Ask Customer Summary</span>
+            <kbd class="spike-kbd">{keyHint}</kbd>
+        </button>
+
+        <template lwc:if={compactOpen}>
+            <section class={compactClass} role="dialog" aria-label="Customer Summary compact window" data-id="compact">
+                <header class="spike-head">
+                    <span class="spike-title">Customer Summary</span>
+                    <button class="slds-button slds-button_neutral" data-id="expand" onclick={handleExpand}>Expand</button>
+                    <button class="slds-button slds-button_neutral" data-id="close-compact" onclick={handleCloseCompact}>Close</button>
+                </header>
+                <div class="spike-body">
+                    <p>Compact window, about 420 px wide, opened by {keyHint} or the launcher.</p>
+                    <p>Spike placeholder: the conversation goes here.</p>
+                </div>
+            </section>
+        </template>
+
+        <template lwc:if={showBackdrop}>
+            <div class="spike-backdrop" data-id="backdrop" onclick={handleBackdrop}></div>
+        </template>
+
+        <template lwc:if={railOpen}>
+            <aside class={railClass} aria-label={railTitle} data-id="rail" onmouseleave={handleRailLeave}>
+                <div class="spike-strip" data-id="strip" onmouseenter={handleStripEnter} onclick={handleStripClick}>
+                    <span class="spike-strip-text">Customer Summary</span>
+                </div>
+                <div class="spike-rail-inner">
+                    <header class="spike-head">
+                        <span class="spike-title">{railTitle}</span>
+                    </header>
+                    <div class="spike-actions">
+                        <button class="slds-button slds-button_neutral" data-id="push" onclick={handleTogglePush}>Push page</button>
+                        <button class="slds-button slds-button_neutral" data-id="minimize" onclick={handleMinimize}>Minimize</button>
+                        <button class="slds-button slds-button_neutral" data-id="close-rail" onclick={handleCloseRail}>Close</button>
+                    </div>
+                    <div class="spike-body">
+                        <p>Right rail, 480 px. Opened by {railHint}, the launcher's Expand, or a hover on the minimized strip.</p>
+                        <p>Spike placeholder: session history, open deals, recent activity, cases, last summary.</p>
+                    </div>
+                </div>
+            </aside>
+        </template>
+    </template>
+</template>

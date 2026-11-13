@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>FR2 Surface Spike</masterLabel>
+    <description>OPS-29 throwaway spike: hotkeys, a corner launcher, a compact window, a right rail and a mic probe. Not product code.</description>
+    <targets>
+        <target>lightning__UtilityBar</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__UtilityBar,lightning__AppPage,lightning__RecordPage,lightning__HomePage">
+            <property name="role" type="String" label="Role" default="overlay" datasource="overlay,probe" description="overlay draws the launcher, compact window and rail; probe only logs keys."/>
+            <property name="corner" type="String" label="Corner" default="right" datasource="right,left" description="The launcher's corner."/>
+            <property name="mount" type="String" label="Mount" default="component" datasource="component,body" description="component draws overlays in its own template; body appends them to the page body."/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <applicationVisibilities>
+        <application>FR2_Surface_Spike</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+    <description>OPS-29 throwaway spike: shows the FR2 Surface Spike app and its tab. Assigned to nobody unless the signed-in admin cannot open the app.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>FR2 Surface Spike Access</label>
+    <tabSettings>
+        <tab>FR2_Surface_Spike</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>
