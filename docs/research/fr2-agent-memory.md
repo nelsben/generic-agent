@@ -23,15 +23,16 @@
 
 - **Agent Memory does not replace either of our memories.** It remembers things about one user for one agent
   (with a second, smaller pool a user's agents share). It is curated by a model, capped at 50 memories per user per
-  agent, and replaces the oldest when full. It is not keyed to an account, it has no retention per type, and
-  nothing in the org exposes it to SOQL or Apex. It works only inside a registered Agent Script agent, and our
+  agent, and replaces the oldest when full. It is not keyed to an account and has no retention per type. No
+  object exposes it to SOQL; four standard memory actions exist, so Apex or a Flow may be able to call them for
+  the running user, but that is untried and unproven. It works only inside a registered Agent Script agent, and our
   surfaces and the MCP door do not use the agent (F83). So none of it reaches the panel, the rail or MCP.
 - **Data 360's agentic memory is a different product.** It is keyed to an individual or a unified individual
   profile in Data 360, is API first, and needs Data 360. Data 360 is **off** in agent-probe (verified).
 - **Keep BE-26 and BE-35 as designed.** Hand to the platform only what it does well and we do not need: a
   rep's personal preferences inside the optional agent, as a later opt-in (one Agent Script line and a publish).
 - **An agent conversation kept its context after 1, 5 and 15 idle minutes, and had lost it after 30**
-  (one session per gap, verified). The limit sits between 15 and 30 idle minutes. One sample per gap.
+  (one session per gap, verified). One sample per gap, and the cause of the loss at 30 is unproven (see below).
 
 ## What Salesforce's docs say
 
@@ -51,7 +52,7 @@
 | 3 | Retention | No time-based expiry found; only the oldest-replaced rule | unproven | as above |
 | 3 | User controls | View, delete and export memories; turn memory on or off per agent | snippet (help nav lists "Delete a Memory" and "Export Memories"); read for the console | `ai.agent_memory_manage.htm`; [Salesforce Engineering, persistent memory for Agentforce](https://engineering.salesforce.com/ai-agents-need-memory-building-persistent-memory-for-agentforce/) |
 | 3 | Org-wide switch | One setting controls conversational memory for all agents and users. While it is off, existing memories are kept but not used, and the panel's memory icon goes away. Its Setup name and path were not readable | snippet | Release note "Control Conversational Memory for AI Agents Across Your Org"; help article "Turn Off Conversational Memory for Your Org" (title only) |
-| 4 | Query, report, Apex | No object, DMO or Apex API is documented. The only programmatic way in is the standard agent actions below, which act for the current user and agent | unproven (docs); verified (org, below) | searched the help nav and the release notes |
+| 4 | Query, report, Apex | No object, DMO or Apex API is documented, and no report type was found. The four memory actions are on the standard invocable actions list, so Apex or a Flow may be able to call them for the running user and an agent; not tried here | unproven (docs); the action list is verified (org, below) | searched the help nav and the release notes |
 | 5 | Agent API, `generateAiAgentResponse`, channels | Nothing we could read says memory applies, or does not, to the REST Agent API or to the invocable action. It is scoped to Agent Script agents: the Lightning panel for employee agents, and the conversation for service agents | unproven | as above |
 | 5 | Our surfaces and the MCP door | Not reached. They call Apex services, not the agent (F83), and memory lives inside the agent's runtime | inference from rows 2 and 4; unproven as a test | [fr2-design.md](../plans/fr2-design.md#the-product) |
 | 6 | Data 360 agentic memory | Memories extracted from conversation data into the `AiParticipantInsight` DMO, linked to an individual or a unified individual. Semantic memory (profile facts and preferences) and episodic memory (per conversation and per agent, kept until deleted). Read through a GetContext API filtered by the requester's permissions. API first; agents are registered in Data 360; the profile DMO is fixed at registration. Available in every edition Data 360 supports | snippet | [Agentic Memory and Context in Data 360](https://developer.salesforce.com/docs/data/agentic-memory-context/guide) |
@@ -81,7 +82,8 @@ Pattern 05's open item. The spike is [`spikes/agent-memory/`](../../spikes/agent
 drives `turn.apex.tmpl` through `sf apex run -o agent-probe`. Each run is one turn of the active Customer_Summary
 agent through `Invocable.Action.createCustomAction('generateAiAgentResponse', 'Customer_Summary')` from anonymous
 Apex. No REST Agent API, client app or consumer key; no deploy; no DML in the script. Session Ids stayed in the
-runner's memory and were never written down.
+runner's memory, apart from the one-turn apex file each run writes to a temporary folder outside the repo and
+deletes after the turn.
 
 - **Method:** one session per gap. Turn 1: "Give me a summary of Edge Communications". After the gap, on the
   same session: "What about their open cases?", which names no account.
@@ -100,13 +102,15 @@ runner's memory and were never written down.
   prove that `briefed_account_id` itself was read: when that variable is empty, the script tells the model to
   re-resolve the account named last in the conversation, which also ends in a brief of Edge. Only a session
   trace would tell them apart, and traces need Data 360, which is off here.
-- **What "lost" shows.** At 30 minutes the call still succeeded and returned the same session, but no action
-  ran, and it answered in under 3 seconds. The reply text was not kept, so whether it was a session-ended
-  message or a re-greeting is unproven. One sample: a routing slip at 30 minutes cannot be ruled out, but the
-  speed and the missing brief point to the session's context being gone.
+- **What "lost" shows.** At 30 minutes the call still succeeded and returned the same session, but no brief was
+  built, and it answered in under 3 seconds. Whether `resolve_account` ran is not shown (it writes nothing). The
+  reply text was not kept, so whether it was a session-ended message or a re-greeting is unproven.
+- **The cause is unproven.** One sample, and a confound: the 30-minute session was also the oldest of eight
+  sessions open at once for the same user and agent, so idle time is not separated from session age or count. A
+  routing slip cannot be ruled out either.
 - **What it means for the product:** nothing breaks. The panel and MCP keep their own history (BE-26) and never
-  lean on the agent's session. A team using the optional agent should expect a follow-up after about 15 to 30
-  idle minutes to start fresh.
+  lean on the agent's session. A team using the optional agent should not count on a follow-up after 30 idle
+  minutes keeping its context: it was lost at 30 on one sample, cause unproven.
 - **Rows written:** only the product's own session rows. `Customer_Summary_Session__c` held 1 row before and 1
   after: **0 created, 1 updated** (the Edge Communications row). Its brief count went from 31 to 42: 11 briefs,
   which is 4 from a first attempt (below), 4 first turns and 3 kept follow-ups. Nothing else wrote that row in the
@@ -131,18 +135,21 @@ It compiles locally with 0 diagnostics (verified on a scratch copy). Then:
 
 1. `bash scripts/agent-check.sh` (local compile and org validate), then publish and activate under a new Approvals
    row.
-2. Test, two sessions as one rep through `generateAiAgentResponse`: session A says "Remember that I want summaries
+2. Preconditions: the org-wide conversational memory switch is on, and the test rep has opted in to memory for
+   the agent. Test, two sessions as one rep through `generateAiAgentResponse`: session A says "Remember that I want summaries
    in three bullets". Session B, started fresh, asks for a summary of Edge Communications. Pass when the
    `getAgentMemoryPreference` action reports memory on for that rep and agent, and session B's reply follows the
-   preference. Print only pass or fail, and record the session rows written.
+   preference. Print only pass or fail, and record the session rows written. A fail may mean memory does not apply through the
+   invocable action (row 5's open question), not a defect.
 3. Check that the panel and MCP are unchanged: their answers come from Apex, so they should not follow the
    preference. That is the proof that memory does not reach our surfaces.
 
 ## What later cards need to know
 
-- **BE-26:** no change. The agent's own conversation context lasted at least 15 and under 30 idle minutes here;
-  BE-26's session timeout is our own and need not match it.
-- **BE-35:** no change. Agent Memory cannot be read from Apex or SOQL, so outcomes must not depend on it.
+- **BE-26:** no change. The agent's own conversation context was kept at 15 idle minutes and lost at 30 (one
+  sample, cause unproven); BE-26's session timeout is our own and need not match it.
+- **BE-35:** no change. No object exposes Agent Memory to SOQL, and calling the memory actions from Apex is
+  untried, so outcomes must not depend on it.
 - **OPS-44:** "When you would add it" can name Agent Memory: a rep's preferences remembered per agent, one
   `context:` line and a publish, Agent Script agents only, managed by each user in the Lightning panel, and never
   seen by our surfaces or MCP.
@@ -169,7 +176,7 @@ On the final commit:
 | Need | Agent Memory | Data 360 agentic memory | Our design |
 |---|---|---|---|
 | Customer outcomes that persist against the account (F75, F76): a summary or an action, kept for its type's retention, in no single agent or session | **Not covered.** Per user and per agent, 50 at most, oldest replaced, no account key, no retention per type | **Not covered.** Keyed to an individual profile, not an account; episodic memory is per conversation and agent; needs Data 360 (off in agent-probe) | **Covered by BE-35:** `Customer_Outcome__c` in a master-detail to the account, retention per outcome type |
-| Reusable past summaries (F78): earlier summaries fed to the next one ("what changed since") | **Not covered.** It keeps short model-written facts about the user, not the summaries, and nothing outside the agent can read them | **Partial.** Session summaries are retrievable through an API, but per profile and only for agents registered in Data 360; whether Apex can call it is unproven | **Covered by BE-35** (the last summary's headline and date go into the next summary) |
+| Reusable past summaries (F78): earlier summaries fed to the next one ("what changed since") | **Not covered.** It keeps short model-written facts about the user, not the summaries; no object exposes them, and reading them through the memory actions from Apex is untried | **Partial.** Session summaries are retrievable through an API, but per profile and only for agents registered in Data 360; whether Apex can call it is unproven | **Covered by BE-35** (the last summary's headline and date go into the next summary) |
 | Sentiment over time (F77) | **Not covered** | **Not covered** (nothing found) | **Covered by BE-36** (a score at each summary) and **FE-19** (the chart) |
 | Context when the rep opens a conversation (F78, F79), on the panel, the rail and MCP | **Partial.** Only inside the registered agent, only that rep's own facts, and none of it reaches our surfaces or MCP (F83) | **Partial.** Profile-level context through an API, behind Data 360 and agent registration | **Covered by BE-35** (the outcome context every surface adds) and **BE-26** (the conversation history) |
 
