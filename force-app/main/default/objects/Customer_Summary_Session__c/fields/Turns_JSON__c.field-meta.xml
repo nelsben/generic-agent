@@ -5,5 +5,5 @@
     <type>LongTextArea</type>
     <length>131072</length>
     <visibleLines>10</visibleLines>
-    <description>JSON ring buffer of the newest 10 turns, oldest first.</description>
+    <description>JSON ring buffer of the session's newest 10 turns (summaries and explorer questions), oldest first.</description>
 </CustomField>

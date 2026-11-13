@@ -5,6 +5,8 @@
  * call (CustomerSummaryResolver, CustomerSummary, CustomerSummaryMemory, DataExplorer). Nothing here
  * calls a model, writes prose or adds visibility: it runs with sharing and passes through.
  * getBrief and explore return each result's cards member (BE-39, AnswerCard) as the engine built it.
+ * explore also keeps the explorer's turn in the rep's conversation history (BE-26): an OK or EMPTY answer about
+ * an Account is saved through CustomerSummaryMemory after the engine's last callout, as the brief's turns are.
  * Engine failures that carry user-facing text come back as AuraHandledException with that text.
  * Anything unexpected is logged and comes back as AuraHandledException with ERROR_TEXT, the fixed
  * line the engine uses for ERROR: raw exception text never reaches the panel.
@@ -44,14 +46,36 @@ public with sharing class CustomerSummaryPanelController {
         }
     }
 
-    /** Ask anything: DataExplorer.explore. Not cacheable: it calls out. */
+    /** Ask anything: DataExplorer.explore, then the turn is remembered. Not cacheable: it calls out, then writes memory. */
     @AuraEnabled
     public static DataExplorer.Result explore(String question, Id contextRecordId, String historyJson) {
+        DataExplorer.Result r;
         try {
             failIfInjected();
-            return DataExplorer.explore(question, contextRecordId, historyJson);
+            r = DataExplorer.explore(question, contextRecordId, historyJson);
         } catch (Exception e) {
             throw unexpected('explore', e);
+        }
+        rememberExplorerTurn(question, contextRecordId, r);
+        return r;
+    }
+
+    /**
+     * Saves an explorer turn to the session for its account, last, after every callout. Only an OK or EMPTY answer
+     * about an Account is kept, as with the brief. A failed write is logged and the answer still returns.
+     */
+    private static void rememberExplorerTurn(String question, Id contextRecordId, DataExplorer.Result r) {
+        if (r == null || contextRecordId == null || contextRecordId.getSObjectType() != Account.SObjectType
+                || (r.status != DataExplorer.OK && r.status != DataExplorer.EMPTY)) {
+            return;
+        }
+        try {
+            CustomerSummaryMemory.recordAll(new List<CustomerSummaryMemory.Entry>{
+                new CustomerSummaryMemory.Entry(contextRecordId, r.status, question, r.answer, CustomerSummaryMemory.KIND_EXPLORER)
+            });
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'CustomerSummaryMemory.recordAll failed for an explorer turn: '
+                + e.getTypeName() + ': ' + e.getMessage());
         }
     }
 
@@ -77,7 +101,7 @@ public with sharing class CustomerSummaryPanelController {
         return d;
     }
 
-    /** The current user's earlier briefs of the account, newest first: CustomerSummaryMemory.history. */
+    /** The current user's earlier briefs of the account, newest first, while the account is readable: CustomerSummaryMemory.history. */
     @AuraEnabled
     public static List<CustomerSummaryMemory.Turn> history(Id accountId) {
         try {

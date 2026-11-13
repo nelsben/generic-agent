@@ -8,7 +8,7 @@
         <displayFormat>ABS-{0000}</displayFormat>
         <startingNumber>1</startingNumber>
     </nameField>
-    <description>One row per user and account: the rolling history of Customer Summary requests. Written only by CustomerSummaryMemory.</description>
+    <description>One row per conversation session: one user, one account, the turns of the summary and the explorer. Written only by CustomerSummaryMemory; read through CustomerSummaryHistory.</description>
     <deploymentStatus>Deployed</deploymentStatus>
     <sharingModel>Private</sharingModel>
     <externalSharingModel>Private</externalSharingModel>

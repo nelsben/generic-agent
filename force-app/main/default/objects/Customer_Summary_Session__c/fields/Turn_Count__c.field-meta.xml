@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Turn_Count__c</fullName>
+    <label>Turn Count</label>
+    <type>Number</type>
+    <precision>6</precision>
+    <scale>0</scale>
+    <defaultValue>0</defaultValue>
+    <required>false</required>
+    <description>Every turn saved in this session, summaries and explorer questions alike, including turns the 10-turn ring has since dropped. Brief Count counts only the summaries.</description>
+    <inlineHelpText>How many questions were asked in this session.</inlineHelpText>
+</CustomField>
