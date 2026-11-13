@@ -57,33 +57,43 @@ scope, and sleep on AC is off.
 The brain and every worker do only what these lines approve. A worker whose step is not
 approved skips it and reports. Only Ben changes a line; the brain records his answer here.
 
+On 2026-11-12 the FR2 plan review ([fr2-plan-review.md](../reviews/fr2-plan-review.md)) closed the
+rows whose work is finished and added rows for steps the FR2 cards need. Each such row says the
+brain recorded or added it. A closed row approves nothing, and a row the brain added approves
+nothing until Ben answers it.
+
 | Step | Status |
 |---|---|
-| Real deploy of `main` to `experimental` (never the agent bundle) | approved (Ben, 2026-11-11, answered in chat) |
-| CLI publish of Account_Brief version 2; Studio "Commit Version" as the fallback | approved (Ben, 2026-11-11, answered in chat) |
-| A second CLI publish of a comment-only change as an inactive version 3 (OPS-21 step 3) | approved (Ben, 2026-11-11, answered in chat: prove we can iterate on agents from the CLI) |
-| Create a throwaway agent `Publish_Probe` if the CLI publish fails, and delete it afterwards | approved (Ben, 2026-11-11, answered in chat) |
-| Activate version 2 once the 12-case test passes | approved (Ben, 2026-11-11, answered in chat, on the condition that version 1 is reactivated if the check after activation fails) |
-| Org setup for the MCP server and its External Client App (stretch), up to the sign-in | approved (Ben, 2026-11-11, answered in chat) |
+| Real deploy of `main` to `experimental` (never the agent bundle) | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-11, answered in chat)) |
+| CLI publish of Account_Brief version 2; Studio "Commit Version" as the fallback | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-11, answered in chat)) |
+| A second CLI publish of a comment-only change as an inactive version 3 (OPS-21 step 3) | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-11, answered in chat: prove we can iterate on agents from the CLI)) |
+| Create a throwaway agent `Publish_Probe` if the CLI publish fails, and delete it afterwards | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-11, answered in chat)) |
+| Activate version 2 once the 12-case test passes | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-11, answered in chat, on the condition that version 1 is reactivated if the check after activation fails)) |
+| Org setup for the MCP server and its External Client App (stretch), up to the sign-in | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-11, answered in chat)) |
 | Production-classified deploys to `agent-probe` (validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1) without asking each time | approved, standing (Ben, 2026-11-12, in chat: "Keep the standing approval"); `agent-probe` only |
-| The panel calls the registered agent directly (BE-15 re-cut as one org-live card in `agent-probe`) | approved (Ben, 2026-11-12, in chat) |
-| Run OPS-23 in `agent-probe`, including the MCP org setup line above, up to the sign-in | approved (Ben, 2026-11-12, in chat: "Run ops23") |
+| The panel calls the registered agent directly (BE-15 re-cut as one org-live card in `agent-probe`) | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-12, in chat)) |
+| Run OPS-23 in `agent-probe`, including the MCP org setup line above, up to the sign-in | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-12, in chat: "Run ops23")) |
 | Run the README quick-start end to end in a brand-new org: first a scratch org created from the `my-devhub` Dev Hub (never the `experimental` hub), then a new Developer Edition org Ben signs up for and logs in as `ga-fresh` | approved (Ben, 2026-11-12, in chat: "Both: scratch now, DE later"); the standing deploy approval does not cover these orgs, so the card states its own deploy steps |
-| Another explorer answer-length iteration in `agent-probe` | approved (Ben, 2026-11-12, in chat) |
+| Another explorer answer-length iteration in `agent-probe` | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-12, in chat)) |
 | Make the repo public | method chosen (Ben, 2026-11-12): a separate public snapshot repo built from one squashed commit after a whole-tree privacy pass; this repo's history is never rewritten. Each publish of the snapshot needs Ben's go |
 | Post on forcedotcom/cli issue 3634 | not approved; draft only |
 | Create the user `agent-probe-enduser` (a Standard User in agent-probe with the user permission set group) | Ben does this himself; FE-5 stays parked |
 | Make the repo public | not approved |
-| Phase 2: migrate to the fresh Developer Edition org that publishes (deploy, publish, activate there), reusing the sibling session's existing CLI sign-in | approved (Ben, 2026-11-12, in chat: "your last step is to migrate to a fresh org where everything is working") |
+| Phase 2: migrate to the fresh Developer Edition org that publishes (deploy, publish, activate there), reusing the sibling session's existing CLI sign-in | closed, spent (brain-recorded 2026-11-12; was: approved (Ben, 2026-11-12, in chat: "your last step is to migrate to a fresh org where everything is working")) |
 | Phase 2: cut and work new agent or design iteration cards in the new org; re-record screenshots where the brain judges it needed | approved (Ben, 2026-11-12, in chat) |
 | FR2: spikes in `agent-probe` (OPS-29 surfaces, BE-21 rename go/no-go, BE-22 actions, BE-31 explorer discovery, FE-18 card architecture, BE-32 standard-chat measurements, BE-34 agent memory discovery), code in `spikes/` only | pending Ben's go (brain recommends yes; the standing deploy line covers the deploys) |
-| FR2: publish and activate a copy of the agent as `Customer_Summary` (BE-21), then the renamed agent (OPS-30), leaving old versions and metadata in place | approved (Ben, 2026-11-12, in chat: "follow your recommendation on number 2, as long as we can do it effectively. If we hit the same friction ... we can skip"); a failed go/no-go falls back to labels only |
+| FR2: publish and activate a copy of the agent as `Customer_Summary` (BE-21), then the renamed agent (OPS-51; brain-recorded 2026-11-12: the publish moved out of OPS-30 into its own card), leaving old versions and metadata in place | approved (Ben, 2026-11-12, in chat: "follow your recommendation on number 2, as long as we can do it effectively. If we hit the same friction ... we can skip"); on a failed go/no-go nothing is published under this row, and a publish of `Account_Brief` for the new label needs its own row below (brain-recorded 2026-11-12, narrowing; was: a failed go/no-go falls back to labels only) |
 | FR2: one more publish and activate of `Customer_Summary` for tone and write actions (BE-28) | not needed: BE-28 parked (FR2 ledger F83) |
 | FR2: create and run the functional Testing Center suite for `Customer_Summary` in `agent-probe` (BE-38): at most 20 cases with no write actions, on one existing sample-data account, no new records (a summary still records its session and customer outcome), recreated for the active version on each run, also through the ladder's --agent run (OPS-46); no security cases | pending Ben's go (brain recommends yes) |
 | FR2: the MCP server and client app under the new names, up to the sign-in (OPS-31); the old server and app stay active | pending Ben (brain recommends yes; it is a second live endpoint until the old one is removed) |
 | FR2: e2e and agent tests that create a record (a task) and delete it in teardown, in `agent-probe` only | pending Ben (brain recommends yes); no test touches a record it did not create |
-| FR2: remove old Account Brief metadata, the old agent, or the old MCP server and app from `agent-probe` (destructive deploy) | not approved; needs Ben's go |
+| FR2: remove old Account Brief metadata, the old agent, or the old MCP server and app from `agent-probe` (destructive deploy; the card is OPS-54, brain-recorded 2026-11-12) | not approved; needs Ben's go |
 | FR2: the embedded call-centre spike (OPS-33) and any paid or trial feature it needs | not approved; parked until Ben's go |
+| FR2: live checks in `agent-probe` that spend model calls and write the product's own session and outcome rows on existing sample accounts, and assigning the user group to the admin | pending Ben (brain recommends yes); row added by the brain, 2026-11-12 |
+| FR2: the explorer as an MCP tool for outside clients | pending Ben; row added by the brain, 2026-11-12 |
+| FR2: if the rename is NO-GO, one publish of `Account_Brief` for the new label | pending Ben; row added by the brain, 2026-11-12 |
+| FR2: schedule or run the outcome purge job in `agent-probe` | not approved; needs Ben's go; row added by the brain, 2026-11-12 |
+| FR2: hide the Agentforce icon for reps (an org setting) | Ben flips it himself, or says go; row added by the brain, 2026-11-12 |
 
 ## Cards
 
@@ -102,7 +112,7 @@ Lane A needs no approval. Lane B changes the org. Stretch runs only after the fi
 | BE-15 | Stretch: panel asks the registered agent | frontier | OPS-22 | reviewer pass |
 | OPS-23 | Stretch: MCP door runbook and metadata | frontier | OPS-22, MCP approval | reviewer pass |
 
-FE-5 (the suite as a non-admin user) is released by the tool but must not be dispatched: the
+FE-5 (the suite as a non-admin user) is `parked`, the status the tool never dispatches: the
 user does not exist.
 
 ## Run order
@@ -188,6 +198,11 @@ Pattern pages: `01-route-gather-reduce`, `02-ask-anything-explorer`, `03-hotkey-
 
 ## Brain runbook
 
+- **Before dispatch (FR2):** find the card's row in the Approvals table. If the card's "Approval
+  first" line says to hand back when the row is not approved, and the row's status does not start
+  with "approved", do not dispatch it. A card that only skips its live run may be dispatched.
+  Every `sf` command carries `-o agent-probe`. An org-lock card is dispatched only after the
+  previous org-lock card is merged.
 - **Dispatch:** call the dispatch tool, then make the Agent call it prints, verbatim. If it
   names the agent type `backend` (or any type this session lacks), use `general-purpose`.
 - **Hand-back:** call the verdict tool with the task id in that turn. `next=review`: spawn the
@@ -204,11 +219,13 @@ Pattern pages: `01-route-gather-reduce`, `02-ask-anything-explorer`, `03-hotkey-
 - **Never commit on `main` directly.** A hook blocks it. Use a branch and a PR.
 - **Standard-tier cards skip the tool's reviewer.** For BE-14 spawn a read-only sonnet diff
   review before merging, as was done for BE-12.
-- **Before merging any docs card** (OPS-16 to OPS-19, OPS-22, FE-7): grep the diff for every
+- **Before merging any card that changes `docs/` or `README.md`,** or adds a file under
+  `docs/assets/`: run `bash scripts/check-docs.sh` in its worktree (0 broken), and grep the diff for every
   line of the untracked file `reference/denylist.txt`, for 15 or 18 character record Ids, email
   addresses and `my.salesforce.com`. Any hit goes back to the worker. Never write the
   deny-list's contents into a card, a brief, a commit or this plan.
-- **Images:** look at every PNG and at one frame per second of every GIF before merging FE-7.
+- **Images:** look at every PNG and at one frame per second of every GIF before merging any card
+  that adds a file under `docs/assets/`.
   Reject any that shows the running user's name, a username, email, Id, URL bar, error toast
   or `URL_Redacted`. Sample record names (Edge Communications and its contacts) are fine.
 - **Do not take Lane B hand-backs on trust** (their gates are only the Python tests):

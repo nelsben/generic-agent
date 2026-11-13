@@ -12,8 +12,9 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
   3. **Act:** create a task, create an event, log a call, update a contact, create a case, update an opportunity. Each
      shows a draft and writes nothing until the user confirms.
 - **The same agent everywhere:** the compact window, the rail, an embedded component later, and MCP clients. One Apex
-  service sits behind each skill, and every door calls it. Agentforce's own panel and "Ask the agent" are not doors
-  (F82, F83); the registered agent is an optional add-on (pattern 06's appendix).
+  service sits behind each skill, and every door calls it. Over MCP the tools are Apex actions; the optional agent is
+  not an MCP tool. Agentforce's own panel and "Ask the agent" are not doors (F82, F83); the registered agent is an
+  optional add-on (pattern 06's appendix).
 - **It is Agentforce, with its own skin** (F84): the platform's models through its trust layer, behind surfaces we
   control. No page argues about whether it counts as Agentforce.
 - **Built to be swapped:** brand settings hold the agent name, company name, logo, colours and tone. No component
@@ -22,19 +23,23 @@ numbers (F01 onward) point there. Where a card and this page disagree, the card 
 ## Operating principles
 
 1. **A follow-up is never a new build.** After a summary, the next question ("which of those close this quarter?",
-   "who on their side have we not called?") is answered by the explorer from the same context, on any object the user
-   can read, in any combination. Nobody builds a flow or an action to answer a follow-up, and context is not passed
-   back by hand (F54, F55).
+   "who on their side have we not called?") is answered by the explorer from the same context, in the user's own
+   access. Nobody builds a flow or an action to answer a follow-up, and context is not passed back by hand (F54,
+   F55). A page claims only the questions pattern 02 lists as proven. Whether the explorer reaches any object in
+   any combination is the question `BE-31` answers, and no page says so before its build cards land.
 2. **Every answer is richly formatted and shown in cards.** Wherever the product shows text (the compact window, the
    rail, an MCP client), it is formatted for reading, not dumped as plain text, and structured
-   data comes as a card from one typed card contract that every surface reads. `FE-18` designs the contract (F65).
+   data comes as a card from one typed card contract that every surface reads. `FE-18` designs the contract, `BE-39` builds it into the Apex services and `FE-22` renders it (F65).
 3. **API first for prompts.** Every model call goes through the Models API from Apex, with prompts kept as files a
    team can read, change, deploy and try in minutes, alone or with an AI coding assistant. A prompt template is an
    opt-in per prompt for teams that need one, never a required layer (F67 to F70).
 4. **What the product does for a customer is kept against the customer.** A summary, an action taken or an answer a
-   rep saves is a customer outcome: stored against the account, not inside one agent or one conversation, visible to
-   whoever can see the account, kept for as long as its type says, and fed back as context the next time anyone opens
-   a conversation on that account. `BE-35` builds the store (F75 to F79).
+   rep saves is a customer outcome: stored against the account, not inside one agent or one conversation, and kept
+   for as long as its type says. Anyone who can see the account sees each outcome's type, date and sentiment label.
+   Only its author sees its text, because the text is built from what the author could read, unless its type is
+   marked to share; for an action, another rep sees a fixed phrase for its kind, not its title. Only a rep's own
+   outcomes are fed back in full as context the next time they open a conversation on that account. `BE-35` builds
+   the store (F75 to F79, F87).
 5. **It sees what the rep sees.** Every door (the compact window, the rail, MCP and the optional agent) runs as the
    signed-in user: every Apex class is `with sharing` unless it carries a named exception, and every read of CRM data is in user mode, so object, field and
    record access all apply. System context is used only where the product keeps its own records, and each use is named
@@ -127,7 +132,7 @@ site or permission metadata.
 
 ## Write actions
 
-- **Flow:** ask (typed, spoken or a chip) → the agent or the Apex router picks the action → the service builds a
+- **Flow:** ask (typed, spoken or a chip) → the Apex router picks the action → the service builds a
   draft (validated, no DML) → the conversation shows a draft card (fields, Confirm, Edit, Cancel) → Confirm commits in
   user mode → a result card links to the record. Where the platform allows it, an Undo is offered for 15 seconds after
   an update.
@@ -138,18 +143,35 @@ site or permission metadata.
 
 ## Pattern page shape
 
-From Ben's notes on pattern 01 (F45, F53). Every pattern page follows it.
+From Ben's notes on pattern 01 (F45, F53). Every page under docs/patterns/ follows it. The headings are fixed words, so
+one test helper can check every page.
 
-1. **A simple header:** the pattern's name and one line on what it gives a seller or service rep.
-2. **The business problem:** who has it, what it costs them today, and what changes. Plain words, no class names.
-3. **The architecture in a few steps:** three to five numbered steps a non-developer can follow, before any detail.
-4. **How it works:** the sequence diagram, then the steps in detail, each matching a diagram number.
-5. **See it:** a capture on each surface where the pattern runs (compact window, rail; the MCP door as a client
-   transcript), a GIF where something moves, and alt text on each (F57).
-6. **Why you can trust it** and **how it scales**, each claim linked to a test, a review or a recorded run. The trust
-   part says what runs as the user and names any system-context use, per principle 5 (F87).
-7. **Adopt it** for a builder.
-8. **Limits and open items**, each linked to the card that owns it, or marked "no card yet".
+- **The H1** is the page's title with no number, followed by one line on what the pattern gives a seller or a service
+  rep.
+- **The H2 headings**, in these exact words and in this order:
+  1. `The business problem`: who has it, what it costs them today, and what changes. Plain words, no class names.
+  2. `The architecture in a few steps`: three to five numbered steps a non-developer can follow, before any detail.
+  3. `How it works`: the sequence diagram, then the steps in detail, each matching a diagram number.
+  4. `See it`: a capture on each surface where the pattern runs (the compact window, the rail), a GIF where something
+     moves, and alt text on each (F57). `OPS-52` takes them from a written list.
+  5. `Why you can trust it`: it opens with two lines. One starts `Runs as the signed-in user:`. The other starts
+     `System context:` and names each system-context use on this path with its reason, or says "none on this path"
+     (principle 5, F87). Each claim after them is linked to a test, a review or a recorded run.
+  6. `How it scales`: each claim is linked to a test, a review or a recorded run.
+  7. `Adopt it`: for a builder. One step grants access by assigning the one permission set group, in the same words
+     on every page (F86).
+  8. `Limits and open items`: each names the open item in plain words. It may give a card id, or say "no card yet".
+     It never links a card file.
+- **A part of a page's own** (for example pattern 01's reduction structure) is an extra H2 between the fixed ones, and
+  the page's test lists it.
+- **Exemptions.** Page 00 (why custom) has no `See it`, `Why you can trust it`, `How it scales` or `Adopt it` part.
+  On pages 04 and 09 the `See it` part is a text block, not an image. Page 06 is a short appendix, page 07 is one
+  screen and page 14 is a labelled placeholder: those three are exempt from the full shape, and the rules below still
+  apply to them.
+- **No proof status on a page.** A page never says a run is proven or not yet proven. It links the README's Status
+  table, the one place that is changed when a run passes.
+- **Roles, not people.** A page names the seller, the service rep, the admin or the builder, never a person.
+- **The way back.** Every page ends with one line that links the index page and the repo's README.
 
 ## Diagrams
 
@@ -166,6 +188,32 @@ From Ben's notes on pattern 01 (F49). Every Mermaid diagram in the repo follows 
 - **Checked on GitHub.** A diagram counts as done only when it renders on GitHub (the GitHub markdown API or the pushed
   page), not just in a local preview.
 
+## Lessons from a reviewed build
+
+These come from a production Agentforce build we reviewed. They are restated here in generic terms, with no names and
+no numbers from that build; `BE-32` measures our own. A page that uses one cites the source only as "a production
+Agentforce build we reviewed".
+
+- **Route, gather, reduce.** Code routes the request and gathers the records in the user's own access. One prompt
+  reduces what was gathered to an answer. Apex never writes prose, and a prompt never queries.
+- **A small set of paths.** The router picks from a small, fixed set of paths.
+- **Status codes are relayed as they are.** A status that a step returns (not found, a choice of records, a failed
+  section) is passed on unchanged. No model rewords it.
+- **Re-run by Id, never by label.** A follow-up or a retry names the record by its Id. A label can match two records
+  or none.
+- **The agent's model step re-writes a relayed answer.** In the standard chat, the answer an action returns passes
+  through the agent's model before the user sees it. The model can reword it, and it shortens a long answer without
+  saying so.
+- **Builds cut their lists to fit.** To stay under that length a build caps its lists, so the user gets fewer rows
+  than exist and no sign that rows were left out.
+- **A judge scores what was said, not what is missing.** An evaluation that grades the wording of a reply passes an
+  answer that left rows out. A check for completeness has to compare the answer with the data.
+- **Whether a card shows is the model's choice at run time.** In the standard chat a rich card renders only when the
+  model picks it, so the same question can come back as a card once and as text the next time. Keep a text floor:
+  every answer must read correctly as plain text.
+- **Multi-turn tests.** An employee agent cannot be tested over several turns from the CLI, so follow-up behaviour
+  needs its own test path.
+
 ## Gotchas carried forward
 
 - Lightning's single-key shortcuts fire inside an input unless the input stops propagation. A document listener
@@ -173,4 +221,5 @@ From Ben's notes on pattern 01 (F49). Every Mermaid diagram in the repo follows 
 - DML before a callout in the same transaction throws "uncommitted work pending". Commit drafts in a separate call
   from any model call.
 - A compile-time reference to `aiplatform.*` breaks installs in orgs without Agentforce. Keep it behind a seam.
-- Agent publishes are slow and have failed before. FR2 has one, for the rename (`OPS-30`).
+- Agent publishes are slow and have failed before. FR2 has two: the spike copy (`BE-21`) and the renamed agent
+  (`OPS-51`), which is split from the rename deploy so that a failed publish stops nothing else.
