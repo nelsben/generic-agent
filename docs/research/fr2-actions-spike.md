@@ -121,8 +121,10 @@ Three passes over nine requests, plus one first trial of the task request: 28 ru
 - **The unnamed person:** in the case request and in "Create a follow-up", the model put a value in `contact` though
   the request named nobody. Where the shape was recorded, it was two words. The draft step found no matching contact
   and marked the field unresolved, so the case draft was not ready to confirm.
-  - The prompt that ran already told the model to leave out a field the request does not give (`systemPrompt()` in
-    `router.apex`, 1,509 characters, matching `promptChars` in `draft.jsonl`). The model filled `contact` anyway, so
+  - The prompt that ran already told the model to leave out a field the request does not give: the system prompt in
+    `router.apex` (`systemPrompt()`, 1,384 characters; with each request's user prompt, 1,482 to 1,573 characters,
+    the `promptChars` in `draft.jsonl`). 1,384 plus the user prompt rebuilt from `requests.json` and the run's date
+    gives the recorded `promptChars` in all 28 runs. The model filled `contact` anyway, so
     the prompt rule alone did not stop it. The draft step's resolve check, which marks the field unresolved and
     guesses nothing, is what held.
   - The draft step should treat an unresolved optional field as one the user can clear.
@@ -235,7 +237,7 @@ One service, `CustomerSummaryActions`, holds every rule. Each door is a thin wra
 - The baseline is to classify every sentence. Each question then pays 2.2 to 3.2 seconds before the explorer starts.
 - To keep questions from paying it, `draftFromText` runs a fixed pre-check before its model call. The panel
   (`FE-14`) always calls `draftFromText`, so the check belongs inside it, not in the panel.
-  - It skips filler words (uh, um, so, ok, hey, please, can, could, would, you, I, need, to, want, let's).
+  - It skips filler words (uh, um, so, ok, okay, hey, please, can, could, would, you, I, need, to, want, let's).
   - It tests the first remaining word against a verb list in `CustomerSummaryActionCatalog` (create, add, schedule,
     set, book, log, remind, update, change, open, push, move, make).
   - If the word is not on the list, `draftFromText` returns "not an action" with no model call, and the text goes to
