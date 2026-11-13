@@ -167,9 +167,9 @@ and the raw run output was deleted after reading.
 
 On the final commit:
 
-- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests`: OK.
+- `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests`: 165 tests, OK.
 - `bash scripts/agent-check.sh`: pass (local compile ok, 0 warnings; org validate ok).
-- `bash scripts/check-docs.sh`: 0 broken.
+- `bash scripts/check-docs.sh`: 47 pages, 0 broken.
 - `git status --short`: empty; no `tests/__pycache__`.
 
 ## Undo
