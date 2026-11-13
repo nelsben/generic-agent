@@ -11,7 +11,7 @@ forbid: [force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, s
 resources: [org-live]
 red_test: the full e2e run against agent-probe under the new names fails before the deploy (the Customer Summary app and panel do not exist yet) and passes after
 gate: test, jest, org
-budget: 2-attempts
+budget: 3-attempts
 spend: 15
 ---
 ## Why
