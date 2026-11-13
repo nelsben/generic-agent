@@ -4,7 +4,7 @@ title: FR2: the optional agent, published on its own — one publish and one act
 domain: ops
 tier: frontier
 tier_reason: an agent publish and activation in a live org, where publishing has failed before, under a stop condition Ben set
-status: queued
+status: merged
 fixes: []
 scope: [docs/research/fr2-agent-publish.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -29,3 +29,19 @@ Feature revision 2 (FR2): Ben approved the rename of the agent "as long as we ca
 - Write docs/research/fr2-agent-publish.md: the path taken (GO or NO-GO; published or not, and why), each step with its timing, each attempt with its diagnosis, the proof and its counts, which agent and version is active, and one line each on what OPS-44 (the appendix page), OPS-31 (the MCP door) and OPS-54 (the removal of leftovers) need to know. The page ends with an 'Undo' list of everything this card left in agent-probe and how to remove each item
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - Org, agent-probe only. This card deploys nothing: OPS-30 deployed the metadata, and a publish is not a deploy. Never publish or activate any other agent, never delete an agent or a version, never create a user, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, bash scripts/agent-check.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-13). One attempt. The GO path ran: one CLI publish of the Customer_Summary bundle created v2, and one activation made it the active version. The versions route returned 200 after 7.3 s, and the old "agent graph" friction did not recur. A shell call that failed with exit 127 (macOS has no `timeout`) never started the CLI. It is recorded on the page and not counted as an attempt.
+
+Review: 14 confirmed, 0 refuted, 8 unverifiable (org state, the scratch capture, the proof run). The brain checked the versions itself with a read-only BotVersion query after the review. Account_Brief: v1 Inactive, v2 Active. Customer_Summary: v1 Inactive, v2 Active. This matches the page.
+
+The brain read the whole page: path, steps with timings, versions before and after, v2's actions calling CustomerSummaryResolver, CustomerSummaryGetAction and ExploreAction, the proof, one line each for OPS-44, OPS-31 and OPS-54, and the Undo list. Privacy grep over 207 added lines: 0 hits in every category.
+
+Proof: one generateAiAgentResponse turn from anonymous Apex (live-checks row approved; the Testing Center row is pending). It summarized Edge Communications with 0 errors in 33.6 s. It updated 1 Customer_Summary_Session__c row and created none. It wrote 0 outcome rows, because no outcome object exists yet (BE-35).
+
+Still open:
+- No separate sf agent preview ran; the proof turn through the active version stands in for it
+- the org reported AccountBriefGetAction as IsValid false at 06:52Z, and the still-active Account_Brief v2 calls it; whether it only needs a recompile is unproven
+- AccountBriefResolver and AccountBriefGetAction stay pinned by Account_Brief v1 and v2 and by Customer_Summary v1 (OPS-54)
+- Customer_Summary v1 went Inactive as a side effect of the activation; the Undo list says how to reverse it
