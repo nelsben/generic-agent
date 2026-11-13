@@ -56,6 +56,9 @@ it costs money and writes brief memory rows, as any use of the panel does:
 | 8. axe in the brief and drill states | 1, or 2 when no brief section line is drillable |
 | 9. Minimize keeps the conversation; no Expand button by default | 0 |
 | 10. Time from Cmd/Ctrl-K to the window's first paint, under 300 ms warm | 0 |
+| 11. Accessibility snapshot of the stage: closed, open, pending, answered, error; names, live region, focus after Esc (`a11y-snapshot.spec.js`, FE-16) | 0 |
+| 12. The fallback names are short-lived and outside the live region (FE-16) | 0 |
+| 13. axe `color-contrast` on the open window, light theme (FE-16) | 0 |
 
 Specs 5 and 6 send `/brief` of a name that matches no account: the resolver answers from SOQL
 with no model call. Spec 5 uses it as the second request because it lands well before the first
