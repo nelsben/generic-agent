@@ -4,7 +4,7 @@ title: FR2: one package directory for spikes — sfdx-project.json gains the non
 domain: ops
 tier: economy
 tier_reason: one JSON entry, one changed assertion and a short README
-status: queued
+status: merged
 fixes: []
 scope: [sfdx-project.json, tests/test_sfdx_project.py, spikes/README.md]
 forbid: [force-app/**, mcp-door/**, scripts/**, data/**, e2e/**, agents/**, docs/**, README.md, .chassis-delegation.json, reference/**]
