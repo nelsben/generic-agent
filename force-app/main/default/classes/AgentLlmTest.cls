@@ -50,7 +50,7 @@ private class AgentLlmTest {
 
     @IsTest
     static void everyBriefPromptHasBothParts() {
-        for (String name : new List<String>{ 'BriefEngagement', 'BriefDealHistory', 'BriefSynthesis' }) {
+        for (String name : new List<String>{ 'BriefEngagement', 'BriefDealHistory', 'SummarySynthesis' }) {
             String raw = AgentLlm.loadPrompt(name);
             Assert.isTrue(AgentLlm.part(raw, '---system---', '---user---', name).length() > 0, name);
             Assert.isTrue(AgentLlm.part(raw, '---user---', null, name).contains('{{'), name);
