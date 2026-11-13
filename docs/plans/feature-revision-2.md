@@ -399,7 +399,7 @@ the rename.
 - **Wave 1, the rename:** \*FE-20, \*BE-21, read the go/no-go, \*BE-23, \*OPS-30. Second slot after BE-23: OPS-32.
 - **Wave 2, first demo:** \*BE-37, \*BE-24, \*OPS-29, \*FE-11, \*FE-12, \*FE-13. Second slot: FE-17.
 - **Wave 3, the agent publish and the spikes:** \*OPS-51, \*BE-34, \*BE-31, \*BE-32, \*BE-22, \*FE-18.
-- **Wave 4, services:** \*BE-29, \*BE-30, \*OPS-31 (approved by Ben, 2026-11-13, "so we can make that claim"), \*BE-25, \*BE-26, \*BE-33, \*BE-35, \*BE-36, \*BE-39.
+- **Wave 4, services:** \*BE-29, \*BE-30, \*BE-48, \*OPS-31 (approved by Ben, 2026-11-13, "so we can make that claim"), \*BE-25, \*BE-26, \*BE-33, \*BE-35, \*BE-36, \*BE-39.
 - **Wave 5, surfaces and tests:** \*FE-22, \*FE-16, \*FE-21, \*FE-15, \*BE-27, \*OPS-59, \*FE-14, \*FE-19, \*OPS-46. Second slot:
   OPS-38, then OPS-44, OPS-42, OPS-41, OPS-39, OPS-40, OPS-43, OPS-45, OPS-47.
 - **Wave 6, the close:** OPS-48, OPS-49, \*OPS-35, \*OPS-52, OPS-36, \*OPS-28.
