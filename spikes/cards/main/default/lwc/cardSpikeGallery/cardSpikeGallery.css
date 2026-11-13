@@ -1,0 +1,57 @@
+.cg-page {
+    padding: 16px;
+    background: var(--cs-color-surface, #ffffff);
+    color: var(--cs-color-ink, #181818);
+    font-family: var(--cs-font-body, system-ui, sans-serif);
+}
+
+.cg-h1 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.cg-h2 {
+    margin: 16px 0 8px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.cg-note,
+.cg-label {
+    margin: 0 0 8px;
+    color: #5c5c5c;
+    font-size: 12px;
+}
+
+.cg-label {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.cg-columns {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+/* The content width a card gets inside each frame's agent turn. */
+.cg-col {
+    box-sizing: border-box;
+    padding: 12px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cg-340 {
+    width: 364px;
+}
+
+.cg-640 {
+    width: 664px;
+}
