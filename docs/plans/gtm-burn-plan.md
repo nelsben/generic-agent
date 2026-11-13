@@ -94,6 +94,7 @@ nothing until Ben answers it.
 | FR2: if the rename is NO-GO, one publish of `Account_Brief` for the new label | pending Ben; row added by the brain, 2026-11-12 |
 | FR2: schedule or run the outcome purge job in `agent-probe` | not approved; needs Ben's go; row added by the brain, 2026-11-12 |
 | FR2: hide the Agentforce icon for reps (an org setting) | Ben flips it himself, or says go; row added by the brain, 2026-11-12 |
+| FR2+: Agentforce Coworker live steps (OPS-58, BE-47, FE-24), in one org Ben names: turn Coworker on and accept whatever Setup shows; assign Coworker access and a licence to one existing user Ben names, with access to `Customer_Summary` only; if the org is not `agent-probe`, deploy the product there (validate, then quick deploy) and publish and activate `Customer_Summary`; send live Coworker messages; run the agent invocable and the search API from anonymous Apex; deploy a spike Lightning type and publish and activate a spike agent version. These are spikes: approving them does not reopen ledger F83 | pending Ben; org not named yet; row added by the brain, 2026-11-13, after Ben said in chat: "great, lets cut cards for the coworker work, but continue our build otherwise. you can proceed with the work as planned with coworker followups coming at the end", which cuts the cards and is not a go for these steps |
 
 ## Cards
 
