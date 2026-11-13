@@ -1,0 +1,55 @@
+// BE-34: one Customer_Summary agent turn through the generateAiAgentResponse invocable action.
+// No DML here. Prints one marker line. __SID__ is empty for a first turn.
+String msg = '__MSG__';
+String sid = '__SID__';
+Decimal before = 0;
+for (Customer_Summary_Session__c s : [SELECT Brief_Count__c FROM Customer_Summary_Session__c
+        WHERE User__c = :UserInfo.getUserId() AND Account__r.Name = 'Edge Communications' LIMIT 1]) {
+    before = s.Brief_Count__c == null ? 0 : s.Brief_Count__c;
+}
+Invocable.Action a = Invocable.Action.createCustomAction('generateAiAgentResponse', 'Customer_Summary');
+a.setInvocationParameter('userMessage', msg);
+if (String.isNotBlank(sid)) {
+    a.setInvocationParameter('sessionId', sid);
+}
+Long t0 = System.currentTimeMillis();
+String ok = 'false';
+String outSid = '';
+String reply = '';
+String err = '';
+try {
+    List<Invocable.Action.Result> rs = a.invoke();
+    Invocable.Action.Result r = rs[0];
+    ok = String.valueOf(r.isSuccess());
+    Object o1 = r.getOutputParameters().get('agentResponse');
+    Object o2 = r.getOutputParameters().get('sessionId');
+    reply = o1 == null ? '' : String.valueOf(o1);
+    outSid = o2 == null ? '' : String.valueOf(o2);
+    if (r.getErrors() != null && !r.getErrors().isEmpty()) {
+        err = String.valueOf(r.getErrors()[0].getMessage());
+    }
+} catch (Exception e) {
+    err = e.getTypeName() + ' ' + e.getMessage();
+}
+Long ms = System.currentTimeMillis() - t0;
+Decimal after = 0;
+for (Customer_Summary_Session__c s : [SELECT Brief_Count__c FROM Customer_Summary_Session__c
+        WHERE User__c = :UserInfo.getUserId() AND Account__r.Name = 'Edge Communications' LIMIT 1]) {
+    after = s.Brief_Count__c == null ? 0 : s.Brief_Count__c;
+}
+String lower = reply.toLowerCase();
+String errLower = err.toLowerCase();
+String errKind = String.isBlank(err) ? 'none'
+    : (errLower.contains('expire') ? 'expired'
+    : (errLower.contains('not found') || errLower.contains('invalid') ? 'invalid-or-not-found' : 'other'));
+System.debug('BE34|ok=' + ok
+    + '|sameSession=' + (String.isBlank(sid) ? 'na' : String.valueOf(sid == outSid))
+    + '|gotSession=' + String.valueOf(String.isNotBlank(outSid))
+    + '|briefDelta=' + String.valueOf(after - before)
+    + '|ms=' + ms
+    + '|replyLen=' + reply.length()
+    + '|mentionsEdge=' + lower.contains('edge')
+    + '|asksWhichAccount=' + (lower.contains('which account') || lower.contains('what account'))
+    + '|fallbackLine=' + lower.contains('i can brief you on an account')
+    + '|errKind=' + errKind
+    + '|SID=' + outSid);
