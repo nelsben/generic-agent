@@ -217,8 +217,21 @@ metadata file (for example `ExploreAction`) refers to an Account Brief name.
 | `scripts/` | 1: `agent-check.sh` (`BUNDLE_NAME="Account_Brief"` and the validate's `--api-name`) |
 | Root config | 2: `jest.config.js`, `sfdx-project.json` (the replacement's path to `AccountBriefMcpClient.eca-meta.xml`) |
 
-The most frequent names in these files are `Account_Brief` (19), `Account_Brief_Agent_Access` (6),
+The most frequent names in these files are `Account_Brief` (20), `Account_Brief_Agent_Access` (6),
 `AccountBriefResolver` (6) and `accountBriefPanel` (5).
+
+- Each count is the number of times that whole name occurs, not a prefix of a longer name.
+- `Account_Brief` includes the one in the app's URL name `c__Account_Brief` (`e2e/support/env.js`).
+- The `Account_Brief` count, per file, at commit `db83a2a`:
+  - `tests/test_agent_bundle.py` 8
+  - `scripts/agent-check.sh` 4
+  - `e2e/support/env.js` 2
+  - `tests/test_app.py` 2
+  - `tests/agent/Account_Brief-testSpec.yaml` 2
+  - `e2e/README.md` 1
+  - `tests/test_permission_sets.py` 1
+- To reproduce: `git grep -o -I -E "[A-Za-z0-9_]*Account_Brief[A-Za-z0-9_]*" db83a2a -- tests e2e scripts jest.config.js sfdx-project.json`,
+  then count the matches equal to `Account_Brief` or `c__Account_Brief`.
 
 ### Docs and cards (98 files)
 
