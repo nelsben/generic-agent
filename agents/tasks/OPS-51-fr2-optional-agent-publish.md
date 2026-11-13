@@ -4,8 +4,7 @@ title: FR2: the optional agent, published on its own — one publish and one act
 domain: ops
 tier: frontier
 tier_reason: an agent publish and activation in a live org, where publishing has failed before, under a stop condition Ben set
-status: blocked
-blocked_by: [BE-40]
+status: queued
 fixes: []
 scope: [docs/research/fr2-agent-publish.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
