@@ -5,7 +5,9 @@
  * compact plain-text table of the last result set, and the whole answer stays under MAX_CHARS so it
  * fits the chat relay. Table rows are dropped from the end first; the text is clipped only if it alone
  * is too long. When the explorer ran out of turns, the status is OK (or EMPTY) and the text says the
- * step cap was hit, so the last result still reaches the user. Read-only: no DML.
+ * step cap was hit, so the last result still reaches the user. When the model failed after a query (N4),
+ * the status stays ERROR and the fixed failure line is followed by the last table already read, as the
+ * panel shows it. Read-only: no DML.
  *
  * History (N3): the History output is this question and its answer as one string, in the shape
  * DataExplorer reads ([{"question":"...","answer":"..."}], each part clipped to HISTORY_CHARS). The agent
@@ -77,14 +79,15 @@ public with sharing class ExploreAction {
         return text.length() > HISTORY_CHARS ? text.left(HISTORY_CHARS - 3) + '...' : text;
     }
 
-    /** The answer text, then the last result set as a table, kept under MAX_CHARS. */
+    /** The answer text, then the last result set as a table, kept under MAX_CHARS. ERROR included. */
     @TestVisible
     private static String compose(DataExplorer.Result r) {
         String text = r.answer == null ? '' : r.answer.trim();
         if (text.length() > MAX_CHARS) {
             return text.left(MAX_CHARS - 3) + '...';
         }
-        if (r.status == DataExplorer.ERROR || r.resultSets.isEmpty()) {
+        // An ERROR answer is the fixed failure line; the table read before the failure still follows it (N4).
+        if (r.resultSets.isEmpty()) {
             return text;
         }
         ExploreQuery.ResultSet rs = r.resultSets[r.resultSets.size() - 1];

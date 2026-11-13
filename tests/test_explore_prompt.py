@@ -1,10 +1,11 @@
-"""Static checks for the explorer prompt, AgentPrompt_Explore (BE-17, BE-18).
+"""Static checks for the explorer prompt, AgentPrompt_Explore (BE-17, BE-18, BE-30).
 
 Rule 9 caps the answer text at two short sentences that lead into the table the system shows
 after the text: at most one record named, no owner unless asked, a count stated first, and a
-follow-up about an earlier answer's records answered about exactly those records. Every rule
-from 1 to 11 is still there, in order, and the reply format and the template variables are
-unchanged.
+follow-up about an earlier answer's records answered about exactly those records. Rule 12 (BE-30)
+reads a pronoun or "those" as the last turn's records, after a summary the records listed under
+it, and asks back with no query when that is unclear. Every rule from 1 to 12 is there, in order,
+and the reply format and the template variables are unchanged.
 """
 import re
 import unittest
@@ -63,8 +64,20 @@ class TestExplorePrompt(unittest.TestCase):
         self.text = PROMPT.read_text(encoding="utf-8")
         self.rules = rules(self.text)
 
-    def test_rules_1_to_11_are_all_present_in_order(self):
-        self.assertEqual(list(self.rules), list(range(1, 12)))
+    def test_rules_1_to_12_are_all_present_in_order(self):
+        self.assertEqual(list(self.rules), list(range(1, 13)))
+
+    def test_rule_12_reads_those_as_the_last_turns_records_and_asks_when_unclear(self):
+        rule = self.rules[12]
+        self.assertIn('A pronoun or "those"', rule)
+        self.assertIn("means the records of the last turn", rule)
+        self.assertIn('"Records behind that summary"', rule)
+        self.assertIn("filter on their ids", rule)
+        self.assertIn("they are not query results, so never answer a value, count, total, ranking or list from them", rule)
+        self.assertIn("make the last query return the records or totals that answer the question", rule)
+        self.assertIn("When it is unclear which records the question means", rule)
+        self.assertIn('"those" names no kind of record and the summary lists more than one kind', rule)
+        self.assertIn("run no query", rule)
 
     def test_rule_9_caps_the_answer_at_two_sentences_that_lead_into_the_table(self):
         self.assertEqual(self.rules[9], RULE_9)

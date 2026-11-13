@@ -452,6 +452,253 @@ private class DataExplorerTest {
         Assert.areEqual(1, contactTasks.shown);
     }
 
+    // ---------------------------------------------------------------- follow-ups to a summary (BE-30)
+
+    private static final String SUMMARY_TEXT =
+        'Explore Acme has one open deal worth $2,000 and one buyer on record.\nTwo deals closed won this year.';
+
+    /** A summary of the account as the last turn: remembered for this user, and sent back as the panel sends it. */
+    private static String summaryHistory(Id accountId) {
+        CustomerSummaryMemory.record(accountId, 'OK', null, SUMMARY_TEXT);
+        return JSON.serialize(new List<Object>{
+            new Map<String, Object>{ 'question' => 'Summarize Explore Acme', 'answer' => SUMMARY_TEXT }
+        });
+    }
+
+    private static Opportunity openDeal() {
+        return [SELECT Id FROM Opportunity WHERE Name = 'Acme Two' LIMIT 1];
+    }
+
+    private static Contact rivera() {
+        return [SELECT Id FROM Contact WHERE LastName = 'Rivera' LIMIT 1];
+    }
+
+    private static void assertNoIdShown(DataExplorer.Result r, List<Id> ids) {
+        String shown = r.answer + ' ' + String.join(r.trail, ' ') + ' ' + String.join(r.followups, ' ');
+        for (Id i : ids) {
+            Assert.isFalse(shown.contains(String.valueOf(i)), 'no record Id is shown to people: ' + shown);
+        }
+    }
+
+    @IsTest
+    static void whichOfThoseCloseThisQuarterUsesTheSummarysDeals() {
+        Account a = acme();
+        Id dealId = openDeal().Id;
+        String history = summaryHistory(a.Id);
+        Script s = script(new List<String>{
+            query('{"object":"Opportunity","fields":["Name","Amount","CloseDate"],"filters":['
+                + '{"field":"Id","op":"IN","value":["' + dealId + '"]},{"field":"CloseDate","op":"=","value":"THIS_QUARTER"}]}'),
+            answer('Of those deals, 1 closes this quarter.')
+        });
+
+        Test.startTest();
+        DataExplorer.Result r = DataExplorer.explore('Which of those close this quarter?', a.Id, history);
+        Test.stopTest();
+
+        Assert.isTrue(s.prompts[0].contains('Records behind that summary'), 'the summary context reaches the model: ' + s.prompts[0]);
+        Assert.isTrue(s.prompts[0].contains('id=' + a.Id), 'the summarized account is named by Id');
+        Assert.isTrue(s.prompts[0].contains('Acme Two') && s.prompts[0].contains('id=' + dealId), 'the open deal behind the summary');
+        Assert.areEqual(DataExplorer.OK, r.status);
+        Assert.areEqual('Acme Two', r.resultSets[0].rows[0].get('Name'));
+        assertNoIdShown(r, new List<Id>{ a.Id, dealId });
+    }
+
+    @IsTest
+    static void whoThereHaveWeNotCalledUsesTheSummarysContacts() {
+        Account a = acme();
+        Id contactId = rivera().Id;
+        String history = summaryHistory(a.Id);
+        Script s = script(new List<String>{
+            query('{"object":"Task","fields":["Subject","WhoId"],"filters":['
+                + '{"field":"WhoId","op":"IN","value":["' + contactId + '"]},{"field":"TaskSubtype","op":"=","value":"Call"}]}'),
+            query('{"object":"Contact","fields":["Name","Title"],"filters":[{"field":"Id","op":"IN","value":["' + contactId + '"]}]}'),
+            answer('Rivera has no call on record.')
+        });
+
+        Test.startTest();
+        DataExplorer.Result r = DataExplorer.explore('Who there have we not called?', a.Id, history);
+        Test.stopTest();
+
+        Assert.isTrue(s.prompts[0].contains('Rivera') && s.prompts[0].contains('id=' + contactId),
+            'the contacts behind the summary reach the model: ' + s.prompts[0]);
+        Assert.areEqual(2, r.resultSets.size());
+        Assert.areEqual('Rivera', r.resultSets[1].rows[0].get('Name'));
+        assertNoIdShown(r, new List<Id>{ a.Id, contactId });
+    }
+
+    @IsTest
+    static void anyOpenCasesOnTheBiggestDealUsesTheSummarysDealAndAccount() {
+        Account a = acme();
+        Id dealId = openDeal().Id;
+        insert new Case(AccountId = a.Id, Subject = 'Explore case', Status = 'New');
+        String history = summaryHistory(a.Id);
+        Script s = script(new List<String>{
+            query('{"object":"OpportunityContactRole","fields":["ContactId","Contact.Name"],'
+                + '"filters":[{"field":"OpportunityId","op":"=","value":"' + dealId + '"}]}'),
+            query('{"object":"Case","fields":["CaseNumber","Subject","Status"],"filters":['
+                + '{"field":"AccountId","op":"=","value":"' + a.Id + '"},{"field":"IsClosed","op":"=","value":false}]}'),
+            answer('There is 1 open case on that account.')
+        });
+
+        Test.startTest();
+        DataExplorer.Result r = DataExplorer.explore('Any open cases on the biggest deal?', a.Id, history);
+        Test.stopTest();
+
+        // The deal line carries its amount, so the model can tell which deal is biggest.
+        Assert.isTrue(s.prompts[0].contains('2,000') && s.prompts[0].contains('id=' + dealId), s.prompts[0]);
+        Assert.areEqual(DataExplorer.OK, r.status);
+        Assert.areEqual('Explore case', r.resultSets[1].rows[0].get('Subject'));
+        assertNoIdShown(r, new List<Id>{ a.Id, dealId });
+    }
+
+    @IsTest
+    static void anUnclearPronounAfterASummaryIsAskedBackWithNoQuery() {
+        Account a = acme();
+        String history = summaryHistory(a.Id);
+        Script s = script(new List<String>{
+            '{"action":"answer","text":"Do you mean the open deals or the contacts from that summary?",'
+                + '"followups":["Which open deals matter most?","Which contacts matter most?"]}'
+        });
+
+        Test.startTest();
+        DataExplorer.Result r = DataExplorer.explore('Which of those matter most?', a.Id, history);
+        Test.stopTest();
+
+        Assert.isTrue(s.systems[0].contains('When it is unclear which records the question means'), 'the pronoun rule is in the prompt');
+        Assert.isTrue(s.prompts[0].contains(DataExplorer.SUMMARY_CONTEXT_HEADER), 'the context is there to choose from');
+        Assert.areEqual(1, s.prompts.size(), 'one model call, no query');
+        Assert.areEqual(DataExplorer.EMPTY, r.status);
+        Assert.isTrue(r.resultSets.isEmpty());
+        Assert.isTrue(r.answer.endsWith('?'), 'the answer asks: ' + r.answer);
+        Assert.areEqual(2, r.followups.size(), 'the choices come back as follow-ups');
+    }
+
+    @IsTest
+    static void noSummaryContextWhenTheLastTurnIsNotTheSummary() {
+        Account a = acme();
+        summaryHistory(a.Id);
+        String afterAnExplore = JSON.serialize(new List<Object>{
+            new Map<String, Object>{ 'question' => 'Summarize Explore Acme', 'answer' => SUMMARY_TEXT },
+            new Map<String, Object>{ 'question' => 'Which deals are open?', 'answer' => 'One deal is open, Acme Two.' }
+        });
+        String summaryOnly = JSON.serialize(new List<Object>{ new Map<String, Object>{ 'question' => 'Q', 'answer' => SUMMARY_TEXT } });
+
+        Test.startTest();
+        String afterExplore = DataExplorer.summaryContext(a.Id, afterAnExplore);
+        String notAnAccount = DataExplorer.summaryContext(rivera().Id, summaryOnly);
+        String noRecord = DataExplorer.summaryContext(null, summaryOnly);
+        String otherAccount = DataExplorer.summaryContext([SELECT Id FROM Account WHERE Name = 'Explore Beta' LIMIT 1].Id, summaryOnly);
+        String clipped = DataExplorer.summaryContext(a.Id, JSON.serialize(new List<Object>{
+            new Map<String, Object>{ 'question' => 'Q', 'answer' => SUMMARY_TEXT.left(40) + '...' } }));
+        Test.stopTest();
+
+        Assert.areEqual('', afterExplore, 'the last turn is an explore answer');
+        Assert.areEqual('', notAnAccount, 'the open record is not an account');
+        Assert.areEqual('', noRecord);
+        Assert.areEqual('', otherAccount, 'no summary of that account is remembered');
+        Assert.isTrue(clipped.contains(DataExplorer.SUMMARY_CONTEXT_HEADER), 'a clipped summary answer (the agent\'s history) still matches');
+        Assert.isFalse(DataExplorer.isLastSummary('Short.', 'Short. And more.'), 'too short to match');
+        Assert.isFalse(DataExplorer.isLastSummary('A different answer entirely here.', SUMMARY_TEXT));
+        Assert.isTrue(DataExplorer.isLastSummary(SUMMARY_TEXT.replace('\n', '  '), SUMMARY_TEXT), 'whitespace is collapsed');
+    }
+
+    @IsTest
+    static void theSummaryContextIsCappedPerSectionAndInAll() {
+        Id anyId = acme().Id;
+        List<CustomerSummarySection> sections = new List<CustomerSummarySection>();
+        for (Integer s = 0; s < 8; s++) {
+            CustomerSummarySection sec = new CustomerSummarySection();
+            sec.key = 'k' + s;
+            sec.title = 'Section ' + s;
+            sec.status = CustomerSummarySection.OK;
+            List<String> lines = new List<String>{ 'A heading line without a record' };
+            for (Integer i = 0; i < 30; i++) {
+                lines.add(CustomerSummarySection.withId('- Record ' + s + '-' + i + ' ' + 'x'.repeat(200), anyId));
+            }
+            sec.body = String.join(lines, '\n');
+            sections.add(sec);
+        }
+        CustomerSummarySection failed = new CustomerSummarySection();
+        failed.status = CustomerSummarySection.ERROR;
+        failed.body = CustomerSummarySection.withId('- Hidden', anyId);
+        sections.add(failed);
+
+        Test.startTest();
+        String text = DataExplorer.summaryLines(anyId, sections);
+        Test.stopTest();
+
+        Assert.isTrue(text.length() <= DataExplorer.SUMMARY_CONTEXT_CHARS, 'capped in all: ' + text.length());
+        List<String> section0 = text.substringAfter('Section 0:\n').substringBefore('\nSection 1:').split('\n');
+        Assert.areEqual(DataExplorer.SUMMARY_ITEMS_PER_SECTION + 1, section0.size(), 'capped per section: ' + section0);
+        Assert.areEqual('(20 more not listed)', section0[DataExplorer.SUMMARY_ITEMS_PER_SECTION], 'a cut says so');
+        Assert.isTrue(section0[0].startsWith('- Record 0-0 x') && section0[0].endsWith(' id=' + anyId), section0[0]);
+        Assert.isTrue(section0[0].length() < 160, 'each line is clipped: ' + section0[0].length());
+        Assert.isFalse(text.contains('A heading line'), 'only lines that name a record');
+        Assert.isFalse(text.contains('Hidden'), 'a section that did not load adds nothing');
+        Assert.isFalse(text.contains('Section 7:'), 'sections past the cap are left out');
+    }
+
+    @IsTest
+    static void agentPathKeepsTheTablesReadBeforeAModelFailure() {
+        Script s = script(new List<String>{ query(OPPS_OF_ACME) });
+        s.failAt = 2;
+        ExploreAction.Request req = new ExploreAction.Request();
+        req.question = 'What deals does Acme have?';
+
+        Test.startTest();
+        List<ExploreAction.Response> out = ExploreAction.explore(new List<ExploreAction.Request>{ req });
+        Test.stopTest();
+
+        Assert.areEqual(DataExplorer.ERROR, out[0].status, 'the status stays ERROR');
+        Assert.isTrue(out[0].answer.startsWith(DataExplorer.ERROR_TEXT), 'the fixed failure line comes first: ' + out[0].answer);
+        Assert.isTrue(out[0].answer.contains('Acme Three | 3000'), 'the table already read is kept: ' + out[0].answer);
+    }
+
+    @IsTest
+    static void drillChildRowsCarryLabelsAndNamesAndKeepTheirIds() {
+        Opportunity deal = openDeal();
+        Contact c = rivera();
+        Task t = new Task(WhatId = deal.Id, WhoId = c.Id, Subject = 'Deal call', Status = 'Not Started');
+        insert t;
+
+        Test.startTest();
+        ExploreQuery.ResultSet rs = DataExplorer.drill(deal.Id, 'Task');
+        Test.stopTest();
+
+        Assert.areEqual(1, rs.shown);
+        Assert.areEqual(t.Id, rs.rows[0].get('Id'), 'the row keeps its Id for opening the record');
+        Assert.areEqual('Deal call', rs.rows[0].get(rs.columns[0]), 'the first column names the record');
+        Assert.areEqual(rs.columns, rs.labels);
+        Set<String> allowed = new Set<String>(rs.columns);
+        allowed.add('Id');
+        for (String key : rs.rows[0].keySet()) {
+            Assert.isTrue(allowed.contains(key), 'a drill row carries only shown labels and its Id, not ' + key);
+        }
+        for (String col : rs.columns) {
+            Assert.isFalse(col.contains('.') || col.endsWith('Id'), 'header is a label, not an API name: ' + col);
+            String v = String.valueOf(rs.rows[0].get(col));
+            Assert.isFalse(v == String.valueOf(deal.Id) || v == String.valueOf(c.Id) || v == String.valueOf(UserInfo.getUserId()),
+                'no raw Id under ' + col);
+        }
+        Assert.isTrue(rs.rows[0].values().contains('Acme Two'), 'the deal shows by name: ' + rs.rows[0]);
+        Assert.isTrue(rs.rows[0].values().contains('Rivera'), 'the contact shows by name: ' + rs.rows[0]);
+    }
+
+    @IsTest
+    static void drillChildRowsWithoutANameFieldLeadWithTheOtherSidesName() {
+        Opportunity deal = openDeal();
+        Contact c = rivera();
+        insert new OpportunityContactRole(OpportunityId = deal.Id, ContactId = c.Id, Role = 'Decision Maker');
+
+        Test.startTest();
+        ExploreQuery.ResultSet fromDeal = DataExplorer.drill(deal.Id, 'OpportunityContactRole');
+        ExploreQuery.ResultSet fromContact = DataExplorer.drill(c.Id, 'OpportunityContactRole');
+        Test.stopTest();
+
+        Assert.areEqual('Rivera', fromDeal.rows[0].get(fromDeal.columns[0]), 'a role drilled from its deal leads with the contact');
+        Assert.areEqual('Acme Two', fromContact.rows[0].get(fromContact.columns[0]), 'a role drilled from its contact leads with the deal');
+    }
+
     @IsTest
     static void drillRefusesWhatTheCatalogDoesNotJoin() {
         Account a = acme();
