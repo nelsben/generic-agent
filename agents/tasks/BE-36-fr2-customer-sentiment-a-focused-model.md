@@ -4,8 +4,7 @@ title: FR2: customer sentiment — a focused model call scores the customer's se
 domain: backend
 tier: frontier
 tier_reason: a new model judgement customers will see as a trend line, so its accuracy and its failure mode matter
-status: blocked
-blocked_by: [BE-35]
+status: queued
 fixes: []
 scope: [force-app/main/default/classes/CustomerSentiment.cls, force-app/main/default/classes/CustomerSentiment.cls-meta.xml, force-app/main/default/classes/CustomerSentimentTest.cls, force-app/main/default/classes/CustomerSentimentTest.cls-meta.xml, force-app/main/default/classes/CustomerSummary.cls, force-app/main/default/classes/CustomerSummaryTest.cls, force-app/main/default/staticresources/AgentPrompt_Sentiment.resource, force-app/main/default/staticresources/AgentPrompt_Sentiment.resource-meta.xml, force-app/main/default/customMetadata/Agent_Prompt_Setting.*, scripts/sentiment-check.apex, docs/research/fr2-sentiment.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
