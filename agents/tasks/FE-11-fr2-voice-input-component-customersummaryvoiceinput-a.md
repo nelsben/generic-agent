@@ -4,7 +4,7 @@ title: FR2: voice input component — customerSummaryVoiceInput, a mic toggle us
 domain: frontend
 tier: standard
 tier_reason: one self-contained LWC from a written pattern, with Jest and a docs page
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryVoiceInput/**, docs/patterns/11-voice-input.md]
 forbid: [force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/flexipages/**, force-app/main/default/applications/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -27,3 +27,13 @@ Feature revision 2 (FR2): "Sellers don't want to type". Every Customer Summary w
 - Jest with a mocked recognizer covers start, interim and final text, silence stop, manual stop, not-allowed, other errors, unsupported browser, disconnect, and zero accessibility violations. The component passes the LWS security validation skill with no blocked API
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - Write docs/patterns/11-voice-input.md: what it does, browser support (Chrome and Edge full, Safari patchy, Firefox none), the privacy line (Chrome sends audio to Google to transcribe it), why it never auto-sends, how to test it by hand, and how a surface embeds it. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh (check-only) and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-12). Verdict consistent, next=accept with no reviewer pass, so the brain read the whole component (js, html, css) and the Jest test list. It matches the card: SpeechRecognition or the webkit form, continuous with interim results, the locale with an en-US fallback, one toggle with aria-label Talk/Stop and aria-pressed, a 3 s silence stop that resets on each result, the four lowercase events, public start() and stop(), stop on disconnect, the two error messages, a hidden button plus a note when unsupported, and a polite live region. Nothing dispatches a send. No blocked API (no innerHTML, eval or document writes). The CSS variable names match the seven BE-24 sets on the panel host. 13 Jest tests, sa11y included. Privacy grep over 650 added lines: 0 hits.
+
+Notes for later cards:
+- The worker did not walk the LWS security validation skill the card named; the brain's read found no blocked API, so this is accepted as is
+- The hand-back says embedding has "no card yet"; FE-12 (customerSummaryConversation) embeds it in its composer
+- Inside the panel, BE-24 sets --cs-radius to 0.25rem, so the mic button inherits that instead of its round 50% fallback; FE-12 decides whether the mic stays round
+- The mic's colour fallbacks (#0b5cab) differ from BE-24's defaults (#0176d3); inside the panel the brand variables win, so this shows only when the component is used outside a themed host
