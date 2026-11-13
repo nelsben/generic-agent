@@ -9,6 +9,7 @@ Usage:
   python3 spikes/standard-limits/run.py direct <rung> [runs]   # action class and panel path, no agent
   python3 spikes/standard-limits/run.py agent <rung> [runs]    # generateAiAgentResponse, new session per run
   python3 spikes/standard-limits/run.py sessions <label>       # count the product's session rows
+  python3 spikes/standard-limits/run.py report                 # no org call: pair results, print pass/fail
 Rungs are in rungs.json. Results append to spikes/standard-limits/results/<mode>.jsonl: counts and
 booleans only. The per-run Apex file is written to the system temp folder and deleted after the run.
 """
@@ -91,8 +92,38 @@ System.debug('BE32S|rows=' + rows + '|briefs=' + briefs);
 """
 
 
+def load(mode):
+    path = os.path.join(RESULTS, mode + ".jsonl")
+    return [json.loads(line) for line in open(path)] if os.path.exists(path) else []
+
+
+def report():
+    """Read-only: pair each agent run with the direct run of the same rung and number, print sizes and pass/fail."""
+    direct = {(r["rung"], r["run"]): r for r in load("direct")}
+    for a in load("agent"):
+        d = direct.get((a["rung"], a["run"]))
+        if a.get("cli") or not d or d.get("cli"):
+            print("%s run %s: no pair" % (a["rung"], a["run"]))
+            continue
+        if a["rung"] == "brief":
+            checks = {"labelsOwnLine": a["labels"] == d["labels"]}
+            if "labelsAnywhere" in a:
+                checks["sectionsPresent"] = a["labelsAnywhere"] == 6
+                checks["dashLines"] = a["bulletLines"] == d["bulletLines"]
+            sizes = "action=%d relayed=%d" % (d["actionLen"], a["replyLen"])
+        else:
+            checks = {"rows": a["rows"] == d["actionRows"], "footer": a["footer"] == d["actionFooter"],
+                      "cols": a["cols"] == d["actionCols"], "names": a["names"] == d["actionNames"]}
+            sizes = "action=%d relayed=%d panel=%d" % (d["actionLen"], a["replyLen"], d["panelRenderedLen"])
+        verdict = "PASS" if all(checks.values()) else "FAIL " + ",".join(k for k, v in checks.items() if not v)
+        print("%s run %d: %s %s" % (a["rung"], a["run"], sizes, verdict))
+
+
 def main():
     mode = sys.argv[1]
+    if mode == "report":
+        report()
+        return
     if mode == "sessions":
         row = run_apex(SESSIONS, "BE32S")
         row["label"] = sys.argv[2] if len(sys.argv) > 2 else ""
