@@ -18,8 +18,9 @@
   variable, and every query runs in user mode.
   - The prototype answered 27 of 30 questions. The current explorer answered 23 of 30 in a metered
     replay and 20 of 30 in a run through the deployed `DataExplorer.explore` (verified, one run each).
-  - Run-to-run noise is real. The replay and the deployed run use the same code, yet they disagreed on 5
-    of 30 questions. Only two of the gains are structural:
+  - Run-to-run noise is real. The replay and the deployed run share the prompt, planner and query code,
+    yet they disagreed on 5 of 30 questions: model noise, or a difference between the replayed loop and
+    the deployed one (not separated here). Only two of the gains are structural:
     - Long-text search went from 0 of 2 to 2 of 2.
     - Objects outside the curated eight went from 0 of 1 to 1 of 1.
     The current grammar cannot express either one at all. The other gains are within the noise.
@@ -65,11 +66,11 @@
   - One question was replaced before the final runs. q06 had asked about an industry with no contacts,
     so an empty answer was the right one. It now uses an industry with five contacts.
 - **No-model checks** ([rejections.apex](../../spikes/explorer-scale/rejections.apex),
-  [output](../../spikes/explorer-scale/results/rejections.txt)) hand the planner 43 plans:
-  - 30 malformed or forbidden plans, one or more for every new plan position.
+  [output](../../spikes/explorer-scale/results/rejections.txt)) hand the planner 44 plans:
+  - 31 malformed or forbidden plans, one or more for every new plan position.
   - 13 valid ones, including the five shapes that [red-1](#red-evidence) shows the deployed
     `ExplorePlan` rejecting.
-  - 43 of 43 behaved as expected (verified). The first pass found three planner bugs: `NOT` needed
+  - 44 of 44 behaved as expected (verified). The first pass found three planner bugs: `NOT` needed
     parentheses, a `HAVING COUNT` bind must be an Integer, and the long-text column must be selected.
     All three were fixed before the 30-question runs.
 - **Probes:**
@@ -160,9 +161,9 @@ user can read, so the catalog follows profiles and permission sets for free.
 
 What the org has (verified):
 
-- Global describe: about 1,750 to 1,900 entries. The two probes counted 1,752 and 1,916, depending on what
-  each one enumerated.
-- 1,100 objects are accessible and queryable to the admin.
+- Global describe: about 1,750 to 1,900 entries. The two probes counted 1,752 and 1,916; the gap is
+  unexplained.
+- 1,099 objects are allowed by the prototype (accessible, queryable and not denied) for the admin.
 - Fields: 21,410 on the first 1,107 objects described. Of those, 41 are custom, 436 are long text and 950
   cannot be filtered. None are encrypted, and 92 have sensitive-sounding names.
 - Two custom objects, both the product's own session records.
@@ -172,9 +173,9 @@ What the org has (verified):
 | Rule | Why |
 |---|---|
 | Objects `Customer_Summary_Session__c`, `Account_Brief_Session__c` and any later product object | product state, not CRM data |
-| Setup and audit objects (`SetupAuditTrail`, `LoginHistory`, `AuthSession`, `PermissionSet`, `Profile`, `ApexClass`, `StaticResource`) | not sales questions; security-relevant |
+| Setup and audit objects (`SetupAuditTrail`, `LoginHistory`, `AuthSession`, `PermissionSet`, `Profile`, `ApexClass`, `StaticResource`) | not sales questions; security-relevant. A typo left `SetupAuditTrail` allowed during the 30-question runs (no question touched it); fixed, and check 44 now rejects it |
 | Suffixes `__Share`, `History`, `Feed`, `ChangeEvent`, `__mdt`, `__e`, `__x`, `__b`, `__kav`, `__chn` | sharing internals, event and external objects, platform metadata |
-| Fields that are encrypted, base64, address or location compounds, or named like password, secret, token, SSN, tax id, card or bank account | never shown in chat, even when readable |
+| Fields that are encrypted, base64, address or location compounds, or named like password, secret, token, SSN, tax id, card or bank account | never shown in chat, even when readable (unverified: no check covers these field rules) |
 
 - **The deny list is extra, never instead.** User mode still applies to every query, so an object the
   deny list misses is still bounded by the user's own access. The list exists for data the user can read
@@ -199,13 +200,13 @@ Object pruning alone is not enough. Catalog lines from [catalog-scale.txt](../..
 | Objects described | Characters | About tokens | CPU ms |
 |---|---|---|---|
 | the 8 core objects, as sent per question (child lists only to prompt objects) | 22,421 | 5,600 | (part of the 665 ms median) |
-| 8, with child lists to every allowed object | 35,373 | 8,800 | 474 |
-| 50 | 73,851 | 18,500 | 1,222 |
-| 200 | 181,556 | 45,400 | 2,020 |
-| all 1,100 | 948,228 | 237,000 | 8,643 |
-| names-only index of all 1,100 (name and label) | 49,327 | 12,300 | 174 |
+| 8, with child lists to every allowed object | 35,373 | 8,800 | 479 |
+| 50 | 73,851 | 18,500 | 1,228 |
+| 200 | 181,556 | 45,400 | 2,046 |
+| all 1,099 | 947,951 | 237,000 | 8,223 |
+| names-only index of all 1,099 (name and label) | 49,284 | 12,300 | 165 |
 
-- Describing everything is out: 237k tokens is beyond any sensible prompt, and the CPU alone is 86% of
+- Describing everything is out: 237k tokens is beyond any sensible prompt, and the CPU alone is 82% of
   the limit.
 - A names-only index of every object fits at about 12k tokens, but that is still more than the whole
   current prompt.
@@ -277,7 +278,8 @@ Per question, from the runs (verified):
 
 - **SOQL:**
   - The prototype ran 3 to 5 statements out of 100: one for the prompt file, the plans, a COUNT() when a
-    table fills its limit, and the grader's own reference.
+    table fills its limit, and one more that the run did not attribute (probably the brand settings read
+    for the prompt). The count is taken before grading, so the grader's queries are not in it.
   - The 4-plan cap keeps a question under about 12 statements in the worst case: each plan, a pre-count
     and a total.
 - **Rows:** at most 98 in any run. The 10,000-row pre-count cap from `ExploreQuery` is kept. The long-text
@@ -285,7 +287,7 @@ Per question, from the runs (verified):
 - **CPU:**
   - The prototype's median is 665 ms of 10,000, against 268 ms for the current explorer.
   - The extra 400 ms is describe work for 8 to 14 objects.
-  - It grows by about 5 to 18 ms per extra object described, and reaches 8.6 s for all 1,100. That is the
+  - It grows by about 5 to 18 ms per extra object described, and reaches 8.2 s for all 1,099. That is the
     reason to describe only on demand.
 - **Heap:** 350 KB of 6 MB, against 45 KB. It is describe results, held for the transaction.
 - **Callouts:**
@@ -351,7 +353,7 @@ direction.
 
 ## Risks
 
-- **Noise:** with n=1, the replay and the deployed run of the same code disagreed on 5 of 30. The headline
+- **Noise:** with n=1, the replay and the deployed run disagreed on 5 of 30. The headline
   27 against 23 or 20 is suggestive, not proven. Only long text and the object outside the curated eight
   are structural wins.
 - **Prompt cost:** describe-driven lines doubled input tokens. Without field pruning the bill doubles.

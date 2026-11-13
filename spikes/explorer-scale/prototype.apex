@@ -19,7 +19,7 @@ public class Cat {
     public Map<String, DescribeSObjectResult> objs = new Map<String, DescribeSObjectResult>();
     public Map<String, Map<String, DescribeFieldResult>> rels = new Map<String, Map<String, DescribeFieldResult>>();
     // The admin's deny list (custom metadata in a build): the product's own records, and system families.
-    public Set<String> denyObjects = new Set<String>{ 'customer_summary_session__c', 'account_brief_session__c', 'customer_outcome__c', 'staticresource', 'apexclass', 'setupauditrail', 'loginhistory', 'authsession', 'permissionset', 'profile' };
+    public Set<String> denyObjects = new Set<String>{ 'customer_summary_session__c', 'account_brief_session__c', 'customer_outcome__c', 'staticresource', 'apexclass', 'setupaudittrail', 'loginhistory', 'authsession', 'permissionset', 'profile' };
     public List<String> denySuffixes = new List<String>{ '__share', 'history', 'feed', 'changeevent', '__mdt', '__e', '__x', '__b', '__kav', '__chn' };
     public Pattern denyField = Pattern.compile('(?i).*(password|secret|token|ssn|taxid|creditcard|bankaccount).*');
     public Set<String> noise = new Set<String>{ 'isdeleted', 'systemmodstamp', 'lastvieweddate', 'lastreferenceddate', 'photourl', 'jigsaw', 'jigsawcompanyid', 'cleanstatus', 'masterrecordid', 'connectionreceivedid', 'connectionsentid', 'recordvisibilityid' };
