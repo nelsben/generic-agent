@@ -1,0 +1,11 @@
+[
+  {"id": "task", "expect": "create_task", "date": "dueDate", "dateRule": "next-tuesday", "request": "Create a follow-up task to send Marlowe the pricing sheet next Tuesday, high priority"},
+  {"id": "event", "expect": "create_event", "date": "startDateTime", "dateRule": "tomorrow", "request": "Set up a meeting with Tessaly tomorrow at 2pm for 30 minutes to review the renewal"},
+  {"id": "call", "expect": "log_call", "request": "Log a call with Percival: he confirmed budget for the router refresh"},
+  {"id": "contact", "expect": "update_contact", "request": "Update Isolde's title to VP of Network Operations"},
+  {"id": "case", "expect": "create_case", "request": "Open a high priority case: their fiber link drops every night around midnight"},
+  {"id": "opp", "expect": "update_opportunity", "date": "CloseDate", "dateRule": "end-of-next-month", "request": "Push the close date on the Core Router Refresh to the end of next month and set the next step to legal review"},
+  {"id": "question", "expect": "none", "request": "Which of their open deals close this quarter?"},
+  {"id": "bare", "expect": "create_task", "expectMissing": true, "request": "Create a follow-up"},
+  {"id": "spoken", "expect": "create_task", "request": "uh remind me to call ambrose back on friday about the spare parts thing"}
+]
