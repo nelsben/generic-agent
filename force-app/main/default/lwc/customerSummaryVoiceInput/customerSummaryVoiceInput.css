@@ -1,0 +1,83 @@
+:host {
+    display: inline-block;
+}
+
+.voice {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-family: var(--cs-font-body, inherit);
+    color: var(--cs-color-ink, #181818);
+}
+
+button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid var(--cs-color-primary, #0b5cab);
+    border-radius: var(--cs-radius, 50%);
+    background: var(--cs-color-surface, #ffffff);
+    color: var(--cs-color-primary, #0b5cab);
+    cursor: pointer;
+}
+
+button:focus-visible {
+    outline: 2px solid var(--cs-color-accent, #0b5cab);
+    outline-offset: 2px;
+}
+
+button.recording {
+    background: var(--cs-color-primary, #0b5cab);
+    color: var(--cs-color-surface, #ffffff);
+    animation: pulse 1.4s ease-in-out infinite;
+}
+
+.status {
+    font-size: 0.8125rem;
+    color: var(--cs-color-ink, #181818);
+}
+
+.unsupported {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--cs-color-ink, #181818);
+}
+
+.error {
+    margin: 0;
+    flex-basis: 100%;
+    font-size: 0.8125rem;
+    color: var(--cs-color-ink, #181818);
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 var(--cs-color-accent, rgba(11, 92, 171, 0.4));
+    }
+    50% {
+        box-shadow: 0 0 0 6px transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button.recording {
+        animation: none;
+    }
+}
