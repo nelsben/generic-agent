@@ -10,11 +10,16 @@
  *      looked up in one query, however many there are.
  *   3. Exact case-insensitive Name match that is unique wins.
  *   4. Name LIKE %term% (bind variable): 1 hit RESOLVED, many AMBIGUOUS, none NOT_FOUND.
+ * A query error (for example no read access to Account) is ERROR with fixed text, never NOT_FOUND:
+ * "no account matches" would send an admin looking for missing data instead of missing access.
  */
 public with sharing class CustomerSummaryResolver {
     public static final String RESOLVED = 'RESOLVED';
     public static final String AMBIGUOUS = 'AMBIGUOUS';
     public static final String NOT_FOUND = 'NOT_FOUND';
+    public static final String ERROR = 'ERROR';
+
+    @TestVisible private static final String ERROR_TEXT = 'I couldn\'t search accounts. You may not have access to them: ask your Salesforce admin to check your access.';
 
     @TestVisible private static final Integer MAX_CANDIDATES = 8;
     private static final Pattern ID_IN_TEXT = Pattern.compile('(?<![A-Za-z0-9])(001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?)(?![A-Za-z0-9])');
@@ -27,7 +32,7 @@ public with sharing class CustomerSummaryResolver {
     }
 
     public class Response {
-        @InvocableVariable(label='Status' description='RESOLVED, AMBIGUOUS or NOT_FOUND')
+        @InvocableVariable(label='Status' description='RESOLVED, AMBIGUOUS, NOT_FOUND or ERROR')
         @AuraEnabled public String status;
         @InvocableVariable(label='Account Id' description='18-character Id of the resolved account; blank unless RESOLVED')
         @AuraEnabled public String accountId;
@@ -56,9 +61,9 @@ public with sharing class CustomerSummaryResolver {
         try {
             return resolveChecked(accountName, knownAccountId);
         } catch (QueryException e) {
-            // The user can't read Account (or Account.Name): nothing they can see matches.
+            // Most often the user can't read Account or its Name. That is an access problem, not a missing account.
             System.debug(LoggingLevel.WARN, 'CustomerSummaryResolver query failed: ' + e.getTypeName() + ': ' + e.getMessage());
-            return String.isBlank(accountName) ? notFoundBlank() : notFound(accountName.trim());
+            return failed();
         }
     }
 
@@ -213,6 +218,14 @@ public with sharing class CustomerSummaryResolver {
         Response r = new Response();
         r.status = NOT_FOUND;
         r.message = 'No account matches "' + term + '". Try a fuller or different account name.';
+        return r;
+    }
+
+    /** A query failed: ERROR with the fixed text, no Id and no echo of what the user typed. */
+    private static Response failed() {
+        Response r = new Response();
+        r.status = ERROR;
+        r.message = ERROR_TEXT;
         return r;
     }
 

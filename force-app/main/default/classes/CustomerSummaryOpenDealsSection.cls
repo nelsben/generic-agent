@@ -76,8 +76,12 @@ public with sharing class CustomerSummaryOpenDealsSection implements CustomerSum
         for (Opportunity o : rows) {
             oppIds.add(o.Id);
         }
+        // Who is involved is optional: a user who cannot read contact roles or contact names still gets the
+        // deals, and the last line says what was left out (N2 in docs/reviews/apex-review-2.md).
+        Boolean hasContacts = canReadDealContacts();
+        String leftOutLine = hasContacts ? null : CustomerSummarySection.leftOutLine(new List<String>{ 'Deal contacts' });
         Map<Id, List<OpportunityContactRole>> rolesByOpp = new Map<Id, List<OpportunityContactRole>>();
-        if (!oppIds.isEmpty()) {
+        if (hasContacts && !oppIds.isEmpty()) {
             for (OpportunityContactRole r : [
                 SELECT OpportunityId, ContactId, Role, IsPrimary, Contact.Name
                 FROM OpportunityContactRole
@@ -100,10 +104,11 @@ public with sharing class CustomerSummaryOpenDealsSection implements CustomerSum
         Integer shown = 0;
         // The budget counts the text without record Ids: what the rep reads and the model sees.
         Integer used = body.length();
+        Integer reserve = FOOTER_RESERVE + (leftOutLine == null ? 0 : leftOutLine.length() + 1);
         for (Opportunity o : rows) {
             String block = dealBlock(o, asOfDate, rolesByOpp.get(o.Id));
             Integer cost = 1 + CustomerSummarySection.withoutIds(block).length();
-            if (used + cost > BODY_MAX - FOOTER_RESERVE) {
+            if (used + cost > BODY_MAX - reserve) {
                 break;
             }
             body += '\n' + block;
@@ -113,12 +118,28 @@ public with sharing class CustomerSummaryOpenDealsSection implements CustomerSum
         if (shown < total) {
             body += '\n- …and ' + (total - shown) + ' more not shown';
         }
+        if (leftOutLine != null) {
+            body += '\n' + leftOutLine;
+        }
 
         s.status = CustomerSummarySection.OK;
         s.body = body;
         s.total = total;
         s.shown = shown;
         return s;
+    }
+
+    /** True when the user can read every field the contact-role query selects, including the contact's name. */
+    private static Boolean canReadDealContacts() {
+        if (!Schema.SObjectType.OpportunityContactRole.isAccessible() || !Schema.SObjectType.Contact.isAccessible()) {
+            return false;
+        }
+        for (String field : new List<String>{ 'OpportunityId', 'ContactId', 'Role', 'IsPrimary' }) {
+            if (!CustomerSummarySection.canRead(OpportunityContactRole.SObjectType, field)) {
+                return false;
+            }
+        }
+        return CustomerSummarySection.canRead(Contact.SObjectType, 'Name');
     }
 
     /**

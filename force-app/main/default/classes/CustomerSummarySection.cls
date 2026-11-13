@@ -76,6 +76,24 @@ public with sharing class CustomerSummarySection {
         return String.isEmpty(text) ? text : text.replaceAll(LINE_ID, '');
     }
 
+    /** How the line that names the parts a section left out starts (N2 in docs/reviews/apex-review-2.md). */
+    public static final String LEFT_OUT_PREFIX = 'Left out because you can\'t see these fields: ';
+
+    /**
+     * True when the running user can read the field: it exists on the object and field-level access allows it.
+     * A section selects an optional field only when this is true, because under USER_MODE one unreadable
+     * field fails the whole query, and with it the whole section.
+     */
+    public static Boolean canRead(Schema.SObjectType objectType, String fieldName) {
+        Schema.SObjectField field = objectType.getDescribe(SObjectDescribeOptions.DEFERRED).fields.getMap().get(fieldName.toLowerCase());
+        return field != null && field.getDescribe().isAccessible();
+    }
+
+    /** The line that names, in plain words, what the section left out, or null when nothing was left out. */
+    public static String leftOutLine(List<String> labels) {
+        return labels == null || labels.isEmpty() ? null : LEFT_OUT_PREFIX + String.join(labels, ', ') + '.';
+    }
+
     /** yyyy-MM-dd, or 'n/a' for a null date. */
     public static String fmtDate(Date d) {
         if (d == null) {

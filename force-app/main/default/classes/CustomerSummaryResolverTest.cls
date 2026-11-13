@@ -181,4 +181,40 @@ private class CustomerSummaryResolverTest {
         Assert.areEqual('EMPTY', CustomerSummarySection.EMPTY);
         Assert.areEqual('ERROR', CustomerSummarySection.ERROR);
     }
+
+    /** A Minimum Access user: no read access to Account, so every resolver query throws. */
+    private static User minimalUser() {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        String uniq = 'res' + String.valueOf(Crypto.getRandomInteger()).replace('-', '');
+        User u = new User(
+            Alias = 'resmin',
+            Email = uniq + '@example.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'Resolver Minimal',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            ProfileId = p.Id,
+            TimeZoneSidKey = 'America/New_York',
+            Username = uniq + '@example.com.resolvertest'
+        );
+        insert u;
+        return u;
+    }
+
+    @IsTest
+    static void aQueryErrorIsAnErrorWithFixedTextNotNotFound() {
+        String name = token() + ' Access';
+        insert mk(name, null);
+        User u = minimalUser();
+
+        System.runAs(u) {
+            for (String typed : new List<String>{ name, 'Anything else' }) {
+                CustomerSummaryResolver.Response r = CustomerSummaryResolver.resolve(typed, null);
+                Assert.areEqual('ERROR', r.status, r.message);
+                Assert.areEqual('I couldn\'t search accounts. You may not have access to them: ask your Salesforce admin to check your access.', r.message);
+                Assert.isNull(r.accountId);
+                Assert.isNull(r.accountName);
+            }
+        }
+    }
 }
