@@ -80,7 +80,8 @@ public with sharing class AgentLlm {
         if (cached != null) {
             return cached;
         }
-        List<StaticResource> rows = [SELECT Body FROM StaticResource WHERE Name = :resourceName LIMIT 1];
+        // system-context: the product's own shipped prompt files; reps have no read access to static resources
+        List<StaticResource> rows = [SELECT Body FROM StaticResource WHERE Name = :resourceName WITH SYSTEM_MODE LIMIT 1];
         if (rows.isEmpty() || rows[0].Body == null) {
             throw new LlmException('Prompt not found: static resource ' + resourceName + ' does not exist.');
         }

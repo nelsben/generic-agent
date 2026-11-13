@@ -80,6 +80,7 @@ public with sharing class CustomerSummaryMemory {
         }
     }
 
+    // system-context: the product's own session rows, written for the running user; reps have no write access to the object
     private static void write(List<Entry> entries, Set<String> keys, Id userId) {
         Map<String, Customer_Summary_Session__c> rowsByKey = findRowsForUpdate(keys);
         List<Customer_Summary_Session__c> toInsert = new List<Customer_Summary_Session__c>();
@@ -126,6 +127,7 @@ public with sharing class CustomerSummaryMemory {
     }
 
     /** Deletes the user's least recently active rows beyond maxRowsPerUser. The rows just written are never deleted. */
+    // system-context: deletes the running user's own old session rows; reps have no delete access to the object
     private static void purgeOverflow(Id userId, Set<String> justSaved) {
         Integer keep = Math.max(0, maxRowsPerUser - justSaved.size());
         List<Customer_Summary_Session__c> stale = [
@@ -196,6 +198,7 @@ public with sharing class CustomerSummaryMemory {
     }
 
     /** The rows for the keys, read without a lock: for history and lastBrief. */
+    // system-context: reads the running user's own session rows; reps have no access to the object
     private static Map<String, Customer_Summary_Session__c> findRows(Set<String> keys) {
         return toMap([
             SELECT Id, Session_Key__c, Turns_JSON__c, Last_Brief__c, Brief_Count__c
@@ -206,6 +209,7 @@ public with sharing class CustomerSummaryMemory {
     }
 
     /** The rows for the keys, locked until the transaction ends: for read-modify-write. */
+    // system-context: locks the running user's own session rows for a write; reps have no access to the object
     private static Map<String, Customer_Summary_Session__c> findRowsForUpdate(Set<String> keys) {
         return toMap([
             SELECT Id, Session_Key__c, Turns_JSON__c, Last_Brief__c, Brief_Count__c
