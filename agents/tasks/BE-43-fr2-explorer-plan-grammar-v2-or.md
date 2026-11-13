@@ -19,6 +19,8 @@ spend: 15
 
 Parked for Ben's go (the explorer build line BE-41 to BE-45). Today's plan grammar allows AND-only filters and one-level parent paths, so follow-ups like "accounts with an open case and no activity in 30 days" fail. BE-31's prototype built every shape the card named from catalog paths with bound values and measured the platform rules that a planner must refuse before SOQL. Covers ledger row F58 in docs/plans/feature-revision-2.md.
 
+A measured case from BE-30 (docs/research/fr2-follow-ups.md, 2026-11-13): "who there have we not called?" after a summary of a seed account failed 3 of 3 live runs, because the plan language has no anti-join. BE-30 did not add one; it waits for this card.
+
 ## Done when
 
 - **Parked for Ben's go:** part of the explorer build line BE-31 proposed (BE-41 to BE-45). Do not start until Ben's go is recorded in the Approvals table of docs/plans/gtm-burn-plan.md
