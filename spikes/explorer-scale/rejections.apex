@@ -53,7 +53,9 @@ List<String> cases = new List<String>{
     'OK {"object":"Account","fields":["Name"],"where":{"field":"Id","op":"IN","value":{"step":1,"field":"Id"}}}',
     'OK {"object":"Account","fields":["Name"],"where":{"field":"Name","op":"=","value":"x\' OR Name != \'"}}',
     'OK {"object":"OpportunityContactRole","fields":["Role","Opportunity.Account.Name"],"where":{"field":"Contact.Account.Type","op":"=","value":"Customer - Direct"}}',
-    'OK {"object":"Product2","aggregates":[{"fn":"COUNT"}],"where":{"field":"IsActive","op":"=","value":true}}'
+    'OK {"object":"Product2","aggregates":[{"fn":"COUNT"}],"where":{"field":"IsActive","op":"=","value":true}}',
+    // added after the review: a setup and audit object
+    'REJ {"object":"SetupAuditTrail","fields":["Action"]}'
 };
 Integer pass = 0;
 for (Integer i = 0; i < cases.size(); i++) {

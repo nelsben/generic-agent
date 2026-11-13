@@ -41,4 +41,5 @@ REJ :: 40 :: want=OK got=OK :: rows=0 soql=SELECT Name, Id FROM Account WHERE Id
 REJ :: 41 :: want=OK got=OK :: rows=0 soql=SELECT Name, Id FROM Account WHERE Name = :b0 LIMIT 50
 REJ :: 42 :: want=OK got=OK :: rows=7 soql=SELECT Role, Opportunity.Account.Name, Id FROM OpportunityContactRole WHERE Contact.Account.Type = :b0 LIMIT 50
 REJ :: 43 :: want=OK got=OK :: rows=1 soql=SELECT COUNT(Id) a0 FROM Product2 WHERE IsActive = :b0
-REJ :: summary :: 43 of 43 as expected; cpuMs=263 soql=13 heap=72288
+REJ :: 44 :: want=REJ got=REJ :: Unknown object "SetupAuditTrail".
+REJ :: summary :: 44 of 44 as expected; cpuMs=243 soql=13 heap=72219
