@@ -7,16 +7,20 @@ left out. Read with [feature-revision-2.md](../plans/feature-revision-2.md) (row
 
 **Status words used on this page.**
 
-- **read**: a Salesforce page fetched on 2026-11-13 and read in full by this run.
+- **read**: a Salesforce page fetched on 2026-11-13. The fetch tool hands back a small model's reading of the page,
+  not the raw page, so "read" is one step short of reading it in a browser.
 - **unverified (search summary)**: Salesforce's Coworker developer guide and the Salesforce Admins blog both
-  refused every automated fetch on 2026-11-13 (HTTP 403, from the fetch tool and from a plain HTTP client). Facts
+  refused every automated fetch on 2026-11-13 (HTTP 403 from the fetch tool; the guide also refused a plain HTTP
+  client). Facts
   from those pages come from search-engine summaries of them. They are not quoted.
 - **secondary**: a third-party page.
 - **general Agentforce, not confirmed for Coworker**: a platform feature that no Coworker source says applies to
   Coworker.
 - **verified**: seen in `agent-probe` by this run.
 
-Quote marks mean the exact words of a page this run read. Without them, a line is a paraphrase. Every source has its
+Quote marks mark words the fetch returned as the page's own. Exact text was asked for only on the pricing page [S2]
+and on a second pass of the Trailhead unit [S6]; other quotes are as the fetch gave them. Without quote marks, a
+line is a paraphrase. Every source has its
 own line in [Sources](#sources).
 
 ## The answer to Ben's two questions
@@ -34,8 +38,8 @@ own line in [Sources](#sources).
 | What it is | Salesforce's AI teammate: a user delegates work in natural language, and it plans the steps and coordinates Agentforce agents, flows and business actions, returning results for review | read [S1], [S3] |
 | Product status | **Sources conflict.** The developer guide's pages are titled "(Beta)" (unverified, search summary [S8]). The 4 August 2026 blog's header says Coworker "is Generally Available" while its availability section says it "is in beta for Salesforce today" [S5]. The 4 November 2026 news story and the 5 November press release use no beta wording [S3], [S4]. This page does not settle it | read [S3], [S4], [S5]; unverified [S8] |
 | Surface: Lightning | An Ask button next to the global search bar: "Click Ask next to the Salesforce global search bar." An answer opens in a workspace tab named "Ask: ..." (search summary [S10]; also secondary [S16]) | read [S6]; unverified [S10] |
-| Surface: Salesforce mobile app | The Trailhead unit says Coworker is "accessible in Salesforce Lightning, Salesforce Mobile, and more" (paraphrase of the unit). The developer guide is summarised as saying the Ask button is not in the mobile app. Field Service, Consumer Goods Cloud and Life Sciences Cloud mobile apps are expected in December 2026 | read [S6], [S4]; unverified [S10] |
-| Surface: Microsoft Teams, iOS app, Mac and Windows desktop app | "Generally available in November 2026" | read [S4], as of 2026-11-05 |
+| Surface: Salesforce mobile app | The Trailhead unit says Coworker is accessible in Salesforce Lightning, Salesforce Mobile and more. The developer guide is summarised as saying the Ask button is not in the mobile app. Field Service, Consumer Goods Cloud and Life Sciences Cloud mobile apps are expected in December 2026 | read [S6], [S4]; unverified [S10] |
+| Surface: Microsoft Teams, iOS app, Mac and Windows desktop app | Generally available in November 2026 | read [S4], as of 2026-11-05 |
 | Surface: Claude and ChatGPT | Through the Coworker MCP server: "as well as in Claude and ChatGPT through MCP". The MCP server is GA in November 2026 | read [S1], [S4] |
 | Surface: Slack | A data source that can be made searchable [S6], [S13]. The August blog describes the same teammate in a Slack standup, with no date. No Coworker page lists Slack as a surface with a date | read [S5], [S6]; unverified [S13] |
 | Licence and price (dated 2026-11-13) | "Agentforce Coworker User License", "$50", "USD/User/Month". Includes "All Coworker searches included" and "30 MBs of indexing per user per month". The page "is subject to change" | read [S2] |
@@ -49,7 +53,7 @@ own line in [Sources](#sources).
 | What it indexes | 30 MB of indexing per user per month comes with the licence. What exactly is indexed, and how the CRM is indexed, is not stated on a page read | read [S2] |
 | Whose access its answers use | "Regardless of which sources you enable, Agentforce Coworker never bypasses your security model." "Sharing rules, profiles, permission sets, and policies for Data 360 all apply." Field-level security is named only by a secondary source [S17]. For record updates, permissions are checked only when the user confirms (paraphrase of [S6]) | read [S6]; secondary [S17] |
 | Writes | Updates are off by default. An admin turns them on in Setup, and then "Agentforce Coworker can now edit or update records up to 15 records in a single command." The user clicks "Confirm". Creating records is named in a guide page title only [S14]. The Japanese launch blog lists sending email, updating deal status and creating tasks [S15] | read [S6], [S15]; unverified [S14] |
-| History, Skills and later features | "Returns to prior Agentforce Coworker interactions via the History panel." Conversation History continues across Salesforce, Teams and the new apps. Skills are reusable, shareable workflows made from a conversation. Daily Digest and scheduled tasks are expected in December 2026 | read [S6], [S4] |
+| History, Skills and later features | "Returns to prior Agentforce Coworker interactions via the History panel ..." (excerpt). Conversation History continues across Salesforce, Teams and the new apps. Skills are reusable, shareable workflows made from a conversation. Daily Digest and scheduled tasks are expected in December 2026 | read [S6], [S4] |
 
 ## The three answers
 
@@ -77,7 +81,7 @@ Ben.** This page does not route around F83, and it does not treat F83 as settled
 | Opened from our hotkey with the record as context | No source documents a shortcut, a programmatic open, or passing a record. `lightning/accApi` drives the standard Agentforce panel, and the beta Web SDK embeds an agent in a non-Lightning host; both are general Agentforce, not confirmed for Coworker | [S18], [S19] |
 | Themed with a brand | No source documents a name, logo or colour change for Coworker. Branding tokens exist for the general Agentforce Web SDK only ([fr2-standard-limits.md](fr2-standard-limits.md)) | not found |
 
-### 3. Extend: can our actions, our MCP door and our cards run inside Coworker? Partly, through an agent only
+### 3. Extend: can our actions, our MCP door and our cards run inside Coworker? Actions yes, through an agent only; the rest undocumented
 
 | Part | Answer | What it takes | Status |
 |---|---|---|---|
@@ -85,7 +89,7 @@ Ben.** This page does not route around F83, and it does not treat F83 as settled
 | Our actions directly, without an agent | **Undocumented.** No source says Coworker calls a custom Apex invocable, a flow or a custom action of our own except through an agent | none | not found |
 | Our MCP door (Customer Summary's actions to outside clients) | **Undocumented.** The Coworker MCP server exposes Coworker outward. No source says Coworker consumes an MCP server we provide. Those are two directions, and only the outward one is documented | none | read [S1], [S4] |
 | Our cards | **Undocumented.** Coworker answers can come as tables, bullet lists or "Rich Card" layouts [S15]. Whether a delegated agent's custom Lightning type renders inside Coworker is not stated. Lightning types are general Agentforce, not confirmed for Coworker (their documented surfaces are in [fr2-standard-limits.md](fr2-standard-limits.md)) | A prototype would need a Lightning type on one action and a new agent version | read [S15] |
-| Skills | **Not a developer extension.** Skills are reusable workflows that users save from a conversation and share. Trailhead says they "combine instructions, context, agents, and tools into shareable workflows for your org" (excerpt). Whether a team could ship a Skill as metadata is undocumented | none | read [S6], [S4] |
+| Skills | **Undocumented as a developer extension.** Skills are reusable workflows that users save from a conversation and share. Trailhead says they "combine instructions, context, agents, and tools into shareable workflows for your org" (excerpt). Whether a team could ship a Skill as metadata is undocumented | none | read [S6], [S4] |
 
 ## Feature map
 
@@ -96,7 +100,7 @@ build; partly means it covers some of it.
 |---|---|---|---|
 | The sourced account summary (seven sources, two pre-reduces, fixed sections; pattern 01) | **Partly.** Coworker answers questions about an account with cited sources. It has no fixed summary shape. Our summary could reach it through the agent, but BE-32 found the agent relays its layout loosely (1 of 6 section labels on its own line) | read [S15], [S6]; [fr2-standard-limits.md](fr2-standard-limits.md) | The fixed, sourced sections unless relayed through the agent, plus the "Summarize <Account>" one-click |
 | Ask-anything explorer with drill-down (pattern 02, BE-31) | **Partly.** Coworker searches CRM objects including custom ones, answers in tables, and lets a user preview a cited record. Aggregates, a deny list, row counts and drill-down to related records are not documented | read [S6], [S15] | Our plan grammar, the admin deny list (BE-31), the guarantee that the model never writes SOQL, and the drill-down buttons |
-| Conversation history a rep can return to (BE-26, FE-22) | **Free.** A History panel, and Conversation History across Salesforce, Teams and the apps | read [S6], [S4] | History scoped per account, and the access re-check on read. Coworker's history is per user; per-account scoping is undocumented |
+| Conversation history a rep can return to (BE-26, FE-22) | **Free.** A History panel, and Conversation History across Salesforce, Teams and the apps | read [S6], [S4] | History scoped per account, and the access re-check on read. How Coworker scopes its history (per user, per record) is undocumented |
 | Customer outcomes and sentiment (BE-35, BE-36, FE-19) | **Not covered.** No Coworker source describes storing what was done against the account. The Trailhead exercise gets a sentiment score by asking another agent | read [S6] | Nothing lost; the outcome store would still be ours to build |
 | Voice input (FE-11, merged) | **Undocumented.** No Coworker source names a microphone or dictation | not found | The shared mic in every surface |
 | Write actions with draft, Confirm and Undo (BE-22, BE-27, FE-14) | **Partly.** Updates with Confirm, up to 15 records in one command, off until an admin turns them on. Create and email are named in a guide title and a blog. Undo and editing a draft before Confirm are undocumented | read [S6], [S15]; unverified [S14] | Undo from stored previous values, the editable draft card, the fixed six-action set and the verb pre-check (BE-22) |
@@ -132,13 +136,13 @@ Run by [inventory.py](../../spikes/coworker/inventory.py) with `-o agent-probe` 
 | Org edition | Developer Edition, not a sandbox |
 | Permission sets named Coworker or AI Search | 0 |
 | Permission set groups named Coworker or AI Search | 0 |
-| Permission set licences named Coworker or AI Search | 0. Of 11 licences labelled Agentforce, Einstein, Data Cloud or Agent, none is Coworker's. A "Data Cloud" licence is present |
+| Permission set licences named Coworker or AI Search | 0. Of 11 licences labelled Agentforce, Einstein, Data Cloud or Agent, none is named Coworker or AI Search. A "Data Cloud" licence is present. Two are named "Einstein AI Skills" and "Einstein AI Skills Manager"; whether they relate to Coworker's Skills is unproven |
 | User licences named Coworker | 0 |
 | Apps (AppMenuItem) and custom applications named Coworker | 0 and 0 |
 | Tabs named Coworker or AI Search | 0 of 253 tabs |
 | Metadata types with Coworker or Search in the name | 0 with Coworker. Three search types (`DataObjectSearchIndexConf`, `SearchCustomization`, `SearchOrgWideObjectConfig`), of 285 types |
 | Settings entries | `Search` only; none named Coworker |
-| Objects with Coworker in the name (Tooling) | 4: `CoworkerConceptShare`, `CoworkerConceptOwnerSharingRule`, `CoworkerMemoryShare` and `CoworkerMemoryOwnerSharingRule`. These are platform schema that ships with the org (BE-34 saw the memory pair, [fr2-agent-memory.md](fr2-agent-memory.md)). They do not show that Coworker is on |
+| Objects with Coworker in the name (Tooling) | 4: `CoworkerConceptShare`, `CoworkerConceptOwnerSharingRule`, `CoworkerMemoryShare` and `CoworkerMemoryOwnerSharingRule`. They look like platform schema present in every org of this release (inference; BE-34 saw the memory pair, [fr2-agent-memory.md](fr2-agent-memory.md)). They do not show that Coworker is on |
 | Agents (BotDefinition) | 2, both ours: `Account_Brief` and `Customer_Summary`, each type `InternalCopilot`, agent type `AgentforceEmployeeAgent`, version 2 active and version 1 inactive. No Search Agent and no Coworker agent |
 | Agent metadata | 4 planner bundles and 2 agent definitions, all ours; 0 AI applications |
 
@@ -196,7 +200,7 @@ Each step needs Ben's go. None was taken in this card.
 |---|---|---|
 | 1 | **Decide F83 for Coworker:** may an agent be a way in when the door is Coworker? | Whether options B and C are open at all |
 | 2 | Look in `agent-probe` Setup for Get Started with Agentforce Coworker. A look, without turning it on | Whether this Developer Edition org is offered Coworker; the query check cannot see that |
-| 3 | Create a Trailhead Coworker playground under his own Trailhead account | A free org with Coworker already on, so the UI facts can be seen: tab or panel, history, cards, mic, shortcut |
+| 3 | Create a Trailhead Coworker playground under his own Trailhead account, and follow the unit's own turn-on steps there | A free org that contains Coworker, so the UI facts can be seen: tab or panel, history, cards, mic, shortcut |
 | 4 | Turn Coworker on in an org we hold, and accept its terms (Beta Services Terms per the search summary) | Availability. Whether a Search Agent appears as a BotDefinition and what type it is. What Setup offers |
 | 5 | Assign the Coworker licence and permission set group to one test user, and give that user agent access (part of FE-20 undone for one user) | The rep's experience, and what Coworker can reach under a rep's access |
 | 6 | Send Coworker a live message that should go to `Customer_Summary`, three or so times | Delegation, how faithfully the summary and an explore table are relayed, and the latency against BE-32's numbers |
@@ -242,12 +246,13 @@ Read on 2026-11-13. Prices and availability are as the page stated on that date.
 
 - [S1] Agentforce Coworker (product page): https://www.salesforce.com/agentforce/coworker/
 - [S2] Agentforce Pricing: https://www.salesforce.com/agentforce/pricing/
-- [S3] Agentforce Coworker surpasses 185k users (Salesforce News, 2026-11-04):
+- [S3] Agentforce Coworker surpasses 185k users (title as the search result gave it; Salesforce News, 2026-11-04):
   https://www.salesforce.com/news/stories/agentforce-coworker-surpasses-185k-users/
 - [S4] Salesforce's Agentforce Coworker Usage Soars 21x in Three Months as Enterprises Delegate Real Work to AI
   (press release, Singapore edition, 2026-11-05):
   https://www.salesforce.com/ap/news/press-releases/2026/11/05/sg-salesforces-agentforce-coworker-usage-soars-21x-in-three-months-as-enterprises-delegate-real-work-to-ai/
-- [S5] Meet Agentforce Coworker: your AI teammate everywhere (Salesforce blog, 2026-08-04):
+- [S5] Meet Agentforce Coworker: your AI teammate everywhere. And it actually does the work. (Salesforce blog,
+  2026-08-04):
   https://www.salesforce.com/blog/agentforce-coworker-salesforce-ai-teammate/
 - [S6] Trailhead, Quick Start: Agentforce Coworker, unit "Enable and Use Agentforce Coworker in Your CRM":
   https://trailhead.salesforce.com/content/learn/modules/quick-start-agentforce-coworker/explore-agentforce-coworker
