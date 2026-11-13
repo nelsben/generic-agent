@@ -216,8 +216,9 @@ On the final commit:
 
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests`: 108 tests, OK.
 - `npm run test:unit`: 41 passed.
-- `bash scripts/validate-org.sh`: pass.
-- `bash scripts/check-docs.sh`: 0 broken.
+- `bash scripts/validate-org.sh`: pass (61 components, 158 tests). It leaves out the agent bundle
+  and runs only the repo's own `*Test` classes, so the old org-only tests are not in its count.
+- `bash scripts/check-docs.sh`: 40 pages, 0 broken.
 - `git status --short`: empty; no `tests/__pycache__`.
 
 ## Undo
