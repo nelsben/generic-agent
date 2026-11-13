@@ -285,7 +285,7 @@ behind, beside the new Customer Summary components:
 | Item | What is in the org after OPS-30 |
 |---|---|
 | The old agent | Unchanged: `Account_Brief` v1 Inactive, v2 Active (last modified 2026-11-12T07:51:53Z); authoring bundles `Account_Brief_1` and `Account_Brief_2` |
-| The spike agent | `Customer_Summary` v1 Active, unchanged. It is the name the renamed bundle will publish into (OPS-51). The deploy added a `Customer_Summary_2` authoring bundle; nothing was published |
+| The spike agent | `Customer_Summary` v1 Active, unchanged. It is the name the renamed bundle will publish into (OPS-51). After the deploy the org lists a `Customer_Summary_2` authoring bundle; that the deploy made it is an inference ([fr2-rename-org.md](fr2-rename-org.md#before-and-after)). Nothing was published |
 | Its evaluation definition | AiEvaluationDefinition `Account_Brief_Test` (not re-checked; OPS-30 did not touch it) |
 | Apex | The same 28 `AccountBrief%` classes, 13 of them tests. They now exist only in the org, and RunLocalTests runs the 13 tests in every deploy |
 | A prompt | Static resource `AgentPrompt_BriefSynthesis`, unchanged. The old `AccountBrief` reads it; the new code reads `AgentPrompt_SummarySynthesis` (OPS-30's fix) |
