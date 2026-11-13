@@ -5,7 +5,7 @@ domain: frontend
 tier: frontier
 tier_reason: product and design judgement across the surfaces, checked against Lightning's limits
 status: blocked
-blocked_by: [OPS-29, FE-11]
+blocked_by: [FE-11]
 fixes: []
 scope: [docs/research/fr2-panel-later.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

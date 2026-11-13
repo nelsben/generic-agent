@@ -4,8 +4,7 @@ title: FR2: card architecture spike — one typed card contract for richly forma
 domain: frontend
 tier: frontier
 tier_reason: a design and architecture decision every surface and every skill will build on, checked against what Lightning, Agentforce and MCP clients can render
-status: blocked
-blocked_by: [OPS-29]
+status: queued
 fixes: []
 scope: [spikes/cards/**, docs/research/fr2-card-architecture.md, docs/assets/fr2-cards-*.png]
 forbid: [force-app/**, mcp-door/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]

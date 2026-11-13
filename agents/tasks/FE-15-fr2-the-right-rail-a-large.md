@@ -5,7 +5,7 @@ domain: frontend
 tier: frontier
 tier_reason: new primary surface with page-level layout behaviour, speed budgets, e2e and GIF capture in a live org
 status: blocked
-blocked_by: [FE-22, FE-13, OPS-29, BE-25, BE-26, FE-21]
+blocked_by: [FE-22, FE-13, BE-25, BE-26, FE-21]
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryRail/**, force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/flexipages/**, force-app/main/default/applications/**, force-app/main/default/messageChannels/**, e2e/**, docs/patterns/12-right-rail.md, docs/assets/fr2-rail*, tests/test_app.py]
 forbid: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
