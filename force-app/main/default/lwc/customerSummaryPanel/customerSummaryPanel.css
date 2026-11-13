@@ -1,18 +1,13 @@
-/* The utility panel gives the host its height (480); the body scrolls, the composer stays pinned. */
+/* The utility panel gives the host its height (480); the conversation fills it. */
 /*
  * Theme (BE-24, fr2-design.md "Theming"): the panel sets --cs-color-primary, --cs-color-accent, --cs-color-surface,
- * --cs-color-ink, --cs-font-display, --cs-font-body and --cs-radius on this host from the brand settings. This
- * stylesheet reads only those, each with a neutral fallback, and maps them onto the SLDS button styling hooks.
- * The one other colour is the SLDS error colour for error text: a status colour, not a brand colour.
+ * --cs-color-ink, --cs-font-display, --cs-font-body and --cs-radius on this host from the brand settings. They
+ * inherit into c-customer-summary-conversation, whose stylesheet reads them; this frame reads only the surface,
+ * ink, body font and radius, each with a neutral fallback.
  */
 :host {
     display: block;
     height: 100%;
-    --slds-c-button-brand-color-background: var(--cs-color-primary, #0176d3);
-    --slds-c-button-brand-color-border: var(--cs-color-primary, #0176d3);
-    --slds-c-button-brand-color-background-hover: var(--cs-color-accent, #014486);
-    --slds-c-button-brand-color-border-hover: var(--cs-color-accent, #014486);
-    --slds-c-button-radius-border: var(--cs-radius, 0.25rem);
 }
 
 .abp-panel {
@@ -28,170 +23,8 @@
     border-radius: var(--cs-radius, 0.25rem);
 }
 
-.abp-panel h2,
-.abp-agent-name {
-    font-family: var(--cs-font-display, inherit);
-}
-
-/* The brand: logo and agent name, at the start of the pinned bar row. It keeps its width up to 60%
-   of the row; the Summarize button, which truncates and keeps its title, takes the squeeze. */
-.abp-brand {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    flex: 0 0 auto;
-    max-width: 60%;
-    min-width: 0;
-}
-
-.abp-logo {
-    flex: 0 0 auto;
-    width: 1.25rem;
-    height: 1.25rem;
-}
-
-.abp-agent-name {
-    min-width: 0;
-    font-weight: 700;
-}
-
-.abp-bar,
-.abp-composer-row {
-    flex: 0 0 auto;
-}
-
-.abp-chips,
-.abp-candidates {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-}
-
-/* The pinned bar is one row: the Summarize button's label truncates before the row wraps. */
-.abp-bar-row {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 0.25rem;
-    min-width: 0;
-}
-
-.abp-brief {
-    flex: 0 1 auto;
-    min-width: 0;
-    margin: 0;
-    background-color: var(--cs-color-primary, #0176d3);
-    border-color: var(--cs-color-primary, #0176d3);
-    border-radius: var(--cs-radius, 0.25rem);
-}
-
-.abp-brief:hover,
-.abp-brief:focus {
-    background-color: var(--cs-color-accent, #014486);
-    border-color: var(--cs-color-accent, #014486);
-}
-
-.abp-brief .slds-truncate {
-    min-width: 0;
-}
-
-.abp-agent {
-    flex: 0 0 auto;
-}
-
-.abp-summary-toggle {
-    line-height: 1.5;
-}
-
-/* Native buttons that carry free text (candidates, follow-ups) wrap at 340px. */
-.abp-chip,
-.abp-candidate {
-    margin: 0;
-    max-width: 100%;
-    white-space: normal;
-    text-align: left;
-    line-height: 1.25;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-}
-
-.abp-body {
-    position: relative;
+.abp-conversation-host {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-.abp-spinner {
-    position: sticky;
-    top: 0;
-    height: 3rem;
-    z-index: 1;
-}
-
-.abp-pre {
-    white-space: pre-line;
-    overflow-wrap: anywhere;
-}
-
-.abp-question {
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-
-[data-error='true'] {
-    color: var(--slds-g-color-error-1, #ea001e);
-}
-
-.abp-card-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem;
-}
-
-.abp-drill-heading:focus {
-    outline: none;
-}
-
-.abp-field {
-    padding: 0.125rem 0;
-}
-
-.abp-table-wrap {
-    max-width: 100%;
-    overflow-x: auto;
-}
-
-.abp-cell {
-    max-width: 14rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.abp-row-button,
-.abp-line-link,
-.abp-summary-toggle {
-    color: var(--cs-color-primary, #0176d3);
-}
-
-.abp-row-button,
-.abp-line-link {
-    white-space: normal;
-    text-align: left;
-    line-height: 1.375;
-}
-
-.abp-row-button {
-    max-width: 14rem;
-}
-
-.abp-composer-row {
-    border-top: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);
-}
-
-.abp-history {
-    border-bottom: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);
+    min-width: 0;
 }

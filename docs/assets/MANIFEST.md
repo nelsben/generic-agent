@@ -36,6 +36,7 @@ the pages still link them, until the chapter cards and `OPS-36` rewrite those pa
 | `e2e-report.png` | The Playwright HTML report for a full run: 8 of 8 passed, 3.1 minutes | [README](../../README.md), [03](../patterns/03-hotkey-panel.md), [08](../patterns/08-test-and-release-lifecycle.md) | captured | 1600x1800 | 274 KB |
 | `brand-swap-before.png` | The open panel on Edge Communications with the shipped Default brand record: the plain blue logo mark and "Customer Summary" at the start of the bar, the blue Summarize button, and the empty state "Ask anything about Your Company's data" | [10](../patterns/10-brand-and-theming.md) | captured | 1520x1500 | 184 KB |
 | `brand-swap-after.png` | The same panel with the record swapped to the made-up Northwind Health: the green N monogram and "Northwind Assist" in Georgia, the green Summarize button, the pale green panel, Verdana text and the empty state "Ask anything about Northwind Health's data"; the utility title still reads "Customer Summary" | [10](../patterns/10-brand-and-theming.md) | captured | 1520x1500 | 185 KB |
+| `fr2-conversation-core.png` | FE-12: the whole window on Edge Communications with the panel open on the new conversation component in its empty state: the brand bar and Summarize button, the Sections and Earlier summaries accordions, "Ask Customer Summary about Edge Communications", a suggestion, the Summarize, Open deals and Recent activity chips, and the composer with the mic and Send | FE-12 hand-back (no page yet) | captured | 1440x900 | 187 KB |
 | `fr2-spike-mirrored-bar.png` | OPS-29 spike: the bottom 200 px of a record page with the utility bar mirrored, "Phone (softphone stand-in)" and "Surface Spike" at the bottom right and the "Ask Customer Summary ⌘K" launcher just above them | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x200 | 34 KB |
 | `fr2-spike-launcher.png` | OPS-29 spike: a record page in the FR2 Surface Spike app, the utility bar at the default left with the softphone stand-in, and the launcher at the bottom right | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 171 KB |
 | `fr2-spike-compact.png` | OPS-29 spike: the 420 px compact window opened by Cmd-K above the launcher | [fr2-surfaces-spike](../research/fr2-surfaces-spike.md) | captured | 1440x900 | 137 KB |
@@ -48,7 +49,8 @@ the pages still link them, until the chapter cards and `OPS-36` rewrite those pa
 
 The `fr2-spike-*.png` stills are whole-window captures kept at CSS scale (1440x900), not device
 scale 2. They come from `e2e/capture/07-surface-spike.capture.js`, which a plain `npm run capture`
-skips; see its header.
+skips; see its header. `fr2-conversation-core.png` is the same kind of whole-window CSS-scale still,
+from `e2e/capture/08-conversation-core.capture.js` (no model call).
 
 Rules for every capture: no record Ids, org Ids, usernames, the running user's name, email
 addresses, URL bars or URLs with query strings in view. Use the seeded sample data only.

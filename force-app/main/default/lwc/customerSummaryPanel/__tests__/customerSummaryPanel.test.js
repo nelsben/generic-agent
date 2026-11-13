@@ -118,13 +118,23 @@ async function mount() {
     return el;
 }
 
-const $ = (el, sel) => el.shadowRoot.querySelector(sel);
-const $$ = (el, sel) => Array.from(el.shadowRoot.querySelectorAll(sel));
-const text = (el) => el.shadowRoot.textContent;
+// The panel is the frame; the conversation it delegates to renders inside its own shadow root.
+const conversation = (el) => el.shadowRoot.querySelector('c-customer-summary-conversation');
+const roots = (el) => [el.shadowRoot, conversation(el).shadowRoot];
+const $ = (el, sel) => roots(el).map((r) => r.querySelector(sel)).find(Boolean) || null;
+const $$ = (el, sel) => roots(el).flatMap((r) => Array.from(r.querySelectorAll(sel)));
+const text = (el) => conversation(el).shadowRoot.textContent;
+const active = (el) => conversation(el).shadowRoot.activeElement;
 const composer = (el) => $(el, '.abp-composer');
 
+function typeInto(el, value) {
+    const box = composer(el);
+    box.value = value;
+    box.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+}
+
 async function ask(el, question) {
-    composer(el).dispatchEvent(new CustomEvent('change', { detail: { value: question } }));
+    typeInto(el, question);
     await flush();
     $(el, '.abp-send').click();
 }
@@ -180,7 +190,7 @@ describe('c-customer-summary-panel', () => {
 
             expect(text(el)).toContain('Second answer.');
             expect(text(el)).not.toContain('First answer.');
-            expect($(el, 'lightning-spinner')).toBeNull();
+            expect($(el, '[data-testid="abp-spinner"]')).toBeNull();
         });
 
         it('keeps pending until the latest request finishes, whatever finishes first', async () => {
@@ -195,12 +205,12 @@ describe('c-customer-summary-panel', () => {
 
             first.resolve(exploreResult('First answer.'));
             await flush();
-            expect($(el, 'lightning-spinner')).not.toBeNull();
+            expect($(el, '[data-testid="abp-spinner"]')).not.toBeNull();
             expect(text(el)).not.toContain('First answer.');
 
             second.resolve(exploreResult('Second answer.'));
             await flush();
-            expect($(el, 'lightning-spinner')).toBeNull();
+            expect($(el, '[data-testid="abp-spinner"]')).toBeNull();
         });
 
         it('does not go on to brief when a superseded resolve returns', async () => {
@@ -539,7 +549,7 @@ describe('c-customer-summary-panel', () => {
             expect(drill).toHaveBeenCalledWith({ recordId: DEAL, relatedObject: null });
             const heading = $(el, '.abp-drill-heading');
             expect(heading.textContent).toBe('Panel Deal');
-            expect(el.shadowRoot.activeElement).toBe(heading);
+            expect(active(el)).toBe(heading);
 
             $(el, '.abp-related').click();
             await flush();
@@ -554,7 +564,7 @@ describe('c-customer-summary-panel', () => {
             $$(el, 'lightning-breadcrumb')[0].dispatchEvent(new CustomEvent('click', { cancelable: true }));
             await flush();
             expect($(el, '.abp-drill-heading')).toBeNull();
-            expect(el.shadowRoot.activeElement).toBe($(el, '.abp-row-button'));
+            expect(active(el)).toBe($(el, '.abp-row-button'));
         });
 
         it('a brief section line with a record Id drills through a button that does not show the Id', async () => {
@@ -613,6 +623,7 @@ describe('c-customer-summary-panel', () => {
             await flush();
 
             const lines = $$(el, '.abp-line-link');
+            expect(lines).toHaveLength(1);
             expect(lines[0].dataset.id).toBe(DEAL);
             expect(lines[0].textContent).toBe('- 2026-01-02 — Order ' + NUMBER + ' late — 30 min — with n/a');
             expect(text(el)).not.toContain(DEAL);
@@ -728,10 +739,23 @@ describe('c-customer-summary-panel', () => {
             expect(minimizeUtility).toHaveBeenCalledWith('u1');
         });
 
+        it('Esc during an IME composition ends the composition only and does not minimize', async () => {
+            const el = await mount();
+            const esc = key(composer(el), { key: 'Escape', isComposing: true });
+            key(composer(el), { key: 'Escape', keyCode: 229 });
+            await flush();
+            expect(esc.defaultPrevented).toBe(false);
+            expect(minimizeUtility).not.toHaveBeenCalled();
+
+            key(composer(el), { key: 'Escape' });
+            await flush();
+            expect(minimizeUtility).toHaveBeenCalledWith('u1');
+        });
+
         it('Enter submits but not mid-IME composition, and Shift-Enter does not submit', async () => {
             explore.mockResolvedValue(exploreResult('Answer.'));
             const el = await mount();
-            composer(el).dispatchEvent(new CustomEvent('change', { detail: { value: 'hello' } }));
+            typeInto(el, 'hello');
             await flush();
             key(composer(el), { key: 'Enter', isComposing: true });
             key(composer(el), { key: 'Enter', shiftKey: true });
@@ -772,7 +796,7 @@ describe('c-customer-summary-panel', () => {
 
             await ask(el, '/brief Acme');
             await flush();
-            expect($(el, '[data-testid="abp-spinner"] lightning-spinner')).not.toBeNull();
+            expect($(el, '[data-testid="abp-spinner"]')).not.toBeNull();
             slow.resolve(briefResult());
             await flush();
             expect($(el, '[data-testid="abp-spinner"]')).toBeNull();
