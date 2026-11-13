@@ -4,7 +4,7 @@ title: FR2: fix the rename's "account summaryed" slip — it reads "account brie
 domain: backend
 tier: economy
 tier_reason: a seven-line text fix with an exact list of lines and one grep test
-status: queued
+status: merged
 fixes: [BE-23]
 scope: [force-app/main/default/aiAuthoringBundles/Customer_Summary/Customer_Summary.agent, tests/agent/Customer_Summary-testSpec.yaml, tests/test_agent_bundle.py, tests/test_fr2_rename.py]
 forbid: [force-app/main/default/classes/**, force-app/main/default/lwc/**, mcp-door/**, spikes/**, scripts/**, docs/**, README.md, agents/**, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -24,3 +24,7 @@ BE-23's mechanical rename turned "account briefed" into "account summaryed" in s
 - `git grep -n -i summaryed` in the repo finds nothing outside docs/research, docs/reviews, docs/plans and agents
 - Local compile of Customer_Summary.agent with the agentforce-generate skill's index-agent.mjs shows 0 errors. No org call of any kind: no deploy, validate, publish or preview
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain read the diff. Attempt 1 restored all seven "account briefed" lines (five in the spec, not four as the card said) but loosened the old-name guard to `brief\b`, which stopped it catching AccountBriefResolver, Account_Brief_Session__c and accountBriefPanel. The brain sent it back. Attempt 2 uses `brief(?!ed)` and adds a unit test proving those three still match and "account briefed" does not. 110 tests OK. Note for OPS-51: OPS-30 deployed the bundle source before this fix, so the org's draft bundle still has the slip until OPS-51 deploys and publishes from main.
