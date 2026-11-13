@@ -5,7 +5,7 @@ domain: ops
 tier: standard
 tier_reason: scripts every adopter runs first, so they must be plain, honest about what they skipped, and never change the org
 status: blocked
-blocked_by: [OPS-30, FE-21]
+blocked_by: [FE-21]
 fixes: []
 scope: [scripts/ladder.sh, scripts/apex-scan.sh, scripts/org-drift.sh, package.json, tests/test_ladder.py, docs/research/fr2-ladder.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, data/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
