@@ -160,7 +160,7 @@ subagent explore:
         # @outputs leaves scope after the run, so the answer reaches the reply through a variable
         # (agent-script-core-language.md sections 1 and 8; optimization-pattern-2-deterministic-logic.md).
         instructions: ->
-            | If the latest message asks for a brief on an account, names an account, picks an account from a candidate list, refers to the account summaryed in the previous reply ("it", "its", "they", "their", "them" right after a brief), or is not about CRM data at all, use reclassify and do not reply here. A follow-up about the records in an earlier explore answer ("Which of them close this quarter?") stays here.
+            | If the latest message asks for a brief on an account, names an account, picks an account from a candidate list, refers to the account briefed in the previous reply ("it", "its", "they", "their", "them" right after a brief), or is not about CRM data at all, use reclassify and do not reply here. A follow-up about the records in an earlier explore answer ("Which of them close this quarter?") stays here.
               Otherwise the data explorer has already answered the user's question in this turn. Do not answer it yourself. Write no sentence before the answer and none after it. Keep every line break and table row as returned. Never end with a closing question or an offer of more help. Never invent data, and never offer filters, exports or other options that the answer does not provide.
 
             if @variables.explore_answer is not None and @variables.explore_answer != "":
@@ -171,7 +171,7 @@ subagent explore:
 
         actions:
             reclassify: @utils.transition to @subagent.agent_router
-                description: "Reclassify a message that asks for an account summary, names an account, picks an account from a candidate list, refers to the account summaryed in the previous reply, or is not about CRM data."
+                description: "Reclassify a message that asks for an account summary, names an account, picks an account from a candidate list, refers to the account briefed in the previous reply, or is not about CRM data."
 
     actions:
         explore_data:

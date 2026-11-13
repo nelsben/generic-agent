@@ -344,8 +344,8 @@ class TestAgentStructure(unittest.TestCase):
         self.assertIn("right after an account_summary reply", description)
         # explore keeps a pronoun follow-up about its own answer instead of handing it back.
         explore = self.subagents["explore"].child("reasoning:").child("instructions:").text()
-        self.assertNotIn("refers to the account summaryed earlier", explore)
-        self.assertIn("refers to the account summaryed in the previous reply", explore)
+        self.assertNotIn("refers to the account briefed earlier", explore)
+        self.assertIn("refers to the account briefed in the previous reply", explore)
         self.assertIn("stays here", explore)
 
     def test_system_line_allows_the_router_off_topic_reply(self):
