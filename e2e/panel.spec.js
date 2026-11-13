@@ -11,7 +11,7 @@
  * exist: the resolver answers NOT_FOUND from SOQL alone, with no model call.
  */
 const fs = require('fs');
-// The axe-core that @axe-core/playwright depends on.
+// axe-core, a direct devDependency (spec 8).
 const AXE_SOURCE = require('axe-core').source;
 const { test, expect, ANSWER_TIMEOUT } = require('./support/panel');
 const { ACCOUNT_NAME } = require('./support/env');
@@ -70,8 +70,8 @@ async function expectInCorner(panel) {
 
 // axe is given the stage element itself, not a selector: the page's synthetic shadow DOM hides
 // the stage from document.querySelectorAll, which is how axe resolves an include selector
-// ("No elements found for include"). AxeBuilder takes selectors only, so the same axe-core it
-// injects is injected here and run on the element; the rule set (WCAG tags) is the same.
+// ("No elements found for include"). AxeBuilder takes selectors only, so the direct
+// devDependency axe-core is injected here and run on the element, with the same WCAG tags.
 async function axeScan(panel, testInfo, state) {
     await panel.page.evaluate(AXE_SOURCE);
     const results = await panel.host.evaluate(

@@ -110,12 +110,12 @@ Close button, because it opens over the window's corner.
 Spec 2 has also failed there with no walkthrough, cause not found, so it can still be flaky in a fresh
 org ([org-migration.md](../docs/research/org-migration.md), "e2e after FE-9").
 
-Accessibility checks run the axe-core that `@axe-core/playwright` uses on the stage element (the
+Accessibility checks run `axe-core` (a direct devDependency) on the stage element (the
 launcher and the window), WCAG 2.0-2.2
 A and AA rules; the violations of each state are attached to the test as JSON. The stage is
 passed as an element, not a selector: the page's synthetic shadow DOM hides it from
-`document.querySelectorAll`, which is how axe resolves a selector, and `AxeBuilder` takes
-selectors only.
+`document.querySelectorAll`, which is how axe resolves a selector, and `AxeBuilder` from
+`@axe-core/playwright` takes selectors only.
 
 ## Capture
 
