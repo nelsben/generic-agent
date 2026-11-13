@@ -1,0 +1,9 @@
+[
+  {"id": "e1", "kind": "explore", "question": "List the 20 opportunities with the earliest close dates, with their name, stage and amount."},
+  {"id": "e2", "kind": "explore", "question": "List the 30 opportunities with the earliest close dates, with their name, stage and amount."},
+  {"id": "e3", "kind": "explore", "question": "List the 40 opportunities with the earliest close dates, with their name, stage and amount."},
+  {"id": "e4", "kind": "explore", "question": "List all opportunities, with their name, stage, amount, close date and account name, sorted by close date."},
+  {"id": "e5", "kind": "explore", "question": "List all opportunities, with their name, account name, stage, amount, probability, close date, type and lead source, sorted by close date."},
+  {"id": "e6", "kind": "explore", "question": "List all opportunities, with their name, account name, owner name, stage, amount, probability, close date, created date, type, lead source and next step, sorted by close date."},
+  {"id": "brief", "kind": "brief", "question": "Brief me on Edge Communications", "account": "Edge Communications"}
+]
