@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: agent publish and activate in a live org, with write actions routed by a model
 status: parked
-blocked_by: [BE-27, BE-24, OPS-51, BE-30, FE-18, BE-35]
+blocked_by: [BE-27, BE-30, FE-18, BE-35]
 fixes: []
 scope: [force-app/main/default/aiAuthoringBundles/Customer_Summary/**, tests/agent/**, docs/research/fr2-agent-next.md, docs/patterns/06-agent-routing-and-verbatim-relay.md]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/classes/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

@@ -5,7 +5,7 @@ domain: backend
 tier: frontier
 tier_reason: creates and runs a Testing Center definition in a production-classified org, where each run spends model calls and runs real actions
 status: parked
-blocked_by: [OPS-51, BE-29, BE-30]
+blocked_by: [BE-29, BE-30]
 fixes: []
 scope: [tests/agent/**, tests/test_agent_bundle.py, scripts/agent-test.sh, tests/test_agent_test_script.py, docs/research/fr2-testing-center.md]
 forbid: [force-app/main/default/aiEvaluationDefinitions/**, force-app/main/default/classes/**, force-app/main/default/lwc/**, force-app/main/default/objects/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, data/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
