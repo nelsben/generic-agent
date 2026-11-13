@@ -4,8 +4,7 @@ title: FR2: the three named follow-up tests assert the records the filtered plan
 domain: backend
 tier: standard
 tier_reason: test-only change to one Apex test class with a clear assertion target
-status: blocked
-blocked_by: [BE-30]
+status: queued
 fixes: [BE-30]
 scope: [force-app/main/default/classes/DataExplorerTest.cls, docs/research/fr2-follow-ups.md]
 forbid: [force-app/main/default/classes/DataExplorer.cls, force-app/main/default/classes/ExplorePlan.cls, force-app/main/default/classes/ExploreAction.cls, force-app/main/default/staticresources/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
