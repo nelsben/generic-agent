@@ -183,8 +183,9 @@ One service, `CustomerSummaryActions`, holds every rule. Each door is a thin wra
     on the field, and none comes back as an unresolved field.
   - It checks each field against the running user's describe and picklists. It applies the action's allow-list and
     defaults, and it lists what is missing.
-- **From words, in `draftFromText`.** It makes one `AgentLlm.complete('ActionDraft', ...)` call, then calls `draft`
-  with what the model returned. The model gives words and dates; Apex gives Ids and labels. This is pattern 01's rule
+- **From words, in `draftFromText`.** It first runs the verb pre-check ([below](#keeping-not-an-action-cheap)) and
+  returns "not an action" with no model call on a miss. Otherwise it makes one `AgentLlm.complete('ActionDraft', ...)`
+  call, then calls `draft` with what the model returned. The model gives words and dates; Apex gives Ids and labels. This is pattern 01's rule
   that data comes from code.
 - **From a chip, in `draftAction`.** A chip, a slash command or an edited draft card calls `draft` directly, with no
   model call. Edit sends the changed input back through `draftAction`, which takes about 0.1 to 0.2 seconds, so the
@@ -217,8 +218,8 @@ One service, `CustomerSummaryActions`, holds every rule. Each door is a thin wra
 
 ### Keeping "not an action" cheap
 
-- Every typed or spoken sentence that `draftFromText` sees costs one model call, about 2.3 seconds, before a
-  question can go to the explorer, which takes 5 to 9 seconds.
+- Without a pre-check, every typed or spoken sentence that `draftFromText` sees costs one model call, about 2.3
+  seconds, before a question can go to the explorer, which takes 5 to 9 seconds.
 - The baseline is to classify every sentence. Each question then pays 2.2 to 3.2 seconds before the explorer starts.
 - To keep questions from paying it, `draftFromText` runs a fixed pre-check before its model call. The panel
   (`FE-14`) always calls `draftFromText`, so the check belongs inside it, not in the panel.
@@ -227,7 +228,8 @@ One service, `CustomerSummaryActions`, holds every rule. Each door is a thin wra
     set, book, log, remind, update, change, open, push, move, make).
   - If the word is not on the list, `draftFromText` returns "not an action" with no model call, and the text goes to
     the explorer.
-- **Measured offline (`run.py precheck`, no org call):** the check sorted 9 of 9 requests right. The spoken request
+- **Measured offline (`run.py precheck`, no org call):** the check sorted 9 of 9 requests right. The two lists were
+  written with these nine requests in view, so this is a consistency check, not a held-out test. The spoken request
   starts with filler, and its first real word is "remind". Matching a verb anywhere in the text instead sorted the
   question wrong, because the question contains "open".
 - **What a miss costs:** an action request whose first word is not on the list goes to the explorer, so no draft is
@@ -240,11 +242,11 @@ One service, `CustomerSummaryActions`, holds every rule. Each door is a thin wra
 
 | Class | Kind | Methods and members |
 |---|---|---|
-| `CustomerSummaryActions` | Service, `with sharing` | `draft(String actionType, Id accountId, Map<String, Object> input)` returns `Draft`, with no DML and no callout. `draftFromText(Id accountId, String text)` returns `Draft`, or `Draft` with status `NOT_AN_ACTION`: one `AgentLlm.complete` call, then `draft`. `commitDraft(Draft draft)` returns `Result`: it rebuilds, writes in user mode, then calls `CustomerOutcomes.record`. `undo(String undoToken)` returns `Result`, for updates within 15 seconds. The constant `LOG_CALL_AS = 'Event'` carries a comment naming F17 (see below). |
+| `CustomerSummaryActions` | Service, `with sharing` | `draft(String actionType, Id accountId, Map<String, Object> input)` returns `Draft`, with no DML and no callout. `draftFromText(Id accountId, String text)` returns `Draft`, or `Draft` with status `NOT_AN_ACTION`: the verb pre-check first, returning `NOT_AN_ACTION` with no model call on a miss; otherwise one `AgentLlm.complete` call, then `draft`. `commitDraft(Draft draft)` returns `Result`: it rebuilds, writes in user mode, then calls `CustomerOutcomes.record`. `undo(String undoToken)` returns `Result`, for updates within 15 seconds. The constant `LOG_CALL_AS = 'Event'` carries a comment naming F17 (see below). |
 | `CustomerSummaryActions.Draft` | Inner class | `status` (READY, NEEDS_INPUT, NOT_AN_ACTION, REFUSED), `action`, `accountId`, `targetId`, `targetLabel`, `inputJson`, `fields` (a list of `Field`), `missing`, `warnings` and `cardJson`. The map input travels as `inputJson`, because `JSON.deserialize` cannot fill an `Object`-typed member (the prototype hit this). |
 | `CustomerSummaryActions.Field` | Inner class | `api`, `label`, `value`, `required`, `missing`, and `choices` (label and Id) when a name matched more than one record. |
 | `CustomerSummaryActions.Result` | Inner class | `status`, `recordId`, `label`, `linkPath`, `undoToken`, `message` and `cardJson`. |
-| `CustomerSummaryActionCatalog` | Data, no queries | For each of the six actions: the target object, create or update, the required inputs, the allow-listed fields and the defaults. Also the action-verb list for the pre-check. |
+| `CustomerSummaryActionCatalog` | Data, no queries | For each of the six actions: the target object, create or update, the required inputs, the allow-listed fields and the defaults. Also the filler-word list and the action-verb list for the pre-check. |
 | `CustomerSummaryActionResolver` | Helper, `with sharing` | `contacts(Id accountId, String words)` and `openOpportunities(Id accountId, String words)`, in user mode. Each returns 0, 1 or several matches. |
 | `CustomerSummaryActionDraftAction` | `@InvocableMethod`, MCP `draft_action` | Inputs: `accountId`, `actionType` (optional), `text` (optional) and `inputJson` (optional). Outputs: `status`, `draftJson`, `cardJson` and `message`. |
 | `CustomerSummaryActionCommitAction` | `@InvocableMethod`, MCP `commit_action` | Inputs: `draftJson`. Outputs: `status`, `recordId`, `label`, `linkPath`, `undoToken`, `cardJson` and `message`. |
