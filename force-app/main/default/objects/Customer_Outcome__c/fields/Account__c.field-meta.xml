@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Account__c</fullName>
+    <label>Account</label>
+    <type>MasterDetail</type>
+    <referenceTo>Account</referenceTo>
+    <relationshipName>Customer_Outcomes</relationshipName>
+    <relationshipLabel>Customer Outcomes</relationshipLabel>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <writeRequiresMasterRead>true</writeRequiresMasterRead>
+    <description>The account the outcome belongs to. Sharing follows the account, and read access to the account is enough to add an outcome (writeRequiresMasterRead).</description>
+</CustomField>

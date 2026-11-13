@@ -122,7 +122,7 @@ public with sharing class DataExplorer {
                 'catalog' => ExploreCatalog.describeForPrompt(),
                 'date_literals' => String.join(ExplorePlan.DATE_LITERALS, ', ') + ', '
                     + String.join(ExplorePlan.DATE_LITERALS_N, ':n, ') + ':n',
-                'context' => contextText(contextRecordId),
+                'context' => contextText(contextRecordId) + outcomeContext(contextRecordId),
                 'history' => historyText(historyJson) + summaryContext(contextRecordId, historyJson),
                 'question' => question.trim()
             };
@@ -647,6 +647,20 @@ public with sharing class DataExplorer {
             System.debug(LoggingLevel.WARN, 'DataExplorer context name not read: ' + e.getMessage());
         }
         return line;
+    }
+
+    /**
+     * The account's earlier outcomes for the model (BE-35), on new lines after the context line, or '' when the
+     * open record is not an Account or there is nothing the user may see. Anyone but an outcome's author gets
+     * its type and date only (CustomerOutcomes, F79). Read-only.
+     */
+    @TestVisible
+    private static String outcomeContext(Id recordId) {
+        if (recordId == null || recordId.getSObjectType() != Account.SObjectType) {
+            return '';
+        }
+        String ctx = CustomerOutcomes.contextFor(recordId);
+        return String.isBlank(ctx) ? '' : '\n' + ctx;
     }
 
     /** The last HISTORY_ITEMS earlier turns as Q:/A: lines, or NONE. Unreadable history is ignored. */

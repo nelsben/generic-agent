@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Expires__c</fullName>
+    <label>Expires</label>
+    <type>Date</type>
+    <required>false</required>
+    <description>The day after which the retention batch deletes the outcome. Blank means kept forever. Set from the type at write time.</description>
+</CustomField>

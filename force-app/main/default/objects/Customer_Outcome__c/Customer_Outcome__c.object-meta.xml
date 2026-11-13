@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Customer Outcome</label>
+    <pluralLabel>Customer Outcomes</pluralLabel>
+    <nameField>
+        <label>Customer Outcome Number</label>
+        <type>AutoNumber</type>
+        <displayFormat>CO-{000000}</displayFormat>
+        <startingNumber>1</startingNumber>
+    </nameField>
+    <description>The Customer Outcome object keeps what the agent produced for an account, as a child of Account: summaries, actions taken and saved answers, with their type, skill, surface, model, sentiment and expiry. Only the author reads the text (F79). Written and read through CustomerOutcomes.</description>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ControlledByParent</sharingModel>
+    <externalSharingModel>ControlledByParent</externalSharingModel>
+    <enableActivities>false</enableActivities>
+    <enableHistory>false</enableHistory>
+    <enableReports>true</enableReports>
+    <enableSearch>false</enableSearch>
+    <enableBulkApi>true</enableBulkApi>
+    <enableSharing>true</enableSharing>
+    <enableStreamingApi>true</enableStreamingApi>
+    <visibility>Public</visibility>
+</CustomObject>

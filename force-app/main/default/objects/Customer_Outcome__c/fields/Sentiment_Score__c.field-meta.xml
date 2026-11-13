@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sentiment_Score__c</fullName>
+    <label>Sentiment Score</label>
+    <type>Number</type>
+    <precision>5</precision>
+    <scale>2</scale>
+    <required>false</required>
+    <description>The account sentiment score set with a summary. Shown to anyone who can see the account.</description>
+</CustomField>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Outcome_Type__c</fullName>
+    <label>Outcome Type</label>
+    <type>Text</type>
+    <length>40</length>
+    <required>false</required>
+    <description>The DeveloperName of the Customer_Outcome_Type__mdt record: Summary, Action or Saved_Answer. Sets retention and whether the text is shared.</description>
+</CustomField>

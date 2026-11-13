@@ -290,10 +290,21 @@ private class CustomerSummaryTest {
             requests.add(req);
         }
 
+        User rep = outcomeRep('Standard User', 'sum3', true);
+        List<CustomerSummaryGetAction.Response> out;
+        Integer dml;
+        Integer before;
+        Integer firstHistory;
+        Integer secondHistory;
         Test.startTest();
         Stub stub = install();
-        List<CustomerSummaryGetAction.Response> out = CustomerSummaryGetAction.getBriefs(requests);
-        Integer dml = Limits.getDmlStatements();
+        System.runAs(rep) {
+            before = Limits.getDmlStatements(); // System.runAs itself counts as one DML statement
+            out = CustomerSummaryGetAction.getBriefs(requests);
+            dml = Limits.getDmlStatements() - before;
+            firstHistory = CustomerSummaryMemory.history(first.Id).size();
+            secondHistory = CustomerSummaryMemory.history(second.Id).size();
+        }
         Test.stopTest();
 
         Assert.areEqual(3, out.size());
@@ -303,12 +314,14 @@ private class CustomerSummaryTest {
         }
         Assert.areEqual(9, stub.dmlAtCall.size(), 'three model calls per brief');
         for (Integer i = 0; i < stub.dmlAtCall.size(); i++) {
-            Assert.areEqual(0, stub.dmlAtCall[i], 'model call ' + (i + 1) + ' ran after DML: ' + stub.dmlAtCall);
+            Assert.areEqual(before, stub.dmlAtCall[i], 'model call ' + (i + 1) + ' ran after DML: ' + stub.dmlAtCall);
         }
-        Assert.areEqual(1, dml, 'one memory upsert for the whole invocation');
+        Assert.areEqual(4, dml, 'one memory upsert and one outcome write (savepoint, insert, text update) for the whole invocation');
         Assert.areEqual(2, memoryRows(), 'one row per user and account');
-        Assert.areEqual(2, CustomerSummaryMemory.history(first.Id).size(), 'both briefs of the first account are remembered');
-        Assert.areEqual(1, CustomerSummaryMemory.history(second.Id).size());
+        Assert.areEqual(2, firstHistory, 'both briefs of the first account are remembered');
+        Assert.areEqual(1, secondHistory);
+        Assert.areEqual(2, outcomeRows(first.Id).size(), 'one summary outcome per brief');
+        Assert.areEqual(1, outcomeRows(second.Id).size());
     }
 
     @IsTest
@@ -916,5 +929,156 @@ private class CustomerSummaryTest {
             insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
         }
         return u;
+    }
+
+    // ------------------------------------------------------------------ customer outcomes (BE-35)
+
+    private static List<Customer_Outcome__c> outcomeRows(Id accountId) {
+        return [
+            SELECT Outcome_Type__c, Title__c, Headline__c, Body__c, Skill__c, Surface__c, Model__c, CreatedById
+            FROM Customer_Outcome__c WHERE Account__c = :accountId WITH SYSTEM_MODE
+        ];
+    }
+
+    private static User outcomeRep(String profileName, String alias, Boolean outcomes) {
+        User u;
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Profile p = [SELECT Id FROM Profile WHERE Name = :profileName LIMIT 1];
+            String uniq = alias + String.valueOf(Crypto.getRandomInteger()).replace('-', '');
+            u = new User(Alias = alias, Email = uniq + '@example.com', EmailEncodingKey = 'UTF-8', LastName = 'Outcome Rep',
+                LanguageLocaleKey = 'en_US', LocaleSidKey = 'en_US', ProfileId = p.Id, TimeZoneSidKey = 'America/New_York',
+                Username = uniq + '@example.com.summaryoutcome');
+            insert u;
+            List<PermissionSetAssignment> grants = new List<PermissionSetAssignment>();
+            for (PermissionSet ps : [SELECT Id, Name FROM PermissionSet WHERE Name IN ('Customer_Summary_Data_Access', 'Customer_Summary_Outcome_Access')]) {
+                if (ps.Name == 'Customer_Summary_Data_Access' || outcomes) {
+                    grants.add(new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id));
+                }
+            }
+            PermissionSet industry = new PermissionSet(Name = 'Zqx_' + uniq.right(20), Label = 'Zqx outcome ' + uniq.right(10));
+            insert industry;
+            insert new FieldPermissions(ParentId = industry.Id, SobjectType = 'Account', Field = 'Account.Industry', PermissionsRead = true);
+            grants.add(new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = industry.Id));
+            insert grants;
+        }
+        return u;
+    }
+
+    @IsTest
+    static void aSummaryIsRecordedAsAnOutcomeAfterEveryModelCall() {
+        Account a = mkAccount(true);
+        User u = outcomeRep('Standard User', 'sumrec', true);
+        Stub stub = install();
+
+        CustomerSummary.Result r;
+        Integer before;
+        Test.startTest();
+        System.runAs(u) {
+            before = Limits.getDmlStatements(); // System.runAs itself counts as one DML statement
+            r = CustomerSummary.run(a.Id, 'How is the renewal?', null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        for (Integer dml : stub.dmlAtCall) {
+            Assert.areEqual(before, dml, 'no write before a model call');
+        }
+        List<Customer_Outcome__c> rows = outcomeRows(a.Id);
+        Assert.areEqual(1, rows.size(), 'one summary outcome');
+        Assert.areEqual(CustomerOutcomes.SUMMARY, rows[0].Outcome_Type__c);
+        Assert.areEqual('How is the renewal?', rows[0].Title__c);
+        Assert.areEqual('Headline finding.', rows[0].Headline__c);
+        Assert.areEqual(r.answer, rows[0].Body__c);
+        Assert.areEqual(u.Id, rows[0].CreatedById, 'written as the rep');
+        Assert.areEqual('summary', rows[0].Skill__c);
+        Assert.areEqual('test', rows[0].Surface__c);
+        Assert.isTrue(String.isNotBlank(rows[0].Model__c));
+        Assert.areEqual(1, memoryRows(), 'session memory still works');
+    }
+
+    @IsTest
+    static void aFailedOutcomeWriteIsLoggedAndTheSummaryStillReturns() {
+        Account a = mkAccount(true);
+        install();
+        CustomerOutcomes.failWritesForTest = true;
+
+        Test.startTest();
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, null, null);
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        Assert.areEqual('Headline finding.\nAccount\nBody.', r.answer);
+        Assert.areEqual(0, outcomeRows(a.Id).size(), 'no outcome');
+        Assert.areEqual(1, memoryRows(), 'the memory write stands on its own');
+    }
+
+    @IsTest
+    static void aReadOnlyRepsSummaryIsStillRecorded() {
+        Account a = mkAccount(false);
+        User u = outcomeRep('Minimum Access - Salesforce', 'sumro', true);
+        install();
+
+        CustomerSummary.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isFalse(Schema.SObjectType.Account.isUpdateable(), 'the rep only reads accounts');
+            r = CustomerSummary.run(a.Id, null, new Set<String>{ 'profile' });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        List<Customer_Outcome__c> rows = outcomeRows(a.Id);
+        Assert.areEqual(1, rows.size(), 'read access to the account is enough to record a summary');
+        Assert.areEqual(u.Id, rows[0].CreatedById);
+        Assert.areEqual(r.answer, rows[0].Body__c);
+    }
+
+    @IsTest
+    static void aRepWithoutTheOutcomeSetStillGetsTheSummary() {
+        Account a = mkAccount(true);
+        User u = outcomeRep('Standard User', 'sumno', false);
+        Stub stub = install();
+
+        CustomerSummary.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            r = CustomerSummary.run(a.Id, null, null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        Assert.isFalse(stub.systems[stub.systems.size() - 1].contains(CustomerOutcomes.CONTEXT_HEADER), 'no outcome context');
+        Assert.areEqual(0, outcomeRows(a.Id).size(), 'no outcome without the outcome set');
+        Assert.areEqual(1, memoryRows(), 'the memory write is unaffected');
+    }
+
+    /**
+     * The MCP door's get_account_summary tool maps to CustomerSummaryGetAction: a second summary through it sees the
+     * last summary's headline and date in its synthesis system text.
+     */
+    @IsTest
+    static void aNewSummaryThroughTheActionSeesTheLastSummarysHeadlineAndDate() {
+        Account a = mkAccount(true);
+        User u = outcomeRep('Standard User', 'sumnew', true);
+        Stub stub = install();
+        List<CustomerSummaryGetAction.Response> out;
+        System.runAs(u) {
+            CustomerSummary.run(a.Id, null, null);
+        }
+        Assert.isFalse(stub.systems[stub.systems.size() - 1].contains(CustomerOutcomes.CONTEXT_HEADER), 'nothing before the first summary');
+
+        Test.startTest();
+        System.runAs(u) {
+            out = CustomerSummaryGetAction.getBriefs(requestsFor(new List<Account>{ a }));
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, out[0].status, out[0].answer);
+        String synthesis = stub.systems[stub.systems.size() - 1];
+        Assert.isTrue(synthesis.contains('final account summary'), 'the last call is the synthesis');
+        Assert.isTrue(synthesis.contains(CustomerOutcomes.CONTEXT_HEADER), synthesis.right(400));
+        Assert.isTrue(synthesis.contains('- Summary, ' + Datetime.now().format('yyyy-MM-dd') + ': Headline finding.'), synthesis.right(400));
+        Assert.isFalse(synthesis.contains('Body.'), 'the headline only, never the body');
+        Assert.areEqual(2, outcomeRows(a.Id).size());
     }
 }
