@@ -213,6 +213,7 @@ Ben's notes on [08-test-and-release-lifecycle.md](../patterns/08-test-and-releas
 | # | Feedback | Status |
 |---|----------|--------|
 | F93 | "that completes everything. lets kick off a comprehensive review of all the feedback, cut new cards, and then iron out any questions or dependencies. this is your time as fable to do an advesarial review" | **done**: `OPS-37` ([the review](../reviews/fr2-plan-review.md)). Read two ways. The notes are complete, with none for page 09 or the README, which closes F42. And it is the word for the plan review only, not for any spike or build. The review's edits are in the cards, its ten new cards are cut, and the questions it leaves are in Ben's to-do below |
+| F94 | "go" | **done**: decision 1 in Ben's to-do. The spikes row and the live-checks row in the Approvals table are recorded as approved; the burn starts in the order below |
 
 ## Decisions the brain made (Ben may overrule)
 
@@ -318,8 +319,9 @@ words that overrule it.
 
 ### Dispatch rules
 
-- Every root card is `parked` until Ben's go: `OPS-50`, `FE-20`, `BE-31`, `BE-32` and `BE-34`. On his word the brain
-  sets them to `queued` and dispatches in the order below. Until then the tool's ready list is empty.
+- Ben said "go" on 2026-11-12 (row F94): decision 1 is answered, and the spikes row and the live-checks row
+  are approved. `OPS-50` and `FE-20` are set to `queued` and dispatched first. `BE-31`, `BE-32` and `BE-34` stay
+  `parked` until wave 3, so no org-lock spike runs ahead of the rename.
 - Before dispatching a card, the brain reads the card's row in the Approvals table (the runbook in
   [gtm-burn-plan.md](gtm-burn-plan.md#brain-runbook)).
 - An org-lock card is dispatched only after the previous org-lock card is merged.
