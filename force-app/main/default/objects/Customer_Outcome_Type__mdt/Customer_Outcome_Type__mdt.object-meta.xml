@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>The kinds of customer outcome: how long each is kept and whether its text is shown to other reps who can see the account. Read by CustomerOutcomes and the retention batch. Ships with Summary, Action and Saved answer.</description>
+    <label>Customer Outcome Type</label>
+    <pluralLabel>Customer Outcome Types</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Share_Text__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, other reps who can see the account also see the title, headline, body, record link and sentiment reason of this type. Off by default (F79).</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>Off by default: only the author sees the text.</inlineHelpText>
+    <label>Share Text</label>
+    <type>Checkbox</type>
+</CustomField>

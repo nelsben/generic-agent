@@ -3,8 +3,11 @@
  *
  * run() (1) checks the account is visible to the user, (2) builds the included gather sources
  * from the registry, in registry order, (3) reduces them with the model through AgentLlm,
- * (4) records the turn in CustomerSummaryMemory, (5) returns a Result. runAll() does the same for
- * several briefs in one transaction: every brief's model calls first, then one memory write.
+ * (4) records the turn in CustomerSummaryMemory and the summary as a customer outcome, (5) returns a Result.
+ * runAll() does the same for several briefs in one transaction: every brief's model calls first, then one memory
+ * write and one outcome write, each on its own: a failed write is logged and the briefs still return (BE-35).
+ * The synthesis also sees the account's outcome context (CustomerOutcomes.contextFor): the last summary's headline
+ * and date and the last few outcomes, by type and date only for anyone but their author.
  * runAll() builds at most MAX_BRIEFS_PER_CALL briefs; each Ask past that gets ERROR with fixed text, so a
  * caller that sends many requests in one call never reaches a governor limit it cannot catch (N1).
  * An answer longer than MAX_ANSWER_CHARS is cut at a sentence or line end and ends on CUT_MARKER (N8).
@@ -12,7 +15,7 @@
  * Gather is deterministic Apex (CustomerSummarySource classes, no LLM). Reduce is data-driven:
  * PRE_REDUCES says which source keys a pre-reduce prompt condenses first; every other source
  * goes straight to the synthesis prompt. All prose lives in the prompt files, not here.
- * Runs with sharing. The only write is the memory record, made after every model call.
+ * Runs with sharing. The only writes are the memory record and the outcome, made after every model call.
  * A brief where no section is OK and at least one failed is an ERROR, not EMPTY, and calls no model.
  */
 public with sharing class CustomerSummary {
@@ -145,11 +148,14 @@ public with sharing class CustomerSummary {
     public static List<Result> runAll(List<Ask> asks) {
         List<Result> results = new List<Result>();
         List<CustomerSummaryMemory.Entry> memory = new List<CustomerSummaryMemory.Entry>();
+        List<CustomerOutcomes.Input> outcomes = new List<CustomerOutcomes.Input>();
         for (Ask a : asks == null ? new List<Ask>() : asks) {
             if (results.size() >= MAX_BRIEFS_PER_CALL) {
                 results.add(finish(new Result(), ERROR, OVER_CAP_TEXT, OVER_CAP_TEXT));
             } else {
-                results.add(a == null ? brief(null, null, null, memory) : brief(a.accountId, a.question, a.include, memory));
+                results.add(a == null
+                    ? brief(null, null, null, memory, outcomes)
+                    : brief(a.accountId, a.question, a.include, memory, outcomes));
             }
         }
 
@@ -166,12 +172,28 @@ public with sharing class CustomerSummary {
             }
         }
 
+        // 4b. The summaries as customer outcomes, after the memory write and apart from it: an outcome that cannot
+        // be saved (no outcome permission set, a refused write) is logged, rolls back only itself, and the brief stands.
+        if (!outcomes.isEmpty()) {
+            try {
+                CustomerOutcomes.recordAll(outcomes);
+            } catch (Exception e) {
+                System.debug(LoggingLevel.ERROR, 'CustomerOutcomes.recordAll failed: ' + e.getTypeName() + ': ' + e.getMessage());
+            }
+        }
+
         // 5. Return.
         return results;
     }
 
-    /** Steps 1-3 for one brief. A brief that should be remembered adds its turn to memory; nothing is written here. */
-    private static Result brief(Id accountId, String question, Set<String> include, List<CustomerSummaryMemory.Entry> memory) {
+    /**
+     * Steps 1-3 for one brief. A brief that should be remembered adds its turn to memory and its summary to
+     * outcomes; nothing is written here.
+     */
+    private static Result brief(
+        Id accountId, String question, Set<String> include, List<CustomerSummaryMemory.Entry> memory,
+        List<CustomerOutcomes.Input> outcomes
+    ) {
         Result r = new Result();
 
         // 1. Visibility gate.
@@ -207,14 +229,26 @@ public with sharing class CustomerSummary {
         // 3. Reduce. Any model failure ends the brief here, with no memory write.
         String answer;
         try {
-            answer = reduce(acct.Name, question, built);
+            answer = reduce(acct.Name, question, built, CustomerOutcomes.contextForVisibleAccount(accountId));
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CustomerSummary reduce failed: ' + e.getTypeName() + ': ' + e.getMessage());
             return finish(r, ERROR, ERROR_TEXT, ERROR_TEXT);
         }
         finish(r, anyOk ? OK : EMPTY, anyOk ? '' : EMPTY_TEXT, clampAnswer(answer));
         memory.add(new CustomerSummaryMemory.Entry(accountId, r.status, question, r.answer));
+        outcomes.add(summaryOutcome(accountId, question, r.answer));
         return r;
+    }
+
+    /** The summary as an outcome: the question (or "Summary") as title, the answer as body, its first line as headline. */
+    private static CustomerOutcomes.Input summaryOutcome(Id accountId, String question, String answer) {
+        CustomerOutcomes.Input o = new CustomerOutcomes.Input(accountId, CustomerOutcomes.SUMMARY);
+        o.title = String.isBlank(question) ? 'Summary' : question.trim();
+        o.body = answer;
+        o.skill = 'summary';
+        o.model = CustomerOutcomes.modelFor(SYNTHESIS_PROMPT);
+        // BE-36 sets o.sentimentScore, o.sentimentLabel and o.sentimentReason here, from the synthesis it adds.
+        return o;
     }
 
     /**
@@ -332,8 +366,11 @@ public with sharing class CustomerSummary {
         return s;
     }
 
-    /** Pre-reduces where the map says, then synthesizes. Throws on any model failure. */
-    private static String reduce(String accountName, String question, Map<String, CustomerSummarySection> built) {
+    /**
+     * Pre-reduces where the map says, then synthesizes. Throws on any model failure. outcomeContext (may be blank)
+     * goes after the brand lines in the synthesis system text, so the prompt file is unchanged.
+     */
+    private static String reduce(String accountName, String question, Map<String, CustomerSummarySection> built, String outcomeContext) {
         Map<String, String> synthesisVars = new Map<String, String>();
         Set<String> preReduced = new Set<String>();
 
@@ -365,8 +402,13 @@ public with sharing class CustomerSummary {
         }
         synthesisVars.put('account_name', accountName);
         synthesisVars.put('question', question == null ? '' : question.trim());
-        // The brand's company and tone lines go after the synthesis prompt's own system text (BE-24).
-        return AgentLlm.complete(SYNTHESIS_PROMPT, synthesisVars, SYNTHESIS_MAX_TOKENS, BrandSettings.promptLines());
+        // The brand's company and tone lines go after the synthesis prompt's own system text (BE-24), then the
+        // account's earlier outcomes (BE-35).
+        String suffix = BrandSettings.promptLines();
+        if (String.isNotBlank(outcomeContext)) {
+            suffix += '\n\n' + outcomeContext;
+        }
+        return AgentLlm.complete(SYNTHESIS_PROMPT, synthesisVars, SYNTHESIS_MAX_TOKENS, suffix);
     }
 
     /**

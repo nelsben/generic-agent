@@ -982,4 +982,61 @@ private class DataExplorerTest {
         Assert.areEqual(2, two[1].shown);
         Assert.areEqual(3, two[1].total);
     }
+
+    // ------------------------------------------------------------------ customer outcomes (BE-35)
+
+    /** A Standard User rep with the product's data-access and outcome sets. */
+    private static User outcomeRep() {
+        User u;
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+            String uniq = 'dxo' + String.valueOf(Crypto.getRandomInteger()).replace('-', '');
+            u = new User(Alias = 'dxo', Email = uniq + '@example.com', EmailEncodingKey = 'UTF-8', LastName = 'Outcome Rep',
+                LanguageLocaleKey = 'en_US', LocaleSidKey = 'en_US', ProfileId = p.Id, TimeZoneSidKey = 'America/New_York',
+                Username = uniq + '@example.com.exploreoutcome');
+            insert u;
+            List<PermissionSetAssignment> grants = new List<PermissionSetAssignment>();
+            for (PermissionSet ps : [SELECT Id FROM PermissionSet WHERE Name IN ('Customer_Summary_Data_Access', 'Customer_Summary_Outcome_Access')]) {
+                grants.add(new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id));
+            }
+            insert grants;
+        }
+        return u;
+    }
+
+    /**
+     * The MCP door's ask tool maps to ExploreAction: with an account open, the explorer's prompt carries the account's
+     * outcome context (the last summary's headline and date).
+     */
+    @IsTest
+    static void theActionSeesTheOpenAccountsOutcomeContext() {
+        Account a = acme();
+        User rep = outcomeRep();
+        CustomerOutcomes.Input last = new CustomerOutcomes.Input(a.Id, CustomerOutcomes.SUMMARY);
+        last.body = 'Renewal on track.\nTwo open deals.';
+        Script s = script(new List<String>{ answer('Acme has three deals.') });
+
+        ExploreAction.Request req = new ExploreAction.Request();
+        req.question = 'What deals does Acme have?';
+        req.contextRecordId = a.Id;
+        Test.startTest();
+        System.runAs(rep) {
+            CustomerOutcomes.record(last);
+            ExploreAction.explore(new List<ExploreAction.Request>{ req });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, s.prompts.size());
+        Assert.isTrue(s.prompts[0].contains(CustomerOutcomes.CONTEXT_HEADER), s.prompts[0]);
+        Assert.isTrue(s.prompts[0].contains('- Summary, ' + Datetime.now().format('yyyy-MM-dd') + ': Renewal on track.'), s.prompts[0]);
+        Assert.isFalse(s.prompts[0].contains('Two open deals.'), 'the headline only');
+    }
+
+    @IsTest
+    static void noOutcomeContextWithoutAnAccountOrOutcomes() {
+        Assert.areEqual('', DataExplorer.outcomeContext(null));
+        Assert.areEqual('', DataExplorer.outcomeContext(acme().Id), 'no outcomes yet');
+        Contact c = [SELECT Id FROM Contact LIMIT 1];
+        Assert.areEqual('', DataExplorer.outcomeContext(c.Id), 'only an open account carries outcomes');
+    }
 }

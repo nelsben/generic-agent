@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sentiment_Label__c</fullName>
+    <label>Sentiment Label</label>
+    <type>Text</type>
+    <length>40</length>
+    <required>false</required>
+    <description>The account sentiment label set with a summary, such as Positive. Shown to anyone who can see the account.</description>
+</CustomField>
