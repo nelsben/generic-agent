@@ -1,8 +1,9 @@
 # Customer Summary panel: end-to-end tests
 
-Playwright journeys for the `customerSummaryPanel` utility bar panel, run in a real org as the
-developer's own signed-in user. They cover what the Jest suite cannot: the real utility bar, the
-real Lightning base components, focus, layout and the live region.
+Playwright journeys for the `customerSummaryPanel` compact window (FE-13): the launcher and the
+420x560 window its eager utility item puts at the bottom right of the page, run in a real org as
+the developer's own signed-in user. They cover what the Jest suite cannot: the real utility bar
+and record page, the real Lightning base components, focus, layout, timing and the live region.
 
 ## Run
 
@@ -15,12 +16,14 @@ npx playwright test -g "6. typing"       # one spec
 ```
 
 Chromium only (Playwright's own build, `npx playwright install chromium` if it is missing),
-one worker, no parallelism. A full run takes about three minutes (3.1 minutes for 8 of 8 in `agent-probe`, before spec 9 was added and removed; 2.9 minutes for 8 of 8 after FE-12).
+one worker, no parallelism. A full run takes about three minutes (3.3 minutes for 10 of 10 in
+`agent-probe` after FE-13).
 
 ## What it needs
 
 - **A deployed panel.** The org must already have the Customer Summary app
-  (`Customer_Summary.app-meta.xml`), its utility bar with `customerSummaryPanel` (eager, 340x480) and the
+  (`Customer_Summary.app-meta.xml`), its utility bar with `customerSummaryPanel` (eager; the item's own panel is 340x200 and only
+  holds a note, the window is on the page) and the
   Apex behind it. The suite never deploys anything.
 - **A signed-in sf CLI session** for the alias (`sf org login web -a <alias>`). The global setup
   asks `/usr/local/bin/sf org open --url-only --json -o <alias>` for a one-time frontdoor URL,
@@ -43,14 +46,16 @@ it costs money and writes brief memory rows, as any use of the panel does:
 
 | Spec | Calls |
 |---|---|
-| 1. Cmd/Ctrl-K before the utility was ever opened | 0 |
-| 2. Esc returns focus; Tab can leave | 0 |
+| 1. Cmd/Ctrl-K before the window was ever opened: bottom right corner, composer focused | 0 |
+| 2. Esc returns focus from the Search button, a record field and the launcher, or falls back to the launcher; Tab can leave | 0 |
 | 3. Brief: headline, collapsed accordions, live region; the pinned bar at most 80 px, the scroll box at least 240 px | 1 |
-| 4. Composer pinned at 340x480, newest answer in view | 2 |
+| 4. Composer pinned in the 420x560 window, newest answer in view | 2 |
 | 5. Latest wins | 1 |
 | 6. Typing enables Send; Enter sends | 0 |
 | 7. Drill and breadcrumb | 1 (it fails if no brief section line is drillable) |
 | 8. axe in the brief and drill states | 1, or 2 when no brief section line is drillable |
+| 9. Minimize keeps the conversation; no Expand button by default | 0 |
+| 10. Time from Cmd/Ctrl-K to the window's first paint, under 300 ms warm | 0 |
 
 Specs 5 and 6 send `/brief` of a name that matches no account: the resolver answers from SOQL
 with no model call. Spec 5 uses it as the second request because it lands well before the first
@@ -59,16 +64,19 @@ still in flight, and fails as a test problem if it was not.
 
 ## How the specs find things
 
-Every test loads the Customer Summary app, then the account's record page, fresh: the utility has
+Every test loads the Customer Summary app, then the account's record page, fresh: the window has
 never been opened. Locators pierce the panel's shadow DOM with Playwright's built-in engine:
 roles and labels first, then the panel's test hooks and the data attributes it renders
 (`data-turn`, `data-id`, `data-focus`):
 
-- `c-customer-summary-panel`, the host, to scope every locator and the axe scan. Since FE-12 the
-  conversation inside it is `c-customer-summary-conversation`; locators pierce both shadow roots
+- `[data-cs-stage]`, the stage the eager utility item moves to the page body (the launcher and
+  the window), to scope every locator and the axe scan. The utility item itself,
+  `c-customer-summary-panel`, keeps only a note. Since FE-12 the conversation inside the window is
+  `c-customer-summary-conversation`; locators pierce its shadow root
+- the button named `Ask <agent name> ⌘K` (or `Ctrl K`), the launcher, and the `dialog`, the window
 - the region named `Conversation`, the scroll box (specs 3 and 4)
-- `.slds-utility-panel__header`, the utility panel's own header (title, Minimize, Pop-out), whose
-  bottom edge spec 3 measures the pinned bar from: the platform renders it with no role or label
+- `.cs-sheet-controls`, the window's controls row (Minimize, and Expand when it is turned on),
+  whose bottom edge spec 3 measures the pinned bar from
 - `data-testid="abp-live-region"`, the conversation's polite live region (the role alone is not
   enough: the page has other `role=status` regions)
 - `data-testid="abp-spinner"`, the pending turn: the question and the pulse until the reply lands
@@ -79,25 +87,35 @@ roles and labels first, then the panel's test hooks and the data attributes it r
 - `article`, to find the drill view's heading
 - `button[data-id]`, a drillable section line or result row
 
-Spec 3 measures the panel at 340x480 after one brief, with the account's "Earlier summaries" list
-rendered: from the panel header's bottom edge to the top of the scroll box is at most 80 CSS px,
+Spec 3 measures the window at 420x560 after one brief, with the account's "Earlier summaries" list
+rendered: from the controls row's bottom edge to the top of the scroll box is at most 80 CSS px,
 the scroll box is at least 240 CSS px tall, and the bar holds the Summarize button with no "Ask the agent" button.
 
 Every brief line that describes one record (a deal, a contact, a case, a task, a call) is a
 drill button; spec 7 fails if none is. Spec 2 checks that focus is back where the hotkey was
-pressed after Esc, and is still there 2.5 seconds later, once the utility bar's own late focus
-moves are over. Spec 5 waits on the Aura response of the panel's Apex method, matched by method
-name only.
+pressed after Esc, and is still there 2.5 seconds later, from three places: the global Search
+button, the Phone field of the record's inline edit (a field inside another component, on the
+Details tab; the edit is cancelled, nothing is saved) and the launcher. It then removes the element
+focus came from and checks that Esc lands on the launcher, never the page body. Focus inside the
+stage is read with the `:focus` selector, polled: the page's synthetic shadow DOM hides it from
+`document.activeElement`, so Playwright's `toBeFocused` cannot see it. Spec 10 opens the window five
+times after a warm-up and records, for each, the time from the K key event to the first frame after
+the window is marked open; the numbers are logged and attached to the test. Spec 5 waits on the
+Aura response of the panel's Apex method, matched by method name only.
 
 Every test closes the "Meet the new Guidance Center" walkthrough of a fresh org whenever it appears
 (`Panel.gotoAccount`), because it covers the page. It was on screen when spec 2 failed in agent-probe.
 It closes the docked "Welcome to Data Cloud!" pop-up (Minimize, Pop-out, Close) the same way, with its
-Close button, because it opens over the utility panel.
+Close button, because it opens over the window's corner.
 Spec 2 has also failed there with no walkthrough, cause not found, so it can still be flaky in a fresh
 org ([org-migration.md](../docs/research/org-migration.md), "e2e after FE-9").
 
-Accessibility checks use `@axe-core/playwright` scoped to `c-customer-summary-panel`, WCAG 2.0-2.2
-A and AA rules; the violations of each state are attached to the test as JSON.
+Accessibility checks run the axe-core that `@axe-core/playwright` uses on the stage element (the
+launcher and the window), WCAG 2.0-2.2
+A and AA rules; the violations of each state are attached to the test as JSON. The stage is
+passed as an element, not a selector: the page's synthetic shadow DOM hides it from
+`document.querySelectorAll`, which is how axe resolves a selector, and `AxeBuilder` takes
+selectors only.
 
 ## Capture
 
@@ -127,8 +145,11 @@ What it needs:
   palette, 12 fps, at most 900 px wide).
 - Model calls per run: three, all in the custom panel (one brief, one follow-up question and one
   explorer question). The `test:e2e` run adds about seven. The resolver stills (`not-found.png`,
-  `ambiguous.png`), `hotkey-open.gif` and the whole-window `fr2-conversation-core.png`
-  (`08-conversation-core`, the open panel's empty state) make none. Nothing is written to the org by the capture
+  `ambiguous.png`), `hotkey-open.gif`, the whole-window `fr2-conversation-core.png`
+  (`08-conversation-core`, the open panel's empty state) and the whole-window
+  `fr2-compact-launcher.png` and `fr2-compact-open.png` (`09-compact`, the launcher and the open
+  window's empty state) make none. The other capture scripts were written for the 340x480 utility
+  panel and have not been re-run since FE-13 moved the conversation into the window. Nothing is written to the org by the capture
   itself beyond the panel's own memory rows.
 
 What it produces: stills at viewport 1440x900 and deviceScaleFactor 2, cropped to the panel and

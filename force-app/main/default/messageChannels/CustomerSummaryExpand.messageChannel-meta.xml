@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>The compact window's Expand: asks the right rail to open on the same conversation. customerSummaryPanel publishes; the rail subscribes.</description>
+    <isExposed>true</isExposed>
+    <lightningMessageFields>
+        <description>The conversation's session id, so the rail opens on the same thread. Empty before the first request.</description>
+        <fieldName>sessionId</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>The record the compact window was on, or empty.</description>
+        <fieldName>recordId</fieldName>
+    </lightningMessageFields>
+    <masterLabel>Customer Summary Expand</masterLabel>
+</LightningMessageChannel>

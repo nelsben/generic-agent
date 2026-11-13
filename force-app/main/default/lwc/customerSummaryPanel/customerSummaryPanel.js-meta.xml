@@ -3,8 +3,14 @@
     <apiVersion>68.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Customer Summary Panel</masterLabel>
-    <description>Cmd/Ctrl-K utility bar panel: brief an account, ask anything about your data, drill into any row. Calls the same Apex as the Customer Summary agent.</description>
+    <description>Cmd/Ctrl-K compact window at the bottom right, from an eager utility bar item: brief an account, ask anything about your data, drill into any row.</description>
     <targets>
         <target>lightning__UtilityBar</target>
     </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__UtilityBar">
+            <property name="corner" type="String" label="Corner" datasource="right,left" default="right" description="Where the launcher and the compact window sit: right, or left for a utility bar mirrored to the right."/>
+            <property name="expandEnabled" type="Boolean" label="Show Expand" default="false" description="Shows the Expand button that hands the conversation to the right rail. Leave off until the rail is deployed."/>
+        </targetConfig>
+    </targetConfigs>
 </LightningComponentBundle>
