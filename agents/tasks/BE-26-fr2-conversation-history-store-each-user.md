@@ -4,7 +4,7 @@ title: FR2: conversation history — store each user's turns per account on the 
 domain: backend
 tier: frontier
 tier_reason: changes a live object and the memory path every surface uses; a sharing decision sits inside it
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/objects/Customer_Summary_Session__c/**, force-app/main/default/classes/CustomerSummaryHistory*.cls, force-app/main/default/classes/CustomerSummaryHistory*.cls-meta.xml, force-app/main/default/classes/CustomerSummaryMemory*.cls, force-app/main/default/classes/CustomerSummaryMemory*.cls-meta.xml, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/research/fr2-conversation-history.md, tests/test_permission_sets.py]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -26,3 +26,31 @@ Feature revision 2 (FR2): every surface keeps conversation history, and the rail
 - Tests with Assert.* cover listing order and limits, the own-only filter (runAs a second user created in the test sees none of the first user's sessions), reopening a session, an explorer turn recorded and returned, a session hidden once its account is no longer readable, the session timeout starting a new session, and an account with no sessions
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - Write docs/research/fr2-conversation-history.md: what is stored, for how long, who can see it and why (own-only; open question F32), the access re-check, and the governor cost. OPS-43 rewrites the pattern 05 page from it. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never create a user in the org, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-13). One attempt (9d53ed9). The verifier found the report consistent; a reviewer then returned 21 confirmed, 0 refuted, 3 unverifiable. Every unverifiable row is an org fact or a gate the record did not show: the validate and quick deploy, the new Apex tests passing in the org, and the docs gate.
+
+Approvals: F32/Q7 (who sees conversation history) is still open; this card builds the default, own-only, with the filter in one method so the answer changes one place.
+
+Findings:
+- Customer_Summary_Session__c gains Title__c (80 characters), Started__c and Turn_Count__c. The 10-turn ring limit stays.
+- CustomerSummaryMemory keeps one session per rep and account. After 30 minutes idle the old row is re-keyed (key + '_' + its Id) and a new row takes the plain key; the last summary carries forward, so the rail's last-summary read keeps working. Turns carry a kind (summary or explorer); older rows are backfilled. Writes stay in system mode, each under a marker.
+- New CustomerSummaryHistory, `with sharing`, every query WITH USER_MODE: listSessions (newest first, default 10, max 50, no turns) and getSession (turns in order; null when hidden). The own-only filter is one method naming F32. Account access is re-checked on every read; a session the user can no longer reach is hidden, never deleted.
+- The panel's explore records an explorer turn only for an OK or EMPTY answer on an account; a failure there is logged and never breaks the answer.
+- The data-access set grants the class and read-only access to the three new fields; the permission-set test follows.
+- 8 history tests (including own-only with a second user given a manual share, so only the filter hides the row), plus memory and panel tests. docs/research/fr2-conversation-history.md says what is stored, for how long, who sees it and the governor cost.
+
+Org: validate with RunLocalTests (376 tests, 0 failures) and quick deploy of this card's 20 components only, under the standing row. No live run, no user created in the org, nothing published.
+
+Disclosed and accepted:
+- The org figures are the worker's account; nothing in git shows them.
+- The worktree's gitignored .sf/config.json was set to agent-probe for the deploy hook.
+- The brain fast-forwarded the clean worktree to main before the worker started.
+- A tests/__pycache__ made by the verifier's gate run was removed before merge.
+
+Still open:
+- The rail's last-summary date (CustomerSummaryContext) reads Last_Activity__c, which explorer turns and new sessions now move, so the date can show a later explorer turn. The amend added the path to scope, but the class is unchanged; a follow-up card fixes it.
+- F32/Q7 stays Ben's: own-only is the default until he answers.
+
+Privacy grep over the diff (921 added lines): 0 hits.
