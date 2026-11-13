@@ -44,12 +44,15 @@
   link given. A builder opens the page before building on it.
 - **Effort**, read from the cost of similar FR2 cards:
   - S: one component change and its tests, about $6 to $8.
-  - M: a new method, field or page plus the component work, about $12 to $15.
-  - L: a new surface or a cross-app rollout with e2e in the org, $20 or more.
+  - M: a new method or field, or a new page that hosts the existing conversation component, plus the component
+    work, about $12 to $15.
+  - L: a new device, or a rollout into apps outside the repo, each with a proof first and e2e in the org, $20 or
+    more.
 
   These are estimates, not quotes. The brain prices a card when it cuts it.
 - **The two skills the card names** were loaded:
-  - `salesforce-development:platform-capability-search` found no installed or installable plugin for this task.
+  - `salesforce-development:platform-capability-search`: its plugin match printed "No matching uninstalled plugin
+    found for that request."
   - `experience-lwc:experience-lwc-design-generate` is a build workflow. This page only uses its parts for the
     proposed cards: the states, the accessibility, the security pass and the Jest tests.
 
@@ -58,7 +61,7 @@
 | Id | Candidate | Value to a rep | Effort | Risk | Rank |
 |---|---|---|---|---|---|
 | P1 | The panel follows the record to its account | High: every page, every rep | S | Low | 1 |
-| P2 | The panel in every app (standard Sales and Service apps, or a one-step add) | High: it is where reps already work | M | Medium | 2 |
+| P2 | The panel in every app (standard Sales and Service apps, or a one-step add) | High: it is where reps already work | L | Medium | 2 |
 | P3 | Switch chats across accounts: recent and pinned, one key away | High: Ben's "display different chats" | M | Low | 3 |
 | P4 | A signal when a slow answer is ready while the panel is hidden | Medium-high: summaries take a while | S | Low | 4 |
 | P5 | Keep an answer on the account (`FE-23`, already cut) | Medium: closes principle 4 | S | Low | 5 |
@@ -87,7 +90,7 @@
 - **What Lightning allows:**
   - `CurrentPageReference` in a utility item is verified: the panel uses it today, and the e2e suite drives it.
   - `getRecord` with `AccountId` on these three objects is documented
-    ([uiRecordApi getRecord](https://developer.salesforce.com/docs/platform/lwc/guide/reference-get-record.html)).
+    ([getRecord](https://developer.salesforce.com/docs/platform/lwc/guide/reference-wire-adapters-record.html)).
   - Whether a utility item in a console app gets the page reference of the focused workspace tab is unverified.
     `OPS-29` tested standard navigation only.
 - **Effort:** S.
@@ -132,7 +135,7 @@
   - Whether a standard app's utility bar can be deployed as metadata is unverified.
   - The body mount and both hotkeys in a console-navigation app are unverified, because `OPS-29` used standard
     navigation. So is the launcher beside a real softphone (`OPS-29` used a stand-in).
-- **Effort:** M.
+- **Effort:** L: a rollout into apps outside the repo, with a proof on the standard apps first.
 - **Risk:** medium.
   - Changing another app's utility bar is a change to a bar other teams own, and it shows in every app sharing that
     bar.
@@ -169,10 +172,11 @@
   - This is all our own component and Apex, so the platform sets no limit.
   - Cmd-K is not a Lightning or Chrome shortcut on a Mac. That is verified and documented in `OPS-29`. The Ctrl
     form on Windows is Chrome's search shortcut, which a page may override (documented).
-  - Number keys are avoided: Cmd/Ctrl-1 to 8 switch Chrome tabs.
-  - A light alternative with no new field is Salesforce's own recently viewed accounts (the `RecentlyViewed`
-    object, read in user mode). Documented:
-    [RecentlyViewed](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_recentlyviewed.htm).
+  - Number keys are avoided: Cmd/Ctrl-1 to 8 switch Chrome tabs. Documented:
+    [Chrome keyboard shortcuts](https://support.google.com/chrome/answer/157179), the list `OPS-29` cites.
+  - A light alternative with no new field is Salesforce's own recently viewed accounts. The `RecentlyViewed` object
+    can be queried, is per user, and is cut back to 200 records. Documented:
+    [RecentlyViewed](https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_recentlyviewed.htm).
 - **Effort:** M.
 - **Risk:** low.
   - History stays own-only (F32), so pins are a rep's own too.
@@ -186,9 +190,11 @@
     `force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml`,
     `force-app/main/default/lwc/customerSummaryConversation/**`, `tests/test_permission_sets.py`, `e2e/**`.
   - Done when:
-    1. `listRecentSessions(limitSize)` and `setPinned(sessionId, pinned)` run in user mode for the running user's own
-       sessions only (F32), and hide a chat whose account is no longer readable. Apex tests cover a second user,
-       the cap and a lost account.
+    1. `listRecentSessions(limitSize)` reads in user mode, returns the running user's own sessions only (F32), and
+       hides a chat whose account is no longer readable. `setPinned(sessionId, pinned)` checks the session is the
+       running user's own, then writes in system context, because reps have read-only access to the session object
+       (`BE-26`). The write carries a `// system-context:` marker with that reason, per `BE-37`. Apex tests cover
+       a second user, the cap, a lost account and a pin attempt on another user's session.
     2. The switcher opens on a second Cmd/Ctrl-K, lists pinned chats then recent ones, and moves with the arrow keys
        as one Tab stop. It reopens a chat through `sessionId` and `sessionchange`, keeps the FE-12 interface, and
        has zero jest-axe violations.
@@ -316,8 +322,10 @@
   - The page stays on its account. It does not follow the record in another browser tab.
   - This replaces the utility pop-out (see "Dropped" below).
 - **What Lightning allows:**
-  - Navigating to an app page tab with `c__` state is documented
-    ([page reference types](https://developer.salesforce.com/docs/platform/lwc/guide/reference-page-reference-type.html)).
+  - Navigating to a Lightning page tab with `standard__navItemPage` is documented, in Lightning Experience and the
+    mobile app ([page reference types](https://developer.salesforce.com/docs/platform/lwc/guide/reference-page-reference-type.html)).
+    Custom state keys take the `c__` prefix as a rule. Whether this type carries them to the page is unverified,
+    because the results did not show it.
   - Opening it in a new browser window from code (`window.open` under LWS, or `NavigationMixin` with a generated
     URL) is unverified. The safe version is a link the rep opens with a middle click or Cmd-click.
 - **Effort:** M.
@@ -333,8 +341,11 @@
     `force-app/main/default/lwc/customerSummaryPanel/**` and `force-app/main/default/lwc/customerSummaryRail/**`,
     `tests/test_app.py`, `e2e/**`.
   - Done when:
-    1. Proof first: whether the open control can open a new browser window under LWS, or only a link, is recorded
-       from one try in `agent-probe`.
+    1. Proof first, from one try each in `agent-probe`:
+       - whether `standard__navItemPage` delivers `c__` state (the session and the account) to the page;
+       - whether the open control can open a new browser window under LWS, or only a link.
+
+       If state is not delivered, the card stops and hands back.
     2. The app page opens on the same session with no lost turns. A new question there appears in the compact
        window's history after a reload. Two copies on one session lose no turn (Jest, plus the `BE-26` store's own
        test).
@@ -464,9 +475,10 @@
    the cheapest item here. Today the panel loses the account the moment the rep leaves the account page. That makes
    the summary, history and the scope chip look broken, and it is where a rep first decides whether the panel knows
    what they are doing.
-2. **P2, the panel in every app (M).** It is the bigger of the two limits Ben's notes kept open (F62). None of the
+2. **P2, the panel in every app (L).** It is the bigger of the two limits Ben's notes kept open (F62). None of the
    other items reach a rep who works in the standard Sales app or the Service Console. It goes second, not first,
-   because it needs a proof on the standard apps and an Approvals row for each app it changes.
+   because it is the largest item in the top five: it needs a proof on the standard apps and an Approvals row for
+   each app it changes.
 3. **P3, switch chats across accounts (M).** This is Ben's own words, "display different chats" (F60), and the
    visibility he said "might not actually exist there today". `FE-22` gives the per-account half. This is the half
    that makes the panel a place a rep keeps their morning's work.
