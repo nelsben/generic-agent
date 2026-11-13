@@ -29,8 +29,9 @@
 // no-query answer can be told apart: a question back, or an answer worked out from the context text.
 // Model calls: a Models API call does not count in Limits.getCallouts() (step 0 measured 0 for a summary that made
 // its calls), and the script cannot see the explorer's turns. Each explorer turn is one model call whose reply is
-// either one query or the answer, so calls_min = queries run + 1 is exact unless the model sent a reply the plan
-// check refused (INVALID), which adds a call the script cannot see.
+// either one query or the answer, so calls_min = queries run + 1 is a floor. Two cases add a call the script cannot
+// see, so the real count can be higher: a reply the plan check refused (INVALID), and a query that threw (it
+// reaches no result set).
 
 Integer SAMPLE = 0;
 Integer STEP = 0;
