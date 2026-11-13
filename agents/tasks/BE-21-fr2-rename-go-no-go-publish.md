@@ -4,8 +4,7 @@ title: FR2: rename go/no-go — publish and activate a copy of the agent named C
 domain: backend
 tier: frontier
 tier_reason: agent publish and activate in a live org, where publishing has failed before; go/no-go judgement
-status: blocked
-blocked_by: [OPS-50]
+status: queued
 fixes: []
 scope: [spikes/rename/**, docs/research/fr2-rename-go.md]
 forbid: [sfdx-project.json, tests/**, force-app/**, mcp-door/**, spikes/surface/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
