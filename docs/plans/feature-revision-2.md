@@ -353,6 +353,7 @@ default that can still stall a build, and it says how. The findings behind each 
 | 13 | **After `OPS-31`: the MCP sign-in, then one call of each tool.** Only Ben can sign in. | Page 09 shows the unauthenticated call as text, labelled "not a real tool call". | `OPS-53` changes the README's Status row. |
 | 14 | **A deploy script instead of hand-typed deploys.** | Not built. Deploys stay hand-typed, where the plugin's hook on this Mac sees each one. | One small card before the first deploy. |
 | 15 | **Two additions to the delegation tool's settings file** (`.chassis-delegation.json`): a `docs` gate that re-runs the link check on every docs card, and the org rules in every worker's brief. A settings change is Ben's call. | Not changed. Every org-lock card carries the org rules as its own line, and the brain runs the link check before each merge. | One small change adds both, so the tool enforces what the cards say, including on cards cut later. The brain recommends yes. |
+| 16 | **Agentforce Coworker** (added by the brain, 2026-11-13; the findings are in [the Coworker spike](../research/fr2-coworker-spike.md)). Which org shows the Coworker app and tab; whether an agent may be a way in when the door is Coworker (F83); the Approvals row "FR2+: Agentforce Coworker live steps"; and, if he likes, a look in `agent-probe` Setup for "Get Started with Agentforce Coworker" without turning it on. | OPS-57 runs read-only after the close; OPS-58, BE-47 and FE-24 stay unrun. F83 stands. | OPS-58, then BE-47 and FE-24, in the org he names. |
 
 **By hand, when a card lands.** Each is a proof only Ben can make. He tells the brain the result, and `OPS-53` records
 it in the README's Status table.
@@ -401,6 +402,9 @@ the rename.
 - **Wave 5, surfaces and tests:** \*FE-22, \*FE-16, \*FE-21, \*FE-15, \*BE-27, \*FE-14, \*FE-19, \*OPS-46. Second slot:
   OPS-38, then OPS-44, OPS-42, OPS-41, OPS-39, OPS-40, OPS-43, OPS-45, OPS-47.
 - **Wave 6, the close:** OPS-48, OPS-49, \*OPS-35, \*OPS-52, OPS-36, \*OPS-28.
+- **Wave 7, Agentforce Coworker, after the close** (Ben, 2026-11-13: "coworker followups coming at the end"): OPS-57,
+  then \*OPS-58, \*BE-47, \*FE-24, each live step under the Approvals row "FR2+: Agentforce Coworker live steps". The
+  "Why not Coworker" paragraph rides with OPS-41.
 - **Each on its own approval, never upstream of the close:** BE-38, OPS-31, FE-5, OPS-53, FE-23, OPS-54.
 - **Parked:** OPS-33, OPS-34, BE-28 (F83). **Never dispatched:** BE-8, BE-15, BE-19 (superseded) and OPS-10.
 
