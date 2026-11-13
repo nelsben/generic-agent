@@ -4,7 +4,7 @@ title: FR2: retire "Ask the agent" and the built-in panel as a way in — remove
 domain: frontend
 tier: standard
 tier_reason: a removal across LWC, Apex, a permission set group, e2e and docs, with a live deploy to a production-classified org
-status: parked
+status: queued
 fixes: []
 scope: [force-app/main/default/lwc/accountBriefPanel/**, force-app/main/default/classes/AccountBriefPanelController.cls, force-app/main/default/classes/AccountBriefPanelControllerTest.cls, force-app/main/default/classes/AccountBriefAgentClient.cls, force-app/main/default/classes/AccountBriefAgentClient.cls-meta.xml, force-app/main/default/classes/AccountBriefAgentClientTest.cls, force-app/main/default/classes/AccountBriefAgentClientTest.cls-meta.xml, force-app/main/default/permissionsets/Account_Brief_Data_Access.permissionset-meta.xml, force-app/main/default/permissionsetgroups/Account_Brief_User.permissionsetgroup-meta.xml, tests/test_access_group.py, e2e/**, README.md, docs/patterns/01-route-gather-reduce.md, docs/patterns/03-hotkey-panel.md, docs/patterns/06-agent-routing-and-verbatim-relay.md, docs/assets/MANIFEST.md, docs/research/fr2-retire-ask-agent.md]
 forbid: [force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/Account_Brief_Agent_Access.permissionset-meta.xml, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/reviews/**, .chassis-delegation.json, reference/**, sfdx-project.json]
