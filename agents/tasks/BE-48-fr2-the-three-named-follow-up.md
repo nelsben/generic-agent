@@ -9,7 +9,7 @@ fixes: [BE-30]
 scope: [force-app/main/default/classes/DataExplorerTest.cls, docs/research/fr2-follow-ups.md]
 forbid: [force-app/main/default/classes/DataExplorer.cls, force-app/main/default/classes/ExplorePlan.cls, force-app/main/default/classes/ExploreAction.cls, force-app/main/default/staticresources/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
 resources: [org-live]
-red_test: none (test-only)
+red_test: the three strengthened DataExplorerTest methods fail in a check-only validate on agent-probe when each scripted plan's filter on the summary's Ids is removed, and pass with it restored
 gate: test, org
 budget: 2-attempts
 spend: 10
