@@ -6,7 +6,7 @@ tier: frontier
 tier_reason: repo-wide rename across Apex, LWC, agent bundle, metadata, tests and docs that must still compile
 effort: medium
 effort_reason: mechanical rename with a clear rule; judgement only on doc wording
-status: queued
+status: merged
 fixes: []
 scope: [force-app/**, mcp-door/**, sfdx-project.json, tests/**, e2e/**, scripts/**, data/**, README.md, docs/ARCHITECTURE.md, docs/patterns/**, package.json, jest.config.js, playwright.config.js, spikes/rename/**]
 forbid: [spikes/README.md, spikes/surface/**, spikes/actions/**, spikes/cards/**, spikes/standard-limits/**, spikes/explorer-scale/**, spikes/agent-memory/**, spikes/embedded/**, docs/research/**, docs/reviews/**, docs/plans/**, docs/assets/**, agents/**, .chassis-delegation.json, reference/**]
@@ -29,3 +29,7 @@ Feature revision 2 (FR2) brands the one agent as Customer Summary. Ben chose to 
 - Tests follow: tests/*.py, Jest and e2e (spec text, selectors, support helpers) use the new names; the agent spec under the agent bundle (or tests/) is renamed with it. git grep -i -E 'account ?brief|account_brief|accountbrief' outside docs/research, docs/reviews, docs/plans, docs/assets, spikes and agents returns nothing, or each remaining hit is listed in the hand-back with the reason
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - No org change: the org gate is check-only (bash scripts/validate-org.sh). Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain read of the diff: the rename is clean except one mechanical-replace slip, "account summaryed" (from "account briefed") in seven places: Customer_Summary.agent lines 163 and 174, Customer_Summary-testSpec.yaml lines 56, 67, 83 and 117, and test_agent_bundle.py lines 347-348. Fixed by BE-40 (fixes: [BE-23]) before OPS-51 publishes.
