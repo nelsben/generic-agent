@@ -103,13 +103,16 @@
   - Scope: `force-app/main/default/lwc/customerSummaryPanel/**`, `force-app/main/default/lwc/customerSummaryRail/**`,
     `force-app/main/default/lwc/customerSummaryConversation/**`, `e2e/**`, `docs/patterns/03-hotkey-panel.md`.
   - Done when:
-    1. On an opportunity, contact and case page the Summarize button names the parent account, and history and the
+    1. Proof first: in a console-navigation app in `agent-probe`, record whether the utility item's
+       `CurrentPageReference` follows the focused workspace tab. If no console app is at hand, the card limits itself
+       to standard navigation and says so.
+    2. On an opportunity, contact and case page the Summarize button names the parent account, and history and the
        scope chip follow it. A record with no readable account falls back to the record alone. Jest covers all four
        cases.
-    2. Opening another account's record while a thread is open shows the switch offer, and the thread changes only
+    3. Opening another account's record while a thread is open shows the switch offer, and the thread changes only
        when the rep accepts. One e2e spec moves from an account to an opportunity of another account.
-    3. The FE-12 interface is unchanged, and pattern 03 says what the panel follows. In a console app, whether the
-       page reference follows the focused tab is recorded, or marked unverified if no console app is at hand.
+    4. The FE-12 interface is unchanged, and pattern 03 says what the panel follows, including in a console app
+       where line 1 proved it.
 
 ### P2. The panel in every app
 
@@ -149,7 +152,8 @@
   - Done when:
     1. Proof first: a read-only retrieve of the standard Sales and Service Console apps to a temporary folder outside
        the repo records whether their utility bar can be set by deploy. The hotkey and the body mount are also run
-       in a console-navigation app.
+       in a console-navigation app. The launcher is checked beside a real Open CTI or Service Cloud Voice softphone.
+       If no softphone is configured, that check is recorded as a hand check before a phone demo.
     2. The script adds the panel to a named app's existing bar, or to a new bar when the app has none. It keeps
        every other item and its order. It validates, then quick deploys only with that app's Approvals row. A Python
        test checks the merge on fixtures.
@@ -441,8 +445,9 @@
   - Esc closes the list and focus returns to the button.
   - It lists P3's and P6's keys once they exist.
 - **What Lightning allows:**
-  - Lightning's own list (Cmd-/ on a Mac) is verified in `OPS-29`. Whether a component can add to it is
-    unverified, and no public API for that was found, so ours is separate.
+  - Lightning's own list (Cmd-/ on a Mac) is verified in `OPS-29`. Whether a component can add to it is unverified,
+    and no public API for that was found. The design does not rely on adding to it, because ours is a separate list.
+    So the point is noted here, but the build does not rest on it.
   - `?` is not a Lightning shortcut (verified: not in `OPS-29`'s list).
 - **Effort:** S.
 - **Risk:** low.
