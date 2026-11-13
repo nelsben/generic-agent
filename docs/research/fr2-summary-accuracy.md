@@ -10,7 +10,8 @@
 ## How the check works
 
 - One account per execution, picked by name from the seed data (`data/sample/accounts.json`). One summary per
-  transaction keeps it to about 25 queries and 3 model calls, the same as a rep's own request.
+  transaction keeps it to one rep request's cost: 28 to 32 SOQL queries were measured per run, counting the
+  script's own, and up to 3 model calls (the synthesis, plus one per pre-reduce that has data to condense).
 - It calls `CustomerSummary.run` for the account with no question and every section. It then lists every date,
   dollar amount, percent and whole number in the answer and looks for each one in the gathered section bodies
   (with record Ids removed, as the model sees them).
@@ -22,6 +23,8 @@
 - It prints only counts and true/false checks, plus each unmatched value with the answer section it sits in. It
   never prints an account name, an Id or answer text.
 - It also checks the ERROR rule (N3): when a section is ERROR, the answer must say that part could not be loaded.
+- Limit: a number passes if it appears anywhere in any section. The check finds numbers that no section holds. It
+  does not find a real number attached to the wrong thing, such as one deal's amount given to another deal.
 
 ## Results
 
@@ -46,12 +49,13 @@
 
 - **Sample 1, headline: an amount of 134,540.** Edge Communications has two open deals past their close date, at
   9,000 and 125,540. The Open deals section lists both deals, with their amounts and the OVERDUE flag, and its top
-  line says "2 overdue". It does not state the total of the overdue deals. The model added the two amounts and
-  put the total in the headline.
+  line says "2 overdue". It does not state the total of the overdue deals. The headline figure equals the sum of
+  the two overdue deals' amounts. The script does not print answer text, so this is matched by value, not read
+  from the sentence.
 - A read-only aggregate on the org confirms the figure: 2 open overdue deals, summing to 134,540. The number is
   right, but no section holds it, so the reader cannot trace it to a source.
 - Prompt rule 1 ("Never invent facts, names, numbers or dates") does not forbid arithmetic on numbers that are in
-  the inputs. The model treated a sum as not invented.
+  the inputs, so a computed total is within the rule as written.
 
 ## Proposed follow-up (not built here)
 
@@ -75,7 +79,8 @@ Option 1 also helps option 2: once the section states the total, the model has n
   - These are the product's own memory rows for the running user, the same rows a rep's request writes.
 - Outcome rows: 0. The org has no custom object with "outcome" in its name, so nothing records outcomes yet.
 - Old Account Brief session rows (`Account_Brief_Session__c`): 3, not touched.
-- Model calls: 3 per summary, 18 in total across the six runs (five recorded, one trial).
+- Model calls: up to 3 per summary, so at most 18 across the six runs (five recorded, one trial). The debug log at
+  default levels does not record the exact count. Earlier attempts that failed to compile or did not start ran nothing.
 
 ## How to run it again
 
