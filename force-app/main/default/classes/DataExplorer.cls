@@ -14,8 +14,18 @@
  * TURN_CAP_NO_ROWS_TEXT when that last result has no rows (callers table only the last set). Turns
  * that run out with nothing read, and any model failure, are ERROR.
  *
+ * Follow-ups to a summary (BE-30). When the last history item is the user's newest summary of the open
+ * Account (its answer matches CustomerSummaryMemory.lastBrief), the history the model sees ends with a
+ * compact summary context: the account's Id, then each summary section's records (the same section
+ * builders the summary used, run again in user mode) as their line text and Id, at most
+ * SUMMARY_ITEMS_PER_SECTION per section and SUMMARY_CONTEXT_CHARS in all. It travels in the existing
+ * history input, so every door that passes history (the panel, the agent's Explore Data action) gets it
+ * with no new parameter. It goes only into the prompt, never into the Result shown to people. A failure
+ * building it drops the context, not the question.
+ *
  * drill() skips the model: the record's catalog fields, or its child rows in one catalog object with
- * a lookup to it, resolved by describe.
+ * a lookup to it, resolved by describe. Child rows lead with the record's name (N1) and carry only
+ * their shown labels and their Id.
  *
  * Both return result sets shaped for display (forDisplay): no column that holds a record Id, and plain
  * labels as column names. Rows keep their record Id for drill-down. Only the model sees the Ids.
@@ -45,6 +55,15 @@ public with sharing class DataExplorer {
     private static final String PROMPT = 'Explore';
     private static final Integer MAX_TOKENS = 2000;
     private static final String NONE = '(none)';
+    @TestVisible private static final Integer SUMMARY_ITEMS_PER_SECTION = 10;
+    @TestVisible private static final Integer SUMMARY_CONTEXT_CHARS = 3000;
+    private static final Integer SUMMARY_LINE_CHARS = 120;
+    /** A summary answer shorter than this is too short to tell apart from another, so it never matches. */
+    private static final Integer SUMMARY_MATCH_CHARS = 20;
+    @TestVisible private static final String SUMMARY_CONTEXT_HEADER =
+        'Records behind that summary (for follow-ups; ids are for plans only, never for the answer text):';
+    /** A summary section line that names one record ends with ' — ' and the record's Id (CustomerSummarySection.withId). */
+    private static final Pattern SUMMARY_LINE = Pattern.compile('^\\s*(.*?)\\s+—\\s+([0-9][0-9A-Za-z]{17})\\s*$');
 
     public class ExploreException extends Exception {}
 
@@ -93,7 +112,7 @@ public with sharing class DataExplorer {
                 'date_literals' => String.join(ExplorePlan.DATE_LITERALS, ', ') + ', '
                     + String.join(ExplorePlan.DATE_LITERALS_N, ':n, ') + ':n',
                 'context' => contextText(contextRecordId),
-                'history' => historyText(historyJson),
+                'history' => historyText(historyJson) + summaryContext(contextRecordId, historyJson),
                 'question' => question.trim()
             };
             // The brand's company and tone lines go after the explorer prompt's own system text (BE-24).
@@ -116,7 +135,7 @@ public with sharing class DataExplorer {
                 return run.result;
             }
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'DataExplorer.explore failed: ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, 'DataExplorer.explore failed: ' + e.getTypeName() + ': ' + e.getMessage());
         }
         // A model failure, or turns ran out with nothing read.
         run.result.status = ERROR;
@@ -238,7 +257,7 @@ public with sharing class DataExplorer {
             throw new ExploreException(child.name + ' has no lookup to ' + parentName + '.');
         }
         plan.objectName = child.name;
-        plan.fields = paths(child);
+        plan.fields = nameFirst(child, lookup, paths(child));
         plan.filters.add(filter(lookup.path, recordId));
         ExploreCatalog.Field created = child.field('CreatedDate');
         if (created != null && created.sortable) {
@@ -246,7 +265,60 @@ public with sharing class DataExplorer {
             plan.orderBy.field = created.path;
             plan.orderBy.dir = 'DESC';
         }
-        return forDisplay(ExploreQuery.run(plan));
+        return shownKeysOnly(forDisplay(ExploreQuery.run(plan)));
+    }
+
+    /**
+     * The paths with the one that names a child row moved to the front, so the row's button reads as the
+     * record (N1): the object's own name field (Name, CaseNumber, Subject), or, for an object without one
+     * such as OpportunityContactRole, the name of the record on the other side of the drill (the contact
+     * of a role drilled from its deal). Otherwise the order is unchanged.
+     */
+    private static List<String> nameFirst(ExploreCatalog.Entry child, ExploreCatalog.Field lookup, List<String> paths) {
+        Map<String, Schema.SObjectField> described = Schema.getGlobalDescribe().get(child.name).getDescribe().fields.getMap();
+        String lead;
+        for (String path : paths) {
+            Schema.SObjectField sf = path.contains('.') ? null : described.get(path.toLowerCase());
+            if (sf != null && sf.getDescribe().isNameField()) {
+                lead = path;
+                break;
+            }
+        }
+        if (lead == null) {
+            Schema.SObjectField back = described.get(lookup.path.toLowerCase());
+            String backRelationship = back == null ? null : back.getDescribe().getRelationshipName();
+            for (String path : paths) {
+                if (path.endsWith('.Name') && !path.substringBefore('.').equalsIgnoreCase(backRelationship)) {
+                    lead = path;
+                    break;
+                }
+            }
+        }
+        if (lead == null) {
+            return paths;
+        }
+        List<String> out = new List<String>{ lead };
+        for (String path : paths) {
+            if (path != lead) {
+                out.add(path);
+            }
+        }
+        return out;
+    }
+
+    /** Each row reduced to its shown columns and its record Id: no API path keys, no raw lookup Ids (N1). */
+    private static ExploreQuery.ResultSet shownKeysOnly(ExploreQuery.ResultSet rs) {
+        for (Integer i = 0; i < rs.rows.size(); i++) {
+            Map<String, Object> row = new Map<String, Object>();
+            for (String c : rs.columns) {
+                row.put(c, rs.rows[i].get(c));
+            }
+            if (rs.rows[i].containsKey('Id')) {
+                row.put('Id', rs.rows[i].get('Id'));
+            }
+            rs.rows[i] = row;
+        }
+        return rs;
     }
 
     // ---------------------------------------------------------------- display
@@ -440,6 +512,103 @@ public with sharing class DataExplorer {
             return NONE;
         }
         return lines.isEmpty() ? NONE : String.join(lines, '\n');
+    }
+
+    /**
+     * The summary context for a follow-up, or '' when the last history item is not the user's newest
+     * summary of contextRecordId (an Account). Starts on a new line so it follows the history text.
+     */
+    @TestVisible
+    private static String summaryContext(Id contextRecordId, String historyJson) {
+        if (contextRecordId == null || contextRecordId.getSObjectType() != Account.SObjectType || String.isBlank(historyJson)) {
+            return '';
+        }
+        try {
+            Object parsed = JSON.deserializeUntyped(historyJson);
+            List<Object> items = parsed instanceof List<Object> ? (List<Object>) parsed : new List<Object>();
+            Object last = items.isEmpty() ? null : items[items.size() - 1];
+            Object answer = last instanceof Map<String, Object> ? ((Map<String, Object>) last).get('answer') : null;
+            if (!(answer instanceof String) || !isLastSummary((String) answer, CustomerSummaryMemory.lastBrief(contextRecordId))) {
+                return '';
+            }
+            List<CustomerSummarySection> sections = new List<CustomerSummarySection>();
+            for (CustomerSummarySource src : SUMMARY_SOURCES) {
+                sections.add(src.build(contextRecordId));
+            }
+            return '\n' + summaryLines(contextRecordId, sections);
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'DataExplorer summary context not built: ' + e.getTypeName() + ': ' + e.getMessage());
+            return '';
+        }
+    }
+
+    /**
+     * The summary sections whose lines name records. Profile is left out: it is the account itself.
+     * Keep in step with CustomerSummary's registry when a source that lists records is added.
+     */
+    private static final List<CustomerSummarySource> SUMMARY_SOURCES = new List<CustomerSummarySource>{
+        new CustomerSummaryOpenDealsSection(),
+        new CustomerSummaryCasesSection(),
+        new CustomerSummaryContactsSection(),
+        new CustomerSummaryActivitySection(),
+        new CustomerSummaryCallsSection(),
+        new CustomerSummaryDealHistorySection()
+    };
+
+    /**
+     * True when the history answer is the stored summary, or its start (a caller may clip it and add
+     * '...'). Whitespace is compared collapsed. A very short answer never matches.
+     */
+    @TestVisible
+    private static Boolean isLastSummary(String historyAnswer, String storedSummary) {
+        if (String.isBlank(historyAnswer) || String.isBlank(storedSummary)) {
+            return false;
+        }
+        String said = historyAnswer.normalizeSpace().removeEnd('...').removeEnd('…').trim();
+        return said.length() >= SUMMARY_MATCH_CHARS && storedSummary.normalizeSpace().startsWith(said);
+    }
+
+    /**
+     * The context text: the account, then each section that names records, as its title and one line per
+     * record (the line's text clipped, then id=). Capped per section and in all; a cut says so.
+     */
+    @TestVisible
+    private static String summaryLines(Id accountId, List<CustomerSummarySection> sections) {
+        List<String> lines = new List<String>{ SUMMARY_CONTEXT_HEADER, 'Account: the open record, id=' + accountId };
+        Integer used = lines[0].length() + lines[1].length() + 2;
+        for (CustomerSummarySection s : sections) {
+            if (s == null || s.status != CustomerSummarySection.OK || String.isBlank(s.body)) {
+                continue;
+            }
+            List<String> items = new List<String>();
+            Integer more = 0;
+            for (String line : s.body.split('\n')) {
+                Matcher m = SUMMARY_LINE.matcher(line);
+                if (!m.matches()) {
+                    continue;
+                }
+                String item = '- ' + clip(m.group(1).removeStart('-').removeStart('•').trim(), SUMMARY_LINE_CHARS) + ' id=' + m.group(2);
+                if (items.size() >= SUMMARY_ITEMS_PER_SECTION || used + item.length() + 1 > SUMMARY_CONTEXT_CHARS - 40) {
+                    more++;
+                    continue;
+                }
+                items.add(item);
+                used += item.length() + 1;
+            }
+            if (items.isEmpty()) {
+                continue;
+            }
+            String title = String.isBlank(s.title) ? s.key : s.title;
+            lines.add(title + ':');
+            lines.addAll(items);
+            used += title.length() + 2;
+            if (more > 0) {
+                String note = '(' + more + ' more not listed)';
+                lines.add(note);
+                used += note.length() + 1;
+            }
+        }
+        return String.join(lines, '\n');
     }
 
     /** The column labels, or the columns themselves when a hand-built result set has none. */
