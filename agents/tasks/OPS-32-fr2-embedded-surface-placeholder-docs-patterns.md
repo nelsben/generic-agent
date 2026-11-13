@@ -4,8 +4,7 @@ title: FR2: embedded surface placeholder — docs/patterns/14-embedded-surface.m
 domain: ops
 tier: standard
 tier_reason: one docs page from recorded feedback and public product names
-status: blocked
-blocked_by: [BE-23]
+status: queued
 fixes: []
 scope: [docs/patterns/14-embedded-surface.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, e2e/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json, docs/ARCHITECTURE.md]
