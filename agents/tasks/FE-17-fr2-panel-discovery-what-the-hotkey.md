@@ -4,7 +4,7 @@ title: FR2: panel discovery — what the hotkey panel and its surfaces could add
 domain: frontend
 tier: frontier
 tier_reason: product and design judgement across the surfaces, checked against Lightning's limits
-status: queued
+status: merged
 fixes: []
 scope: [docs/research/fr2-panel-later.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -22,3 +22,12 @@ Feature revision 2 (FR2), Ben's chapter notes on pattern 03. He likes that the p
 - Read first: docs/plans/feature-revision-2.md (all of it, so nothing already planned is proposed again), docs/plans/fr2-design.md, docs/patterns/03-hotkey-panel.md, docs/patterns/05-conversation-memory.md, docs/patterns/11-voice-input.md, docs/research/fr2-surfaces-spike.md (OPS-29) and the cards FE-12, FE-13, FE-15 and OPS-32. Load the skills salesforce-development:platform-capability-search and experience-lwc:experience-lwc-design-generate first
 - docs/research/fr2-panel-later.md lists 8 to 12 candidates. Start from these, drop any that do not hold up, and add better ones: the panel in every app (the standard sales and service apps, or a one-step install that adds it to an app's utility bar); the Salesforce mobile app; switching between chats (pinned chats, or recent accounts one key away); a list of the panel's keyboard shortcuts; a pop-out window; a signal when a slow answer is ready while the panel is hidden; resizing; slash commands in the composer for the skills and actions; the panel following the record the rep opens next; pinning an answer from the explorer so it is kept on the account as a saved answer (BE-35 stores it; ledger F80). The keep-an-answer control already has a parked card, FE-23: rank it with the rest and do not propose a second card for it
 - For each candidate: the rep's problem in one line, how it would work, what Lightning allows (cite the public Salesforce docs or the OPS-29 findings; mark anything unproven), effort (S, M or L), risk, what it depends on, and a proposed card (title, scope, the done-when in three lines). End with a ranked top five and why. Docs only: no org access needed, never sign in or out, never create a user, never touch experimental. The brain cuts cards only for the ones Ben picks. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-12). Attempt 1: 23 confirmed, 1 refuted, 4 unverifiable. The refuted row: P1, P2 and P11 rested on unverified points that no first done-when line proved. Attempt 2 fixed all three in the page (P1 console proof first, P2 real-softphone check, P11 marked not relied on): 10 confirmed, 0 refuted, 3 unverifiable (remote state, the worker's fetch log, choice lines). The brain read the whole page and the attempt-2 diff. Privacy grep over 503 added lines: 0 hits in every category; the only hostnames are public documentation links.
+
+Carried forward:
+- developer.salesforce.com refused automated fetches, so every "documented" claim rests on search-index text with the link given; a builder opens the page before relying on it
+- The panel follows the page only on Account pages today (no Summarize or history on opportunity, contact or case pages); P1 is the proposed fix
+- Cards are cut only for the candidates Ben picks (P1 to P11); P5 is FE-23, already parked for that pick
