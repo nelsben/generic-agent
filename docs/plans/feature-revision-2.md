@@ -340,7 +340,7 @@ default that can still stall a build, and it says how. The findings behind each 
 |---|---|---|---|
 | 1 | **Go for the burn.** One word covers two rows of the Approvals table in [gtm-burn-plan.md](gtm-burn-plan.md#approvals): the FR2 spikes, and live checks that spend model calls and write the product's own rows on existing sample accounts. | Nothing is dispatched. | Spikes, then builds in the order below, each deploy under the standing approval. |
 | 2 | **Log a call: Event or Task** (F17). Ben said "synonymous with create an event"; the brain recommends a completed Task, because that is what Salesforce's own Log a Call saves. | An Event, as Ben said. One constant in `BE-27` switches it. | "Make it a Task" changes one line. |
-| 3 | **The MCP door under the new names** (`OPS-31`). **Answered yes (Ben, 2026-11-13); the explorer tool still waits on its own row.** with its tool set: resolve the account, get the summary, and ask anything through the explorer. The agent is not a tool. Asking anything opens the explorer to outside clients, which has its own Approvals row. | `OPS-31` stays parked. The door keeps running under the old names with its old tools, and page 09 and the README say so. The close does not wait. | `OPS-31` runs after the agent publish (`OPS-51`). A yes to the door without the explorer gives two tools. |
+| 3 | **The MCP door under the new names** (`OPS-31`). **Answered yes (Ben, 2026-11-13), with the explorer tool too; writes follow in `OPS-59`.** with its tool set: resolve the account, get the summary, and ask anything through the explorer. The agent is not a tool. Asking anything opens the explorer to outside clients, which has its own Approvals row. | `OPS-31` stays parked. The door keeps running under the old names with its old tools, and page 09 and the README say so. The close does not wait. | `OPS-31` runs after the agent publish (`OPS-51`). A yes to the door without the explorer gives two tools. |
 | 4 | **Tests that create and delete their own task** in `agent-probe`. | `FE-14`'s end-to-end test stops at the draft card and Cancel. Jest and Apex tests prove the confirm path, and the docs say so. | The test confirms a task on an existing sample account, then removes the task and its outcome. |
 | 5 | **The Testing Center suite** (`BE-38`). It tests the optional agent only, not our surfaces. | `BE-38` stays parked. The ladder prints "skipped: agent suite not built", and page 08 says the suite is not run in this build. | `BE-38` runs after the agent publish. The brain recommends yes for the functional suite: at most 20 cases, no write actions, one existing sample-data account. |
 | 6 | **Remove the old Account Brief leftovers from `agent-probe` once the rename is proven** (`OPS-54`). The old classes and their tests stay deployed and run in every real deploy. | They stay. Later cards keep every signature the old classes use, and a card whose deploy fails in an old test stops and hands back. This is the one default that can stall a build. | One destructive deploy removes the old agent actions, classes, tests, component and MCP server together. The brain recommends yes. |
@@ -370,8 +370,9 @@ it in the README's Status table.
 
 - F50: build an industry switch, or leave industry scenarios with the tabled `OPS-34`. Default: tabled. `OPS-38`
   shows how to change the sections and the narrative by hand, which is enough for a demo.
-- Whether MCP clients may write (create a task, log a call). Default: MCP stays read-only, and `BE-27` builds the
-  actions ready for it.
+- Whether MCP clients may write (create a task, log a call). Answered yes (Ben, 2026-11-13; brain-recorded): those two
+  actions only, draft then confirm, added by `OPS-59` after `BE-27`. The optional agent stays as it is (F83, `BE-28`
+  parked), also his answer that day.
 - A yes or no on three calls the brain made from his notes: page 06 as a short appendix (F82), one tested switch per
   prompt instead of commented-out code (F69), and page 07 as a one-screen principles page (F85). Default: as written.
 - File the Salesforce case about the publish failure in the first org. It is drafted; filing it is Ben's.
@@ -399,7 +400,7 @@ the rename.
 - **Wave 2, first demo:** \*BE-37, \*BE-24, \*OPS-29, \*FE-11, \*FE-12, \*FE-13. Second slot: FE-17.
 - **Wave 3, the agent publish and the spikes:** \*OPS-51, \*BE-34, \*BE-31, \*BE-32, \*BE-22, \*FE-18.
 - **Wave 4, services:** \*BE-29, \*BE-30, \*OPS-31 (approved by Ben, 2026-11-13, "so we can make that claim"), \*BE-25, \*BE-26, \*BE-33, \*BE-35, \*BE-36, \*BE-39.
-- **Wave 5, surfaces and tests:** \*FE-22, \*FE-16, \*FE-21, \*FE-15, \*BE-27, \*FE-14, \*FE-19, \*OPS-46. Second slot:
+- **Wave 5, surfaces and tests:** \*FE-22, \*FE-16, \*FE-21, \*FE-15, \*BE-27, \*OPS-59, \*FE-14, \*FE-19, \*OPS-46. Second slot:
   OPS-38, then OPS-44, OPS-42, OPS-41, OPS-39, OPS-40, OPS-43, OPS-45, OPS-47.
 - **Wave 6, the close:** OPS-48, OPS-49, \*OPS-35, \*OPS-52, OPS-36, \*OPS-28.
 - **Wave 7, Agentforce Coworker, after the close** (Ben, 2026-11-13: "coworker followups coming at the end"): OPS-57,
