@@ -22,6 +22,8 @@ public with sharing class CustomerSummaryResolver {
     @TestVisible private static final String ERROR_TEXT = 'I couldn\'t search accounts. You may not have access to them: ask your Salesforce admin to check your access.';
 
     @TestVisible private static final Integer MAX_CANDIDATES = 8;
+    /** The Cards output when there is no card to show (RESOLVED, ERROR): an empty list as JSON. */
+    @TestVisible private static final String EMPTY_CARDS = '[]';
     private static final Pattern ID_IN_TEXT = Pattern.compile('(?<![A-Za-z0-9])(001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?)(?![A-Za-z0-9])');
 
     public class Request {
@@ -40,6 +42,8 @@ public with sharing class CustomerSummaryResolver {
         @AuraEnabled public String accountName;
         @InvocableVariable(label='Message' description='User-facing text. Relay it verbatim.')
         @AuraEnabled public String message;
+        @InvocableVariable(label='Cards' description='The same answer as structured cards in JSON, for a client that can show them: a choice card listing the matching accounts when AMBIGUOUS, a notice card when NOT_FOUND, and an empty list otherwise. Account Ids appear only in each card\'s refs. Do not relay it to the user; relay the Message.')
+        @AuraEnabled public String cards = EMPTY_CARDS;
     }
 
     @InvocableMethod(
@@ -191,7 +195,8 @@ public with sharing class CustomerSummaryResolver {
     }
 
     private static Response ambiguous(String term, List<Account> hits, Integer total) {
-        List<String> lines = new List<String>{ 'Several accounts match "' + term + '". Which one?' };
+        String question = 'Several accounts match "' + term + '". Which one?';
+        List<String> lines = new List<String>{ question };
         for (Account a : hits) {
             String city = cityOf(a);
             lines.add(a.Name + ' — ' + city + ' — ' + String.valueOf(a.Id));
@@ -202,7 +207,39 @@ public with sharing class CustomerSummaryResolver {
         Response r = new Response();
         r.status = AMBIGUOUS;
         r.message = String.join(lines, '\n');
+        r.cards = choiceCards(question, hits);
         return r;
+    }
+
+    /**
+     * The candidates as one choice card (BE-46): the question as its title, one item per account in the message's
+     * order with its city as the detail, each Id only in refs. Built from the rows already read; '[]' if it fails,
+     * because the message never depends on the cards.
+     */
+    private static String choiceCards(String question, List<Account> hits) {
+        try {
+            List<AnswerCard.Item> items = new List<AnswerCard.Item>();
+            List<AnswerCard.Ref> refs = new List<AnswerCard.Ref>();
+            for (Account a : hits) {
+                AnswerCard.Item i = AnswerCard.newItem(a.Name, null, cityOf(a), null);
+                i.ref = AnswerCard.addRef(refs, a.Id, a.Name);
+                items.add(i);
+            }
+            return AnswerCard.toJson(new List<AnswerCard>{ AnswerCard.choice('cho', question, items, refs) });
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'CustomerSummaryResolver choice card not built: ' + e.getTypeName() + ': ' + e.getMessage());
+            return EMPTY_CARDS;
+        }
+    }
+
+    /** The message as one notice card with status NOT_FOUND; '[]' if it fails. */
+    private static String noticeCards(String message) {
+        try {
+            return AnswerCard.toJson(new List<AnswerCard>{ AnswerCard.notice('not', NOT_FOUND, message) });
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'CustomerSummaryResolver notice card not built: ' + e.getTypeName() + ': ' + e.getMessage());
+            return EMPTY_CARDS;
+        }
     }
 
     /** The account's city, or 'no city' when it is blank or was not queried (no read access to it). */
@@ -218,6 +255,7 @@ public with sharing class CustomerSummaryResolver {
         Response r = new Response();
         r.status = NOT_FOUND;
         r.message = 'No account matches "' + term + '". Try a fuller or different account name.';
+        r.cards = noticeCards(r.message);
         return r;
     }
 
@@ -233,6 +271,7 @@ public with sharing class CustomerSummaryResolver {
         Response r = new Response();
         r.status = NOT_FOUND;
         r.message = 'Which account? Give me the account\'s name.';
+        r.cards = noticeCards(r.message);
         return r;
     }
 }

@@ -310,4 +310,174 @@ private class CustomerSummaryPanelControllerTest {
         Assert.areEqual(0, [SELECT COUNT() FROM Customer_Summary_Session__c WITH SYSTEM_MODE],
             'a failed answer and an answer about a non-account record start no session');
     }
+
+    // ---------------------------------------------------------------- cards (BE-46)
+
+    private static void assertNoIdOutsideRefs(AnswerCard c, List<String> ids) {
+        AnswerCard copy = AnswerCard.fromJson(AnswerCard.toJson(new List<AnswerCard>{ c }))[0];
+        copy.refs = new List<AnswerCard.Ref>();
+        String json = JSON.serialize(copy);
+        for (String id : ids) {
+            Assert.isFalse(json.contains(id), 'the card holds an Id outside refs: ' + json);
+            Assert.isFalse(json.contains(id.substring(0, 15)), 'the card holds a 15-character Id outside refs: ' + json);
+        }
+    }
+
+    private static AnswerCard.Field fieldLabelled(AnswerCard c, String label) {
+        for (AnswerCard.Field f : c.fields) {
+            if (f.label == label) {
+                return f;
+            }
+        }
+        return null;
+    }
+
+    @IsTest
+    static void resolveCarriesTheResolversCards() {
+        Test.startTest();
+        CustomerSummaryResolver.Response ambiguous = CustomerSummaryPanelController.resolve('Panel Twin', null);
+        CustomerSummaryResolver.Response missing = CustomerSummaryPanelController.resolve('Nobody Here Inc', null);
+        CustomerSummaryResolver.Response byName = CustomerSummaryPanelController.resolve('Panel Acme', null);
+        Test.stopTest();
+
+        List<AnswerCard> choice = AnswerCard.fromJson(ambiguous.cards);
+        Assert.areEqual(1, choice.size());
+        Assert.areEqual('choice', choice[0].type);
+        Assert.areEqual(2, choice[0].items.size());
+        Assert.areEqual('notice', AnswerCard.fromJson(missing.cards)[0].type);
+        Assert.isTrue(AnswerCard.fromJson(byName.cards).isEmpty());
+        wire(ambiguous, new List<String>{ 'status', 'accountId', 'accountName', 'message', 'cards' });
+    }
+
+    @IsTest
+    static void aRecordDrillGivesOneRecordCardWithLookupsAsRefsAndRelatedObjects() {
+        Account a = acme();
+        Opportunity o = [SELECT Id FROM Opportunity WHERE Name = 'Panel Deal' LIMIT 1];
+        Test.startTest();
+        CustomerSummaryPanelController.Drill acct = CustomerSummaryPanelController.drill(a.Id, null);
+        CustomerSummaryPanelController.Drill opp = CustomerSummaryPanelController.drill(o.Id, null);
+        Test.stopTest();
+
+        Assert.areEqual(1, acct.cards.size());
+        AnswerCard c = acct.cards[0];
+        Assert.areEqual('record', c.type);
+        Assert.areEqual('OK', c.status);
+        Assert.areEqual('Panel Acme', c.title);
+        Assert.areEqual('Account', c.meta);
+        AnswerCard.Field industry = fieldLabelled(c, 'Industry');
+        Assert.isNotNull(industry, 'a field the drill shows is on the card');
+        Assert.areEqual('Technology', industry.value);
+        Assert.isNull(fieldLabelled(c, 'Account ID'), 'no Id is shown as a field');
+        Integer related = 0;
+        for (AnswerCard.Item i : c.items) {
+            Assert.areEqual('related', i.kind);
+            related++;
+        }
+        Assert.areEqual(acct.related.size(), related, 'one related item per related object');
+        assertNoIdOutsideRefs(c, new List<String>{ String.valueOf(a.Id) });
+
+        AnswerCard oc = opp.cards[0];
+        Assert.areEqual('record', oc.type);
+        Assert.areEqual('Panel Deal', oc.title);
+        Assert.areEqual('Opportunity', oc.meta);
+        AnswerCard.Field account = fieldLabelled(oc, 'Account');
+        Assert.isNotNull(account, 'the lookup is a field');
+        Assert.areEqual('Panel Acme', account.value);
+        Assert.isNotNull(account.ref, 'the lookup points at a ref');
+        AnswerCard.Ref ref;
+        for (AnswerCard.Ref candidate : oc.refs) {
+            if (candidate.key == account.ref) {
+                ref = candidate;
+            }
+        }
+        Assert.isNotNull(ref);
+        Assert.areEqual(String.valueOf(a.Id), ref.recordId);
+        Assert.areEqual('Account', ref.objectName);
+        assertNoIdOutsideRefs(oc, new List<String>{ String.valueOf(a.Id), String.valueOf(o.Id) });
+    }
+
+    @IsTest
+    static void aRelatedRowsDrillGivesOneTableCardLikeTheExplorersForTheSameResultSet() {
+        Account a = acme();
+        Opportunity o = [SELECT Id FROM Opportunity WHERE Name = 'Panel Deal' LIMIT 1];
+        Test.startTest();
+        CustomerSummaryPanelController.Drill opps = CustomerSummaryPanelController.drill(a.Id, 'Opportunity');
+        Test.stopTest();
+
+        Assert.areEqual(1, opps.cards.size());
+        AnswerCard c = opps.cards[0];
+        Assert.areEqual('table', c.type);
+        Assert.areEqual('Opportunity', c.title);
+        Assert.areEqual(opps.result.rows.size(), c.rows.size());
+        Assert.areEqual(opps.result.total, c.total);
+        Assert.areEqual(1, c.refs.size());
+        Assert.areEqual(String.valueOf(o.Id), c.refs[0].recordId);
+        Assert.areEqual(c.refs[0].key, c.rows[0].ref);
+
+        DataExplorer.Result asExplored = new DataExplorer.Result();
+        asExplored.status = DataExplorer.OK;
+        asExplored.answer = 'x';
+        asExplored.resultSets.add(opps.result);
+        AnswerCard explorers = DataExplorer.cards(asExplored, opps.result.rows.size())[1];
+        Assert.areEqual(JSON.serialize(explorers), JSON.serialize(c), 'the explorer draws the same rows the same way');
+        assertNoIdOutsideRefs(c, new List<String>{ String.valueOf(a.Id), String.valueOf(o.Id) });
+    }
+
+    @IsTest
+    static void everyMemberDrillHadIsUnchanged() {
+        Account a = acme();
+        Test.startTest();
+        CustomerSummaryPanelController.Drill rec = CustomerSummaryPanelController.drill(a.Id, null);
+        CustomerSummaryPanelController.Drill opps = CustomerSummaryPanelController.drill(a.Id, 'Opportunity');
+        Test.stopTest();
+
+        Assert.areEqual(JSON.serialize(DataExplorer.drill(a.Id, null)), JSON.serialize(rec.result));
+        Assert.areEqual(JSON.serialize(DataExplorer.drill(a.Id, 'Opportunity')), JSON.serialize(opps.result));
+        Assert.areEqual(JSON.serialize(CustomerSummaryPanelController.relatedObjects('Account')), JSON.serialize(rec.related));
+        Assert.isTrue(opps.related.isEmpty());
+        Map<String, Object> m = wire(rec, new List<String>{ 'result', 'related', 'cards' });
+        Assert.areEqual(1, ((List<Object>) m.get('cards')).size());
+        Assert.areEqual('record', ((Map<String, Object>) ((List<Object>) m.get('cards'))[0]).get('type'));
+    }
+
+    /** A user who can read every Account but has field access to Rating only (not Industry). */
+    private static User userWithRatingOnly() {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        String uniq = 'pancard' + String.valueOf(Crypto.getRandomInteger()).replace('-', '');
+        User u = new User(
+            Alias = 'pancard',
+            Email = uniq + '@example.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'Panel Cards',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            ProfileId = p.Id,
+            TimeZoneSidKey = 'America/New_York',
+            Username = uniq + '@example.com.paneltest'
+        );
+        insert u;
+        PermissionSet ps = new PermissionSet(Name = 'Pan_Cards_' + uniq.right(8), Label = 'Panel cards');
+        insert ps;
+        insert new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true, PermissionsViewAllRecords = true);
+        insert new FieldPermissions(ParentId = ps.Id, SobjectType = 'Account', Field = 'Account.Rating', PermissionsRead = true, PermissionsEdit = true);
+        insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        return u;
+    }
+
+    @IsTest
+    static void aCardHoldsNoFieldTheRunningUserCannotRead() {
+        User u = userWithRatingOnly();
+        Account a = new Account(Name = 'Panel Restricted', Rating = 'Hot', Industry = 'Zzindustryhidden');
+        insert a;
+        System.runAs(u) {
+            CustomerSummaryPanelController.Drill d = CustomerSummaryPanelController.drill(a.Id, null);
+            Assert.areEqual(1, d.cards.size());
+            AnswerCard c = d.cards[0];
+            AnswerCard.Field rating = fieldLabelled(c, 'Rating');
+            Assert.isNotNull(rating, 'a field the user can read is on the card');
+            Assert.areEqual('Hot', rating.value);
+            Assert.isNull(fieldLabelled(c, 'Industry'), 'a field the user cannot read is not');
+            Assert.isFalse(JSON.serialize(c).contains('Zzindustryhidden'));
+        }
+    }
 }

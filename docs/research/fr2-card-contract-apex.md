@@ -112,11 +112,120 @@ The door (mcp-door/, `CustomerSummaryMcp`) has three tools. How a hosted MCP ser
 |---|---|---|
 | `get_account_summary` (`CustomerSummaryGetAction`) | `status`, `answer` (unchanged), `cards` (new) | The summary's cards as JSON text: the `summary` card and one `section` card per section, each section's records as items with their Ids in `refs`. `''` over 60,000 characters. |
 | `ask_anything` (`ExploreAction`) | `status`, `answer` (unchanged), `history` (unchanged), `cards` (new) | The explorer's cards as JSON text, the table cut to the rows the `answer` shows, with a `notice` when that is fewer than matched. `''` over the cap. |
-| `resolve_account` (`CustomerSummaryResolver`) | unchanged | None. The choice card for AMBIGUOUS is BE-46's. |
+| `resolve_account` (`CustomerSummaryResolver`) | `status`, `accountId`, `accountName`, `message` (all unchanged), `cards` (new, BE-46) | The resolver's cards as JSON text: a `choice` card for AMBIGUOUS, a `notice` for NOT_FOUND, `[]` otherwise. See 'The resolver and the drill (BE-46)'. |
 
-What a client does not get: no card for an earlier turn, no resolver choice card, no drill, no action cards, and no `structuredContent` (still unproven on the hosted server). The `cards` description tells a model it is for a client that can show cards and that the `answer` is what it relays. A client that ignores `cards` loses nothing: the `answer` says the same.
+What a client does not get: no card for an earlier turn, no drill, no action cards, and no `structuredContent` (still unproven on the hosted server). The `cards` description tells a model it is for a client that can show cards and that the `answer` is what it relays. A client that ignores `cards` loses nothing: the `answer` says the same.
 
 The Customer Summary agent's actions declare their outputs by name, and `cards` is not among them, so the agent and Agentforce's own panel go on with the text alone. Adding `cards` to the agent is an agent change, outside this card.
+
+## The resolver and the drill (BE-46)
+
+The account resolver and the panel's drill now answer in cards too. Both build them from rows they already read: no new query, no DML, no model call, and no change to `AnswerCard` or to any existing member.
+
+### The resolver
+
+`CustomerSummaryResolver.Response` gains `cards`, a JSON string (an `@InvocableVariable` output and an `@AuraEnabled` member). Its description tells a model that it is for a client that can show cards and that the `message` is what it relays. `status`, `accountId`, `accountName` and `message` keep their names, types and exact content.
+
+| Status | `cards` |
+|---|---|
+| RESOLVED | `[]` (no card) |
+| AMBIGUOUS | One `choice` card (key `cho`, status AMBIGUOUS). Its title is the message's question line. One item per candidate, in the message's order: the account's name as the label, its city (or `no city`, as the message says) as the detail. Each candidate's Id is only in `refs` (key `a1`, `a2`, ...). The `…and N more` line has no card form: the card holds the same up to 8 candidates as the message. |
+| NOT_FOUND | One `notice` card (key `not`, status NOT_FOUND) with the message as its text. This holds for a name that matches nothing and for a blank request. |
+| ERROR | `[]`. The message's fixed text is the whole answer. |
+
+A failure building a card leaves `cards` as `[]` and changes nothing else.
+
+### The drill
+
+`CustomerSummaryPanelController.Drill` gains `cards` (a list of `AnswerCard`). `result` and `related` are unchanged, and no controller method changed its signature.
+
+- **A single-record drill** (`relatedObject` blank) gives one `record` card (key `rec`). Its title is the record's name field, its meta the object's label, and its fields are the shown columns as label and formatted value (a blank value is left out; the name field is the title, so it is not repeated). A lookup's field has a `ref` to the record it points at, and that Id is only in `refs`. Each object in `related` is an item of kind `related`, labelled with the object's plural label.
+- **A related-rows drill** gives the one card the explorer draws for the same result set: DataExplorer's own builder is called on it, so a drill and an explorer answer for the same rows are the same card (a `table` for an object with more than two shown columns, a `recordList` for two or fewer). Each row's record is in `refs`.
+- **A drill with no rows**, or one whose card could not be built, gives an empty list.
+
+Cells are formatted as the explorer formats them (`$500`, `2026-12-13`, `Yes`).
+
+A card holds only what the drill's result set holds. The drill already reads in user mode and takes its columns from the catalog, which lists only the fields the running user can read, so a card never holds a field the user cannot read. The test `aCardHoldsNoFieldTheRunningUserCannotRead` checks it as a user with access to one field only, in both classes.
+
+### The three cards
+
+Each is the shape the named test asserts, with record Ids written `record-id:<key>` and the names sample data. The record card is cut to four fields to keep the page short.
+
+`choice`, from `CustomerSummaryResolverTest.ambiguousGivesOneChoiceCardInTheMessagesOrderWithIdsOnlyInRefs`:
+
+```json
+{
+  "type": "choice",
+  "version": 1,
+  "key": "cho",
+  "title": "Several accounts match \"Edge\". Which one?",
+  "status": "AMBIGUOUS",
+  "text": "Several accounts match \"Edge\". Which one?\n1. Edge Communications — Austin\n2. Edge Communications — no city",
+  "body": [],
+  "items": [
+    { "label": "Edge Communications", "detail": "Austin", "ref": "a1" },
+    { "label": "Edge Communications", "detail": "no city", "ref": "a2" }
+  ],
+  "refs": [
+    { "key": "a1", "recordId": "record-id:a1", "objectName": "Account", "label": "Edge Communications" },
+    { "key": "a2", "recordId": "record-id:a2", "objectName": "Account", "label": "Edge Communications" }
+  ]
+}
+```
+
+`notice`, from `CustomerSummaryResolverTest.notFoundGivesOneNoticeCard`:
+
+```json
+{
+  "type": "notice",
+  "version": 1,
+  "key": "not",
+  "title": "",
+  "status": "NOT_FOUND",
+  "text": "No account matches \"Edgx\". Try a fuller or different account name.",
+  "body": [
+    {
+      "kind": "p",
+      "runs": [ { "text": "No account matches \"Edgx\". Try a fuller or different account name." } ]
+    }
+  ],
+  "refs": []
+}
+```
+
+`record`, from `CustomerSummaryPanelControllerTest.aRecordDrillGivesOneRecordCardWithLookupsAsRefsAndRelatedObjects`:
+
+```json
+{
+  "type": "record",
+  "version": 1,
+  "key": "rec",
+  "title": "Panel Deal",
+  "meta": "Opportunity",
+  "status": "OK",
+  "text": "Panel Deal · Opportunity\nAccount: Panel Acme\nStage: Prospecting\nAmount: $500\nClose Date: 2026-12-13",
+  "body": [],
+  "fields": [
+    { "key": "Account", "label": "Account", "value": "Panel Acme", "ref": "a1" },
+    { "key": "Stage", "label": "Stage", "value": "Prospecting" },
+    { "key": "Amount", "label": "Amount", "value": "$500" },
+    { "key": "Close Date", "label": "Close Date", "value": "2026-12-13" }
+  ],
+  "items": [
+    { "label": "Tasks", "kind": "related" },
+    { "label": "Opportunity Contact Roles", "kind": "related" }
+  ],
+  "refs": [
+    { "key": "a1", "recordId": "record-id:a1", "objectName": "Account", "label": "Panel Acme" }
+  ]
+}
+```
+
+### Open: Ids in the AMBIGUOUS message
+
+The AMBIGUOUS `message` still has each candidate's record Id in its text (`Name — City — 001...`), and `CustomerSummaryResolver` still returns it unchanged. The agent relays it and an MCP client reads it, and the pasted-Id step of the resolver depends on it: a rep answers by pasting an Id back. The card has the Ids only in `refs`, as the contract says, but removing them from the message changes what the agent and an MCP client read. That is Ben's decision and is still open. Until then the `text` rule for cards is kept (no card's `text` holds an Id) and the message is the one place an Id is in text.
+
+Two smaller things left as they were: the `choice` card has no `total`, so a client cannot tell from the card that the message ended with `…and N more`; and the panel does not draw the new `cards` yet (FE-22).
 
 ## The cards cap
 
@@ -128,7 +237,7 @@ The Customer Summary agent's actions declare their outputs by name, and `cards` 
 
 ## What was left out, and why
 
-- **The resolver and the drill** (`choice` for AMBIGUOUS, `record` for a drilled record): BE-46.
+- **The resolver and the drill** (`choice` for AMBIGUOUS, `record` for a drilled record): done in BE-46, see below.
 - **`actionDraft` and `actionResult` builders:** BE-27. The types hold FE-18's fixtures and their text rule is tested.
 - **`timeline` and `comparison` callers:** no service produces them yet. Their builders are tested from FE-18's fixtures.
 - **Cards in the agent's outputs:** the agent bundle is outside this card (see 'What an MCP client gets').
