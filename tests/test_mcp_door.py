@@ -59,7 +59,7 @@ class TestGuards(unittest.TestCase):
         short_id = "0H4" + "gK" + "0" * 5 + "1aBcD"
         self.assertEqual(salesforce_ids("<id>%s</id>" % long_id), [long_id])
         self.assertEqual(salesforce_ids("x %s y" % short_id), [short_id])
-        self.assertEqual(salesforce_ids("AccountBriefResolver apex-AccountBriefGetAction"), [])
+        self.assertEqual(salesforce_ids("CustomerSummaryResolver apex-CustomerSummaryGetAction"), [])
         self.assertEqual(salesforce_ids("resolve_account mcp_api refresh_token"), [])
 
 
@@ -77,7 +77,7 @@ class TestDoorMetadata(unittest.TestCase):
         with open(os.path.join(path, name), encoding="utf-8") as f:
             text = f.read()
         tools = re.findall(r"<toolName>([^<]+)</toolName>", text)
-        self.assertEqual(sorted(tools), ["ask_account_brief", "get_account_brief", "resolve_account"])
+        self.assertEqual(sorted(tools), ["ask_account_summary", "get_account_summary", "resolve_account"])
         # Every tool carries its own description, so the agent-facing Apex and agent wording
         # ("Relay the answer verbatim") does not reach MCP clients.
         overrides = re.findall(r"<descriptionOverride>([^<]+)</descriptionOverride>", text)

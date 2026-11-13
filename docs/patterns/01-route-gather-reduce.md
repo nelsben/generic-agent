@@ -19,11 +19,11 @@ right account, gathers a fixed set of sections, and lets the model write only fr
 sequenceDiagram
     actor U as Rep
     participant E as Panel or agent
-    participant R as AccountBriefResolver
-    participant B as AccountBrief
-    participant S as AccountBriefSource x7
+    participant R as CustomerSummaryResolver
+    participant B as CustomerSummary
+    participant S as CustomerSummarySource x7
     participant L as AgentLlm
-    participant M as AccountBriefMemory
+    participant M as CustomerSummaryMemory
     U->>E: brief Edge Communications
     E->>R: resolve(words, knownAccountId)
     R-->>E: RESOLVED, AMBIGUOUS or NOT_FOUND
@@ -31,7 +31,7 @@ sequenceDiagram
     B->>B: visibility check WITH USER_MODE
     loop registry order
         B->>S: build(accountId)
-        S-->>B: AccountBriefSection OK, EMPTY or ERROR
+        S-->>B: CustomerSummarySection OK, EMPTY or ERROR
     end
     B->>L: complete BriefEngagement and BriefDealHistory
     L-->>B: two summaries
@@ -42,14 +42,14 @@ sequenceDiagram
     E-->>U: brief
 ```
 
-1. **Route.** `AccountBriefResolver` turns the rep's words, a pasted Account Id or the open
+1. **Route.** `CustomerSummaryResolver` turns the rep's words, a pasted Account Id or the open
    record into one Account. It answers RESOLVED, AMBIGUOUS (up to 8 candidates, one line each) or
    NOT_FOUND. Only a RESOLVED Id goes on.
-2. **Gate.** `AccountBrief.run` reads the Account `WITH USER_MODE`. If the rep cannot see it, the
+2. **Gate.** `CustomerSummary.run` reads the Account `WITH USER_MODE`. If the rep cannot see it, the
    answer is the fixed NOT_FOUND text and no model is called.
-3. **Gather.** The registry in `AccountBrief` lists 7 sources in brief order: profile,
+3. **Gather.** The registry in `CustomerSummary` lists 7 sources in brief order: profile,
    open_deals, cases, contacts, activity, calls and deal_history. Each implements
-   `AccountBriefSource` and returns one `AccountBriefSection`: OK, EMPTY or ERROR, plain text,
+   `CustomerSummarySource` and returns one `CustomerSummarySection`: OK, EMPTY or ERROR, plain text,
    with row and length caps. No model is involved.
 4. **Narrow.** `include` limits the sources, for example `open_deals` only. A section that was
    not asked for reaches the model as `EMPTY: not requested`.
@@ -60,7 +60,7 @@ sequenceDiagram
    writes the headline and the six sections (1,500 tokens).
 7. **Status.** If no section is OK and one failed, the brief is ERROR, not EMPTY. A model failure
    gives ERROR with fixed text and keeps the gathered sections.
-8. **Remember.** `AccountBriefMemory.recordAll` writes once, after every model call, and only on
+8. **Remember.** `CustomerSummaryMemory.recordAll` writes once, after every model call, and only on
    OK or EMPTY.
 
 ## See it
@@ -71,17 +71,17 @@ sequenceDiagram
 
 ## Why you can trust it
 
-- **Order and gating are tested.** [AccountBriefTest](../../force-app/main/default/classes/AccountBriefTest.cls)
+- **Order and gating are tested.** [CustomerSummaryTest](../../force-app/main/default/classes/CustomerSummaryTest.cls)
   covers registry order (`allSourcesByDefaultInRegistryOrder`), `include` filtering
   (`includeFiltersAndSkipsEngagement`), no model call on NOT_FOUND (`notFoundMakesNoModelCall`),
   ERROR when every section fails (`everySectionErrorGivesErrorNotEmpty`), and no memory write on a
   model failure (`modelExceptionGivesErrorAndNoMemory`). It also runs a brief over 300 tasks
   inside governor limits (`bulkBriefOverThreeHundredTasksStaysWithinLimits`).
-- **Resolution is tested.** [AccountBriefResolverTest](../../force-app/main/default/classes/AccountBriefResolverTest.cls)
+- **Resolution is tested.** [CustomerSummaryResolverTest](../../force-app/main/default/classes/CustomerSummaryResolverTest.cls)
   covers exact name over partial match, many pasted Ids in one query, ten matches giving eight
   lines, and LIKE wildcards in the term read as plain text.
 - **Each section is tested.** There is one test class per section, for example
-  [AccountBriefOpenDealsSectionTest](../../force-app/main/default/classes/AccountBriefOpenDealsSectionTest.cls).
+  [CustomerSummaryOpenDealsSectionTest](../../force-app/main/default/classes/CustomerSummaryOpenDealsSectionTest.cls).
 - **Review findings are fixed in code.** The Apex review ([apex-review.md](../reviews/apex-review.md))
   found that an all-failed brief read as EMPTY (finding 1), that bulk calls hit callout-after-DML
   (finding 3), and that the resolver ran one query per pasted Id (finding 5). Each is fixed and
@@ -95,15 +95,15 @@ sequenceDiagram
 
 ## Adopt it
 
-1. Copy `AccountBrief.cls`, `AccountBriefSource.cls`, `AccountBriefSection.cls`,
-   `AccountBriefResolver.cls`, `AccountBriefGetAction.cls`, the seven `AccountBrief*Section.cls`
+1. Copy `CustomerSummary.cls`, `CustomerSummarySource.cls`, `CustomerSummarySection.cls`,
+   `CustomerSummaryResolver.cls`, `CustomerSummaryGetAction.cls`, the seven `CustomerSummary*Section.cls`
    classes and their tests from `force-app/main/default/classes/`.
 2. Copy the model door from [04](04-model-provider-seam.md) and the three prompts
    `AgentPrompt_BriefSynthesis`, `AgentPrompt_BriefEngagement` and `AgentPrompt_BriefDealHistory`
    from `force-app/main/default/staticresources/`.
-3. Copy `AccountBriefMemory.cls` and `Account_Brief_Session__c`, or remove the `recordAll` call
-   in `AccountBrief` if you do not want memory.
-4. **Change the sections.** Add or remove lines in `AccountBrief.registry`. Each line is a key and
+3. Copy `CustomerSummaryMemory.cls` and `Customer_Summary_Session__c`, or remove the `recordAll` call
+   in `CustomerSummary` if you do not want memory.
+4. **Change the sections.** Add or remove lines in `CustomerSummary.registry`. Each line is a key and
    a class name, and registry order is brief order. See "Add a source" in
    [ARCHITECTURE.md](../ARCHITECTURE.md#add-a-source).
 5. **Change the voice.** Edit `AgentPrompt_BriefSynthesis`. Its section headings and length rule

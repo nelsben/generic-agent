@@ -3,7 +3,7 @@ const { defineConfig } = require('@playwright/test');
 const { STATE_FILE } = require('./e2e/support/env');
 
 /**
- * End-to-end suite for the Account Brief panel, run in a real org as the signed-in sf CLI user.
+ * End-to-end suite for the Customer Summary panel, run in a real org as the signed-in sf CLI user.
  * See e2e/README.md. Serial on purpose: one browser, one user, one utility bar.
  *
  * Tracing, video and HAR stay off: a trace records request headers and Aura POST bodies, which

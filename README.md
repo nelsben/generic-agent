@@ -1,6 +1,6 @@
-# Account Brief: a reusable Agentforce baseline
+# Customer Summary: a reusable Agentforce baseline
 
-**One keystroke in Salesforce gives a rep a sourced account brief or an answer about their CRM
+**One keystroke in Salesforce gives a rep a sourced account summary or an answer about their CRM
 data, using only the records that rep is allowed to see.**
 
 ![The Account Brief panel on an account page: it opens with an empty conversation, "/brief Edge Communications" is typed and sent, a spinner shows, and the brief arrives and settles on its headline, "Two overdue deals and a high-priority BGP case threaten the support-plan renewal now in discussion with finance.", with the Account, Open deals and Service health rows under it](docs/assets/brief-flow.gif)
@@ -14,7 +14,7 @@ metadata: prompts are plain-text static resources.
 
 | # | Pattern | Business outcome | Page |
 |---|---|---|---|
-| 1 | Route, gather, reduce | A full account brief in one ask. Every fact comes from the CRM, and the model only writes it up. | [01](docs/patterns/01-route-gather-reduce.md) |
+| 1 | Route, gather, reduce | A full account summary in one ask. Every fact comes from the CRM, and the model only writes it up. | [01](docs/patterns/01-route-gather-reduce.md) |
 | 2 | Ask-anything explorer | Org-wide questions answered with a table, and rows open to their related records. The model never writes SOQL. | [02](docs/patterns/02-ask-anything-explorer.md) |
 | 3 | Hotkey panel | Cmd/Ctrl-K from any page in the app. No tab switching and no lost place. | [03](docs/patterns/03-hotkey-panel.md) |
 | 4 | Model provider seam | One class decides which model runs. You can swap it without touching the features. | [04](docs/patterns/04-model-provider-seam.md) |
@@ -28,11 +28,11 @@ metadata: prompts are plain-text static resources.
 
 ```mermaid
 flowchart LR
-    U(["Rep in Lightning"]) --> P["accountBriefPanel<br/>utility bar, Cmd/Ctrl-K"]
+    U(["Rep in Lightning"]) --> P["customerSummaryPanel<br/>utility bar, Cmd/Ctrl-K"]
     X["MCP client<br/>not yet proven"] -.-> ACT
-    P --> C["AccountBriefPanelController"]
-    AG["Account_Brief agent"] --> ACT["Invocable actions<br/>AccountBriefResolver<br/>AccountBriefGetAction<br/>ExploreAction"]
-    C --> B["AccountBrief<br/>7 sources, 2 pre-reduces, synthesis"]
+    P --> C["CustomerSummaryPanelController"]
+    AG["Customer_Summary agent"] --> ACT["Invocable actions<br/>CustomerSummaryResolver<br/>CustomerSummaryGetAction<br/>ExploreAction"]
+    C --> B["CustomerSummary<br/>7 sources, 2 pre-reduces, synthesis"]
     ACT --> B
     C --> DX["DataExplorer<br/>JSON plan, ExploreQuery"]
     ACT --> DX
@@ -41,7 +41,7 @@ flowchart LR
     L --> M["Salesforce Models API"]
     B --> D[("CRM records<br/>USER_MODE")]
     DX --> D
-    B --> MEM[("Account_Brief_Session__c<br/>AccountBriefMemory")]
+    B --> MEM[("Customer_Summary_Session__c<br/>CustomerSummaryMemory")]
 ```
 
 The panel calls Apex directly, so it answers in one request. The agent reaches the same Apex
@@ -52,8 +52,8 @@ through invocable actions. Both paths share one engine, one model door and one a
 You need an org with Einstein generative AI and Agentforce turned on, the Salesforce CLI
 signed in to it, and at least one Account with some contacts, deals and cases.
 
-1. **Deploy the metadata, without the agent and without `Account_Brief_Agent_Access`.** That set
-   names the `Account_Brief` agent, which does not exist until step 3, so it cannot deploy yet.
+1. **Deploy the metadata, without the agent and without `Customer_Summary_Agent_Access`.** That set
+   names the `Customer_Summary` agent, which does not exist until step 3, so it cannot deploy yet.
 
    ```sh
    sf project deploy start -o <org-alias> \
@@ -64,8 +64,8 @@ signed in to it, and at least one Account with some contacts, deals and cases.
      --source-dir force-app/main/default/messageChannels \
      --source-dir force-app/main/default/flexipages \
      --source-dir force-app/main/default/applications \
-     --source-dir force-app/main/default/permissionsets/Account_Brief_Data_Access.permissionset-meta.xml
-   sf org assign permset -o <org-alias> -n Account_Brief_Data_Access
+     --source-dir force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml
+   sf org assign permset -o <org-alias> -n Customer_Summary_Data_Access
    ```
 
    The panel works from here (step 5). On an org the CLI classifies as production (a Developer
@@ -86,29 +86,29 @@ signed in to it, and at least one Account with some contacts, deals and cases.
 
    ```sh
    bash scripts/agent-check.sh
-   sf agent publish authoring-bundle --api-name Account_Brief -o <org-alias> --skip-retrieve --json
-   sf agent activate --api-name Account_Brief --version <n> -o <org-alias> --json
+   sf agent publish authoring-bundle --api-name Customer_Summary -o <org-alias> --skip-retrieve --json
+   sf agent activate --api-name Customer_Summary --version <n> -o <org-alias> --json
    ```
 
    Publishing needs the Apex from step 1 in the org. `<n>` is the version number the publish
    reports (1 in a new org). Publishing rewrites files in the bundle folder: run
-   `git checkout -- force-app/main/default/aiAuthoringBundles/Account_Brief` afterwards.
+   `git checkout -- force-app/main/default/aiAuthoringBundles/Customer_Summary` afterwards.
 
 4. **Deploy the group.** Assign the group, not the set by itself:
 
    ```sh
    sf project deploy start -o <org-alias> \
      --source-dir force-app/main/default/permissionsetgroups
-   sf org assign permset -o <org-alias> -n Account_Brief_User
+   sf org assign permset -o <org-alias> -n Customer_Summary_User
    ```
 
-   The group `Account_Brief_User` holds only `Account_Brief_Data_Access`: reps reach the product
-   through the panel, not the agent. `Account_Brief_Agent_Access` stays in the repo, outside the
+   The group `Customer_Summary_User` holds only `Customer_Summary_Data_Access`: reps reach the product
+   through the panel, not the agent. `Customer_Summary_Agent_Access` stays in the repo, outside the
    group, for a team that adds the agent to a channel later. The run in `agent-probe` assigned
    the sets directly; the group deploy and assignment are not part of that record. Not yet
    proven: use by a non-admin user.
 
-5. Open the org with `sf org open -o <org-alias>` and pick **Account Brief** in the App Launcher.
+5. Open the org with `sf org open -o <org-alias>` and pick **Customer Summary** in the App Launcher.
    Press **Cmd-K** on a Mac or **Ctrl-K** elsewhere. Type `/brief <account name>` and press Enter.
    Any other text is a question for the explorer, such as "How many open opportunities are there?".
 
@@ -130,7 +130,7 @@ on publishing.
 | Jest | The panel: hotkey, latest request wins, focus, live region, drill, axe | `npm run test:unit` |
 | Playwright | The panel in a real org, 8 specs | `npm run test:e2e` (see [e2e/README.md](e2e/README.md)) |
 | Agent compile | The Agent Script compiles locally and validates in the org | `bash scripts/agent-check.sh` |
-| Agent test spec | 12 utterances with expected routes and outcomes | [Account_Brief-testSpec.yaml](tests/agent/Account_Brief-testSpec.yaml): `sf agent test create --spec <file> --api-name <test-name> -o <org-alias>`, then `sf agent test run --api-name <test-name> --wait 5 --json -o <org-alias>` on an active version |
+| Agent test spec | 12 utterances with expected routes and outcomes | [Customer_Summary-testSpec.yaml](tests/agent/Customer_Summary-testSpec.yaml): `sf agent test create --spec <file> --api-name <test-name> -o <org-alias>`, then `sf agent test run --api-name <test-name> --wait 5 --json -o <org-alias>` on an active version |
 | Studio preview | Every spec case run live against the draft agent | Recorded in [studio-preview.md](docs/research/studio-preview.md) |
 
 The method behind the layers is in [08: Test and release lifecycle](docs/patterns/08-test-and-release-lifecycle.md).
@@ -139,13 +139,13 @@ The method behind the layers is in [08: Test and release lifecycle](docs/pattern
 
 | Path | What is there |
 |---|---|
-| `force-app/main/default/aiAuthoringBundles/Account_Brief/` | The agent, in Agent Script |
+| `force-app/main/default/aiAuthoringBundles/Customer_Summary/` | The agent, in Agent Script |
 | `force-app/main/default/classes/` | All Apex: the brief engine and its 7 sections, the explorer, the model door, memory, the panel controller, and a test class for each |
-| `force-app/main/default/lwc/accountBriefPanel/` | The utility-bar panel and its Jest tests |
+| `force-app/main/default/lwc/customerSummaryPanel/` | The utility-bar panel and its Jest tests |
 | `force-app/main/default/staticresources/` | The four prompts (`AgentPrompt_*`) |
-| `force-app/main/default/objects/Account_Brief_Session__c/` | The memory object |
-| `force-app/main/default/permissionsets/` | `Account_Brief_Data_Access` (in the group) and `Account_Brief_Agent_Access` (outside it) |
-| `force-app/main/default/applications/`, `flexipages/`, `messageChannels/` | The app, its utility bar and the `AccountBriefOpen` channel |
+| `force-app/main/default/objects/Customer_Summary_Session__c/` | The memory object |
+| `force-app/main/default/permissionsets/` | `Customer_Summary_Data_Access` (in the group) and `Customer_Summary_Agent_Access` (outside it) |
+| `force-app/main/default/applications/`, `flexipages/`, `messageChannels/` | The app, its utility bar and the `CustomerSummaryOpen` channel |
 | `tests/` | Python metadata tests and the agent test spec |
 | `e2e/` | The Playwright suite |
 | `scripts/` | The gates: `validate-org.sh`, `agent-check.sh`, `apex-scan.sh` |
@@ -158,7 +158,7 @@ The method behind the layers is in [08: Test and release lifecycle](docs/pattern
 | Item | Status | Evidence |
 |---|---|---|
 | Brief engine, explorer, memory, controller | Proven by Apex tests | The `*Test.cls` classes in `force-app/main/default/classes/`, run by `scripts/validate-org.sh` |
-| Panel behaviour | Proven by Jest | [accountBriefPanel.test.js](force-app/main/default/lwc/accountBriefPanel/__tests__/accountBriefPanel.test.js) |
+| Panel behaviour | Proven by Jest | [customerSummaryPanel.test.js](force-app/main/default/lwc/customerSummaryPanel/__tests__/customerSummaryPanel.test.js) |
 | Agent routing, 12 cases | Proven in Studio preview against the draft, before the last explorer fixes, and by the agent test run in `agent-probe` (below) | [studio-preview.md](docs/research/studio-preview.md), [org-migration.md](docs/research/org-migration.md) |
 | Calling the agent from Apex | Proven by a two-turn probe | [agent-api.md](docs/research/agent-api.md) |
 | An MCP server lists and adds the actions as tools | Proven by a probe | [salesforce-mcp.md](docs/research/salesforce-mcp.md) |

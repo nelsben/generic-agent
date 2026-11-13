@@ -1,7 +1,7 @@
 // @ts-check
 /**
- * The Account Brief panel as a front-end user meets it: the Account Brief app, the record page of
- * Edge Communications, the utility bar item "Account Brief" (340x480, eager).
+ * The Customer Summary panel as a front-end user meets it: the Customer Summary app, the record page of
+ * Edge Communications, the utility bar item "Customer Summary" (340x480, eager).
  *
  * Locators pierce the panel's native shadow DOM with Playwright's built-in engine: roles, labels,
  * the panel's test hooks (data-testid: abp-live-region, abp-spinner, abp-summary-headline) and the
@@ -28,12 +28,12 @@ class Panel {
     constructor(page) {
         this.page = page;
         this.run = runInfo();
-        this.host = page.locator('c-account-brief-panel');
-        this.utilityButton = page.getByRole('button', { name: 'Account Brief', exact: true });
+        this.host = page.locator('c-customer-summary-panel');
+        this.utilityButton = page.getByRole('button', { name: 'Customer Summary', exact: true });
         this.dialog = page.getByRole('dialog').filter({ has: this.host });
         this.composer = this.host.getByRole('textbox', { name: COMPOSER_LABEL });
         this.send = this.host.getByRole('button', { name: 'Send', exact: true });
-        this.briefButton = this.host.getByRole('button', { name: 'Brief ' + ACCOUNT_NAME, exact: true });
+        this.briefButton = this.host.getByRole('button', { name: 'Summarize ' + ACCOUNT_NAME, exact: true });
         // The panel's own live region; lightning-textarea renders a second, empty role=status.
         this.liveRegion = this.host.getByTestId('abp-live-region');
         this.spinner = this.host.getByTestId('abp-spinner');
@@ -43,8 +43,8 @@ class Panel {
         this.breadcrumbs = this.host.locator('lightning-breadcrumbs');
         // The utility panel's own header (title, Minimize, Pop-out), above the panel component.
         this.panelHeader = this.dialog.locator('.slds-utility-panel__header').first();
-        // The header of the account's "Earlier briefs" list.
-        this.historyHeader = this.host.getByRole('button', { name: /^Earlier briefs/ });
+        // The header of the account's "Earlier summaries" list.
+        this.historyHeader = this.host.getByRole('button', { name: /^Earlier summaries/ });
     }
 
     get recordUrl() {
@@ -52,8 +52,8 @@ class Panel {
     }
 
     /**
-     * A fresh load of the account's record page inside the Account Brief app, with the utility
-     * never opened. The app URL first makes Account Brief the current app; the record page is a
+     * A fresh load of the account's record page inside the Customer Summary app, with the utility
+     * never opened. The app URL first makes Customer Summary the current app; the record page is a
      * second full load, so the panel is constructed anew and has not been opened.
      */
     async gotoAccount() {
@@ -70,7 +70,7 @@ class Panel {
         await expect(this.utilityButton).toBeVisible({ timeout: 90_000 });
         await expect(this.host).toBeAttached();
         // Ready: the panel is connected (its key listener is up) and has resolved the page's account.
-        await expect(this.host.getByRole('button', { name: 'Brief ' + ACCOUNT_NAME, exact: true, includeHidden: true })).toBeAttached({
+        await expect(this.host.getByRole('button', { name: 'Summarize ' + ACCOUNT_NAME, exact: true, includeHidden: true })).toBeAttached({
             timeout: 60_000
         });
         await expect(this.composer).toBeHidden();
@@ -103,11 +103,11 @@ class Panel {
         await this.composer.press('Enter');
     }
 
-    /** Clicks the brief button and waits for "Brief ready: ...". Returns the brief's turn. */
+    /** Clicks the Summarize button and waits for "Summary ready: ...". Returns the brief's turn. */
     async briefThisAccount() {
         await this.briefButton.click();
-        await expect(this.liveRegion).toHaveText('Loading brief for ' + ACCOUNT_NAME);
-        await expect(this.liveRegion).toHaveText(/^Brief ready: /, { timeout: ANSWER_TIMEOUT });
+        await expect(this.liveRegion).toHaveText('Loading summary for ' + ACCOUNT_NAME);
+        await expect(this.liveRegion).toHaveText(/^Summary ready: /, { timeout: ANSWER_TIMEOUT });
         await expect(this.spinner).toBeHidden();
         return this.turns.last();
     }
@@ -153,11 +153,11 @@ class Panel {
     }
 
     /**
-     * A promise for the network response of one AccountBriefPanelController method. Only the
+     * A promise for the network response of one CustomerSummaryPanelController method. Only the
      * method name is matched; request bodies are never logged.
      */
     apexResponse(method, timeout = ANSWER_TIMEOUT) {
-        const needle = '"classname":"AccountBriefPanelController","method":"' + method + '"';
+        const needle = '"classname":"CustomerSummaryPanelController","method":"' + method + '"';
         return this.page.waitForResponse(
             (r) => {
                 const body = r.request().postData();

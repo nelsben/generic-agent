@@ -52,10 +52,10 @@ sequenceDiagram
    every spec case in the live preview. The trace shows the route, each action's inputs and
    outputs, and the reply. Results are recorded, as in [studio-preview.md](../research/studio-preview.md).
 6. **Publish, then activate.** Publish creates an inactive version, from Studio or with
-   `sf agent publish authoring-bundle --json --api-name Account_Brief -o <org-alias>`. Activate it
-   in Studio or with `sf agent activate --json --api-name Account_Brief --version <n> -o <org-alias>`.
+   `sf agent publish authoring-bundle --json --api-name Customer_Summary -o <org-alias>`. Activate it
+   in Studio or with `sf agent activate --json --api-name Customer_Summary --version <n> -o <org-alias>`.
    The previous version stays for rollback.
-7. **Agent test.** `sf agent test create --spec tests/agent/Account_Brief-testSpec.yaml
+7. **Agent test.** `sf agent test create --spec tests/agent/Customer_Summary-testSpec.yaml
    --api-name <test-name> -o <org-alias>`, then `sf agent test run --api-name <test-name> --wait 5
    --json -o <org-alias>`. It works only on an active version.
 8. **Browser.** `npm run test:e2e` signs in through the sf CLI session, runs 8 specs in Chromium

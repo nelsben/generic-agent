@@ -1,6 +1,6 @@
 const { jestConfig } = require('@salesforce/sfdx-lwc-jest/config');
 
-const MOCKS = '<rootDir>/force-app/main/default/lwc/accountBriefPanel/__tests__/mocks';
+const MOCKS = '<rootDir>/force-app/main/default/lwc/customerSummaryPanel/__tests__/mocks';
 
 module.exports = {
     ...jestConfig,

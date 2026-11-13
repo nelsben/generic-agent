@@ -1,7 +1,7 @@
-"""Static checks for the Account Brief permission sets.
+"""Static checks for the Customer Summary permission sets.
 
-Account_Brief_Agent_Access grants agent access only. Account_Brief_Data_Access grants
-the Apex entry-point classes and read-only access to the Account_Brief_Session__c memory object.
+Customer_Summary_Agent_Access grants agent access only. Customer_Summary_Data_Access grants
+the Apex entry-point classes and read-only access to the Customer_Summary_Session__c memory object.
 """
 import unittest
 import xml.etree.ElementTree as ET
@@ -10,8 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PERMSETS = ROOT / "force-app/main/default/permissionsets"
 CLASSES = ROOT / "force-app/main/default/classes"
-AGENT_SET = PERMSETS / "Account_Brief_Agent_Access.permissionset-meta.xml"
-DATA_SET = PERMSETS / "Account_Brief_Data_Access.permissionset-meta.xml"
+AGENT_SET = PERMSETS / "Customer_Summary_Agent_Access.permissionset-meta.xml"
+DATA_SET = PERMSETS / "Customer_Summary_Data_Access.permissionset-meta.xml"
 NS = {"p": "http://soap.sforce.com/2006/04/metadata"}
 
 
@@ -36,8 +36,8 @@ class TestAgentAccessSet(unittest.TestCase):
         self.assertEqual(children(self.root, "classAccesses"), [])
         self.assertEqual(children(self.root, "objectPermissions"), [])
 
-    def test_agent_set_names_the_account_brief_agent(self):
-        self.assertIn("Account_Brief", AGENT_SET.read_text(encoding="utf-8"))
+    def test_agent_set_names_the_account_summary_agent(self):
+        self.assertIn("Customer_Summary", AGENT_SET.read_text(encoding="utf-8"))
 
 
 class TestDataAccessSet(unittest.TestCase):
@@ -46,7 +46,7 @@ class TestDataAccessSet(unittest.TestCase):
 
     def test_data_set_grants_session_object_without_delete_or_view_all(self):
         perms = {text_of(p, "object"): p for p in children(self.root, "objectPermissions")}
-        session = perms["Account_Brief_Session__c"]
+        session = perms["Customer_Summary_Session__c"]
         self.assertEqual(text_of(session, "allowRead"), "true")
         for flag in ("allowCreate", "allowEdit", "allowDelete", "viewAllRecords", "modifyAllRecords"):
             self.assertNotEqual(text_of(session, flag), "true", flag)
@@ -59,10 +59,10 @@ class TestDataAccessSet(unittest.TestCase):
     def test_only_the_entry_point_classes_are_granted(self):
         granted = {text_of(c, "apexClass") for c in children(self.root, "classAccesses")}
         entry_points = {
-            "AccountBriefGetAction",
-            "AccountBriefMemory",
-            "AccountBriefPanelController",
-            "AccountBriefResolver",
+            "CustomerSummaryGetAction",
+            "CustomerSummaryMemory",
+            "CustomerSummaryPanelController",
+            "CustomerSummaryResolver",
             "ExploreAction",
         }
         self.assertEqual(sorted(granted), sorted(entry_points))

@@ -8,14 +8,14 @@ The agent answers with a small, fixed set of actions. Each answer follows one pa
 prompt template metadata.
 
 ```
-User -> Agent (route) or panel (accountBriefPanel -> AccountBriefPanelController)
-  1. Resolve Account for Brief   AccountBriefResolver   -> RESOLVED / AMBIGUOUS / NOT_FOUND
-  2. Get Account Brief           AccountBriefGetAction  -> AccountBrief.run(accountId, question, include)
+User -> Agent (route) or panel (customerSummaryPanel -> CustomerSummaryPanelController)
+  1. Resolve Account for Brief   CustomerSummaryResolver   -> RESOLVED / AMBIGUOUS / NOT_FOUND
+  2. Get Customer Summary           CustomerSummaryGetAction  -> CustomerSummary.run(accountId, question, include)
        gather:  registry sources, deterministic Apex, no model
        reduce:  contacts + activity + calls -> BriefEngagement  (pre-reduce)
                 deal_history                -> BriefDealHistory (pre-reduce)
                 everything else + both summaries + question -> BriefSynthesis
-       memory:  AccountBriefMemory.recordAll, once, after every model call
+       memory:  CustomerSummaryMemory.recordAll, once, after every model call
   3. Explore Data                ExploreAction          -> DataExplorer.explore(question, contextRecordId, historyJson)
 ```
 
@@ -28,13 +28,13 @@ Pattern pages: [01 route, gather, reduce](patterns/01-route-gather-reduce.md),
 
 | Class | Job |
 |---|---|
-| `AccountBriefResolver` | Words or the open record to one Account (the resolve action) |
-| `AccountBriefGetAction` | The Get Account Brief action; parses `include`, calls `AccountBrief` |
-| `AccountBrief` | The brief's only entry point: visibility gate, registry, reduce map, memory |
-| `AccountBriefSource` | Interface every gather source implements: `key()`, `title()`, `build(Id)` |
-| `AccountBrief*Section` | The seven sources: profile, open_deals, cases, contacts, activity, calls, deal_history |
-| `AccountBriefSection` | The one shape a source returns: key, title, status, body, total, shown |
-| `AccountBriefMemory` | Per-user, per-account memory of past briefs. The only DML, in system mode. No invocable entry point |
+| `CustomerSummaryResolver` | Words or the open record to one Account (the resolve action) |
+| `CustomerSummaryGetAction` | The Get Customer Summary action; parses `include`, calls `CustomerSummary` |
+| `CustomerSummary` | The brief's only entry point: visibility gate, registry, reduce map, memory |
+| `CustomerSummarySource` | Interface every gather source implements: `key()`, `title()`, `build(Id)` |
+| `CustomerSummary*Section` | The seven sources: profile, open_deals, cases, contacts, activity, calls, deal_history |
+| `CustomerSummarySection` | The one shape a source returns: key, title, status, body, total, shown |
+| `CustomerSummaryMemory` | Per-user, per-account memory of past briefs. The only DML, in system mode. No invocable entry point |
 | `AgentLlm` | The only door to a model: loads a prompt, fills `{{vars}}`, calls the provider |
 | `AgentLlmModelsApi` | Default provider: the Salesforce Models API, model held in one constant |
 | `DataExplorer` | Explore loop (`explore`) and model-free drill-down (`drill`); see Explore |
@@ -42,19 +42,19 @@ Pattern pages: [01 route, gather, reduce](patterns/01-route-gather-reduce.md),
 | `ExplorePlan` | The JSON query plan the model fills, and its validation |
 | `ExploreQuery` | Builds bound SOQL from a resolved plan and runs it in user mode (read-only) |
 | `ExploreAction` | The Explore Data action: question in, status and answer plus a table out |
-| `AccountBriefPanelController` | `@AuraEnabled` door for the panel: resolve, getBrief, explore, drill, history, sources, agentId. Catches everything |
+| `CustomerSummaryPanelController` | `@AuraEnabled` door for the panel: resolve, getBrief, explore, drill, history, sources, agentId. Catches everything |
 
-The panel is the LWC `accountBriefPanel` in the `Account_Brief_UtilityBar` utility bar
+The panel is the LWC `customerSummaryPanel` in the `Customer_Summary_UtilityBar` utility bar
 ([03 hotkey panel](patterns/03-hotkey-panel.md)).
 
 ## Add a source
 
 Pattern page: [01 route, gather, reduce](patterns/01-route-gather-reduce.md).
 
-1. Write `AccountBriefXSection implements AccountBriefSource`. `build()` never throws; it
+1. Write `CustomerSummaryXSection implements CustomerSummarySource`. `build()` never throws; it
    returns OK, EMPTY (one human sentence) or ERROR, plain text, capped. Query `WITH USER_MODE`
-   and return `AccountBriefSection.failed(...)` from the catch block.
-2. Add one line to `AccountBrief.registry` (key, class name). Registry order is brief order.
+   and return `CustomerSummarySection.failed(...)` from the catch block.
+2. Add one line to `CustomerSummary.registry` (key, class name). Registry order is brief order.
 3. To get it narrated, either add its key to a `PRE_REDUCES` entry or reference `{{key}}`
    in `AgentPrompt_BriefSynthesis`. Its key is then a valid `include` value.
 
@@ -88,7 +88,7 @@ Pattern page: [07 trust, access and failure](patterns/07-trust-access-and-failur
   `EMPTY: not requested` when not included. A skipped pre-reduce passes `EMPTY`.
 - Status is relayed verbatim. NOT_FOUND and ERROR carry fixed user-facing text in `answer`.
   A brief where no section is OK and at least one failed is ERROR, not EMPTY.
-- DML last: memory is written once per transaction, through `AccountBriefMemory.recordAll`,
+- DML last: memory is written once per transaction, through `CustomerSummaryMemory.recordAll`,
   only after every model call, and only on OK or EMPTY. A model failure gives ERROR, keeps the
   sections, and writes nothing. A failed memory write is logged and the brief still returns.
 - `with sharing` everywhere; the brief adds no visibility the user lacks. Every read of CRM data
@@ -101,12 +101,12 @@ Pattern page: [07 trust, access and failure](patterns/07-trust-access-and-failur
 
 Pattern page: [07 trust, access and failure](patterns/07-trust-access-and-failure.md).
 
-- `Account_Brief_Data_Access`: app visibility for `Account_Brief`, class access to the five entry
-  points only (`AccountBriefGetAction`, `AccountBriefMemory`, `AccountBriefPanelController`,
-  `AccountBriefResolver`, `ExploreAction`), and Read on `Account_Brief_Session__c` and its fields.
+- `Customer_Summary_Data_Access`: app visibility for `Customer_Summary`, class access to the five entry
+  points only (`CustomerSummaryGetAction`, `CustomerSummaryMemory`, `CustomerSummaryPanelController`,
+  `CustomerSummaryResolver`, `ExploreAction`), and Read on `Customer_Summary_Session__c` and its fields.
   No Create, Edit, Delete, View All or Modify All: memory writes run in system mode, so users
   never need them.
-- `Account_Brief_Agent_Access`: access to the `Account_Brief` agent, nothing else.
+- `Customer_Summary_Agent_Access`: access to the `Customer_Summary` agent, nothing else.
 - `tests/test_permission_sets.py` pins both. A new entry point needs a line in the set and in
   the test.
 
@@ -114,7 +114,7 @@ Pattern page: [07 trust, access and failure](patterns/07-trust-access-and-failur
 
 Pattern page: [05 conversation memory](patterns/05-conversation-memory.md).
 
-- One `Account_Brief_Session__c` row per user and account, keyed by `Session_Key__c`
+- One `Customer_Summary_Session__c` row per user and account, keyed by `Session_Key__c`
   (User Id + `_` + Account Id). `Turns_JSON__c` is a ring of the newest 10 turns
   (`MAX_TURNS`); headlines are clipped to 200 characters.
 - `recordAll` reads the rows it will change `FOR UPDATE`, inserts a missing row, and on
@@ -124,7 +124,7 @@ Pattern page: [05 conversation memory](patterns/05-conversation-memory.md).
   touched.
 - There is no invocable entry point. The old `recordFromFlow` action is gone; only the engine
   writes memory.
-- Reads: `history(accountId)` feeds the panel's "Earlier briefs". `lastBrief(accountId)` has no
+- Reads: `history(accountId)` feeds the panel's "Earlier summaries". `lastBrief(accountId)` has no
   production caller yet.
 - In a conversation, the panel sends its last 5 turns to `DataExplorer.explore` as
   `historyJson`; the agent keeps `briefed_account_id` and `briefed_account_name`.
@@ -194,5 +194,5 @@ Browser: `npm run test:e2e`.
 ## Outside callers
 
 Pattern page: [09 outside door (MCP)](patterns/09-outside-door-mcp.md). Designed, not built: a
-Salesforce Hosted MCP server exposing `AccountBriefResolver` and `AccountBriefGetAction` as tools,
+Salesforce Hosted MCP server exposing `CustomerSummaryResolver` and `CustomerSummaryGetAction` as tools,
 run as the signed-in user. `ExploreAction` and the agent as a tool come later.

@@ -1,6 +1,6 @@
-# Account Brief panel: end-to-end tests
+# Customer Summary panel: end-to-end tests
 
-Playwright journeys for the `accountBriefPanel` utility bar panel, run in a real org as the
+Playwright journeys for the `customerSummaryPanel` utility bar panel, run in a real org as the
 developer's own signed-in user. They cover what the Jest suite cannot: the real utility bar, the
 real Lightning base components, focus, layout and the live region.
 
@@ -19,8 +19,8 @@ one worker, no parallelism. A full run takes about three minutes (3.1 minutes fo
 
 ## What it needs
 
-- **A deployed panel.** The org must already have the Account Brief app
-  (`Account_Brief.app-meta.xml`), its utility bar with `accountBriefPanel` (eager, 340x480) and the
+- **A deployed panel.** The org must already have the Customer Summary app
+  (`Customer_Summary.app-meta.xml`), its utility bar with `customerSummaryPanel` (eager, 340x480) and the
   Apex behind it. The suite never deploys anything.
 - **A signed-in sf CLI session** for the alias (`sf org login web -a <alias>`). The global setup
   asks `/usr/local/bin/sf org open --url-only --json -o <alias>` for a one-time frontdoor URL,
@@ -59,12 +59,12 @@ still in flight, and fails as a test problem if it was not.
 
 ## How the specs find things
 
-Every test loads the Account Brief app, then the account's record page, fresh: the utility has
+Every test loads the Customer Summary app, then the account's record page, fresh: the utility has
 never been opened. Locators pierce the panel's shadow DOM with Playwright's built-in engine:
 roles and labels first, then the panel's test hooks and the data attributes it renders
 (`data-turn`, `data-id`, `data-focus`):
 
-- `c-account-brief-panel`, the host, to scope every locator and the axe scan
+- `c-customer-summary-panel`, the host, to scope every locator and the axe scan
 - the region named `Conversation`, the scroll box (specs 3 and 4)
 - `.slds-utility-panel__header`, the utility panel's own header (title, Minimize, Pop-out), whose
   bottom edge spec 3 measures the pinned bar from: the platform renders it with no role or label
@@ -78,9 +78,9 @@ roles and labels first, then the panel's test hooks and the data attributes it r
 - `article`, to find the drill view's heading
 - `button[data-id]`, a drillable section line or result row
 
-Spec 3 measures the panel at 340x480 after one brief, with the account's "Earlier briefs" list
+Spec 3 measures the panel at 340x480 after one brief, with the account's "Earlier summaries" list
 rendered: from the panel header's bottom edge to the top of the scroll box is at most 80 CSS px,
-the scroll box is at least 240 CSS px tall, and the bar holds the Brief button with no "Ask the agent" button.
+the scroll box is at least 240 CSS px tall, and the bar holds the Summarize button with no "Ask the agent" button.
 
 Every brief line that describes one record (a deal, a contact, a case, a task, a call) is a
 drill button; spec 7 fails if none is. Spec 2 checks that focus is back where the hotkey was
@@ -93,7 +93,7 @@ Every test closes the "Meet the new Guidance Center" walkthrough of a fresh org 
 Spec 2 has also failed there with no walkthrough, cause not found, so it can still be flaky in a fresh
 org ([org-migration.md](../docs/research/org-migration.md), "e2e after FE-9").
 
-Accessibility checks use `@axe-core/playwright` scoped to `c-account-brief-panel`, WCAG 2.0-2.2
+Accessibility checks use `@axe-core/playwright` scoped to `c-customer-summary-panel`, WCAG 2.0-2.2
 A and AA rules; the violations of each state are attached to the test as JSON.
 
 ## Capture

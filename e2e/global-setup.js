@@ -70,7 +70,7 @@ module.exports = async function globalSetup() {
             // Playwright's own message would quote the URL: replace it.
             throw loginHint();
         }
-        // The Lightning origin (no secrets). Each test then opens the Account Brief app itself.
+        // The Lightning origin (no secrets). Each test then opens the Customer Summary app itself.
         const origin = new URL(page.url()).origin;
         await context.storageState({ path: STATE_FILE });
         fs.chmodSync(STATE_FILE, 0o600);

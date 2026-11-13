@@ -2,7 +2,7 @@
 
 ## The outcome
 
-From any page in the Account Brief app, Cmd-K on a Mac or Ctrl-K elsewhere opens a small panel
+From any page in the Customer Summary app, Cmd-K on a Mac or Ctrl-K elsewhere opens a small panel
 with the cursor already in the text box. Esc puts it away. The rep never leaves the record they
 were on.
 
@@ -19,10 +19,10 @@ it behaves like a good neighbour on the page.
 sequenceDiagram
     actor U as Rep
     participant DOC as document keydown
-    participant P as accountBriefPanel
+    participant P as customerSummaryPanel
     participant UB as platformUtilityBarApi
-    participant C as AccountBriefPanelController
-    participant LMS as AccountBriefOpen channel
+    participant C as CustomerSummaryPanelController
+    participant LMS as CustomerSummaryOpen channel
     U->>DOC: Cmd-K or Ctrl-K
     DOC->>P: event.code KeyK, no Shift or Alt
     P->>UB: open(utilityId)
@@ -38,7 +38,7 @@ sequenceDiagram
     P->>U: focus back where it was
 ```
 
-1. **Always listening.** The panel sits in the `Account_Brief_UtilityBar` utility bar with
+1. **Always listening.** The panel sits in the `Customer_Summary_UtilityBar` utility bar with
    `eager` set, so the hotkey works before the utility was ever opened. It is 340 by 480 pixels.
 2. **One hotkey, narrowly matched.** A document `keydown` listener checks `event.code === 'KeyK'`
    with no Shift or Alt. On a Mac it takes Cmd-K only and leaves Ctrl-K to text fields. It yields
@@ -52,11 +52,11 @@ sequenceDiagram
 6. **Plain text only.** Answers render as text in pre-line blocks, never as HTML.
 7. **Accessible.** A polite live region announces loading and results. Tab is never trapped,
    because the panel is not a modal. Esc from any control minimizes and returns focus.
-8. **Other components can drive it.** A message on the `AccountBriefOpen` channel opens the panel
+8. **Other components can drive it.** A message on the `CustomerSummaryOpen` channel opens the panel
    and runs a prompt with that message's record as context, or briefs an Account Id sent alone.
-9. **The answer gets the room.** Only one row is pinned above the conversation: the Brief button,
-   whose label truncates when it is long but keeps "Brief <Account name>" as its accessible name.
-   "Sections" and "Earlier briefs" sit at the top of the scroll box and
+9. **The answer gets the room.** Only one row is pinned above the conversation: the Summarize button,
+   whose label truncates when it is long but keeps "Summarize <Account name>" as its accessible name.
+   "Sections" and "Earlier summaries" sit at the top of the scroll box and
    scroll away. A brief's summary shows its headline, with the rest behind a "Full summary"
    toggle, so the section headers are in view under it.
 
@@ -70,7 +70,7 @@ sequenceDiagram
 
 ## Why you can trust it
 
-- **Jest covers the behaviour.** [accountBriefPanel.test.js](../../force-app/main/default/lwc/accountBriefPanel/__tests__/accountBriefPanel.test.js)
+- **Jest covers the behaviour.** [customerSummaryPanel.test.js](../../force-app/main/default/lwc/customerSummaryPanel/__tests__/customerSummaryPanel.test.js)
   has tests for the hotkey by key code on and off Mac, Shift, Alt and Cmd being ignored off Mac,
   yielding to an earlier handler, six latest-wins cases, Esc returning focus, Tab never trapped,
   Enter and IME, the live region, markup rendered as text, the one-row bar, the "Full summary"
@@ -96,13 +96,13 @@ sequenceDiagram
 
 ## Adopt it
 
-1. Copy `force-app/main/default/lwc/accountBriefPanel/` with its `__tests__/` folder, and the
+1. Copy `force-app/main/default/lwc/customerSummaryPanel/` with its `__tests__/` folder, and the
    Jest mocks it maps in `jest.config.js`.
-2. Copy `AccountBriefPanelController.cls` and its test, the `AccountBriefOpen` message channel,
-   the `Account_Brief_UtilityBar` flexipage and the `Account_Brief` app.
-3. **Change the back end.** The panel only calls `AccountBriefPanelController`. Point its methods
+2. Copy `CustomerSummaryPanelController.cls` and its test, the `CustomerSummaryOpen` message channel,
+   the `Customer_Summary_UtilityBar` flexipage and the `Customer_Summary` app.
+3. **Change the back end.** The panel only calls `CustomerSummaryPanelController`. Point its methods
    at your own engine and keep the reply shapes.
-4. **Change the hotkey** in `isHotkey` near the top of `accountBriefPanel.js` if K clashes with
+4. **Change the hotkey** in `isHotkey` near the top of `customerSummaryPanel.js` if K clashes with
    something in your org.
 
 ## Limits and open items

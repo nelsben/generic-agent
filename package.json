@@ -2,7 +2,7 @@
   "name": "generic-agent",
   "private": true,
   "version": "1.0.0",
-  "description": "Account Brief agent and panel: Jest unit tests and Playwright end-to-end tests for the LWC",
+  "description": "Customer Summary agent and panel: Jest unit tests and Playwright end-to-end tests for the LWC",
   "scripts": {
     "test:unit": "sfdx-lwc-jest",
     "test:e2e": "playwright test",

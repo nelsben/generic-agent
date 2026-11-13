@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gate `agent`: compile the Account_Brief Agent Script locally, then validate the authoring bundle in the org.
+# Gate `agent`: compile the Customer_Summary Agent Script locally, then validate the authoring bundle in the org.
 #   (a) The agentforce-generate skill's local compiler (index-agent.mjs). The AgentScript SDK is installed into
 #       the skill's cache under the home directory (never into this repo) when it is missing. Any severity-1
 #       diagnostic fails the gate; warnings are printed.
@@ -12,7 +12,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-BUNDLE_NAME="Account_Brief"
+BUNDLE_NAME="Customer_Summary"
 AGENT_FILE="force-app/main/default/aiAuthoringBundles/$BUNDLE_NAME/$BUNDLE_NAME.agent"
 SF="/usr/local/bin/sf"
 TARGET_ORG="${SF_TARGET_ORG:-agent-probe}"
@@ -69,7 +69,7 @@ PY
 
 # (b) Org validate of the authoring bundle.
 validate_rc=0
-"$SF" agent validate authoring-bundle --json --api-name Account_Brief -o "$TARGET_ORG" > "$work/validate.json" || validate_rc=$?
+"$SF" agent validate authoring-bundle --json --api-name Customer_Summary -o "$TARGET_ORG" > "$work/validate.json" || validate_rc=$?
 
 python3 - "$work/validate.json" "$validate_rc" "$TARGET_ORG" <<'PY'
 import json
@@ -93,7 +93,7 @@ if not ok:
     sys.exit(1)
 for warning in payload.get("warnings") or []:
     print("  warning: %s" % warning)
-print("agent-check: org validate ok (Account_Brief on %s)" % org)
+print("agent-check: org validate ok (Customer_Summary on %s)" % org)
 PY
 
 echo "agent-check: pass"
