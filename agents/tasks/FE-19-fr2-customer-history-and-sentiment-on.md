@@ -5,7 +5,7 @@ domain: frontend
 tier: standard
 tier_reason: a display of stored data through the card contract, with a chart and accessibility checks
 status: blocked
-blocked_by: [BE-35, BE-36, FE-15, FE-18, FE-14]
+blocked_by: [BE-35, BE-36, FE-15, FE-14]
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryHistoryTimeline/**, force-app/main/default/lwc/customerSummarySentimentChart/**, force-app/main/default/lwc/customerSummaryRail/**, e2e/**, docs/assets/fr2-history-*.png]
 forbid: [force-app/main/default/classes/**, force-app/main/default/objects/**, force-app/main/default/aiAuthoringBundles/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
