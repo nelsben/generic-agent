@@ -24,8 +24,8 @@ row F66 in [feature-revision-2.md](../plans/feature-revision-2.md); OPS-41 (chap
   "- " and the relay had 0. Whether those bullets lost only their marker or were merged into other lines is not
   known; the line counts fit the labels merging more than whole bullets going. The script tells the agent to keep
   every line break, label line and "- " bullet.
-- **Turns are slow.** 13 to 36 seconds an agent turn, against 5 to 9 seconds for the same explore question on the
-  direct path.
+- **Turns are slow.** 13 to 33 seconds an explore turn, against 5 to 9 seconds for the same explore question on the
+  direct path; 31 to 36 seconds a brief turn, against 22 to 25 seconds for the brief on the direct path.
 - **Cards and the panel, from public docs.** A card in Agentforce's own panel needs a custom Lightning type, an Apex
   action and `is_displayable`. The output config decides whether it shows, not the model. No public doc found
   documents a hotkey, resizing, a pop-out, conversation history or branding for the employee panel. Details and
@@ -100,7 +100,7 @@ or columns.
 
 The character counts on the two sides differ by up to about 100. That is the explorer's prose line, written fresh by
 the model on each run, not the table. No relayed table was turned into markdown, and no reply ended with a question.
-The direct calls took 5 to 9 seconds each.
+The direct explore calls took 5 to 9 seconds each (action 5.2 to 8.9 s, panel path 4.8 to 5.8 s).
 
 ### Brief: one account summary through the agent
 
@@ -132,8 +132,8 @@ tell a reformatted section from a dropped one.
    proven. Whether the reasoning model or the platform reformats is not visible from Apex. Either way, Agentforce's
    own chat decides the final layout of a text answer, and the action's author does not.
 4. **Latency is the cost that grows.** Turn time rose across the rungs: 13 to 18 s at 1.7k, 28 to 33 s at 5.8k. The
-   top rung also asks for 11 columns and two related names, so size is not the only change. The direct path took 5 to
-   9 s at every rung.
+   top rung also asks for 11 columns and two related names, so size is not the only change. The explore direct path
+   took 5 to 9 s at every rung. The brief took 22 to 25 s on the direct path and 31 to 36 s through the agent.
 
 ## Rich cards in the standard chat (public docs)
 
