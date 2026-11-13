@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OLD_NAME = re.compile("account" + r"[ _-]?" + r"brief\b", re.IGNORECASE)
+OLD_NAME = re.compile("account" + r"[ _-]?" + r"brief(?!ed)", re.IGNORECASE)
 OLD_BUNDLE = "Account" + "_" + "Brief"
 NEW_BUNDLE = "Customer_Summary"
 VERDICT = ROOT / "docs/research/fr2-rename-go.md"
@@ -124,6 +124,12 @@ class OldNameGoneTest(unittest.TestCase):
         )
         left = strip_allowed_markdown("README.md", sample)
         self.assertEqual(1, len(OLD_NAME.findall(left)), left)
+
+    def test_old_name_pattern_catches_identifiers_but_not_briefed(self):
+        old = "Account" + "Brief"
+        for name in (old + "Resolver", "Account" + "_" + "Brief" + "_Session__c", "account" + "Brief" + "Panel"):
+            self.assertIsNotNone(OLD_NAME.search(name), name)
+        self.assertIsNone(OLD_NAME.search("account " + "briefed"))
 
 
 class NewNamesExistTest(unittest.TestCase):
