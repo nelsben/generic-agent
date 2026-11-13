@@ -84,8 +84,12 @@
   plan. Each checks that the first prompt carries the summary's records with their ids (the context header and
   the account's id; the open deal's name and id; the contact's name and id; the deal's amount and id), and that
   the first row of the returned table is the expected record (the deal; the contact, from the second of two
-  queries; the case, from the second of two queries). They do not check that every returned row is one of the
-  summary's records.
+  queries; the case, from the second of two queries). Each also inserts a record that matches the question but
+  is not behind the summary (an open deal, a contact with a call, an open case, all on a second account) and
+  asserts the exact row count and that every returned row's Id is the summary's record (the case test: the
+  summary account's own case), so a plan that drops its filter on the summary's Ids fails. The contacts test
+  asserts only what its scripted plan filters on (the summary's contact Ids); the plan language has no
+  anti-join (parked card BE-43), so it does not check a "not called" result.
 - `anUnclearPronounAfterASummaryIsAskedBackWithNoQuery`: the ask path, one model call, no query.
 - `noSummaryContextWhenTheLastTurnIsNotTheSummary`: after an explore answer, on a non-account record, with no
   record, for an account with no remembered summary; and a clipped summary answer still matches.
