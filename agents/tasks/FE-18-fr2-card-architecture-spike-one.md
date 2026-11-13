@@ -4,7 +4,7 @@ title: FR2: card architecture spike — one typed card contract for richly forma
 domain: frontend
 tier: frontier
 tier_reason: a design and architecture decision every surface and every skill will build on, checked against what Lightning, Agentforce and MCP clients can render
-status: queued
+status: merged
 fixes: []
 scope: [spikes/cards/**, docs/research/fr2-card-architecture.md, docs/assets/fr2-cards-*.png]
 forbid: [force-app/**, mcp-door/**, scripts/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**]
@@ -28,3 +28,37 @@ Feature revision 2 (FR2), Ben's further note on pattern 03, looking at the panel
 - **Best in class:** compare against two or three well-known assistant products' answer cards from their public docs or screenshots, describing patterns, never copying their names into the repo or their assets. Keep the brand variables from fr2-design.md 'Theming'
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - docs/research/fr2-card-architecture.md gives the catalog, the contract (with a JSON example per card type), the per-surface findings, the recommendation, the risks and a list of proposed build cards (title, scope, the done-when in three lines) for whatever BE-39 (the contract in the Apex services) and FE-22 (the rendering) do not already cover. Capture docs/assets/fr2-cards-*.png of the prototype at 340 and 640 px. The contract goes into the research page; BE-39 and FE-22 build from it. Do not edit sfdx-project.json: spikes/cards/ sits inside the non-default 'spikes' package directory OPS-50 added. Run Jest with an explicit roots argument that names the spike folder. Org work, agent-probe only, under the spikes row: deploy the prototype with --source-dir spikes/cards, by validate with RunLocalTests and then quick deploy with CONFIRM_PROD=1. The page ends with an 'Undo' list of everything this card left in agent-probe and how to remove each item. Never publish or activate an agent, never sign in or out, never create a user, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit and bash scripts/check-docs.sh (0 broken). No record Ids, org Ids, usernames, emails, tokens or hostnames added. No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-13). Two attempts.
+
+- Attempt 1 (c7b25d8): 20 confirmed, 1 refuted, 6 unverifiable. Refuted: the constructed MCP transcript called `resolve_account` with a `query` input that does not exist; the resolver takes `accountName` and `knownAccountId`.
+- Attempt 2 (c3fb009): 17 confirmed, 0 refuted, 2 unverifiable. It corrected every tool input and output name in the transcript against the invocables, listed the six captures in docs/assets/MANIFEST.md (scope amend granted by the brain), and made every row of the page's grammar table a literal Jest vector. The reviewer re-ran spike Jest: 87 of 87.
+
+The brain read the page outside the JSON examples and viewed the 640 px explorer and actions captures; the reviewer viewed the 340 px summary and actions captures. Findings:
+- 19 answer kinds map to 16 card types drawn by 6 layouts (prose, list, fields, grid, metric, chips). A new type usually needs a view builder, an Apex builder and a plain-text rule, and no surface change.
+- One flat envelope: no Map or Object member, string cells, record Ids only in `refs`. Every card carries a plain `text` that never holds an Id.
+- Rich text is parsed into runs and bound as text. The prototype has no inner-html and builds no href; a record link is a button that fires `cardopen`.
+- The prototype (four cardSpike* bundles) renders every type at 340 and 640 px, with three fallbacks and zero axe violations in Jest.
+- Recommendation: one shared `customerSummaryCard` for FE-22; BE-39 builds the envelope as written; over MCP the cards travel as JSON text next to today's unchanged text.
+- The MCP door has no explorer tool, and no door tool has ever been called, so the page's transcript is constructed, not observed.
+- The resolver's AMBIGUOUS message already puts each candidate's record Id in its text, so an MCP client receives Ids there today. A choice card would move them into `refs`.
+
+Org: the spike tab FR2_Cards_Spike, the permission set FR2_Cards_Spike_Access and the four cardSpike* bundles were deployed to agent-probe (validate with RunLocalTests, then quick deploy) and are left there. Removing them is a destructive deploy and Ben's call.
+
+Disclosed and accepted:
+- The deploy results, the permission set assignment, the 640 px overflow count and the first-capture layout problem are the worker's account; nothing in git shows them.
+- The six captures are device-scale crops taken by the spike's own capture spec, not by `npm run capture`.
+- The worktree's gitignored .sf/config.json was set to agent-probe so the deploy gate would run.
+
+Still open:
+- The example table reads "Showing 6 of 212 rows" while the notice under it reads "Showing 50 of 212 rows"; the fixtures disagree.
+- The draft fixture shows Confirm as the primary control while a field is still "Needed"; FE-14 decides whether Confirm is disabled until the draft is READY.
+- The page's Findings say the AMBIGUOUS message carries Ids and, two sentences on, "nothing puts an Id in the text"; the second means card text.
+- Two parsers (Apex and JS) can drift; the page proposes one shared vectors file, or parsing in Apex only.
+- The cards JSON is about 4.5 times the size of the text for a 6-row table and needs its own cap on an MCP output.
+- Three proposed build cards (shared rich-text vectors; the resolver and the drill return cards; one real MCP call) are not cut yet.
+- The prototype has no loading state and has not been tried against a real conversation turn (FE-22).
+
+Privacy grep over the full diff (4,075 added lines): 0 hits. The captures show sample data only.
