@@ -195,22 +195,23 @@ no numbers from that build; `BE-32` measures our own. A page that uses one cites
 Agentforce build we reviewed".
 
 - **Route, gather, reduce.** Code routes the request and gathers the records in the user's own access. One prompt
-  reduces what was gathered to an answer. Apex never writes prose, and a prompt never queries.
+  reduces what was gathered to an answer. Prose comes only from the prompt, and data comes only from code.
 - **A small set of paths.** The router picks from a small, fixed set of paths.
 - **Status codes are relayed as they are.** A status that a step returns (not found, a choice of records, a failed
   section) is passed on unchanged. No model rewords it.
-- **Re-run by Id, never by label.** A follow-up or a retry names the record by its Id. A label can match two records
-  or none.
+- **A follow-up passes the record's Id.** A follow-up or a retry names the record by its Id, not by its name. A name
+  can match two records or none.
 - **The agent's model step re-writes a relayed answer.** In the standard chat, the answer an action returns passes
   through the agent's model before the user sees it. The model can reword it, and it shortens a long answer without
   saying so.
 - **Builds cut their lists to fit.** To stay under that length a build caps its lists, so the user gets fewer rows
   than exist and no sign that rows were left out.
-- **A judge scores what was said, not what is missing.** An evaluation that grades the wording of a reply passes an
-  answer that left rows out. A check for completeness has to compare the answer with the data.
+- **A judge grades only the reply it is shown.** An evaluation that grades the wording of a reply passes an answer
+  that left rows out, because it never sees the rows. A check for completeness has to compare the answer with the
+  data.
 - **Whether a card shows is the model's choice at run time.** In the standard chat a rich card renders only when the
-  model picks it, so the same question can come back as a card once and as text the next time. Keep a text floor:
-  every answer must read correctly as plain text.
+  model picks it, so the same question can come back as a card once and as text the next time. So every answer must
+  also read correctly as plain text.
 - **Multi-turn tests.** An employee agent cannot be tested over several turns from the CLI, so follow-up behaviour
   needs its own test path.
 
