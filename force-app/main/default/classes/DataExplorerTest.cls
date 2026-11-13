@@ -484,6 +484,9 @@ private class DataExplorerTest {
     static void whichOfThoseCloseThisQuarterUsesTheSummarysDeals() {
         Account a = acme();
         Id dealId = openDeal().Id;
+        // Matches the question (open, closes this quarter) but is on another account, so not behind the summary.
+        Account beta = [SELECT Id FROM Account WHERE Name = 'Explore Beta' LIMIT 1];
+        insert new Opportunity(AccountId = beta.Id, Name = 'Beta Open', StageName = 'Prospecting', Amount = 5000, CloseDate = Date.today());
         String history = summaryHistory(a.Id);
         Script s = script(new List<String>{
             query('{"object":"Opportunity","fields":["Name","Amount","CloseDate"],"filters":['
@@ -500,6 +503,11 @@ private class DataExplorerTest {
         Assert.isTrue(s.prompts[0].contains('Acme Two') && s.prompts[0].contains('id=' + dealId), 'the open deal behind the summary');
         Assert.areEqual(DataExplorer.OK, r.status);
         Assert.areEqual('Acme Two', r.resultSets[0].rows[0].get('Name'));
+        // The plan's filter on the summary's deal Ids is what keeps the other account's open deal out.
+        Assert.areEqual(1, r.resultSets[0].rows.size(), 'only the summary\'s deal comes back: ' + r.resultSets[0].rows);
+        for (Map<String, Object> row : r.resultSets[0].rows) {
+            Assert.areEqual(dealId, (Id) row.get('Id'), 'every returned row is one of the summary\'s deals');
+        }
         assertNoIdShown(r, new List<Id>{ a.Id, dealId });
     }
 
@@ -507,6 +515,11 @@ private class DataExplorerTest {
     static void whoThereHaveWeNotCalledUsesTheSummarysContacts() {
         Account a = acme();
         Id contactId = rivera().Id;
+        // A contact on another account, with a call logged: not behind the summary.
+        Account beta = [SELECT Id FROM Account WHERE Name = 'Explore Beta' LIMIT 1];
+        Contact other = new Contact(AccountId = beta.Id, LastName = 'Okafor', Title = 'Buyer');
+        insert other;
+        insert new Task(WhatId = beta.Id, WhoId = other.Id, Subject = 'Other call', Status = 'Completed', TaskSubtype = 'Call');
         String history = summaryHistory(a.Id);
         Script s = script(new List<String>{
             query('{"object":"Task","fields":["Subject","WhoId"],"filters":['
@@ -523,6 +536,13 @@ private class DataExplorerTest {
             'the contacts behind the summary reach the model: ' + s.prompts[0]);
         Assert.areEqual(2, r.resultSets.size());
         Assert.areEqual('Rivera', r.resultSets[1].rows[0].get('Name'));
+        // The scripted plan filters on the summary's contact Ids only (the plan language has no anti-join, BE-43):
+        // the other account's contact and its call stay out of both tables.
+        Assert.areEqual(0, r.resultSets[0].rows.size(), 'no call logged by the summary\'s contact: ' + r.resultSets[0].rows);
+        Assert.areEqual(1, r.resultSets[1].rows.size(), 'only the summary\'s contact comes back: ' + r.resultSets[1].rows);
+        for (Map<String, Object> row : r.resultSets[1].rows) {
+            Assert.areEqual(contactId, (Id) row.get('Id'), 'every returned row is one of the summary\'s contacts');
+        }
         assertNoIdShown(r, new List<Id>{ a.Id, contactId });
     }
 
@@ -530,7 +550,10 @@ private class DataExplorerTest {
     static void anyOpenCasesOnTheBiggestDealUsesTheSummarysDealAndAccount() {
         Account a = acme();
         Id dealId = openDeal().Id;
-        insert new Case(AccountId = a.Id, Subject = 'Explore case', Status = 'New');
+        Case ownCase = new Case(AccountId = a.Id, Subject = 'Explore case', Status = 'New');
+        // An open case on another account: matches the question, not behind the summary.
+        Account beta = [SELECT Id FROM Account WHERE Name = 'Explore Beta' LIMIT 1];
+        insert new List<Case>{ ownCase, new Case(AccountId = beta.Id, Subject = 'Beta case', Status = 'New') };
         String history = summaryHistory(a.Id);
         Script s = script(new List<String>{
             query('{"object":"OpportunityContactRole","fields":["ContactId","Contact.Name"],'
@@ -548,6 +571,11 @@ private class DataExplorerTest {
         Assert.isTrue(s.prompts[0].contains('2,000') && s.prompts[0].contains('id=' + dealId), s.prompts[0]);
         Assert.areEqual(DataExplorer.OK, r.status);
         Assert.areEqual('Explore case', r.resultSets[1].rows[0].get('Subject'));
+        // The plan's filter on the summary's account Id is what keeps the other account's open case out.
+        Assert.areEqual(1, r.resultSets[1].rows.size(), 'only the summary\'s account case comes back: ' + r.resultSets[1].rows);
+        for (Map<String, Object> row : r.resultSets[1].rows) {
+            Assert.areEqual(ownCase.Id, (Id) row.get('Id'), 'every returned row is a case of the summary\'s account');
+        }
         assertNoIdShown(r, new List<Id>{ a.Id, dealId });
     }
 
