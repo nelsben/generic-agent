@@ -4,7 +4,7 @@ title: Agentforce Coworker spike — what Coworker gives for free against what C
 domain: ops
 tier: frontier
 tier_reason: a build-or-adopt architecture decision across every surface, from product docs that are new and partly unverifiable
-status: queued
+status: merged
 scope: [docs/research/fr2-coworker-spike.md, spikes/coworker/**]
 forbid: [force-app/**, mcp-door/**, scripts/**, data/**, tests/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json, package.json]
 red_test: none
@@ -28,3 +28,33 @@ Ben (2026-11-13, in chat) asked for a spike on Agentforce Coworker: he sees it a
 - **Ledger F83:** a headless call to Coworker makes an agent the way in, which F83 ruled out and BE-32 measured as slow. State that plainly as a decision for Ben. Do not recommend around it and do not treat F83 as settled either way
 - docs/research/fr2-coworker-spike.md gives, in this order: the answer to Ben's two questions in five lines; what Coworker is; the three answers; the feature map; the agent-probe check; two or three options (for example: stay custom, Coworker as a surface with our engine plugged in, both) with what each costs, what it drops from the FR2 plan and which queued cards it would change; a recommendation; what stays unproven; a 'For Ben' list of every step that needs his go (enabling Coworker, a licence, accepting terms, a live message, a prototype deploy) with what each would prove; and proposed follow-up cards (title, scope, the done-when in three lines). The brain cuts cards from that list
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken; run it on the committed tree). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-13). One attempt.
+
+- Attempt 1 (87c1100): 26 confirmed, 0 refuted, 9 unverifiable. Every unverifiable row is a fact from a live Salesforce web page, or a fetch event, that the reviewer could not re-read. The repo facts, the ledger figures, the BE-32 timings and the inventory output were all checked against files.
+
+The brain read the whole page and the inventory script. Findings:
+- Both of Ben's questions come back undocumented. No source names an API, Connect class, invocable or LWC module that sends Coworker a message from inside the org, and no source covers placing Coworker's UI in our page, opening it from our hotkey or theming it.
+- The one programmatic door Salesforce names is the Coworker MCP server, for outside clients such as Claude and ChatGPT. Whether Apex in the same org can be its client is undocumented.
+- Our actions reach Coworker only through an agent (`Customer_Summary`). Ledger F83 ruled out the agent as a way in, and reopening it for Coworker is Ben's decision.
+- Free with Coworker: history, Teams, iOS and desktop apps, search over Slack, Google and Microsoft 365, Skills, and record updates with Confirm. Not covered: the fixed sourced summary, outcomes and sentiment, the hotkey window, the rail and the model seam. Voice, brand theming and Undo are undocumented.
+- Recommendation: stay custom (option A) while F83 stands; if Ben reopens F83, add Coworker as an extra door (option C), not as the surface (option B).
+- agent-probe holds nothing Coworker: 0 permission sets, groups, licences, apps, tabs or metadata types. The four `Coworker*` sharing objects look like platform schema and do not show Coworker is on. Whether Setup offers Coworker there cannot be read by query.
+
+Org: read-only. The inventory script runs queries and metadata lists only, each with `-o agent-probe`. Nothing was enabled, assigned, deployed, published or sent.
+
+Disclosed and accepted:
+- "Read" means a fetch tool's reading of the page, not the raw page. Exact text was asked for only on the pricing page and the Trailhead unit.
+- The Coworker developer guide refused every fetch (403), so every fact from it is a search-engine summary and is marked unverified. The Admins blog was not used.
+- The licence and price ($50 per user per month, 30 MB of indexing) are as the pricing page read on 2026-11-13.
+
+Still open:
+- Beta or GA in Lightning: the sources conflict.
+- Whether an ordinary Developer Edition can turn Coworker on.
+- Whether Coworker hands off to a custom Employee agent built in Agent Script, how faithfully it relays the reply, and how long a turn takes.
+- Whether a delegated agent's custom Lightning type renders in Coworker.
+- The page's nine "For Ben" steps each need Ben's go; none was taken. Its five proposed follow-ups are not cut.
+
+Privacy grep over the full diff (473 added lines): 0 hits.
