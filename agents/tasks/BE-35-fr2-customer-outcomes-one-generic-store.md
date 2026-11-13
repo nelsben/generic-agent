@@ -4,8 +4,7 @@ title: FR2: customer outcomes — one generic store of what the product did for 
 domain: backend
 tier: frontier
 tier_reason: a new durable object every skill writes to, with sharing, retention and a context contract the panel, the agent and MCP share, in a production-classified org
-status: blocked
-blocked_by: [BE-26]
+status: queued
 fixes: []
 scope: [force-app/main/default/objects/Customer_Outcome__c/**, force-app/main/default/objects/Customer_Outcome_Type__mdt/**, force-app/main/default/customMetadata/Customer_Outcome_Type.*, force-app/main/default/classes/CustomerOutcome*.cls, force-app/main/default/classes/CustomerOutcome*.cls-meta.xml, force-app/main/default/classes/CustomerSummary.cls, force-app/main/default/classes/CustomerSummaryTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls, force-app/main/default/classes/DataExplorer.cls, force-app/main/default/classes/DataExplorerTest.cls, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, force-app/main/default/reportTypes/**, scripts/schedule-outcome-retention.apex, docs/research/fr2-customer-outcomes.md, tests/test_permission_sets.py]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/staticresources/**, mcp-door/**, spikes/**, data/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
