@@ -13,10 +13,13 @@ the cards.
   (the seam's model) and got back the action and its fields as JSON. The draft step then built the draft in Apex
   without writing anything.
   - **Right action:** 27 of 28 runs.
-  - **Speed:** the model call took a median of 2.3 seconds (1.8 to 4.7). The draft step took 0.02 to 0.17 seconds.
+  - **Speed:** the model call took a median of 2.3 seconds (1.8 to 4.7). In the 24 runs that built a draft, the draft step
+    took 78 to 194 ms, median 140 ms.
   - **Cost:** about 960 input tokens and 76 output tokens per draft. That is about a tenth of the input of one
     explorer question (10,078 input tokens, from [fr2-explorer-scale.md](fr2-explorer-scale.md)).
-  - **Against the agent:** one agent turn took 13 to 33 seconds in [fr2-standard-limits.md](fr2-standard-limits.md).
+  - **Against the agent:** in [fr2-standard-limits.md](fr2-standard-limits.md), an explore turn through the agent
+    took 13 to 33 seconds and a brief turn 31 to 36 seconds. The same explore question took 5 to 9 seconds on the
+    direct path.
 - **Confirm is fast and needs no model.** Each of the six actions was rebuilt from its draft JSON and written with
   `AccessLevel.USER_MODE` in a median of 0.09 to 0.30 seconds per action (one run took 1.2 seconds). That is one DML
   statement and one query each. An update was undone
@@ -30,9 +33,10 @@ the cards.
   `commit(draft)`, so it has to use another name.
 - **The model fills a person the request did not name.** When a request named nobody, the model still put words in
   `contact`, and those words matched no contact on the account. This happened in all 5 action drafts with no named
-  person, despite a rule against inventing values. What the words were was not recorded (where their shape was
-  recorded, they were two words). The draft step caught it: the field came back unresolved for the user to fill or
-  clear, and nothing was guessed. The draft step has to check every value the model returns.
+  person. The prompt that ran already said "never invent a value" and "Leave out a field the request does not give",
+  so the prompt rule alone did not stop it. What the words were was not recorded (where their shape was recorded,
+  they were two words). The draft step's resolve check is what held: the field came back unresolved for the user to
+  fill or clear, and nothing was guessed. The draft step has to check every value the model returns.
 - **Every sentence pays for one model call, unless a pre-check stops it.** A question took one model call (2.2 to 3.2
   seconds) before it could go to the explorer. "Create a follow-up" came back as "not an action" in 1 of 3 runs. A
   fixed pre-check that skips filler words and tests the first word against a verb list sorted all 9 requests right,
@@ -105,19 +109,27 @@ Three passes over nine requests, plus one first trial of the task request: 28 ru
 | "uh remind me to call ambrose back on friday about the spare parts thing" (spoken) | create_task | 3/3 | today, a Friday, in 3/3 | 3/3 | 2,471 (2,163-2,788) | 957 / 76 | 141 |
 | **All 28** | | **27/28** | **10/10** | | **2,279 (1,809-4,743)** | **956 / 76** | |
 
-- **No writes:** every draft run made 0 DML statements and 1 query, the name lookup. The draft step's CPU median
-  was 116 ms, most of it describe calls. The build card should cache describe once per transaction.
+- **No writes:** 0 DML statements in all 28 runs. 1 query, the name lookup, in the 24 runs that built a draft. 0
+  queries in the 4 runs where the model returned `none` (the question, 3 runs, and "Create a follow-up", run 3).
+- **Draft step, from `draft.jsonl`:** over the 24 runs that built a draft, 78 to 194 ms (194 is the spoken request,
+  run 3), median 140 ms. CPU median 116 ms over the same 24 runs. The per-request "Draft ms" column above is the
+  median for that request.
+- **Prebuilt drafts, from `commit-run.apex`:** a draft built from fields, with no sentence and no model, took a
+  median of 23 to 170 ms per action (see the Confirm table). That is a different path from the drafting runs.
 - **Missing fields:** for "Create a follow-up" the model and the draft step listed the same missing fields, the
   subject and the due date.
 - **The unnamed person:** in the case request and in "Create a follow-up", the model put a value in `contact` though
   the request named nobody. Where the shape was recorded, it was two words. The draft step found no matching contact
   and marked the field unresolved, so the case draft was not ready to confirm.
-  - The prompt should say to leave out a key the request does not give.
+  - The prompt that ran already told the model to leave out a field the request does not give (`systemPrompt()` in
+    `router.apex`, 1,509 characters, matching `promptChars` in `draft.jsonl`). The model filled `contact` anyway, so
+    the prompt rule alone did not stop it. The draft step's resolve check, which marks the field unresolved and
+    guesses nothing, is what held.
   - The draft step should treat an unresolved optional field as one the user can clear.
 - **"on friday" said on a Friday** gave today's date in 3 of 3 runs. That is defensible, and the draft card shows the
   date for the user to change.
-- **Draft size:** a draft serializes to 360 to 740 characters of JSON, small enough for an invocable action's text
-  output.
+- **Draft size:** in the drafting runs, a draft serializes to 387 to 791 characters of JSON (791 is log_call, run 2),
+  small enough for an invocable action's text output. The commit-run drafts were 358 to 735 characters.
 - **Wall time:** each run took 3.1 to 6.2 seconds from the CLI, median 4.0 seconds. Most of the time outside the
   model is the CLI starting up and compiling a 450-line anonymous script. The panel does not pay that.
 
@@ -252,7 +264,7 @@ One service, `CustomerSummaryActions`, holds every rule. Each door is a thin wra
 | `CustomerSummaryActionCommitAction` | `@InvocableMethod`, MCP `commit_action` | Inputs: `draftJson`. Outputs: `status`, `recordId`, `label`, `linkPath`, `undoToken`, `cardJson` and `message`. |
 | `CustomerSummaryPanelController` | Existing `@AuraEnabled` door | `draftAction(String actionType, Id accountId, String inputJson)`, `draftFromText(Id accountId, String text)`, `commitAction(String draftJson)` and `undoAction(String undoToken)`. They pass through, and their errors become the fixed line as the class does today. This needs the scope change above. |
 | `AnswerCard` | `BE-39` builders | `actionDraft(CustomerSummaryActions.Draft)` and `actionResult(CustomerSummaryActions.Result)`. |
-| `AgentPrompt_ActionDraft` | Prompt file | The prompt from `router.apex`, plus "leave out a key the request does not give". |
+| `AgentPrompt_ActionDraft` | Prompt file | The prompt from `systemPrompt()` and `userPrompt()` in `router.apex`, as it ran. |
 | Tests | `CustomerSummaryActionsTest` and one test per new class | As `BE-27` lists. |
 
 **Where this differs from the build cards:**
@@ -271,7 +283,7 @@ The ledger's default is an Event, held in one constant. This spike describes bot
 
 | | A completed Task (what Salesforce's Log a Call saves) | An Event (Ben's words, the current default) |
 |---|---|---|
-| What the org shows | The `LogACall` quick action's describe targets Task. `TaskSubtype` offers Call. Neither the Apex describe nor a `FieldDefinition` query (both as admin) lists a `Type` field on Task in this org, so "type Call" here means `TaskSubtype` Call. | `EventSubtype` offers only Event. |
+| What the org shows ([inventory.jsonl](../../spikes/actions/results/inventory.jsonl), `run.py inventory`) | The `LogACall` quick action's describe targets Task. `TaskSubtype` offers Task, Email, ListEmail, Cadence, Call and LinkedIn. Neither the Apex describe nor a `FieldDefinition` query (both as admin) lists a `Type` field on Task in this org, so "type Call" here means `TaskSubtype` Call. | `EventSubtype` offers only Event. |
 | What the spike wrote | `Status` Completed, `TaskSubtype` Call, due today: `IsClosed` true. | 15 minutes ending now: `EndDateTime` at or before now. |
 | Where it lands on the account (queried) | `ActivityHistories`, with `ActivitySubtype` Call, in 3 of 3 runs. | `ActivityHistories`, with `ActivitySubtype` Event, in 3 of 3 runs. |
 | How the activity timeline shows it (unverified: not seen on screen, and no Salesforce doc was opened in this run) | Under past activity, with the call icon, as a logged call. | Under past activity, with the calendar icon, as a meeting. It also sits on the user's calendar at that time. |
@@ -320,7 +332,11 @@ draft card shows which object will be written either way.
   Each inserted one throwaway Task inside a savepoint, threw before the model call, rolled back and counted 0.
 - **Read-only runs:** the inventory script took four tries: two failed to compile, one failed at run time after its
   reads, and one succeeded. It read the sample account's contact and open-deal names, the picklists and the
-  `LogACall` describe. One `FieldDefinition` query checked Task's fields.
+  `LogACall` describe. That script was not committed. One `FieldDefinition` query checked Task's fields. For the
+  review, `run.py inventory` re-ran the describe part (the `LogACall` target, the `TaskSubtype` and `EventSubtype`
+  values, and the Task describe and `FieldDefinition` check for `Type`) in one read-only run with 0 DML. Its output is
+  [inventory.jsonl](../../spikes/actions/results/inventory.jsonl): names only, no Ids. The sample account's names
+  are not in it.
 - **Compile-only runs:** the `names` probe ran four compiles and wrote nothing.
 - Nothing was deployed, and no trace flag was set.
 
