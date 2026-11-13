@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Title__c</fullName>
+    <label>Title</label>
+    <type>Text</type>
+    <length>80</length>
+    <required>false</required>
+    <description>The session's first question, trimmed to 80 characters, so a rep can tell past sessions apart. Set by CustomerSummaryMemory when the session starts.</description>
+    <inlineHelpText>The first question asked in this session, up to 80 characters.</inlineHelpText>
+</CustomField>

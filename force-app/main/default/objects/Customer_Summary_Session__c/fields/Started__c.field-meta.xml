@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Started__c</fullName>
+    <label>Started</label>
+    <type>DateTime</type>
+    <required>false</required>
+    <description>When the session's first turn was saved. Last Activity is when its newest turn was saved.</description>
+    <inlineHelpText>When this conversation started.</inlineHelpText>
+</CustomField>

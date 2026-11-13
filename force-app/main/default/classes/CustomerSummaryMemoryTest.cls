@@ -80,9 +80,11 @@ private class CustomerSummaryMemoryTest {
 
     @IsTest
     static void twoUsersGetSeparateRows() {
-        Account a = makeAccount();
         User u2 = makeUser('usrtwo');
         insert u2;
+        // Owned by the second user, so both can read it whatever the org's account sharing: history re-checks access.
+        Account a = new Account(Name = 'Memory Test Account', OwnerId = u2.Id);
+        insert a;
 
         CustomerSummaryMemory.record(a.Id, 'ok', 'Admin question', 'Admin headline');
         System.runAs(u2) {
@@ -234,5 +236,58 @@ private class CustomerSummaryMemoryTest {
 
         Assert.areEqual(1, [SELECT COUNT() FROM Customer_Summary_Session__c WHERE User__c = :UserInfo.getUserId() WITH SYSTEM_MODE]);
         Assert.areEqual(1, [SELECT COUNT() FROM Customer_Summary_Session__c WHERE User__c = :other.Id WITH SYSTEM_MODE]);
+    }
+
+    @IsTest
+    static void aRowSavedBeforeSessionsGetsItsTitleStartAndCountFromItsTurns() {
+        Account a = makeAccount();
+        CustomerSummaryMemory.Turn old = new CustomerSummaryMemory.Turn();
+        old.at = '2026-01-02T03:04:05.000Z';
+        old.status = 'OK';
+        old.question = 'An old question';
+        old.headline = 'Old headline';
+        Database.insert(new Customer_Summary_Session__c(
+            Session_Key__c = String.valueOf(UserInfo.getUserId()) + '_' + String.valueOf(a.Id),
+            User__c = UserInfo.getUserId(),
+            Account__c = a.Id,
+            Brief_Count__c = 1,
+            Last_Activity__c = Datetime.now(),
+            Turns_JSON__c = JSON.serialize(new List<CustomerSummaryMemory.Turn>{ old })
+        ), true, AccessLevel.SYSTEM_MODE);
+
+        CustomerSummaryMemory.record(a.Id, 'OK', 'A new question', 'New headline');
+
+        Customer_Summary_Session__c row = [
+            SELECT Title__c, Started__c, Turn_Count__c, Brief_Count__c
+            FROM Customer_Summary_Session__c WHERE Account__c = :a.Id WITH SYSTEM_MODE
+        ];
+        Assert.areEqual('An old question', row.Title__c, 'the oldest kept question titles the session');
+        Assert.areEqual(Datetime.newInstanceGmt(2026, 1, 2, 3, 4, 5), row.Started__c, 'started at the oldest kept turn');
+        Assert.areEqual(2, row.Turn_Count__c, 'the kept turn and the new one');
+        Assert.areEqual(2, row.Brief_Count__c);
+        List<CustomerSummaryMemory.Turn> turns = CustomerSummaryMemory.history(a.Id);
+        Assert.areEqual(2, turns.size(), 'a turn without a kind counts as a summary');
+        Assert.areEqual(CustomerSummaryMemory.KIND_SUMMARY, turns[0].kind);
+        Assert.isNull(turns[1].kind);
+    }
+
+    @IsTest
+    static void historyListsOnlySummariesAcrossSessions() {
+        Account a = makeAccount();
+        CustomerSummaryMemory.record(a.Id, 'OK', 'Earlier session', 'Earlier brief');
+        Database.update(new Customer_Summary_Session__c(
+            Id = rowFor(a.Id).Id, Last_Activity__c = Datetime.now().addDays(-2)
+        ), true, AccessLevel.SYSTEM_MODE);
+        CustomerSummaryMemory.recordAll(new List<CustomerSummaryMemory.Entry>{
+            new CustomerSummaryMemory.Entry(a.Id, 'OK', 'Explorer question', 'Explorer answer', CustomerSummaryMemory.KIND_EXPLORER),
+            new CustomerSummaryMemory.Entry(a.Id, 'OK', 'Current session', 'Current brief')
+        });
+
+        List<CustomerSummaryMemory.Turn> turns = CustomerSummaryMemory.history(a.Id);
+        Assert.areEqual(2, [SELECT COUNT() FROM Customer_Summary_Session__c WHERE Account__c = :a.Id WITH SYSTEM_MODE], 'two sessions');
+        Assert.areEqual(2, turns.size(), 'the explorer turn is not an earlier summary');
+        Assert.areEqual('Current brief', turns[0].headline);
+        Assert.areEqual('Earlier brief', turns[1].headline, 'summaries of ended sessions are still listed');
+        Assert.areEqual('Current brief', CustomerSummaryMemory.lastBrief(a.Id));
     }
 }

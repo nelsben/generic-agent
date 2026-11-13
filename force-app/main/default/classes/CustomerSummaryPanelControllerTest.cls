@@ -291,4 +291,23 @@ private class CustomerSummaryPanelControllerTest {
         Assert.areEqual(String.valueOf(explored.resultSets[0].rows[0].get('Id')),
             ((Map<String, Object>) ((List<Object>) table.get('refs'))[0]).get('recordId'), 'the row\'s record is in refs');
     }
+
+    @IsTest
+    static void onlyAnAnsweredExplorerQuestionAboutAnAccountIsRemembered() {
+        Account a = acme();
+        Contact c = [SELECT Id FROM Contact LIMIT 1];
+        stub(new List<String>{
+            'not json 1', 'not json 2', 'not json 3', 'not json 4', 'not json 5',
+            '{"action":"answer","text":"About the contact.","followups":[]}'
+        });
+        Test.startTest();
+        DataExplorer.Result failed = CustomerSummaryPanelController.explore('Break please', a.Id, null);
+        DataExplorer.Result aboutContact = CustomerSummaryPanelController.explore('Who is this?', c.Id, null);
+        Test.stopTest();
+
+        Assert.areNotEqual(DataExplorer.OK, failed.status, 'five replies that are not JSON use up the first question');
+        Assert.areEqual('About the contact.', aboutContact.answer, 'the second question is answered');
+        Assert.areEqual(0, [SELECT COUNT() FROM Customer_Summary_Session__c WITH SYSTEM_MODE],
+            'a failed answer and an answer about a non-account record start no session');
+    }
 }

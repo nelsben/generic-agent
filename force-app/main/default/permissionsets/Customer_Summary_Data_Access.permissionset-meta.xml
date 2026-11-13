@@ -17,6 +17,10 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>CustomerSummaryHistory</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>CustomerSummaryMemory</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -36,7 +40,7 @@
         <enabled>true</enabled>
         <name>Brand_Setting__mdt</name>
     </customMetadataTypeAccesses>
-    <description>Lets a user open the Customer Summary app and run its Apex entry points, read the brand settings, with read-only view of their own brief memory.</description>
+    <description>Lets a user open the Customer Summary app and run its Apex entry points, read the brand settings, with read-only view of their own conversation history.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Customer Summary Data Access</label>
     <objectPermissions>
@@ -81,6 +85,21 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>Customer_Summary_Session__c.Session_Key__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Customer_Summary_Session__c.Started__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Customer_Summary_Session__c.Title__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Customer_Summary_Session__c.Turn_Count__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

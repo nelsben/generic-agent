@@ -8,5 +8,5 @@
     <unique>true</unique>
     <caseSensitive>true</caseSensitive>
     <required>false</required>
-    <description>18-char User Id + underscore + 18-char Account Id.</description>
+    <description>The current session: 18-char User Id + underscore + 18-char Account Id. An ended session adds an underscore and its own record Id.</description>
 </CustomField>
