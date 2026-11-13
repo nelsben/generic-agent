@@ -60,6 +60,7 @@ class TestDataAccessSet(unittest.TestCase):
         granted = {text_of(c, "apexClass") for c in children(self.root, "classAccesses")}
         entry_points = {
             "BrandSettings",
+            "CustomerSummaryContext",
             "CustomerSummaryGetAction",
             "CustomerSummaryMemory",
             "CustomerSummaryPanelController",
