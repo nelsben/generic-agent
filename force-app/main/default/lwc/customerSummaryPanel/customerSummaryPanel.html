@@ -1,8 +1,35 @@
 <template>
-    <!-- The frame: the utility item's surface. The conversation owns everything inside it. -->
-    <div class="abp-panel slds-card">
-        <c-customer-summary-conversation class="abp-conversation-host" record-id={pageRecordId}
-            object-api-name={pageObjectApiName} brand={brand} session-id={sessionId}
-            onsessionchange={handleSessionChange}></c-customer-summary-conversation>
+    <!-- The utility panel's own content, shown only if someone opens the utility from the bar. -->
+    <div class="cs-utility-note slds-p-around_small">
+        <p class="slds-m-bottom_x-small">Opens at the bottom right of the page. Press {keyHint} or use the launcher there.</p>
+        <button type="button" class="slds-button slds-button_neutral cs-utility-open" onclick={handleUtilityOpen}>Open</button>
+    </div>
+
+    <!-- The frame's stage: moved onto document.body after the first render (see moveToBody). -->
+    <div class={stageClass} data-cs-stage lwc:ref="stage" onkeydown={handleStageKeydown}>
+        <!-- Non-modal: show() and close() only, so Tab is never trapped and the browser returns focus. -->
+        <dialog class={sheetClass} aria-label={agentName} data-open={openState} lwc:ref="sheet"
+            onkeydown={handleSheetKeydown}>
+            <div class="cs-sheet-controls">
+                <template lwc:if={expandEnabled}>
+                    <lightning-button-icon class="cs-expand" icon-name="utility:expand_alt" variant="bare"
+                        alternative-text="Expand to the side panel" title="Expand to the side panel"
+                        onclick={handleExpand}></lightning-button-icon>
+                </template>
+                <lightning-button-icon class="cs-minimize" icon-name="utility:minimize_window" variant="bare"
+                    alternative-text="Minimize" title="Minimize" onclick={handleMinimize}></lightning-button-icon>
+            </div>
+            <c-customer-summary-conversation class="cs-conversation" lwc:ref="conversation" record-id={pageRecordId}
+                object-api-name={pageObjectApiName} brand={brand} session-id={sessionId}
+                onsessionchange={handleSessionChange}></c-customer-summary-conversation>
+        </dialog>
+        <button type="button" class={launcherClass} lwc:ref="launcher" aria-keyshortcuts={keyShortcut}
+            onclick={handleLauncher}>
+            <template lwc:if={logoUrl}>
+                <img class="cs-launcher-logo" src={logoUrl} alt="" />
+            </template>
+            <span class="cs-launcher-name">{launcherName}</span>
+            <kbd class="cs-launcher-key">{keyHint}</kbd>
+        </button>
     </div>
 </template>

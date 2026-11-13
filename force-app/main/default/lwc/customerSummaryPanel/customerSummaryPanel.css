@@ -1,30 +1,186 @@
-/* The utility panel gives the host its height (480); the conversation fills it. */
 /*
- * Theme (BE-24, fr2-design.md "Theming"): the panel sets --cs-color-primary, --cs-color-accent, --cs-color-surface,
- * --cs-color-ink, --cs-font-display, --cs-font-body and --cs-radius on this host from the brand settings. They
- * inherit into c-customer-summary-conversation, whose stylesheet reads them; this frame reads only the surface,
- * ink, body font and radius, each with a neutral fallback.
+ * The compact window (FE-13). The stage is moved onto document.body, so it is fixed to the window, not
+ * to the utility panel. The scoped style attributes travel with the moved elements, so these rules
+ * still apply there.
+ *
+ * Theme (BE-24, fr2-design.md "Theming"): the panel sets --cs-color-primary, --cs-color-accent,
+ * --cs-color-surface, --cs-color-ink, --cs-font-display, --cs-font-body and --cs-radius on its host and
+ * on the stage from the brand settings. They inherit into c-customer-summary-conversation, whose
+ * stylesheet reads them; this frame reads the surface, ink, primary, body font and radius, each with a
+ * neutral fallback.
+ *
+ * Borders and shadows mix the ink colour, so a dark brand surface gets light edges, not grey ones.
+ *
+ * Motion (fr2-design.md "Motion"): the window slides with cubic-bezier(0.32, 0.72, 0, 1) at 280 ms; the
+ * launcher scales away at 180 ms with cubic-bezier(0.25, 0.46, 0.45, 0.94). prefers-reduced-motion
+ * turns both off.
  */
 :host {
     display: block;
-    height: 100%;
 }
 
-.abp-panel {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    max-width: 100%;
-    height: 100%;
-    margin: 0;
+.cs-utility-note {
+    font-size: 0.8125rem;
+}
+
+/* Corner: bottom right, 48 px up (clear of the utility bar row) and 16 px in (fr2-surfaces-spike.md). */
+.cs-stage {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 8000;
+    width: 0;
+    height: 0;
+    font-family: var(--cs-font-body, inherit);
+}
+
+.cs-launcher,
+.cs-sheet {
+    position: fixed;
+    bottom: 48px;
+}
+
+.cs-corner_right .cs-launcher,
+.cs-corner_right .cs-sheet {
+    right: 16px;
+}
+
+.cs-corner_left .cs-launcher,
+.cs-corner_left .cs-sheet {
+    left: 16px;
+}
+
+/* The launcher: the agent's name and the key that opens it. */
+.cs-launcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 22%, transparent);
+    border-radius: 999px;
     background-color: var(--cs-color-surface, #ffffff);
     color: var(--cs-color-ink, #181818);
-    font-family: var(--cs-font-body, inherit);
-    border-radius: var(--cs-radius, 0.25rem);
+    font: inherit;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--cs-color-ink, #181818) 16%, transparent);
+    transform-origin: bottom right;
+    transition:
+        transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        opacity 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        visibility 0s;
 }
 
-.abp-conversation-host {
+.cs-corner_left .cs-launcher {
+    transform-origin: bottom left;
+}
+
+.cs-launcher:hover {
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--cs-color-ink, #181818) 20%, transparent);
+}
+
+.cs-launcher:focus-visible {
+    outline: 2px solid var(--cs-color-primary, #0176d3);
+    outline-offset: 2px;
+}
+
+/* Scales away as the window opens; hidden (so not a Tab stop) once the motion ends. */
+.cs-launcher_away {
+    transform: scale(0.6);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        opacity 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        visibility 0s linear 180ms;
+}
+
+.cs-launcher-logo {
+    width: 1.25rem;
+    height: 1.25rem;
+    object-fit: contain;
+}
+
+.cs-launcher-name {
+    font-weight: 600;
+}
+
+.cs-launcher-key {
+    padding: 0.0625rem 0.375rem;
+    border: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 22%, transparent);
+    border-radius: 0.25rem;
+    background-color: color-mix(in srgb, var(--cs-color-primary, #0176d3) 10%, var(--cs-color-surface, #ffffff));
+    color: var(--cs-color-ink, #181818);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/*
+ * The window: about 420 px wide, anchored where the launcher was; slides up into place. It is a
+ * <dialog>, so the browser's dialog box (margin, padding, centring, display none while closed) is
+ * reset here: visibility hides it while closed, so it can slide.
+ */
+.cs-sheet {
+    inset: auto;
+    bottom: 48px;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    width: 420px;
+    max-width: calc(100vw - 32px);
+    height: 560px;
+    max-height: calc(100vh - 96px);
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 22%, transparent);
+    border-radius: var(--cs-radius, 0.75rem);
+    background-color: var(--cs-color-surface, #ffffff);
+    color: var(--cs-color-ink, #181818);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--cs-color-ink, #181818) 22%, transparent);
+    transform: translateY(24px);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 280ms cubic-bezier(0.32, 0.72, 0, 1),
+        visibility 0s linear 280ms;
+}
+
+.cs-sheet_open {
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+    transition:
+        transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 280ms cubic-bezier(0.32, 0.72, 0, 1),
+        visibility 0s;
+}
+
+.cs-sheet-controls {
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem 0;
+}
+
+.cs-conversation {
+    display: block;
     flex: 1 1 auto;
     min-height: 0;
     min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-launcher,
+    .cs-launcher_away,
+    .cs-sheet,
+    .cs-sheet_open {
+        transition: none;
+    }
 }

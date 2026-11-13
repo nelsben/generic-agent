@@ -1,12 +1,19 @@
 // @ts-check
 /**
  * The Customer Summary panel as a front-end user meets it: the Customer Summary app, the record page of
- * Edge Communications, the utility bar item "Customer Summary" (340x480, eager).
+ * Edge Communications, and the compact window (FE-13): a launcher at the bottom right of the page and
+ * a 420x560 window above it, opened by Cmd/Ctrl-K or the launcher. The eager utility bar item
+ * "Customer Summary" mounts them on the page body (its stage, data-cs-stage); its own utility panel
+ * holds only a note.
  *
- * Locators pierce the panel's native shadow DOM with Playwright's built-in engine: roles, labels,
- * the panel's test hooks (data-testid: abp-live-region, abp-spinner, abp-summary-headline) and the
- * data attributes it renders (data-turn, data-id, data-focus). The few tags the panel offers no
- * hook for are named in e2e/README.md.
+ * Locators reach into the components with Playwright's built-in engine: roles, labels, the panel's
+ * test hooks (data-testid: abp-live-region, abp-spinner, abp-summary-headline) and the data
+ * attributes it renders (data-cs-stage, data-turn, data-id, data-focus). The few tags the panel
+ * offers no hook for are named in e2e/README.md.
+ *
+ * Focus: Lightning runs the components in synthetic shadow, where document.activeElement reads the
+ * page body while focus is inside the stage (a node moved out of its component's tree). So focus is
+ * checked with :focus on the element itself (focused, expectFocused), not toBeFocused.
  */
 const fs = require('fs');
 const { test: base, expect } = require('@playwright/test');
@@ -28,9 +35,17 @@ class Panel {
     constructor(page) {
         this.page = page;
         this.run = runInfo();
-        this.host = page.locator('c-customer-summary-panel');
+        // The utility bar item itself; the window and the launcher are on its stage.
+        this.element = page.locator('c-customer-summary-panel');
         this.utilityButton = page.getByRole('button', { name: 'Customer Summary', exact: true });
-        this.dialog = page.getByRole('dialog').filter({ has: this.host });
+        this.host = page.locator('[data-cs-stage]');
+        // "Ask <agent name>" and the key hint: ⌘K on a Mac, Ctrl K elsewhere.
+        this.launcher = this.host.getByRole('button', { name: /^Ask .+(⌘K|Ctrl K)$/ });
+        this.dialog = this.host.getByRole('dialog');
+        // The window whether it is shown or not (getByRole leaves hidden elements out).
+        this.sheet = this.host.locator('dialog');
+        this.minimizeButton = this.host.getByRole('button', { name: 'Minimize', exact: true });
+        this.expandButton = this.host.getByRole('button', { name: 'Expand to the side panel', exact: true });
         this.composer = this.host.getByRole('textbox', { name: COMPOSER_LABEL });
         this.send = this.host.getByRole('button', { name: 'Send', exact: true });
         this.briefButton = this.host.getByRole('button', { name: 'Summarize ' + ACCOUNT_NAME, exact: true });
@@ -41,8 +56,8 @@ class Panel {
         // The scroll box: the thread and the drill view.
         this.body = this.host.getByRole('region', { name: 'Conversation', exact: true });
         this.breadcrumbs = this.host.locator('lightning-breadcrumbs');
-        // The utility panel's own header (title, Minimize, Pop-out), above the panel component.
-        this.panelHeader = this.dialog.locator('.slds-utility-panel__header').first();
+        // The window's controls row (Minimize, and Expand when it is on), above the conversation.
+        this.panelHeader = this.host.locator('.cs-sheet-controls');
         // The header of the account's "Earlier summaries" list.
         this.historyHeader = this.host.getByRole('button', { name: /^Earlier summaries/ });
     }
@@ -52,7 +67,7 @@ class Panel {
     }
 
     /**
-     * A fresh load of the account's record page inside the Customer Summary app, with the utility
+     * A fresh load of the account's record page inside the Customer Summary app, with the window
      * never opened. The app URL first makes Customer Summary the current app; the record page is a
      * second full load, so the panel is constructed anew and has not been opened.
      */
@@ -77,7 +92,7 @@ class Panel {
         await expect(this.host).toBeAttached({ timeout: 90_000 });
         await this.page.goto(this.recordUrl);
         await expect(this.utilityButton).toBeVisible({ timeout: 90_000 });
-        await expect(this.host).toBeAttached();
+        await expect(this.launcher).toBeVisible({ timeout: 90_000 });
         // Ready: the panel is connected (its key listener is up) and has resolved the page's account.
         await expect(this.host.getByRole('button', { name: 'Summarize ' + ACCOUNT_NAME, exact: true, includeHidden: true })).toBeAttached({
             timeout: 60_000
@@ -97,12 +112,23 @@ class Panel {
 
     async open() {
         await this.page.keyboard.press(await this.hotkey());
-        await expect(this.composer).toBeFocused();
+        await expect(this.dialog).toBeVisible();
+        await this.expectFocused(this.composer, 'the composer has focus');
     }
 
-    /** True when focus is anywhere inside the panel's shadow tree. */
+    /** True when focus is anywhere inside the window or on the launcher. */
     focusInPanel() {
         return this.host.evaluate((el) => el.matches(':focus-within'));
+    }
+
+    /** True when focus is on the element now (see "Focus" above). */
+    focused(locator) {
+        return locator.evaluate((el) => el.matches(':focus'));
+    }
+
+    /** Waits until focus is on the element. */
+    async expectFocused(locator, message) {
+        await expect.poll(() => this.focused(locator), { message }).toBe(true);
     }
 
     /** Sends text from the composer with Enter. */
@@ -127,13 +153,13 @@ class Panel {
     }
 
     /**
-     * Focus is on locator now and still there after the platform's late focus moves (up to about a
-     * second after a minimize) are over.
+     * Focus is on locator now and still there after any late focus moves of the page (up to about
+     * a second after a close) are over.
      */
     async expectFocusStays(locator, message) {
-        await expect(locator, message).toBeFocused();
+        await this.expectFocused(locator, message);
         await this.page.waitForTimeout(2_500);
-        await expect(locator, message + ', and stayed there').toBeFocused();
+        expect(await this.focused(locator), message + ', and stayed there').toBe(true);
     }
 
     /** The brief's section headers (lightning-accordion-section buttons). */

@@ -1,7 +1,7 @@
 import { createElement } from 'lwc';
 import CustomerSummaryPanel from 'c/customerSummaryPanel';
 import { CurrentPageReference } from 'lightning/navigation';
-import { subscribe, MessageContext } from 'lightning/messageService';
+import { subscribe, publish, MessageContext } from 'lightning/messageService';
 import { EnclosingUtilityId, open as openUtility, minimize as minimizeUtility } from 'lightning/platformUtilityBarApi';
 import resolve from '@salesforce/apex/CustomerSummaryPanelController.resolve';
 import getBrief from '@salesforce/apex/CustomerSummaryPanelController.getBrief';
@@ -48,6 +48,7 @@ jest.mock(
     { virtual: true }
 );
 jest.mock('@salesforce/messageChannel/CustomerSummaryOpen__c', () => ({ default: 'CustomerSummaryOpen__c' }), { virtual: true });
+jest.mock('@salesforce/messageChannel/CustomerSummaryExpand__c', () => ({ default: 'CustomerSummaryExpand__c' }), { virtual: true });
 
 const FIXED_ERROR = "I couldn't finish that right now. Try again in a minute.";
 const ACME = '001000000000001AAA';
@@ -119,13 +120,18 @@ async function mount() {
 }
 
 // The panel is the frame; the conversation it delegates to renders inside its own shadow root.
-const conversation = (el) => el.shadowRoot.querySelector('c-customer-summary-conversation');
-const roots = (el) => [el.shadowRoot, conversation(el).shadowRoot];
+// Since FE-13 the frame's stage (the launcher and the compact window, with the conversation in it)
+// is moved out of the utility panel onto document.body, so the helpers look there first.
+const stage = () => Array.from(document.body.children).find((n) => n.hasAttribute('data-cs-stage')) || null;
+const conversation = (el) => (stage() || el.shadowRoot).querySelector('c-customer-summary-conversation');
+const roots = (el) => [el.shadowRoot, stage(), conversation(el).shadowRoot].filter(Boolean);
 const $ = (el, sel) => roots(el).map((r) => r.querySelector(sel)).find(Boolean) || null;
 const $$ = (el, sel) => roots(el).flatMap((r) => Array.from(r.querySelectorAll(sel)));
 const text = (el) => conversation(el).shadowRoot.textContent;
 const active = (el) => conversation(el).shadowRoot.activeElement;
 const composer = (el) => $(el, '.abp-composer');
+// The compact window's open state, on the body-mounted stage.
+const opened = () => stage().querySelector('.cs-sheet').getAttribute('data-open') === 'true';
 
 function typeInto(el, value) {
     const box = composer(el);
@@ -399,12 +405,12 @@ describe('c-customer-summary-panel', () => {
             return { el, focus };
         }
 
-        it('Ctrl-K off Mac opens the utility and focuses the composer, by key code', async () => {
+        it('Ctrl-K off Mac opens the compact window and focuses the composer, by key code', async () => {
             const { focus } = await mountWithComposerSpy();
             const event = key(document.body, { code: 'KeyK', key: 'л', ctrlKey: true });
             await flush();
             expect(event.defaultPrevented).toBe(true);
-            expect(openUtility).toHaveBeenCalledWith('u1', { autoFocus: true });
+            expect(opened()).toBe(true);
             expect(focus).toHaveBeenCalled();
         });
 
@@ -414,7 +420,7 @@ describe('c-customer-summary-panel', () => {
             key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true, altKey: true });
             key(document.body, { code: 'KeyK', key: 'k', metaKey: true });
             await flush();
-            expect(openUtility).not.toHaveBeenCalled();
+            expect(opened()).toBe(false);
         });
 
         it('on Mac takes Cmd-K only and leaves Ctrl-K to the text field', async () => {
@@ -423,11 +429,11 @@ describe('c-customer-summary-panel', () => {
             const ctrl = key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
             await flush();
             expect(ctrl.defaultPrevented).toBe(false);
-            expect(openUtility).not.toHaveBeenCalled();
+            expect(opened()).toBe(false);
 
             key(document.body, { code: 'KeyK', key: 'k', metaKey: true });
             await flush();
-            expect(openUtility).toHaveBeenCalledTimes(1);
+            expect(opened()).toBe(true);
             expect(focus).toHaveBeenCalled();
         });
 
@@ -436,7 +442,7 @@ describe('c-customer-summary-panel', () => {
             const event = key(composer(el), { code: 'KeyK', key: 'k', ctrlKey: true });
             await flush();
             expect(event.defaultPrevented).toBe(true);
-            expect(openUtility).toHaveBeenCalled();
+            expect(opened()).toBe(true);
         });
 
         it('yields to a handler that already prevented the event, and stops after removal', async () => {
@@ -446,12 +452,13 @@ describe('c-customer-summary-panel', () => {
             key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
             document.body.removeEventListener('keydown', blocker);
             await flush();
-            expect(openUtility).not.toHaveBeenCalled();
+            expect(opened()).toBe(false);
 
             document.body.removeChild(el);
-            key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+            expect(stage()).toBeNull();
+            const after = key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
             await flush();
-            expect(openUtility).not.toHaveBeenCalled();
+            expect(after.defaultPrevented).toBe(false);
         });
     });
 
@@ -463,7 +470,7 @@ describe('c-customer-summary-panel', () => {
             subscribe.mock.calls[0][2]({ prompt: 'Open deals?', recordId: DEAL });
             await flush();
             expect(explore).toHaveBeenLastCalledWith(expect.objectContaining({ question: 'Open deals?', contextRecordId: DEAL }));
-            expect(openUtility).toHaveBeenCalledWith('u1', { autoFocus: true });
+            expect(opened()).toBe(true);
 
             await ask(el, 'And now?');
             await flush();
@@ -645,24 +652,26 @@ describe('c-customer-summary-panel', () => {
 
     // 9 (findings 5 and 6): keyboard and focus.
     describe('keyboard and focus', () => {
-        it('Esc from inside the panel minimizes the utility and returns focus to where Cmd/Ctrl-K came from', async () => {
+        it('Esc from inside the window closes it and returns focus to where Cmd/Ctrl-K came from', async () => {
             const outside = document.createElement('input');
             document.body.appendChild(outside);
             const el = await mount();
             outside.focus();
             key(outside, { code: 'KeyK', key: 'k', ctrlKey: true });
             await flush();
+            expect(opened()).toBe(true);
             outside.blur();
 
             key(composer(el), { key: 'Escape' });
             await flush();
-            expect(minimizeUtility).toHaveBeenCalledWith('u1');
+            expect(opened()).toBe(false);
+            expect(minimizeUtility).not.toHaveBeenCalled();
             expect(document.activeElement).toBe(outside);
         });
 
-        describe('after the platform moves focus late', () => {
-            // The real utility bar moves focus after minimize() resolves: to the utility header, then
-            // the bar button, then body, up to about 1 s later. These stand in for its elements.
+        describe('after the page moves focus late', () => {
+            // After a close, the page can still move focus for a moment (Lightning's own Esc handling,
+            // a utility panel being put away). These stand in for its elements.
             function platformChrome() {
                 const header = document.createElement('button');
                 header.textContent = 'Minimize';
@@ -677,7 +686,7 @@ describe('c-customer-summary-panel', () => {
                 outside.focus();
                 key(outside, { code: 'KeyK', key: 'k', ctrlKey: true });
                 await flush();
-                // Focus is inside the panel now (the composer stub cannot take it in jsdom).
+                // Focus is inside the window now (the composer stub cannot take it in jsdom).
                 outside.blur();
                 return el;
             }
@@ -693,13 +702,10 @@ describe('c-customer-summary-panel', () => {
                 const el = await openFrom(outside);
 
                 jest.useFakeTimers();
-                minimizeUtility.mockImplementationOnce(() => {
-                    setTimeout(() => header.focus(), 100);
-                    setTimeout(() => bar.focus(), 400);
-                    setTimeout(() => document.activeElement.blur(), 900);
-                    return Promise.resolve(true);
-                });
                 key(composer(el), { key: 'Escape' });
+                setTimeout(() => header.focus(), 100);
+                setTimeout(() => bar.focus(), 400);
+                setTimeout(() => document.activeElement.blur(), 900);
                 await jest.advanceTimersByTimeAsync(1000);
                 expect(document.activeElement).toBe(outside);
                 await jest.advanceTimersByTimeAsync(4000);
@@ -714,42 +720,43 @@ describe('c-customer-summary-panel', () => {
                 const el = await openFrom(outside);
 
                 jest.useFakeTimers();
-                minimizeUtility.mockImplementationOnce(() => {
-                    setTimeout(() => header.focus(), 100);
-                    setTimeout(() => {
-                        // The user tabs on from where focus was restored.
-                        key(document.activeElement, { key: 'Tab' });
-                        other.focus();
-                    }, 300);
-                    return Promise.resolve(true);
-                });
                 key(composer(el), { key: 'Escape' });
+                setTimeout(() => header.focus(), 100);
+                setTimeout(() => {
+                    // The user tabs on from where focus was restored.
+                    key(document.activeElement, { key: 'Tab' });
+                    other.focus();
+                }, 300);
                 await jest.advanceTimersByTimeAsync(5000);
                 expect(document.activeElement).toBe(other);
             });
         });
 
-        it('Esc from any control in the panel minimizes, and Tab is never trapped', async () => {
+        it('Esc from any control in the window closes it, and Tab is never trapped', async () => {
             const el = await mount();
+            key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+            await flush();
             const send = $(el, '.abp-send');
             const tab = key(send, { key: 'Tab' });
             expect(tab.defaultPrevented).toBe(false);
             key(send, { key: 'Escape' });
             await flush();
-            expect(minimizeUtility).toHaveBeenCalledWith('u1');
+            expect(opened()).toBe(false);
         });
 
-        it('Esc during an IME composition ends the composition only and does not minimize', async () => {
+        it('Esc during an IME composition ends the composition only and does not close', async () => {
             const el = await mount();
+            key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+            await flush();
             const esc = key(composer(el), { key: 'Escape', isComposing: true });
             key(composer(el), { key: 'Escape', keyCode: 229 });
             await flush();
             expect(esc.defaultPrevented).toBe(false);
-            expect(minimizeUtility).not.toHaveBeenCalled();
+            expect(opened()).toBe(true);
 
             key(composer(el), { key: 'Escape' });
             await flush();
-            expect(minimizeUtility).toHaveBeenCalledWith('u1');
+            expect(opened()).toBe(false);
         });
 
         it('Enter submits but not mid-IME composition, and Shift-Enter does not submit', async () => {
@@ -1043,6 +1050,245 @@ describe('c-customer-summary-panel', () => {
         it('is accessible with the brand settings applied', async () => {
             const el = await mountBranded(NORTHWIND);
             await expect(el).toBeAccessible();
+        });
+    });
+
+    // 12 (FE-13, FR2): the compact window. The launcher and the window sit on the page body at the
+    // bottom right, outside the utility panel; minimize keeps the thread; expand hands the session on.
+    describe('compact window', () => {
+        const BRAND = { agentName: 'Northwind Assist', companyName: 'Northwind Health', logoUrl: '/resource/BrandLogo' };
+        const sheet = () => stage().querySelector('.cs-sheet');
+        const launcher = () => stage().querySelector('.cs-launcher');
+        const isOpen = () => sheet().getAttribute('data-open') === 'true';
+
+        async function mountCompact(props) {
+            const el = createElement('c-customer-summary-panel', { is: CustomerSummaryPanel });
+            Object.assign(el, props || {});
+            document.body.appendChild(el);
+            MessageContext.emit({});
+            EnclosingUtilityId.emit('u1');
+            sources.emit([{ key: 'profile', title: 'Profile' }]);
+            getSettings.emit(BRAND);
+            await flush();
+            return el;
+        }
+
+        it('mounts the launcher and the window on the page body, outside the utility panel, closed', async () => {
+            const el = await mountCompact();
+            // stage() looks only at document.body's own children.
+            expect(stage()).not.toBeNull();
+            expect(el.shadowRoot.querySelector('[data-cs-stage]')).toBeNull();
+            expect(sheet().querySelector('c-customer-summary-conversation')).not.toBeNull();
+            expect(sheet().tagName).toBe('DIALOG');
+            expect(sheet().getAttribute('aria-label')).toBe('Northwind Assist');
+            expect(isOpen()).toBe(false);
+            expect(stage().classList.contains('cs-corner_right')).toBe(true);
+        });
+
+        it('takes the theme variables onto the body-mounted stage', async () => {
+            const el = await mountCompact();
+            getSettings.emit({ ...BRAND, surfaceColor: '#f7faf8', radius: '0.5rem' });
+            await flush();
+            expect(stage().style.getPropertyValue('--cs-color-surface')).toBe('#f7faf8');
+            expect(stage().style.getPropertyValue('--cs-radius')).toBe('0.5rem');
+            expect(el.style.getPropertyValue('--cs-radius')).toBe('0.5rem');
+        });
+
+        describe('launcher', () => {
+            it('shows the agent name from the brand settings and the logo, once in the frame', async () => {
+                await mountCompact();
+                expect(launcher().querySelector('.cs-launcher-name').textContent).toBe('Ask Northwind Assist');
+                expect(launcher().querySelector('img.cs-launcher-logo').getAttribute('src')).toBe('/resource/BrandLogo');
+                expect(stage().textContent.split('Northwind Assist')).toHaveLength(2);
+            });
+
+            it('shows the key hint Ctrl K off Mac', async () => {
+                await mountCompact();
+                const hint = launcher().querySelector('kbd.cs-launcher-key');
+                expect(hint.textContent).toBe('Ctrl K');
+                expect(launcher().getAttribute('aria-keyshortcuts')).toBe('Control+K');
+            });
+
+            it('shows the key hint ⌘K on Mac', async () => {
+                setPlatform('MacIntel');
+                await mountCompact();
+                const hint = launcher().querySelector('kbd.cs-launcher-key');
+                expect(hint.textContent).toBe('⌘K');
+                expect(launcher().getAttribute('aria-keyshortcuts')).toBe('Meta+K');
+            });
+
+            it('opens the window and scales away; Esc brings focus back to it', async () => {
+                const el = await mountCompact();
+                launcher().click();
+                await flush();
+                expect(isOpen()).toBe(true);
+                expect(launcher().classList.contains('cs-launcher_away')).toBe(true);
+                expect(openUtility).not.toHaveBeenCalled();
+
+                // jsdom cannot report focus on a node moved out of a synthetic shadow tree (activeElement
+                // reads body), so this checks the call; e2e/panel.spec.js checks where focus lands.
+                const focusLauncher = jest.spyOn(launcher(), 'focus');
+                key(composer(el), { key: 'Escape' });
+                await flush();
+                expect(isOpen()).toBe(false);
+                expect(launcher().classList.contains('cs-launcher_away')).toBe(false);
+                expect(focusLauncher).toHaveBeenCalled();
+            });
+        });
+
+        describe('hotkey', () => {
+            it('Ctrl-K opens the window on the body, not the utility panel, and focuses the composer', async () => {
+                const el = await mountCompact();
+                const focus = jest.fn();
+                composer(el).focus = focus;
+                const event = key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+                await flush();
+                expect(event.defaultPrevented).toBe(true);
+                expect(isOpen()).toBe(true);
+                expect(focus).toHaveBeenCalled();
+                expect(openUtility).not.toHaveBeenCalled();
+            });
+
+            it('yields to a handler that already prevented the event', async () => {
+                await mountCompact();
+                const blocker = (e) => e.preventDefault();
+                document.body.addEventListener('keydown', blocker);
+                key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+                document.body.removeEventListener('keydown', blocker);
+                await flush();
+                expect(isOpen()).toBe(false);
+            });
+        });
+
+        describe('minimize', () => {
+            it('collapses to the launcher and keeps the conversation and its thread', async () => {
+                explore.mockResolvedValue(exploreResult('Kept answer.'));
+                const el = await mountCompact();
+                key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+                await flush();
+                const before = conversation(el);
+                await ask(el, 'Anything?');
+                await flush();
+                expect(text(el)).toContain('Kept answer.');
+
+                stage().querySelector('.cs-minimize').click();
+                await flush();
+                expect(isOpen()).toBe(false);
+                expect(launcher().classList.contains('cs-launcher_away')).toBe(false);
+                expect(minimizeUtility).not.toHaveBeenCalled();
+
+                launcher().click();
+                await flush();
+                expect(isOpen()).toBe(true);
+                expect(conversation(el)).toBe(before);
+                expect(text(el)).toContain('Kept answer.');
+            });
+        });
+
+        describe('expand', () => {
+            it('is hidden unless the expandEnabled flag is on, so no dead button ships', async () => {
+                await mountCompact();
+                expect(stage().querySelector('.cs-expand')).toBeNull();
+            });
+
+            it('fires expand and an LMS message with the current session and record, then closes', async () => {
+                explore.mockResolvedValue(exploreResult('Answer.'));
+                const el = await mountCompact({ expandEnabled: true, recordId: ACME });
+                const handler = jest.fn();
+                el.addEventListener('expand', handler);
+                key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+                await flush();
+                await ask(el, 'Anything?');
+                await flush();
+                const sessionId = conversation(el).sessionId;
+                expect(sessionId).toBeTruthy();
+
+                stage().querySelector('.cs-expand').click();
+                await flush();
+                expect(handler).toHaveBeenCalledTimes(1);
+                expect(handler.mock.calls[0][0].detail).toEqual({ sessionId, recordId: ACME });
+                expect(publish).toHaveBeenCalledWith(expect.anything(), 'CustomerSummaryExpand__c', { sessionId, recordId: ACME });
+                expect(isOpen()).toBe(false);
+            });
+        });
+
+        describe('Esc and focus return (N4)', () => {
+            it('returns focus to a field inside another component, not to that component host', async () => {
+                const other = document.createElement('div');
+                const field = document.createElement('input');
+                other.attachShadow({ mode: 'open' }).appendChild(field);
+                document.body.appendChild(other);
+                const el = await mountCompact();
+                field.focus();
+                key(field, { code: 'KeyK', key: 'k', ctrlKey: true });
+                await flush();
+                field.blur();
+
+                key(composer(el), { key: 'Escape' });
+                await flush();
+                expect(isOpen()).toBe(false);
+                expect(other.shadowRoot.activeElement).toBe(field);
+            });
+
+            it('opens as a non-modal dialog and closes it, so the browser returns focus where it came from', async () => {
+                // jsdom has no show() or close(): stand-ins that keep the open flag as a browser does.
+                const proto = window.HTMLDialogElement.prototype;
+                const show = jest.fn(function show() {
+                    this.setAttribute('open', '');
+                });
+                const close = jest.fn(function close() {
+                    this.removeAttribute('open');
+                });
+                const showModal = jest.fn();
+                Object.assign(proto, { show, close, showModal });
+                try {
+                    const el = await mountCompact();
+                    key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+                    await flush();
+                    expect(show).toHaveBeenCalledTimes(1);
+                    expect(showModal).not.toHaveBeenCalled();
+                    expect(sheet().hasAttribute('open')).toBe(true);
+
+                    key(composer(el), { key: 'Escape' });
+                    await flush();
+                    expect(close).toHaveBeenCalledTimes(1);
+                    expect(sheet().hasAttribute('open')).toBe(false);
+                } finally {
+                    delete proto.show;
+                    delete proto.close;
+                    delete proto.showModal;
+                }
+            });
+
+            it('falls back to the launcher, never the page body, when the element it came from is gone', async () => {
+                const outside = document.createElement('input');
+                document.body.appendChild(outside);
+                const el = await mountCompact();
+                outside.focus();
+                key(outside, { code: 'KeyK', key: 'k', ctrlKey: true });
+                await flush();
+                outside.remove();
+
+                const focusLauncher = jest.spyOn(launcher(), 'focus');
+                key(composer(el), { key: 'Escape' });
+                await flush();
+                expect(focusLauncher).toHaveBeenCalled();
+                expect(document.activeElement).not.toBe(outside);
+            });
+        });
+
+        describe('accessibility', () => {
+            it('is accessible with the launcher only', async () => {
+                await mountCompact({ expandEnabled: true });
+                await expect(stage()).toBeAccessible();
+            });
+
+            it('is accessible with the window open', async () => {
+                await mountCompact({ expandEnabled: true });
+                launcher().click();
+                await flush();
+                await expect(stage()).toBeAccessible();
+            });
         });
     });
 });
