@@ -73,15 +73,19 @@
     field. An object without one (a contact role) leads with the other side's name: the contact when drilled
     from a deal, the deal when drilled from a contact.
   - Not fixed here, since it is in the panel (LWC, out of this card's scope): the table title and the related
-    chips still show object API names, and the record card still shows lookup Ids.
+    chips still show object API names.
 
 ## Tests
 
 `DataExplorerTest` (scripted model, no callouts):
 
 - `whichOfThoseCloseThisQuarterUsesTheSummarysDeals`, `whoThereHaveWeNotCalledUsesTheSummarysContacts` and
-  `anyOpenCasesOnTheBiggestDealUsesTheSummarysDealAndAccount`: the three named follow-ups. Each checks that the
-  prompt carries the summary's records and ids, and that the plans filtered on them return those records only.
+  `anyOpenCasesOnTheBiggestDealUsesTheSummarysDealAndAccount`: the three named follow-ups, each with a scripted
+  plan. Each checks that the first prompt carries the summary's records with their ids (the context header and
+  the account's id; the open deal's name and id; the contact's name and id; the deal's amount and id), and that
+  the first row of the returned table is the expected record (the deal; the contact, from the second of two
+  queries; the case, from the second of two queries). They do not check that every returned row is one of the
+  summary's records.
 - `anUnclearPronounAfterASummaryIsAskedBackWithNoQuery`: the ask path, one model call, no query.
 - `noSummaryContextWhenTheLastTurnIsNotTheSummary`: after an explore answer, on a non-account record, with no
   record, for an account with no remembered summary; and a clipped summary answer still matches.
