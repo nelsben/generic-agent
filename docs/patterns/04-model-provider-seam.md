@@ -10,12 +10,12 @@ Every model call goes through one door, and prompts are files a team can change 
   prompt is written in Prompt Builder, its inputs are merge fields or data providers, each change is a new version,
   and a version has to be activated before it runs. Every wording change goes through that UI, so a team slows down
   on template details instead of on what the prompt should say.
-- **What the builder sees is not the whole request.** The template text in the builder is not what reaches the
-  model. Merge fields and data providers are filled at run time, as the running user, and the platform adds its own
-  generation settings. Then the Einstein Trust Layer masks personal and payment data before the model sees it, when
-  masking is on in Setup, and scores the reply for toxicity. The Trust Layer does this on the Models API path too, so
-  no path shows a builder the masked text. The difference is where the rest lives: here the whole request that Apex
-  sends is one prompt file plus the values code fills into it, and a trace prints it filled
+- **What the builder sees is not the whole request.** The template text in the builder is not all that reaches the
+  model. Merge fields and data providers resolve at run time, as the running user, and the call carries settings of
+  its own beside the template (here the application name and the maximum length). When masking is on in Setup, the
+  Einstein Trust Layer masks personal and payment data and unmasks the reply, and it scores toxicity; it does this on
+  the Models API path too. The difference is where the rest lives: here the whole request that Apex sends is one
+  prompt file plus the values code fills into it, and a trace prints it filled
   ([fr2-model-door.md](../research/fr2-model-door.md#what-the-trust-layer-does-on-each-path)).
 - **What changes.** A prompt is a plain text file in the repo. A team reads it, changes it, deploys it and tries it
   on a real account in about a minute, alone or with an AI coding assistant. The features never build a prompt
@@ -146,7 +146,7 @@ sequenceDiagram
    platform AI API.
 5. **Cap and check (step 12).** No text is an error. A reply longer than about 4 characters per token of the maximum
    length is cut, on both paths: on the Models API path it is the only length control, on the template path a
-   backstop. This cut adds no marker; the summary adds its own marker when its answer is cut (see
+   backstop. This cut adds no marker. Some features cap their own answer after it (see
    [Limits and open items](#limits-and-open-items)).
 6. **Return (step 13).** The feature gets the text. Any failure, from a missing prompt to a provider exception, is
    one `AgentLlm.LlmException` with the cause kept, which each feature turns into its fixed plain sentence. In tests,
@@ -266,9 +266,12 @@ Whether a run in a real org has passed is kept in one place, the README's [Statu
   rep is FE-5's.
 - **The settings are read in system context** because the data-access permission set does not grant
   `Agent_Prompt_Setting__mdt`. Granting it would let the read move to user mode. BE-33 leaves this open; no card yet.
-- **The door's cut adds no marker.** The character cap cuts a long reply with no notice; the summary's own answer cap
-  ends on a clear marker (BE-29, N8), and the other features have none. The cap is by characters, not tokens, so on
-  the Models API path the model can still spend tokens it was not asked for. No card yet.
+- **The door's cut adds no marker.** The character cap in `AgentLlm` cuts a long reply with no notice. Two features
+  cap their own answer after it: the summary cuts an answer over 5,900 characters at a sentence or line end and adds
+  a clear marker, "[Cut short: this summary reached its length limit.]" (`CustomerSummary`, BE-29, N8); the
+  explorer's action cuts an answer over 5,900 characters and ends it on "..." (`ExploreAction`), a weaker sign. The
+  cap is by characters, not tokens, so on the Models API path the model can still spend tokens it was not asked for.
+  No card yet.
 - **No time limit of the door's own.** A call runs under the platform's callout limits (120 seconds per
   transaction); only the summary budgets model time, by skipping the sentiment. BE-33 recorded the limits; no card
   yet.

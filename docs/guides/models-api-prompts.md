@@ -149,7 +149,7 @@ Deal history:
   Use made-up values, never a real customer's, and say it is an example so the model does not repeat its figures.
 - **Length.** Two controls work together. The prompt's own rule ("Stay under 800 characters") is what the model aims
   for. `Max_Tokens__c` on the setting record sets the door's cut, at about 4 characters a token (400 tokens is about
-  1,600 characters). Keep the prompt's rule well under the cut, so the cut never fires: it adds no marker.
+  1,600 characters). Keep the prompt's rule well under the cut, so the cut does not fire: the door's cut adds no marker.
 - **The model.** `Model__c` on the setting record names the model for that prompt, for example
   `sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet`. Blank means the fallback in `AgentLlmModelsApi.MODEL`. The model
   must be enabled for the Models API in your org. Change one prompt's model at a time, and try it.
@@ -181,8 +181,8 @@ sf apex run --file scripts/prompt-try.apex --target-org <your org> --json
 Custom Metadata Types, or in the repo and deploy). Each run of that prompt then writes lines that start
 `AgentLlm trace <Name>` to the debug log at INFO: the filled system text, the filled user text and the reply length.
 On the template path it writes the template name and each input instead. Record Ids become `[id]`. The filled text
-holds CRM data, so turn the trace on only to debug, and off after. It shows what Apex sends, before the Trust Layer
-masks anything.
+holds CRM data, so turn the trace on only to debug, and off after. `AgentLlm` writes it just before the provider call,
+so it shows what Apex sends to the provider.
 
 ## Check accuracy
 
