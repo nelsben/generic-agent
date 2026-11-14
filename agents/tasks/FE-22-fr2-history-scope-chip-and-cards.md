@@ -4,7 +4,7 @@ title: FR2: the conversation gains history, the scope chip and cards — a sessi
 domain: frontend
 tier: frontier
 tier_reason: extends the component every surface shares, renders a contract from two services, and must keep the interface the compact window already uses
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryCard/**, e2e/**]
 forbid: [force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, agents/**, docs/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -30,3 +30,39 @@ Feature revision 2 (FR2): Ben asked for conversations a rep can come back to ("s
 - **Seen in FE-12's capture (docs/assets/fr2-conversation-core.png):** at the compact width the 'Earlier summaries of <account>' heading truncates with an ellipsis. Make every section heading in the conversation readable at the compact frame's width: wrap it, or shorten it and keep the full text as its accessible name. The FE-12 action-draft/result turn (`_actionTurn`, `turn.isAction`) has no caller yet and its only test reads the source; do not rely on it being tested
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - Org, agent-probe only, under the standing row "Production-classified deploys to `agent-probe`": validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1. Never publish or activate an agent, never create a user, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit and bash scripts/validate-org.sh. No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-14). Two attempts, both at the same sha (03a06bc).
+- Attempt 1: the worker handed back gate=fail with an amend asking to lift the forbid on customerSummaryPanel/** so it could rebuild FE-12's two accordion headings. The verifier found the gate green. The brain refused the amend: it was the last attempt, and the fix means rebuilding both headings and rerunning the live suite. The work is cut as FE-26.
+- Attempt 2: the worker re-sent the hand-back with gate=pass and changed no file. A review returned 18 confirmed, 0 refuted, 6 unverifiable.
+
+Findings:
+- New bundle customerSummaryCard (`@api card`, `@api density`, public `focusLink(ref)`) draws the BE-39 card contract. It folds at 5 rows (compact) and 10 (comfortable). No innerHTML, inner-html or href from card data; Jest asserts it, and asserts no record Id reaches the rendered markup at either density. toBeAccessible() runs in Jest.
+- The chip wash is the primary colour mixed 10% into the surface, replacing --cs-color-accent after a live contrast failure (1.83:1 on related chips); a Jest test pins it.
+- customerSummaryConversation gains `@api density` (default compact), `@api sessionsOpen` and a `sessionchange` event, declared at the top of the JS. Reopening a session calls getSession and shows an empty-question turn as 'Summary'. "New conversation" clears the turns, sets a new session id and keeps the briefed account.
+- The scope chip reads 'Whole org' or 'About <account>'; a whole-org question sends a null context (an e2e test asserts it).
+- cardask and cardopen are handled; focus after a drill returns to the card link, falling back to the composer. cardchoose and cardaction have no handler and bubble.
+- The e2e helpers match both card and card-less markup, and e2e/conversation-fr2.spec.js adds three tests, including the Shift+Tab/Enter keyboard switch. FE-12's own Jest tests were not edited. Answers without cards render as before.
+- No Apex, Panel bundle or spike file changed.
+
+Gate (verifier): 175 Python tests, 264 Jest in 6 suites, validate-org pass (130 components, 326 tests).
+
+Org (worker's account): three scoped LWC deploy cycles to agent-probe, each validated with RunLocalTests (419 tests, 0 failures) and quick deployed under the standing row. The final full Playwright run passed 16 of 16 (4.5 min).
+
+Org writes outside the deploy, under the approved live-checks row: the e2e runs ran as the developer user, who holds the outcome set from BE-35, so Customer_Outcome__c rows on the seed account went from 3 to 21 and Customer_Summary_Session__c from 7 to 8. Nothing was published, no user was created and no assignment changed.
+
+Disclosed and accepted:
+- The org and Playwright figures are the worker's account; nothing in git shows them.
+- Spec 7 ("record heading has focus") failed once in four full runs and passed on rerun; the cause was not found.
+- Requirement 8 is partly met: the headings FE-22 adds wrap, but FE-12's two accordion headings ("Sections: all", "Earlier summaries of <account> (n)") are unchanged and still use nowrap. FE-26 does them.
+- Two zero-padded fixture constants in the new Jest file look like record Ids; they are synthetic, not from an org.
+- A tests/__pycache__ made by the verifier's gate run was removed before review and before merge.
+
+Still open:
+- The drill view shows the record name and object twice (the h2 and the card's h3).
+- The 320 px header row with History was not measured live.
+- When several accounts match, the panel still shows FE-12's candidate buttons; the AMBIGUOUS choice card's cardchoose and cardaction events are not handled yet.
+- The outcome rows the e2e runs write accumulate on the seed account; deleting them, or scheduling the purge job, is Ben's call.
+
+Privacy grep over the diff (4,605 added lines): 0 denylist hits; the two Id-shaped strings are the synthetic fixtures above.
