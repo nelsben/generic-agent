@@ -22,8 +22,8 @@ one worker, no parallelism. Two projects run in the one run, whatever machine it
 `mac` runs every spec with the panel reading a Mac (Cmd-K), and `windows` runs only the specs
 tagged `@hotkey`, with the panel reading Windows (Ctrl-K). `support/panel.js` sets what the page's
 `navigator.platform` and `userAgentData.platform` say before any page script runs; the keys the
-tests press follow it. A full run is 36 tests (one skips on `windows`: the Mac-only Ctrl-K check; FE-15 ran it in chunks,
-so there is no single-run time yet); the smoke run is 10 tests.
+tests press follow it. A full run is 38 tests (one skips on `windows`: the Mac-only Ctrl-K check; FE-15 ran it in chunks,
+so there is no single-run time yet); the smoke run is 11 tests.
 
 ### Smoke subset
 
@@ -39,6 +39,7 @@ front-end change (the full suite stays the release check). They make no model ca
 | The accessible names | 12. the fallback names |
 | The hotkey, both branches | `hotkey-platforms.spec.js`, the platform key opens the window (runs on `mac` and `windows`) |
 | The right rail | `rail.spec.js` 1. Cmd/Ctrl-Shift-K opens the rail over the page, full height; Esc returns focus (runs on `mac` and `windows`) |
+| The history timeline in the rail | `history.spec.js` 1. the timeline opens in the context column, newest first, or its empty line; an entry opens and closes (FE-19; `@smoke`, `mac` only) |
 
 ### Reading the HTML report
 
@@ -100,6 +101,7 @@ The `windows` project runs only specs that make no model call, so it adds none.
 | FR2 4. At 320 px the two tools headings show their full text, wrapped, not clipped (FE-26) | 1 |
 | FR2 5. The Create a follow-up chip draws a task draft card in the turn: the account by name, Subject and Due marked Needed, Confirm off until both are filled (each fill re-drafts), then Cancel closes it with "Cancelled. Nothing was saved." and no commitAction request (`conversation-actions.spec.js`, FE-14; `@smoke`). It never clicks Confirm and creates no record: the confirm path is in the Jest and Apex tests | 0 |
 | Rail 1. Cmd/Ctrl-Shift-K opens the rail flush right, 640 px wide and full height, over the page (the page does not move); header; Esc returns focus (`rail.spec.js`, FE-15; `@smoke`, `mac` and `windows`) | 0 |
+| History 1 and 2. The rail's context column holds the history timeline (the shared card, newest first, an entry opens its detail) and the sentiment chart (labelled points with no line and a text table, or its plain note); with no outcomes on the account each shows its empty line and passes (`history.spec.js`, FE-19; 1 is `@smoke`). Neither writes a record | 0 |
 | Rail 2. Expand from the window opens the rail on the same session with the thread intact and History open | 0 (a `/brief` of no account) |
 | Rail 3. One question asked in the rail is answered in the rail | 1 |
 | Rail 4. Each context section shows rows or its empty line, activity rows name their kind, a row opens its record | 0 |

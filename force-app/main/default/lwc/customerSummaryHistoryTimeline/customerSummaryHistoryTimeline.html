@@ -1,0 +1,74 @@
+<template>
+    <section class="cs-hist" aria-label="Customer history">
+        <template lwc:if={showEmpty}>
+            <p class="cs-hist-note" data-testid="empty">{emptyText}</p>
+        </template>
+        <template lwc:elseif={isError}>
+            <div class="cs-hist-error" data-testid="error">
+                <p class="cs-hist-note">{errorText}</p>
+                <button class="cs-hist-btn" type="button" data-action="retry" onclick={handleRetry}>Try again</button>
+            </div>
+        </template>
+        <template lwc:elseif={isLoading}>
+            <p class="cs-hist-note" role="status">Loading history</p>
+        </template>
+        <template lwc:else>
+            <template lwc:if={hasFilter}>
+                <div class="cs-hist-filter">
+                    <label class="cs-hist-label" for="cs-hist-type">Type</label>
+                    <select class="cs-hist-select" id="cs-hist-type" data-filter onchange={handleFilter}>
+                        <template for:each={typeOptions} for:item="opt">
+                            <option key={opt.value} value={opt.value} selected={opt.selected}>{opt.label}</option>
+                        </template>
+                    </select>
+                </div>
+            </template>
+            <template lwc:if={showCard}>
+                <c-customer-summary-card card={card} density={cardDensity} oncardopen={handleCardOpen}></c-customer-summary-card>
+            </template>
+            <template lwc:if={hasDetail}>
+                <div class="cs-hist-detail" data-testid="detail" role="region" aria-label="Entry detail">
+                    <template lwc:if={detailLoading}>
+                        <p class="cs-hist-note" role="status">Opening</p>
+                    </template>
+                    <template lwc:elseif={detailGone}>
+                        <p class="cs-hist-note">{goneText}</p>
+                    </template>
+                    <template lwc:elseif={detailError}>
+                        <p class="cs-hist-note">{detailErrorText}</p>
+                    </template>
+                    <template lwc:else>
+                        <h4 class="cs-hist-title">{detailOutcome.title}</h4>
+                        <p class="cs-hist-meta">
+                            <span>{detailOutcome.typeLabel}</span>
+                            <time datetime={detailOutcome.date}>{detailOutcome.date}</time>
+                            <template lwc:if={detailOutcome.hasSentiment}><span>{detailOutcome.sentiment}</span></template>
+                        </p>
+                        <template lwc:if={detailWithheld}>
+                            <p class="cs-hist-note" data-testid="withheld">{withheldText}</p>
+                        </template>
+                        <template lwc:if={detailShown}>
+                            <template lwc:if={detailOutcome.hasHeadline}>
+                                <p class="cs-hist-headline">{detailOutcome.headline}</p>
+                            </template>
+                            <template lwc:if={detailOutcome.hasBody}>
+                                <div class="cs-hist-body" data-testid="body">
+                                    <template for:each={detailOutcome.paragraphs} for:item="p">
+                                        <p key={p.key}>{p.text}</p>
+                                    </template>
+                                </div>
+                            </template>
+                            <template lwc:if={detailOutcome.hasReason}>
+                                <p class="cs-hist-reason"><span class="cs-hist-reason-head">Sentiment reason</span> {detailOutcome.reason}</p>
+                            </template>
+                            <template lwc:if={detailOutcome.hasRecord}>
+                                <button class="cs-hist-btn" type="button" data-action="record" onclick={handleOpenRecord}>Open the related record</button>
+                            </template>
+                        </template>
+                    </template>
+                    <button class="cs-hist-btn" type="button" data-action="close" onclick={handleCloseDetail}>Close</button>
+                </div>
+            </template>
+        </template>
+    </section>
+</template>
