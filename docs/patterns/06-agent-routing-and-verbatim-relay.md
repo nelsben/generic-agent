@@ -158,8 +158,9 @@ All optional. Do them after the README's quick start, which deploys the Apex the
    sf org assign permset -o <org-alias> -n Customer_Summary_Agent_Access
    ```
 
-   The channel can need its own standard Agentforce user permission set as well; the agent review names
-   `CopilotSalesforceUser` for Lightning ([agent-review-2.md](../reviews/agent-review-2.md), N5).
+   The agent review says the panel also needs the standard Agentforce user permission set
+   `CopilotSalesforceUser` ([agent-review-2.md](../reviews/agent-review-2.md), N5). That name has not been
+   confirmed in an org, so check it in yours ([07](07-trust-access-and-failure.md)).
 5. **Run the checks.** One turn from Apex through `generateAiAgentResponse`, as in
    [agent-api.md](../research/agent-api.md), then the 16-case spec with `sf agent test create` and
    `sf agent test run` ([08](08-test-and-release-lifecycle.md), step 7). The spec runs only on an active version,
