@@ -11,6 +11,10 @@
 private class CustomerOutcomesTest {
 
     private static User newUser(String profileName, String alias) {
+        return newUser(profileName, alias, 'America/New_York');
+    }
+
+    private static User newUser(String profileName, String alias, String zone) {
         Profile p = [SELECT Id FROM Profile WHERE Name = :profileName LIMIT 1];
         String uniq = alias + String.valueOf(Math.abs(Crypto.getRandomInteger()));
         return new User(
@@ -21,14 +25,19 @@ private class CustomerOutcomesTest {
             LanguageLocaleKey = 'en_US',
             LocaleSidKey = 'en_US',
             ProfileId = p.Id,
-            TimeZoneSidKey = 'America/New_York',
+            TimeZoneSidKey = zone,
             Username = uniq + '@example.com.outcometest'
         );
     }
 
     /** A rep: Minimum Access, the data-access set, and (when outcomes) the outcome set with its Account read. */
     private static User rep(String alias, Boolean dataAccess, Boolean outcomes) {
-        User u = newUser('Minimum Access - Salesforce', alias);
+        return rep(alias, dataAccess, outcomes, 'America/New_York');
+    }
+
+    /** The same rep in a given time zone: Pacific/Kiritimati (UTC+14) is on another date than the running user most of the day. */
+    private static User rep(String alias, Boolean dataAccess, Boolean outcomes, String zone) {
+        User u = newUser('Minimum Access - Salesforce', alias, zone);
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert u;
             List<PermissionSetAssignment> grants = new List<PermissionSetAssignment>();
@@ -42,6 +51,7 @@ private class CustomerOutcomesTest {
         return u;
     }
 
+    private static final String KIRITIMATI = 'Pacific/Kiritimati';
     private static final String OUTCOME_SET = 'Customer_Summary_Outcome_Access';
 
     private static void loseAccounts(User u) {
@@ -141,21 +151,23 @@ private class CustomerOutcomesTest {
     @IsTest
     static void anActionAndASavedAnswerExpireAfterTheirTypesRetention() {
         shippedTypes();
-        User author = rep('oret', true, true);
+        User author = rep('oret', true, true, KIRITIMATI);
         Account a = account('Outcome Retention');
         CustomerOutcomes.Input saved = new CustomerOutcomes.Input(a.Id, 'saved answer');
         saved.title = 'Biggest open deal';
         saved.body = 'Orion expansion, 120,000.';
         List<Id> ids;
+        Date authorToday; // the author's own date: the expiry is stamped from it, and the running user's zone can be another day
         System.runAs(author) {
+            authorToday = Date.today();
             ids = CustomerOutcomes.recordAll(new List<CustomerOutcomes.Input>{ taskAction(a.Id, null), saved });
         }
 
         Assert.areEqual(2, ids.size());
-        Assert.areEqual(Date.today().addDays(730), stored(ids[0]).Expires__c, 'an action lives two years');
+        Assert.areEqual(authorToday.addDays(730), stored(ids[0]).Expires__c, 'an action lives two years');
         Customer_Outcome__c answer = stored(ids[1]);
         Assert.areEqual('Saved_Answer', answer.Outcome_Type__c, 'a type is matched by its label too');
-        Assert.areEqual(Date.today().addDays(730), answer.Expires__c);
+        Assert.areEqual(authorToday.addDays(730), answer.Expires__c);
         Assert.areEqual('Biggest open deal', answer.Title__c);
         Assert.areEqual('Orion expansion, 120,000.', answer.Headline__c, 'the headline defaults to the first line of the body');
     }
@@ -163,13 +175,15 @@ private class CustomerOutcomesTest {
     @IsTest
     static void aTypeWithItsOwnRetentionIsHonoured() {
         CustomerOutcomes.typesForTest = new Map<String, Customer_Outcome_Type__mdt>{ 'Note' => type('Note', 'Note', 30, false) };
-        User author = rep('onote', true, true);
+        User author = rep('onote', true, true, KIRITIMATI);
         Account a = account('Outcome Custom Type');
         Id outcomeId;
+        Date authorToday;
         System.runAs(author) {
+            authorToday = Date.today();
             outcomeId = CustomerOutcomes.record(new CustomerOutcomes.Input(a.Id, 'Note'));
         }
-        Assert.areEqual(Date.today().addDays(30), stored(outcomeId).Expires__c, 'room for more types, each with its own retention');
+        Assert.areEqual(authorToday.addDays(30), stored(outcomeId).Expires__c, 'room for more types, each with its own retention');
     }
 
     @IsTest
