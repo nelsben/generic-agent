@@ -268,7 +268,7 @@ deploys them on purpose, and the API steps that build the server where that depl
 - **`ask_anything` opens the explorer to outside clients.** It runs read-only queries as the signed-in rep and calls a
   model on each turn. Accepted.
 - **The diagrams on this page have not been render-checked:** the render check in
-  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
+  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. OPS-61 has it, and it is parked.
 
 ### Closed since the earlier version of this page
 

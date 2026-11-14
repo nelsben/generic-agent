@@ -227,6 +227,6 @@ prompt settings in system context because they are the product's own configurati
 - One brand per org. Different brands for different users would need a second record and a way to
   choose it; no card yet.
 - The diagram on this page has not been render-checked: the render check in
-  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
+  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. OPS-61 has it, and it is parked.
 
 [Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
