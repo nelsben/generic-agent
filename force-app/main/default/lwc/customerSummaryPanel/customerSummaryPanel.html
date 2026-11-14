@@ -32,7 +32,8 @@
             <!-- The right rail (FE-15): slides over the page; the conversation moves into its slot while it is out. -->
             <c-customer-summary-rail class="cs-rail-host" lwc:ref="rail" record-id={pageRecordId}
                 object-api-name={pageObjectApiName} brand={brand} onrailopen={handleRailOpen}
-                onrailclose={handleRailClose} onrailminimize={handleRailMinimize}>
+                onrailclose={handleRailClose} onrailminimize={handleRailMinimize}
+                onrailopenrecord={handleRailOpenRecord}>
                 <div slot="conversation" class="cs-conversation-home cs-conversation-home_rail" lwc:ref="railHome"
                     lwc:dom="manual"></div>
             </c-customer-summary-rail>

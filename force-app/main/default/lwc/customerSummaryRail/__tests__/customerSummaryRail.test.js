@@ -343,6 +343,27 @@ describe('c-customer-summary-rail', () => {
             expect(el.state).toBe('minimized');
         });
 
+        it('slides a peek back when the pointer leaves the sliding tab without entering the rail, and stays if it enters', async () => {
+            const el = await mount();
+            el.open();
+            el.minimize();
+            await flush();
+            jest.useFakeTimers();
+            tab(el).dispatchEvent(new CustomEvent('mouseenter'));
+            jest.advanceTimersByTime(HOVER_OPEN_MS);
+            expect(el.state).toBe('open');
+            tab(el).dispatchEvent(new CustomEvent('mouseleave'));
+            jest.advanceTimersByTime(PEEK_CLOSE_MS);
+            expect(el.state).toBe('minimized');
+
+            tab(el).dispatchEvent(new CustomEvent('mouseenter'));
+            jest.advanceTimersByTime(HOVER_OPEN_MS);
+            tab(el).dispatchEvent(new CustomEvent('mouseleave'));
+            rail(el).dispatchEvent(new CustomEvent('mouseenter'));
+            jest.advanceTimersByTime(PEEK_CLOSE_MS * 2);
+            expect(el.state).toBe('open');
+        });
+
         it('does not open when the pointer only passes over the tab', async () => {
             const el = await mount();
             el.open();
@@ -494,6 +515,18 @@ describe('c-customer-summary-rail', () => {
             for (const id of [ACME, DEAL, CASE, TASK, EMAIL, COMMENT]) {
                 expect(markup).not.toContain(id);
             }
+        });
+
+        it('hands the record to a host that takes railopenrecord, and then does not navigate itself', async () => {
+            const el = await mount();
+            const asked = jest.fn((event) => event.preventDefault());
+            el.addEventListener('railopenrecord', asked);
+            hotkey();
+            await flush();
+            section(el, 'deals').querySelector('button.cs-ctx-item').click();
+            expect(asked).toHaveBeenCalledTimes(1);
+            expect(asked.mock.calls[0][0].detail).toEqual({ recordId: DEAL });
+            expect(mockNavigate).not.toHaveBeenCalled();
         });
 
         it('collapses and expands a section', async () => {

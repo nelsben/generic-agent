@@ -1434,6 +1434,26 @@ describe('c-customer-summary-panel', () => {
                 expect(railEl().state).toBe('minimized');
             });
 
+            it('navigates for a context row in the rail: the rail is on the body-mounted stage, the panel is not', async () => {
+                getContext.mockResolvedValue({
+                    openDeals: [{ recordId: '006000000000001AAA', name: 'Renewal', stage: 'Proposal', amount: 1000, closeDate: '2026-12-01' }],
+                    recentActivity: [],
+                    openCases: [],
+                    lastSummary: null,
+                    unavailable: []
+                });
+                await mountRail();
+                launcherExpand().click();
+                await flush();
+                mockNavigate.mockClear();
+                railEl().shadowRoot.querySelector('[data-section-body="deals"] button.cs-ctx-item').click();
+                expect(mockNavigate).toHaveBeenCalledTimes(1);
+                expect(mockNavigate).toHaveBeenCalledWith({
+                    type: 'standard__recordPage',
+                    attributes: { recordId: '006000000000001AAA', actionName: 'view' }
+                });
+            });
+
             it('runs a CustomerSummaryOpen prompt in the rail while the rail is out', async () => {
                 explore.mockResolvedValue(exploreResult('Rail answer.'));
                 const el = await mountRail();

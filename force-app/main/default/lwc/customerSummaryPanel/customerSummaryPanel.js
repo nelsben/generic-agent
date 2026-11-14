@@ -40,7 +40,7 @@
  * (FE-22's control). Cmd/Ctrl-K with the rail out brings the thread back to the window.
  */
 import { LightningElement, api, wire } from 'lwc';
-import { CurrentPageReference } from 'lightning/navigation';
+import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
 import { subscribe, unsubscribe, publish, MessageContext, APPLICATION_SCOPE } from 'lightning/messageService';
 import { EnclosingUtilityId, minimize as minimizeUtility } from 'lightning/platformUtilityBarApi';
 import CUSTOMER_SUMMARY_OPEN from '@salesforce/messageChannel/CustomerSummaryOpen__c';
@@ -114,7 +114,7 @@ function moveToBody(el) {
     document.body.appendChild(el);
 }
 
-export default class CustomerSummaryPanel extends LightningElement {
+export default class CustomerSummaryPanel extends NavigationMixin(LightningElement) {
     @api recordId;
     @api objectApiName;
     /** Turns on the right rail (FE-15): the Expand buttons, Cmd/Ctrl-Shift-K and the rail itself. */
@@ -478,6 +478,22 @@ export default class CustomerSummaryPanel extends LightningElement {
 
     handleRailMinimize() {
         this.railState = 'minimized';
+    }
+
+    /**
+     * A row in the rail's context: the panel navigates, not the rail. The rail sits on the stage that was moved
+     * onto document.body, out of reach of the page's navigation context; this element stays in the utility bar.
+     */
+    handleRailOpenRecord(event) {
+        const recordId = event.detail && event.detail.recordId;
+        if (!recordId) {
+            return;
+        }
+        event.preventDefault();
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: { recordId, actionName: 'view' }
+        });
     }
 
     /** The rail closed: the thread comes back to the window. When the rail could not put focus back, the launcher takes it. */
