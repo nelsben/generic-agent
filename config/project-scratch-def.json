@@ -1,0 +1,16 @@
+{
+  "orgName": "Customer Summary scratch",
+  "edition": "Developer",
+  "features": ["EnableSetPasswordInApi", "Einstein1AIPlatform"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "agentPlatformSettings": {
+      "enableAgentPlatform": true
+    },
+    "einsteinGptSettings": {
+      "enableEinsteinGptPlatform": true
+    }
+  }
+}
