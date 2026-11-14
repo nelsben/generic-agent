@@ -1,5 +1,5 @@
 <template>
-    <article class={cardClass} aria-labelledby={labelledBy} aria-label={ariaLabel} data-type={view.type} data-family={view.family}>
+    <article class={cardClass} aria-labelledby={labelledBy} aria-label={ariaLabel} aria-busy={ariaBusy} data-type={view.type} data-family={view.family}>
         <!-- Pinned: the title, the meta line and the status. A folding card's title is its toggle. -->
         <template lwc:if={hasHead}>
             <header class="cs-head">
@@ -40,21 +40,44 @@
                     </template>
                 </template>
 
-                <!-- Fields: one record (an action draft and result once drawn). -->
+                <!-- Fields: one record, an action draft (its fields editable in action-mode) and a result. -->
                 <template lwc:elseif={isFields}>
                     <dl class="cs-fields">
-                        <template for:each={view.fields} for:item="f">
-                            <div key={f.key} class="cs-field">
-                                <dt class="cs-dt">{f.label}</dt>
+                        <template for:each={fieldRows} for:item="f">
+                            <div key={f.key} class={f.fieldClass} data-field={f.fieldKey}>
+                                <template lwc:if={f.showInput}>
+                                    <dt class="cs-dt"><label class="cs-label" for={f.inputId}>{f.label}</label></dt>
+                                </template>
+                                <template lwc:else>
+                                    <dt class="cs-dt">{f.label}</dt>
+                                </template>
                                 <dd class={f.ddClass}>
-                                    <template lwc:if={f.isLink}>
+                                    <template lwc:if={f.showInput}>
+                                        <input
+                                            class="cs-input"
+                                            type="text"
+                                            id={f.inputId}
+                                            data-field={f.fieldKey}
+                                            value={f.inputValue}
+                                            required={f.isMissing}
+                                            aria-invalid={f.ariaInvalid}
+                                            aria-describedby={f.describedBy}
+                                            disabled={isBusy}
+                                            autocomplete="off"
+                                            onchange={handleEdit}
+                                            onkeydown={handleFieldKeydown}
+                                        />
+                                        <template lwc:if={f.isMissing}><span class="cs-needed" id={f.neededId}>Needed</span></template>
+                                        <template lwc:if={f.hasWas}><span class="cs-was">{f.wasText}</span></template>
+                                    </template>
+                                    <template lwc:elseif={f.isLink}>
                                         <button class="cs-link" data-ref={f.ref} aria-label={f.linkLabel} onclick={handleOpen}>{f.value}</button>
                                     </template>
                                     <template lwc:else><span>{f.value}</span></template>
                                     <template lwc:if={f.hasChoices}>
                                         <span class="cs-choices" role="group" aria-label={f.label}>
                                             <template for:each={f.choices} for:item="ch">
-                                                <button key={ch.key} class="cs-chip" data-ref={ch.ref} data-field={ch.fieldKey} onclick={handleChoose}>{ch.label}</button>
+                                                <button key={ch.key} class="cs-chip" data-ref={ch.ref} data-field={ch.fieldKey} disabled={isBusy} onclick={handleChoose}>{ch.label}</button>
                                             </template>
                                         </span>
                                     </template>
@@ -193,8 +216,8 @@
                 </template>
                 <template lwc:if={hasControls}>
                     <div class="cs-controls">
-                        <template for:each={view.controls} for:item="k">
-                            <button key={k.key} class={k.btnClass} data-control={k.key} onclick={handleControl}>{k.label}</button>
+                        <template for:each={controlRows} for:item="k">
+                            <button key={k.key} class={k.btnClass} data-control={k.key} disabled={k.disabled} onclick={handleControl}>{k.label}</button>
                         </template>
                     </div>
                 </template>

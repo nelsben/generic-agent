@@ -13,11 +13,24 @@
  *   event cardchoose  detail { cardKey, fieldKey, ref, recordId } a candidate or a field choice was chosen
  *   event cardask     detail { text }                        a follow-up chip or a related object was chosen
  *   event cardaction  detail { cardKey, control }             a draft or result button was pressed
+ *   @api actionMode  FE-14. '' (the default): the action types show their own text, as FE-22 built it.
+ *                   Set by a host that runs the write actions, it draws actionDraft and actionResult:
+ *                   'open'   a draft's fields are editable; Confirm is enabled only when the draft is READY
+ *                   'busy'   a draft is being made again or committed: every field and button is disabled
+ *                   'closed' the draft was confirmed or cancelled: its values only, no field and no button
+ *   event cardedit   detail { cardKey, fieldKey, value }      FE-14: a draft field was changed (on change,
+ *                   only when its value differs). The host drafts again; the card writes nothing.
  * Every event bubbles and is composed.
  *
  * Six layouts, one per family: prose, list, fields, grid, metric, chips. Anything else shows the
- * card's own plain text: an unknown type, a version above the registry's, a type not drawn yet (the
- * action types) and a builder that throws. Rich text is drawn from the card's body runs only.
+ * card's own plain text: an unknown type, a version above the registry's, a type not drawn here (the
+ * action types without action-mode) and a builder that throws. Rich text is drawn from the card's body
+ * runs only.
+ *
+ * A draft field is a text box named by its label. The account the record goes on (WhatId, AccountId)
+ * and an update with no change named are shown, not edited. A missing field is marked "Needed" and is
+ * required; an update's value before shows beside the new value ("Was Qualification"). Edit moves focus
+ * to the first field to fill. Keys typed in a field stay in the card, except Esc.
  *
  * Every value is bound as text. Nothing is written as markup and no href is built from card data:
  * a record link is a button that fires cardopen, and the host navigates by Id. A record Id never
@@ -28,6 +41,12 @@
  */
 import { LightningElement, api } from 'lwc';
 import { viewOf } from './cardContract';
+
+// A draft field the card shows but never edits: the account it goes on, and an update with no change named.
+const READ_ONLY_FIELDS = new Set(['WhatId', 'AccountId', 'changes']);
+// An update's value carries its value before: 'Negotiation (was Qualification)'.
+const WAS = /^([\s\S]*) \(was ([^()]*)\)$/;
+const MODES = new Set(['open', 'busy', 'closed']);
 
 const ROVE_STEP = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
 
@@ -55,6 +74,7 @@ let uid = 0;
 export default class CustomerSummaryCard extends LightningElement {
     _card = null;
     _density = 'compact';
+    _mode = '';
     view = viewOf(null, 'compact');
     open = true;
     expanded = false;
@@ -78,6 +98,15 @@ export default class CustomerSummaryCard extends LightningElement {
         this._build(false);
     }
 
+    @api
+    get actionMode() {
+        return this._mode;
+    }
+    set actionMode(value) {
+        this._mode = MODES.has(value) ? value : '';
+        this._build(false);
+    }
+
     /**
      * Moves focus to this card's first link to the record with that ref key, so a host can return
      * focus to the link a drill started from. True when a link took focus.
@@ -93,7 +122,7 @@ export default class CustomerSummaryCard extends LightningElement {
     }
 
     _build(reset) {
-        this.view = viewOf(this._card, this._density);
+        this.view = viewOf(this._card, this._density, this._mode ? { actions: true } : undefined);
         if (reset) {
             this.open = this.view.openByDefault !== false;
             this.expanded = false;
@@ -233,7 +262,73 @@ export default class CustomerSummaryCard extends LightningElement {
         return (this.view.rows || []).some((r) => r.ref) ? null : '0';
     }
     get hasControls() {
-        return (this.view.controls || []).length > 0;
+        return (this.view.controls || []).length > 0 && this._mode !== 'closed';
+    }
+
+    // ------------------------------------------------------------ write actions (FE-14)
+
+    /** A draft drawn for a host that runs the write actions, before it is confirmed or cancelled. */
+    get _editing() {
+        return this.view.type === 'actionDraft' && !this.view.isFallback && (this._mode === 'open' || this._mode === 'busy');
+    }
+    get isBusy() {
+        return this._mode === 'busy';
+    }
+    get ariaBusy() {
+        return this.isBusy ? 'true' : null;
+    }
+    get fieldRows() {
+        const editing = this._editing;
+        return (this.view.fields || []).map((f, n) => {
+            const showInput = editing && !READ_ONLY_FIELDS.has(f.fieldKey);
+            const was = WAS.exec(f.raw || '');
+            const neededId = this.titleId + '-need-' + n;
+            return {
+                ...f,
+                fieldClass: f.isMissing ? 'cs-field cs-field-missing' : 'cs-field',
+                showInput,
+                inputId: this.titleId + '-in-' + n,
+                neededId,
+                inputValue: was ? was[1] : f.raw || '',
+                hasWas: showInput && !!was,
+                wasText: was ? 'Was ' + was[2] : '',
+                ariaInvalid: f.isMissing ? 'true' : null,
+                describedBy: f.isMissing ? neededId : null
+            };
+        });
+    }
+    get controlRows() {
+        const mode = this._mode;
+        const unready = this.view.type === 'actionDraft' && this.view.status !== 'READY';
+        return (this.view.controls || []).map((k) => ({
+            ...k,
+            disabled: mode === 'busy' || (!!mode && k.key === 'confirm' && unready)
+        }));
+    }
+
+    handleEdit(event) {
+        const box = event.currentTarget;
+        const field = this.fieldRows.find((f) => f.fieldKey === box.dataset.field);
+        const value = String(box.value || '').trim();
+        if (!field || value === field.inputValue.trim()) {
+            return;
+        }
+        this._fire('cardedit', { cardKey: this.view.key, fieldKey: field.fieldKey, value });
+    }
+
+    /** Keys typed in a field are the field's: they never reach a host's shortcuts. Esc still closes. */
+    handleFieldKeydown(event) {
+        if (event.key !== 'Escape') {
+            event.stopPropagation();
+        }
+    }
+
+    _focusFirstField() {
+        const boxes = Array.from(this.template.querySelectorAll('input[data-field]'));
+        const target = boxes.find((b) => b.required) || boxes[0];
+        if (target) {
+            target.focus();
+        }
     }
     get relatedItems() {
         return this.view.type === 'record' ? this.view.items || [] : [];
@@ -331,7 +426,11 @@ export default class CustomerSummaryCard extends LightningElement {
     }
 
     handleControl(event) {
-        this._fire('cardaction', { cardKey: this.view.key, control: event.currentTarget.dataset.control });
+        const control = event.currentTarget.dataset.control;
+        if (control === 'edit' && this._editing) {
+            this._focusFirstField();
+        }
+        this._fire('cardaction', { cardKey: this.view.key, control });
     }
 
     _fire(name, detail) {

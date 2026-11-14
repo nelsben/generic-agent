@@ -9,11 +9,14 @@
  *   parseRich(text, refs)  the rich-text subset as blocks of runs (never markup). Only for text a
  *                          surface writes itself: a card's rich text arrives as body runs.
  *   plainText(card)        the Id-free plain-text fallback, one rule per type
- *   viewOf(card, density)  the view model the card component binds, or a fallback view; never throws
+ *   viewOf(card, density, options)  the view model the card component binds, or a fallback view;
+ *                          never throws. options.actions draws the action types (FE-14).
  *
  * A new card type is one entry in TYPES (its version, its layout family) and one plain-text rule.
- * A type marked ready: false is registered but not drawn yet: it shows its text (the action types,
- * until FE-14 ships the write actions).
+ * A type marked ready: false is registered but not drawn by default: it shows its text. The action
+ * types are drawn only for a host that runs the write actions and says so (options.actions, which
+ * c-customer-summary-card passes when its action-mode is set, FE-14); everywhere else they show their
+ * text, so a surface that cannot confirm a draft never shows a Confirm button.
  */
 
 export const CONTRACT_VERSION = 1;
@@ -306,6 +309,8 @@ function viewFields(card, refs) {
             fieldKey: str(f.key),
             label: str(f.label),
             value: f.state === 'missing' && !f.value ? 'Needed' : str(f.value),
+            // The value as the card carries it: what an editable draft field starts from (FE-14).
+            raw: str(f.value),
             isMissing: f.state === 'missing',
             isChoose: f.state === 'choose',
             hasChoices: choices.length > 0,
@@ -410,7 +415,7 @@ export const TYPES = {
     timeline: { version: 1, family: FAMILY.LIST },
     trail: { version: 1, family: FAMILY.LIST, folds: 'closed' },
     record: { version: 1, family: FAMILY.FIELDS },
-    // Not drawn until the write actions ship (FE-14): their text shows.
+    // Drawn only for a host that runs the write actions (viewOf's options.actions, FE-14): their text shows elsewhere.
     actionDraft: { version: 1, family: FAMILY.FIELDS, ready: false },
     actionResult: { version: 1, family: FAMILY.FIELDS, ready: false },
     table: { version: 1, family: FAMILY.GRID },
@@ -432,10 +437,11 @@ function fallbackView(card, reason) {
 }
 
 /**
- * The view a renderer binds. An unknown type, a version above the registry's, a type not drawn yet
- * or a builder that throws all give the fallback view: the card's own plain text.
+ * The view a renderer binds. An unknown type, a version above the registry's, a type not drawn here
+ * or a builder that throws all give the fallback view: the card's own plain text. options.actions
+ * draws a ready: false type (the action types); the version check and the fallback still apply.
  */
-export function viewOf(card, density) {
+export function viewOf(card, density, options) {
     const d = density === 'compact' ? 'compact' : 'comfortable';
     if (!card || typeof card !== 'object') {
         return fallbackView({}, 'empty');
@@ -447,7 +453,7 @@ export function viewOf(card, density) {
     if (!(Number(card.version) >= 1) || Number(card.version) > entry.version) {
         return fallbackView(card, 'unknown-version');
     }
-    if (entry.ready === false) {
+    if (entry.ready === false && !(options && options.actions)) {
         return fallbackView(card, 'not-ready');
     }
     try {
