@@ -4,6 +4,10 @@
  * rebuilds and checks the draft again before it writes, so a changed draft writes nothing it would not show.
  * It never calls a model, so its write never meets a callout. The result card (BE-39's actionResult) comes back as
  * JSON next to the other outputs.
+ *
+ * OPS-59: this is the MCP door's commit_action tool. A client can send any JSON here, so the draft is read once and
+ * refused with CustomerSummaryActionDraftAction.DOOR_REFUSED_TEXT, writing nothing, unless its action is one the door
+ * allows (create_task or log_call). The panel commits through CustomerSummaryActions and keeps all six.
  */
 public with sharing class CustomerSummaryActionCommitAction {
     public class Request {
@@ -37,7 +41,7 @@ public with sharing class CustomerSummaryActionCommitAction {
         List<Response> out = new List<Response>();
         // One confirmed draft per request; each is its own all-or-nothing write in user mode.
         for (Request req : requests == null ? new List<Request>() : requests) {
-            CustomerSummaryActions.Result r = CustomerSummaryActions.commitJson(req == null ? null : req.draftJson);
+            CustomerSummaryActions.Result r = commitOne(req == null ? null : req.draftJson);
             Response res = new Response();
             res.status = r.status;
             res.recordId = r.recordId;
@@ -51,5 +55,24 @@ public with sharing class CustomerSummaryActionCommitAction {
             out.add(res);
         }
         return out;
+    }
+
+    /** Reads the draft once; refuses it unless the door allows its action, then commits that same draft. */
+    private static CustomerSummaryActions.Result commitOne(String draftJson) {
+        CustomerSummaryActions.Draft d;
+        try {
+            d = String.isBlank(draftJson) ? null : (CustomerSummaryActions.Draft) JSON.deserialize(draftJson, CustomerSummaryActions.Draft.class);
+        } catch (Exception e) {
+            d = null; // not a draft: commitDraft refuses it below
+        }
+        if (d != null && !CustomerSummaryActionDraftAction.allowed(d.action)) {
+            CustomerSummaryActions.Result r = new CustomerSummaryActions.Result();
+            r.status = CustomerSummaryActions.REFUSED;
+            r.action = d.action;
+            r.title = 'Not saved';
+            r.message = CustomerSummaryActionDraftAction.DOOR_REFUSED_TEXT;
+            return r;
+        }
+        return CustomerSummaryActions.commitDraft(d);
     }
 }

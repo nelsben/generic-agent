@@ -454,7 +454,7 @@ private class CustomerSummaryActionsTest {
         byType.inputJson = '{"subject":"Portal is down"}';
         CustomerSummaryActionDraftAction.Request bad = new CustomerSummaryActionDraftAction.Request();
         bad.accountId = accountId;
-        bad.actionType = 'create_case';
+        bad.actionType = 'create_task';
         bad.inputJson = 'not json';
         Test.startTest();
         List<CustomerSummaryActionDraftAction.Response> drafts = CustomerSummaryActionDraftAction.draft(
@@ -473,7 +473,10 @@ private class CustomerSummaryActionsTest {
         Assert.isTrue(drafts[0].draftText.contains('Contact: Maria Lopez'), drafts[0].draftText);
         Assert.isFalse(drafts[0].draftText.contains(String.valueOf(mariaId)), 'no Id in the text a user sees');
         Assert.isTrue(drafts[0].cards.contains('"actionDraft"'), drafts[0].cards);
-        Assert.areEqual(CustomerSummaryActions.READY, drafts[1].status, drafts[1].draftText);
+        // OPS-59: the invocables are the MCP door, which allows create_task and log_call only.
+        Assert.areEqual(CustomerSummaryActions.REFUSED, drafts[1].status, drafts[1].draftText);
+        Assert.areEqual(CustomerSummaryActionDraftAction.DOOR_REFUSED_TEXT, drafts[1].message);
+        Assert.isNull(drafts[1].draftJson, 'a refused action has no draft to commit');
         Assert.isFalse(drafts[2].isSuccess);
         Assert.areEqual(CustomerSummaryActions.BAD_INPUT_TEXT, drafts[2].errorMessage);
         Assert.areEqual(CustomerSummaryActions.OK, results[0].status, results[0].message);

@@ -95,14 +95,17 @@ class TestDoorMetadata(unittest.TestCase):
         path = os.path.join(DOOR, "main", "default", "mcpServerDefinitions")
         self.assertEqual(os.listdir(path), ["CustomerSummaryMcp.mcpServerDefinition-meta.xml"])
 
-    def test_tools_are_the_three_apex_actions_and_no_agent(self):
+    def test_tools_are_the_five_apex_actions_and_no_agent(self):
         # OPS-31: the door's tools are Apex actions (resolve, summary, ask anything through the
-        # explorer). The optional agent is not a tool, so no tool points at an agent (ag:...).
+        # explorer). OPS-59 adds BE-27's write pair, draft_action and commit_action. The optional
+        # agent is not a tool, so no tool points at an agent (ag:...).
         tools = server_tools()
         self.assertEqual(
             sorted((t["toolName"], t["apiIdentifier"], t["operation"]) for t in tools),
             [
                 ("ask_anything", "aa:apex-ExploreAction", "ExploreAction"),
+                ("commit_action", "aa:apex-CustomerSummaryActionCommitAction", "CustomerSummaryActionCommitAction"),
+                ("draft_action", "aa:apex-CustomerSummaryActionDraftAction", "CustomerSummaryActionDraftAction"),
                 ("get_account_summary", "aa:apex-CustomerSummaryGetAction", "CustomerSummaryGetAction"),
                 ("resolve_account", "aa:apex-CustomerSummaryResolver", "CustomerSummaryResolver"),
             ],
@@ -115,6 +118,35 @@ class TestDoorMetadata(unittest.TestCase):
             text = f.read()
         self.assertNotIn("ag:", text, "an agent is listed as a tool")
         self.assertNotIn("agent", text.lower(), "the server or a tool still points clients at the agent")
+
+    def test_write_pair_markings(self):
+        # BE-22: draft_action writes nothing, so it is read-only; commit_action writes and can
+        # change records, so it is not read-only and is destructive. OPS-31's three keep all false.
+        by_name = {t["toolName"]: t for t in server_tools()}
+        self.assertIn("draft_action", by_name)
+        self.assertIn("commit_action", by_name)
+        self.assertEqual((by_name["draft_action"]["readOnly"], by_name["draft_action"]["destructive"]),
+                         ("true", "false"))
+        self.assertEqual((by_name["commit_action"]["readOnly"], by_name["commit_action"]["destructive"]),
+                         ("false", "true"))
+        for name in ("resolve_account", "get_account_summary", "ask_anything"):
+            with self.subTest(tool=name):
+                tool = by_name[name]
+                self.assertEqual([tool[k] for k in ("readOnly", "destructive", "idempotent", "openWorld")],
+                                 ["false"] * 4)
+
+    def test_write_pair_descriptions_carry_the_confirm_rule(self):
+        # The draft-then-confirm rule travels with the tools: show the draft, call commit_action
+        # only after the person says yes, pass the draft back unchanged; two actions only.
+        by_name = {t["toolName"]: t for t in server_tools()}
+        for name, other in (("draft_action", "commit_action"), ("commit_action", "draft_action")):
+            with self.subTest(tool=name):
+                text = by_name[name].get("descriptionOverride") or ""
+                self.assertIn(other, text)
+                self.assertIn("yes", text)
+                self.assertIn("unchanged", text)
+                self.assertIn("create_task", text)
+                self.assertIn("log_call", text)
 
     def test_every_tool_has_its_own_client_description(self):
         # Every tool carries its own description, so the agent-facing Apex wording

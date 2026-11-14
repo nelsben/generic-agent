@@ -47,4 +47,34 @@
         <toolName>resolve_account</toolName>
         <toolTitle>CustomerSummaryResolver</toolTitle>
     </tools>
+    <tools>
+        <apiDefinition>
+            <apiIdentifier>aa:apex-CustomerSummaryActionCommitAction</apiIdentifier>
+            <apiSource>API_CATALOG</apiSource>
+            <operation>CustomerSummaryActionCommitAction</operation>
+        </apiDefinition>
+        <descriptionOverride>Save a draft from draft_action, as the signed-in user and with their access: create a task (create_task) or log a call (log_call) only. Call it only after the person has seen the draft and said yes, and pass the Draft JSON from draft_action unchanged. The draft is checked again before it is saved; any other action is refused and nothing is saved. Tell the person the Message.</descriptionOverride>
+        <destructive>true</destructive>
+        <idempotent>false</idempotent>
+        <openWorld>false</openWorld>
+        <readOnly>false</readOnly>
+        <returnDirect>false</returnDirect>
+        <toolName>commit_action</toolName>
+        <toolTitle>CustomerSummaryActionCommitAction</toolTitle>
+    </tools>
+    <tools>
+        <apiDefinition>
+            <apiIdentifier>aa:apex-CustomerSummaryActionDraftAction</apiIdentifier>
+            <apiSource>API_CATALOG</apiSource>
+            <operation>CustomerSummaryActionDraftAction</operation>
+        </apiDefinition>
+        <descriptionOverride>Draft one write for an account and save nothing: create a task (create_task) or log a call (log_call), the only two actions allowed here. Give the account Id that resolve_account returned, and either the request in plain words as Text, or Action Type with Input JSON. Show the Draft Text to the person and ask them to confirm. Call commit_action only after they say yes, and pass it the Draft JSON unchanged. Any other action is refused and nothing is drafted.</descriptionOverride>
+        <destructive>false</destructive>
+        <idempotent>false</idempotent>
+        <openWorld>false</openWorld>
+        <readOnly>true</readOnly>
+        <returnDirect>false</returnDirect>
+        <toolName>draft_action</toolName>
+        <toolTitle>CustomerSummaryActionDraftAction</toolTitle>
+    </tools>
 </McpServerDefinition>
