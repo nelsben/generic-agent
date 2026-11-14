@@ -58,7 +58,7 @@ class TestDataAccessSet(unittest.TestCase):
 
     def test_data_set_reads_every_session_field_the_history_door_lists(self):
         fields = {text_of(f, "field"): f for f in children(self.root, "fieldPermissions")}
-        for name in ("Account__c", "Title__c", "Started__c", "Last_Activity__c", "Turn_Count__c", "Turns_JSON__c"):
+        for name in ("Account__c", "Title__c", "Started__c", "Last_Activity__c", "Last_Brief_At__c", "Turn_Count__c", "Turns_JSON__c"):
             perm = fields["Customer_Summary_Session__c." + name]
             self.assertEqual(text_of(perm, "readable"), "true", name)
             self.assertEqual(text_of(perm, "editable"), "false", name)

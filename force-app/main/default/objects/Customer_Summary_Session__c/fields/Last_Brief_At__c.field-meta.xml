@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Last_Brief_At__c</fullName>
+    <label>Last Brief At</label>
+    <description>When the newest Customer Summary brief in this session, or carried into it from the one before, was saved. Set only by a summary turn, never by an explorer question. Rows saved before this field existed are blank; readers fall back to Last Activity.</description>
+    <type>DateTime</type>
+    <required>false</required>
+</CustomField>

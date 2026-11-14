@@ -361,7 +361,7 @@ public with sharing class CustomerSummaryContext {
         try {
             check(SUMMARY);
             List<Customer_Summary_Session__c> rows = [
-                SELECT Last_Brief__c, Last_Activity__c
+                SELECT Last_Brief__c, Last_Brief_At__c, Last_Activity__c
                 FROM Customer_Summary_Session__c
                 WHERE Session_Key__c = :sessionKey AND User__c = :userId
                 WITH USER_MODE
@@ -371,7 +371,8 @@ public with sharing class CustomerSummaryContext {
                 return null;
             }
             LastSummary s = new LastSummary();
-            s.summaryDate = rows[0].Last_Activity__c;
+            // The time the brief was saved. Rows written before Last_Brief_At__c existed fall back to Last_Activity__c.
+            s.summaryDate = rows[0].Last_Brief_At__c != null ? rows[0].Last_Brief_At__c : rows[0].Last_Activity__c;
             s.firstLines = firstLines(rows[0].Last_Brief__c);
             return s;
         } catch (Exception e) {
