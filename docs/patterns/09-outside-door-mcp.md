@@ -95,7 +95,7 @@ sequenceDiagram
    ([01](01-route-gather-reduce.md#when-something-fails)). The client briefs only a RESOLVED Id, the order the agent
    follows in [06](06-agent-routing-and-verbatim-relay.md).
 3. **Summarize (steps 7 to 11).** `get_account_summary` runs `CustomerSummaryGetAction`, the same engine as the panel.
-   A summary makes 4 model calls (two pre-reduce calls, the synthesis and the sentiment score), shown here as one
+   A summary makes up to 4 model calls (two pre-reduce calls, the synthesis and the sentiment score), shown here as one
    coral block, and writes one memory row and one outcome, as in [05](05-conversation-memory.md).
 4. **Answer (step 12).** The client shows the status and the answer. `ask_anything` (`ExploreAction`) follows the same
    path from step 7 for a question such as "Which open deals close this quarter?": it runs read-only queries as the rep
@@ -201,10 +201,10 @@ configuration, the same for every user), `get_account_summary` writes the rep's 
 access to the session object), and a summary or a commit records an outcome whose text is set in system context
 (reps hold no field access to outcome text).
 
-- **The setup ran in a test org, up to the sign-in.** The server and its client app were built under the new names,
-  the client app and the server definition deployed from `mcp-door/`, the server activated, and a call without a token
-  refused with HTTP 401 ([runbook](../research/mcp-door-runbook.md)). The 401 shows the token check only; the API
-  Catalog listing shows the server is active.
+- **The setup steps are recorded in the runbook.** They cover building the server and its client app under the new
+  names, deploying the client app and the server definition from `mcp-door/`, activating the server, and a call without
+  a token, which gets HTTP 401 ([runbook](../research/mcp-door-runbook.md)). The 401 check covers the token gate, not
+  the server; the API Catalog listing in the runbook is the record of the server's active flag.
 - **The write pair was added and marked.** The two tools came back with their names, descriptions and hints, and the
   three read tools kept theirs ([runbook, Write tools](../research/mcp-door-runbook.md#write-tools-ops-59)).
 - **The door's allow-list is tested.** `CustomerSummaryActionDoorTest` covers a refused action by name, by words and as
@@ -223,7 +223,7 @@ access to the session object), and a summary or a commit records an outcome whos
 - **Salesforce hosts the server.** There is nothing to run or patch; the API Catalog holds the server and its tools
   ([salesforce-mcp.md](../research/salesforce-mcp.md)).
 - **A call costs what the same action costs in the panel.** Each tool call is one Apex transaction in the rep's own
-  limits: a summary runs about 25 queries and 4 model calls, and a request past the cap gets a fixed line and no model
+  limits: a summary runs about 25 queries and up to 4 model calls, and a request past the cap gets a fixed line and no model
   call ([01](01-route-gather-reduce.md#how-it-scales)).
 - **More tools are more Apex actions.** A tool is an invocable added to the server's tool set; the runbook's steps add
   two at once without touching the other three ([runbook, W3](../research/mcp-door-runbook.md#w3-deactivate-then-replace-the-tool-set-changes-the-org-yes)).
@@ -251,11 +251,11 @@ deploys them on purpose, and the API steps that build the server where that depl
 
 ## Limits and open items
 
-- **No tool has been called, read or write.** The first call waits on an admin's OAuth sign-in. That call also
+- **The first real call of each tool, read and write.** It waits on an admin's OAuth sign-in. That call also
   answers four questions the setup leaves open: whether `public` invocable methods run (Salesforce documents `global`),
   whether the client app's `MCP` scope is the documented `mcp_api`, whether the consent screen is skipped for holders of
   `Customer_Summary_Data_Access`, and whether the client sees only the tool descriptions and not the Apex field texts.
-  OPS-53 records the result in the README's [Status table](../../README.md#status), and it is parked.
+  OPS-53 records it, and it is parked; its status is in the README's [Status table](../../README.md#status).
 - **A first write over the door** also waits on its own approval, and whether a client really asks the person before
   `commit_action` is open until then. No card yet.
 - **The old door is still active.** The first server and client app under the old product name stay until their
