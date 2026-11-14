@@ -26,7 +26,8 @@
 .cs-toggle,
 .cs-chip,
 .cs-btn,
-.cs-more {
+.cs-more,
+.cs-input {
     min-height: 24px;
     min-width: 24px;
 }
@@ -178,6 +179,7 @@
 .cs-chip:focus-visible,
 .cs-btn:focus-visible,
 .cs-more:focus-visible,
+.cs-input:focus-visible,
 .cs-table-wrap:focus-visible {
     outline: 2px solid var(--cs-card-primary);
     outline-offset: 2px;
@@ -263,6 +265,50 @@
     font-style: italic;
 }
 
+/* A draft field in action-mode (FE-14): a text box named by its label. */
+.cs-label {
+    display: block;
+    padding-top: 3px;
+}
+
+.cs-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 2px 6px;
+    border: 1px solid var(--cs-card-line);
+    border-radius: var(--cs-card-radius);
+    background: var(--cs-card-surface);
+    color: var(--cs-card-ink);
+    font: inherit;
+    font-style: normal;
+}
+
+.cs-input:disabled {
+    background: var(--cs-card-wash);
+    color: var(--cs-card-muted);
+}
+
+.cs-field-missing .cs-input {
+    border-color: var(--cs-card-error);
+    border-width: 2px;
+}
+
+.cs-needed,
+.cs-was {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+}
+
+.cs-needed {
+    color: var(--cs-card-error);
+}
+
+.cs-was {
+    color: var(--cs-card-muted);
+    font-style: normal;
+}
+
 .cs-choices {
     display: flex;
     flex-wrap: wrap;
@@ -312,6 +358,13 @@
     border-color: transparent;
     background: none;
     color: var(--cs-card-primary);
+}
+
+/* Disabled: a draft not ready to confirm, or one being made again or saved. */
+.cs-btn:disabled,
+.cs-chip:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
 }
 
 /* ----------------------------------------------------------- grid */

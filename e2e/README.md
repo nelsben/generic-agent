@@ -22,8 +22,8 @@ one worker, no parallelism. Two projects run in the one run, whatever machine it
 `mac` runs every spec with the panel reading a Mac (Cmd-K), and `windows` runs only the specs
 tagged `@hotkey`, with the panel reading Windows (Ctrl-K). `support/panel.js` sets what the page's
 `navigator.platform` and `userAgentData.platform` say before any page script runs; the keys the
-tests press follow it. A full run is 34 tests (one skips on `windows`: the Mac-only Ctrl-K check; FE-15 ran it in chunks,
-so there is no single-run time yet); the smoke run is 9 tests.
+tests press follow it. A full run is 36 tests (one skips on `windows`: the Mac-only Ctrl-K check; FE-15 ran it in chunks,
+so there is no single-run time yet); the smoke run is 10 tests.
 
 ### Smoke subset
 
@@ -35,6 +35,7 @@ front-end change (the full suite stays the release check). They make no model ca
 | The window and the launcher | 1. Cmd/Ctrl-K opens the window in the corner, composer focused |
 | The composer | 6. Typing enables Send; Enter sends |
 | The conversation | FR2 2. the scope chip |
+| The write-action cards | FR2 5. a draft card from the Create a follow-up chip, then Cancel |
 | The accessible names | 12. the fallback names |
 | The hotkey, both branches | `hotkey-platforms.spec.js`, the platform key opens the window (runs on `mac` and `windows`) |
 | The right rail | `rail.spec.js` 1. Cmd/Ctrl-Shift-K opens the rail over the page, full height; Esc returns focus (runs on `mac` and `windows`) |
@@ -96,6 +97,8 @@ The `windows` project runs only specs that make no model call, so it adds none.
 | FR2 1. History lists the account's conversations; New conversation starts clean; reopening the newest loads its turns (`conversation-fr2.spec.js`, FE-22) | 1 |
 | FR2 2. The scope chip reads About the account, switches to Whole org and back by keyboard (FE-22) | 0 |
 | FR2 3. A whole-org question is sent with no context record and its answer is drawn as cards (FE-22) | 1 |
+| FR2 4. At 320 px the two tools headings show their full text, wrapped, not clipped (FE-26) | 1 |
+| FR2 5. The Create a follow-up chip draws a task draft card in the turn: the account by name, Subject and Due marked Needed, Confirm off until both are filled (each fill re-drafts), then Cancel closes it with "Cancelled. Nothing was saved." and no commitAction request (`conversation-actions.spec.js`, FE-14; `@smoke`). It never clicks Confirm and creates no record: the confirm path is in the Jest and Apex tests | 0 |
 | Rail 1. Cmd/Ctrl-Shift-K opens the rail flush right, 640 px wide and full height, over the page (the page does not move); header; Esc returns focus (`rail.spec.js`, FE-15; `@smoke`, `mac` and `windows`) | 0 |
 | Rail 2. Expand from the window opens the rail on the same session with the thread intact and History open | 0 (a `/brief` of no account) |
 | Rail 3. One question asked in the rail is answered in the rail | 1 |
@@ -202,7 +205,7 @@ What it needs:
   (`08-conversation-core`, the open panel's empty state) and the whole-window
   `fr2-compact-launcher.png` and `fr2-compact-open.png` (`09-compact`, the launcher and the open
   window's empty state) make none. `10-rail` (FE-15: `fr2-rail.gif`, `fr2-rail-open.png` and
-  `fr2-rail-context.png`, the whole window and the rail alone) asks one question. The other capture scripts were written for the 340x480 utility
+  `fr2-rail-context.png`, the whole window and the rail alone) asks one question. `11-action-draft` (FE-14: the whole-window `fr2-action-draft.png`, a "Create a follow-up" draft with Subject filled and Due marked Needed) makes none and writes nothing: it never clicks Confirm and Cancels the draft after the still. There is no result still, since a result needs a saved record. The other capture scripts were written for the 340x480 utility
   panel and have not been re-run since FE-13 moved the conversation into the window. Nothing is written to the org by the capture
   itself beyond the panel's own memory rows.
 

@@ -55,7 +55,8 @@
 
         <!-- Body: the drill view over the thread; the thread stays rendered underneath. -->
         <div class="abp-body" role="region" aria-label="Conversation" onscroll={handleBodyScroll}
-            oncardopen={handleCardOpen} oncardask={handleCardAsk}>
+            oncardopen={handleCardOpen} oncardask={handleCardAsk} oncardedit={handleCardEdit} oncardchoose={handleCardChoose}
+            oncardaction={handleCardAction}>
             <template lwc:if={isDrilling}>
                 <div class="slds-m-vertical_x-small">
                     <lightning-breadcrumbs>
@@ -360,22 +361,17 @@
                                 </template>
                             </template>
 
-                            <!-- Action draft or result (FE-14): title, status and fields, as text -->
+                            <!-- Action draft or result (FE-14): BE-39's card, drawn with action-mode, then one line on what happened -->
                             <template lwc:if={turn.isAction}>
-                                <article class="abp-card abp-action">
-                                    <div class="abp-card-head">
-                                        <h2 class="abp-card-title">{turn.action.title}</h2>
-                                        <span class="abp-meta">{turn.action.status}</span>
-                                    </div>
-                                    <dl class="slds-m-top_x-small">
-                                        <template for:each={turn.action.fields} for:item="f">
-                                            <div key={f.key} class="abp-field">
-                                                <dt class="abp-meta">{f.label}</dt>
-                                                <dd class="abp-pre">{f.value}</dd>
-                                            </div>
-                                        </template>
-                                    </dl>
-                                </article>
+                                <div class="abp-cards">
+                                    <template for:each={turn.cards} for:item="c">
+                                        <c-customer-summary-card key={c.key} class="abp-answer-card abp-action-card" data-card={c.cardId} card={c.card}
+                                            density={density} action-mode={turn.actionMode}></c-customer-summary-card>
+                                    </template>
+                                </div>
+                                <template lwc:if={turn.note}>
+                                    <p class="abp-meta abp-action-note">{turn.note}</p>
+                                </template>
                             </template>
                         </div>
                     </section>

@@ -423,11 +423,9 @@ describe('c-customer-summary-conversation', () => {
     });
 
     describe('quick actions', () => {
-        it('on an account: Summarize, Open deals and Recent activity; the action chips stay hidden', async () => {
+        it('on an account: Summarize, Open deals and Recent activity, then the write actions (FE-14)', async () => {
             const el = await mountOnAccount();
-            expect(chipLabels(el)).toEqual(['Summarize', 'Open deals', 'Recent activity']);
-            expect(el.shadowRoot.textContent).not.toContain('Create a follow-up');
-            expect(el.shadowRoot.textContent).not.toContain('Log a call');
+            expect(chipLabels(el)).toEqual(['Summarize', 'Open deals', 'Recent activity', 'Create a follow-up', 'Log a call']);
         });
 
         it('on an account the chips brief it and ask about it', async () => {

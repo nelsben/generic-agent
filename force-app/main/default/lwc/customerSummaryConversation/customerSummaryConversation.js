@@ -35,8 +35,41 @@
  * c-customer-summary-card, in place of their text rendering; with no cards they render as before.
  * The resolver's cards arrive as JSON text and the others as a list; unreadable cards leave the text.
  * cardopen drills here by the Id it carries (never an href); cardask is asked like a follow-up, and
- * a related object on a drill's record card drills to its rows. cardchoose and cardaction are not
- * handled here: they bubble out to the host. An AMBIGUOUS resolve keeps its candidate buttons.
+ * a related object on a drill's record card drills to its rows. cardchoose and cardaction on any
+ * other card are not handled here: they bubble out to the host. An AMBIGUOUS resolve keeps its
+ * candidate buttons.
+ *
+ * Write actions (FE-14, FR2; docs/research/fr2-action-cards.md). What this adds to the interface:
+ *   Calls (CustomerSummaryPanelController, BE-27): draftFromText({ accountId, text }),
+ *     draftAction({ actionType, accountId, inputJson }), commitAction({ draftJson }) and
+ *     undoAction({ undoToken }). Nothing is written before Confirm, and Confirm is the only commit.
+ *   What leads to a draft: on an Account, the quick actions "Create a follow-up" (draftAction
+ *     create_task) and "Log a call" (draftAction log_call), each with inputJson '{}'. A composer text
+ *     (typed, or spoken into the composer by the mic) whose first real word is an action verb, with an
+ *     account in view and the scope chip not on the whole org, calls draftFromText first: the same
+ *     pre-check as CustomerSummaryActionCatalog.looksLikeAction (BE-22's two word lists), so a question
+ *     makes no draft call. NOT_AN_ACTION, or a reply that is not a draft, goes down the normal ask path
+ *     (explore). ERROR is the error turn. The account: the page's account, else the briefed account
+ *     when the surface sits on no record; a host ask with a record uses that record if it is an Account.
+ *   Turns: kind 'actionDraft' holds BE-39's actionDraft card and kind 'actionResult' its actionResult
+ *     card, each drawn by c-customer-summary-card with action-mode set ('open', 'busy' or 'closed'), so
+ *     the draft's fields are editable there. No other card shape; a reply without its card is text.
+ *   Events from those cards, handled here and still bubbling out to the host:
+ *     cardedit { cardKey, fieldKey, value }  drafts again in place with draftAction: the draft's
+ *       inputJson with that field's words laid over it (new words for a contact or an opportunity drop
+ *       the one it had). The card is busy, Confirm disabled, until the new draft is in.
+ *     cardchoose on a draft field  drafts again with that record's Id (contactId or opportunityId).
+ *     cardaction 'confirm'  commitAction once with { action, accountId, inputJson } from the draft, only
+ *       when the draft is READY; the card is busy while it runs and a second Confirm is ignored. OK: the
+ *       draft closes and an actionResult turn follows. REFUSED, ERROR or a failed call: the error turn
+ *       with the plain-English message (the fixed ERROR line for a failed call), and the draft stays open.
+ *     cardaction 'cancel'  closes the draft: "Cancelled. Nothing was saved." Nothing is called.
+ *     cardaction 'edit'  the card moves focus to the first field to fill; nothing is called.
+ *     cardaction 'open', and a record link on a result  navigate to the record's page (NavigationMixin,
+ *       standard__recordPage, by Id; no href). A link on a draft drills, as on any card.
+ *     cardaction 'undo'  undoAction with the result's token. Undo is offered for 15 s after an update
+ *       (the result carries an undoToken); then it is taken off the card. OK: a "Change undone" result
+ *       turn follows. The timers stop when the conversation is removed.
  *
  * Requests: every entry point (composer, chip, follow-up, candidate, Summarize, drill, the host's
  * ask and summarize) goes through _request. The latest wins: each carries a token, and a reply
@@ -58,6 +91,10 @@ import explore from '@salesforce/apex/CustomerSummaryPanelController.explore';
 import drill from '@salesforce/apex/CustomerSummaryPanelController.drill';
 import history from '@salesforce/apex/CustomerSummaryPanelController.history';
 import sources from '@salesforce/apex/CustomerSummaryPanelController.sources';
+import draftAction from '@salesforce/apex/CustomerSummaryPanelController.draftAction';
+import draftFromText from '@salesforce/apex/CustomerSummaryPanelController.draftFromText';
+import commitAction from '@salesforce/apex/CustomerSummaryPanelController.commitAction';
+import undoAction from '@salesforce/apex/CustomerSummaryPanelController.undoAction';
 import listSessions from '@salesforce/apex/CustomerSummaryHistory.listSessions';
 import getSession from '@salesforce/apex/CustomerSummaryHistory.getSession';
 
@@ -65,8 +102,33 @@ const BRIEF_COMMAND = /^\/brief\s+/i;
 const ACCOUNT_OBJECT = 'Account';
 const ACCOUNT_PREFIX = '001';
 const HISTORY_TURNS = 5;
-// The write actions (FE-14) stay behind this flag until they ship; while it is off they never render.
-const ACTION_CHIPS_ENABLED = false;
+// The write actions' quick actions (FE-14), shown on an Account.
+const ACTION_CHIPS_ENABLED = true;
+// A quick action that drafts a write: its action (CustomerSummaryActionCatalog) and its label.
+const ACTION_CHIPS = {
+    followup: { action: 'create_task', label: 'Create a follow-up' },
+    call: { action: 'log_call', label: 'Log a call' }
+};
+// The pre-check draftFromText runs (CustomerSummaryActionCatalog, BE-22's lists, kept as they ran): skip the
+// filler words, then test the first word left. A verb anywhere else ("Which open deals...") is a question.
+const ACTION_FILLER = new Set(['uh', 'um', 'so', 'ok', 'okay', 'hey', 'please', 'can', 'could', 'would', 'you', 'i', 'need', 'to', 'want', "let's"]);
+const ACTION_VERBS = new Set(['create', 'add', 'schedule', 'set', 'book', 'log', 'remind', 'update', 'change', 'open', 'push', 'move', 'make']);
+// The draft statuses that carry a draft card. NOT_AN_ACTION and ERROR carry none.
+const DRAFT_STATUSES = new Set(['READY', 'NEEDS_INPUT', 'REFUSED']);
+// A draft field's API name to the input key draftAction reads (CustomerSummaryActions). An update's other fields
+// are its changes, by API name; the record an update changes ('Id') is its contact or opportunity.
+const FIELD_INPUT = {
+    Subject: 'subject',
+    Description: 'description',
+    ActivityDate: 'dueDate',
+    StartDateTime: 'startDateTime',
+    EndDateTime: 'endDateTime',
+    Priority: 'priority',
+    WhoId: 'contact',
+    ContactId: 'contact'
+};
+const UNDO_MS = 15000;
+const CANCELLED_TEXT = 'Cancelled. Nothing was saved.';
 // An 18-character record Id inside a line of text, e.g. an AMBIGUOUS candidate line.
 const ID_IN_LINE = /(^|[^A-Za-z0-9])([0-9][0-9A-Za-z]{17})(?![A-Za-z0-9])/;
 // The record Id Apex puts at the end of a brief line that describes one record (CustomerSummarySection.withId).
@@ -89,10 +151,102 @@ const SESSION_FAILED = "Couldn't open that conversation. Try again in a minute."
 
 /**
  * One exchange in the thread. kind is one of 'text', 'ambiguous', 'brief', 'explore',
- * 'actionDraft' or 'actionResult'. The action kinds carry
- * action: { title: string, status: string, fields: [{ key, label, value }] }, which FE-14 fills.
+ * 'actionDraft' or 'actionResult'. The action kinds carry their one card in cards, the card's
+ * actionMode ('open', 'busy', 'closed'), a note under it, and the draft ({ action, accountId,
+ * inputJson, status }) or the result ({ recordId, objectName, undoToken }).
  * @typedef {{ key: string, kind: string, question: string, isError: boolean }} Turn
  */
+
+/** True when the first word that is not filler is an action verb: the text is worth a draft call. */
+function looksLikeAction(text) {
+    const cleaned = String(text || '')
+        .toLowerCase()
+        .replace(/’/g, "'")
+        .replace(/[,:;.!?"]/g, ' ');
+    const word = cleaned.split(/\s+/).find((w) => w && !ACTION_FILLER.has(w));
+    return !!word && ACTION_VERBS.has(word);
+}
+
+/** The draft card a draft reply carries, or null when the reply is not a draft. */
+function draftCardOf(d) {
+    if (!d || typeof d !== 'object' || !DRAFT_STATUSES.has(d.status)) {
+        return null;
+    }
+    return cardsOf(d.cards).find((c) => c.type === 'actionDraft') || null;
+}
+
+function inputOf(json) {
+    try {
+        const input = JSON.parse(json || '{}');
+        return input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+/** Removes every key that matches one of names, whatever its case (the server reads keys lowercased). */
+function dropKeys(input, names) {
+    const lower = names.map((n) => n.toLowerCase());
+    Object.keys(input).forEach((k) => {
+        if (lower.includes(k.toLowerCase())) {
+            delete input[k];
+        }
+    });
+}
+
+/** The input key a draft field's words go to; 'changes' for an update's change; null for none. */
+function inputKeyOf(action, fieldKey) {
+    if (fieldKey === 'Id') {
+        return action === 'update_contact' ? 'contact' : action === 'update_opportunity' ? 'opportunity' : null;
+    }
+    if (FIELD_INPUT[fieldKey]) {
+        return FIELD_INPUT[fieldKey];
+    }
+    return String(action || '').startsWith('update_') && fieldKey !== 'changes' ? 'changes' : null;
+}
+
+/**
+ * The draft's input with one field's new words laid over it; null when the field is not one a draft
+ * takes words for. New words for a contact or an opportunity drop the Id it had, since an Id wins.
+ */
+function withWords(draft, fieldKey, value) {
+    const key = inputKeyOf(draft.action, fieldKey);
+    if (!key) {
+        return null;
+    }
+    const input = inputOf(draft.inputJson);
+    if (key === 'changes') {
+        const changes = { ...(input.changes && typeof input.changes === 'object' ? input.changes : {}) };
+        dropKeys(changes, [fieldKey]);
+        if (value) {
+            changes[fieldKey] = value;
+        }
+        input.changes = changes;
+        return input;
+    }
+    dropKeys(input, key === 'contact' || key === 'opportunity' ? [key, key + 'Id'] : [key]);
+    if (value) {
+        input[key] = value;
+    }
+    return input;
+}
+
+/** The draft's input with a chosen record set by Id for its field; null for a field with no record. */
+function withChoice(draft, fieldKey, recordId) {
+    const key = inputKeyOf(draft.action, fieldKey);
+    if (!recordId || (key !== 'contact' && key !== 'opportunity')) {
+        return null;
+    }
+    const input = inputOf(draft.inputJson);
+    dropKeys(input, [key, key + 'Id']);
+    input[key + 'Id'] = recordId;
+    return input;
+}
+
+/** A result card's controls without Undo, once its 15 s are up or it was used. */
+function withoutUndo(card) {
+    return { ...card, controls: (card.controls || []).filter((k) => k && k.key !== 'undo') };
+}
 
 function summaryState(open) {
     return {
@@ -267,6 +421,10 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
     _sessionRows = [];
     _scopeOrg = false;
     _focusCardAfterRender = null;
+    // Write actions (FE-14): a commit in flight, each draft's latest re-draft, and each result's Undo timer.
+    _committing = false;
+    _redraftSeq = {};
+    _undoTimers = {};
 
     // ------------------------------------------------------------ public interface
 
@@ -374,6 +532,8 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
 
     disconnectedCallback() {
         this._connected = false;
+        Object.keys(this._undoTimers).forEach((key) => clearTimeout(this._undoTimers[key]));
+        this._undoTimers = {};
     }
 
     renderedCallback() {
@@ -513,7 +673,10 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
         return list.map((text, i) => ({ key: 's' + i, text }));
     }
 
-    /** On an Account: Summarize, Open deals, Recent activity. Elsewhere: Ask anything, and the last account's summary. */
+    /**
+     * On an Account: Summarize, Open deals, Recent activity, then the write actions Create a follow-up and
+     * Log a call. Elsewhere: Ask anything, and the last account's summary.
+     */
     get quickChips() {
         const chips = [];
         if (this.isAccountPage) {
@@ -521,8 +684,8 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             chips.push({ key: 'deals', label: 'Open deals' });
             chips.push({ key: 'activity', label: 'Recent activity' });
             if (ACTION_CHIPS_ENABLED) {
-                chips.push({ key: 'followup', label: 'Create a follow-up' });
-                chips.push({ key: 'call', label: 'Log a call' });
+                chips.push({ key: 'followup', label: ACTION_CHIPS.followup.label });
+                chips.push({ key: 'call', label: ACTION_CHIPS.call.label });
             }
         } else {
             chips.push({ key: 'ask', label: 'Ask anything' });
@@ -543,9 +706,9 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             case 'activity':
                 return this.submit('What is the recent activity on ' + name + '?', this._recordId);
             case 'followup':
-                return this._prefill('Create a follow-up task for ' + name + ': ');
+                return this._startDraft(ACTION_CHIPS.followup);
             case 'call':
-                return this._prefill('Log a call with ' + name + ': ');
+                return this._startDraft(ACTION_CHIPS.call);
             case 'last':
                 return this._briefAccount(this.briefedAccount);
             default:
@@ -858,11 +1021,28 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
         }
         // The chip's whole-org scope drops the page's context; a record the caller passes is kept.
         const context = contextRecordId || (this._scopeOrg ? null : this.contextRecordId) || null;
+        // A text that names an action, with an account in view, is drafted first (FE-14).
+        const actionAccount = looksLikeAction(q) ? this._actionAccountFor(contextRecordId) : null;
         return this._request({
             key: 'ask:' + q,
             label: q,
-            loading: 'Loading answer',
+            loading: actionAccount ? 'Drafting' : 'Loading answer',
             work: async (isCurrent) => {
+                if (actionAccount) {
+                    const d = await draftFromText({ accountId: actionAccount, text: q });
+                    if (!isCurrent()) {
+                        return null;
+                    }
+                    if (draftCardOf(d)) {
+                        return this._showDraft(d, q);
+                    }
+                    if (d && d.status === 'ERROR') {
+                        const text = d.message || ERROR_TEXT;
+                        this._push({ kind: 'text', isText: true, isError: true, question: q, text });
+                        return text;
+                    }
+                    // NOT_AN_ACTION, or a reply that is not a draft: the question goes down the ask path.
+                }
                 const r = await explore({ question: q, contextRecordId: context, historyJson: this._historyJson() });
                 if (!isCurrent()) {
                     return null;
@@ -870,6 +1050,289 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
                 this._push(this._exploreTurn(r, q));
                 return r.status === 'ERROR' ? r.answer : 'Answer ready';
             }
+        });
+    }
+
+    // ------------------------------------------------------------ write actions (FE-14)
+
+    /** The account a typed action goes on: a passed Account, else the account in view, unless the chip says whole org. */
+    _actionAccountFor(passed) {
+        if (passed) {
+            return String(passed).startsWith(ACCOUNT_PREFIX) ? passed : null;
+        }
+        return this._scopeOrg ? null : this._accountInView();
+    }
+
+    /** The page's account, else the briefed account when the surface sits on no record. */
+    _accountInView() {
+        if (this.pageAccount) {
+            return this.pageAccount.id;
+        }
+        if (this.isAccountPage) {
+            return this._recordId;
+        }
+        return !this._recordId && this.briefedAccount ? this.briefedAccount.id : null;
+    }
+
+    /** A quick action that drafts a write: draftAction with no fields yet. Nothing is written. */
+    _startDraft(chip) {
+        const accountId = this._accountInView();
+        if (!accountId) {
+            this.focusComposer();
+            return Promise.resolve();
+        }
+        this._pinned = true;
+        this.drillStack = [];
+        return this._request({
+            key: 'draft:' + chip.action,
+            label: chip.label,
+            loading: 'Drafting',
+            work: async (isCurrent) => {
+                const d = await draftAction({ actionType: chip.action, accountId, inputJson: '{}' });
+                if (!isCurrent()) {
+                    return null;
+                }
+                if (draftCardOf(d)) {
+                    return this._showDraft(d, chip.label);
+                }
+                const text = (d && d.status === 'ERROR' && d.message) || ERROR_TEXT;
+                this._push({ kind: 'text', isText: true, isError: true, question: chip.label, text });
+                return text;
+            }
+        });
+    }
+
+    _showDraft(d, question) {
+        const card = draftCardOf(d);
+        this._push({
+            kind: 'actionDraft',
+            isAction: true,
+            isActionDraft: true,
+            isActionResult: false,
+            question,
+            draft: { action: d.action, accountId: d.accountId, inputJson: d.inputJson || '{}', status: d.status },
+            cards: [{ key: 'k0', cardId: 'k0', card }],
+            hasCards: true,
+            actionMode: 'open',
+            note: '',
+            historyAnswer: card.text || ''
+        });
+        return d.status === 'READY' ? 'Draft ready: ' + (card.title || 'confirm or edit') : (card.title || 'Draft') + ': ' + (d.status === 'REFUSED' ? 'not allowed' : 'fields to fill');
+    }
+
+    _setTurn(key, patch) {
+        this.turns = this.turns.map((t) => (t.key === key ? { ...t, ...patch } : t));
+    }
+
+    _turnByKey(key) {
+        return this.turns.find((t) => t.key === key) || null;
+    }
+
+    /** The action turn a card event came from, found by the card host's data-card (never by cardKey). */
+    _actionTurnOf(event) {
+        const host = event.target;
+        const card = host && host.dataset ? host.dataset.card : null;
+        if (!card) {
+            return null;
+        }
+        return this.turns.find((t) => t.isAction && (t.cards || []).some((c) => c.cardId === card)) || null;
+    }
+
+    /** Drafts again in place with the new input; the card is busy, so Confirm waits, until it is in. */
+    _redraft(turn, input) {
+        const key = turn.key;
+        const seq = (this._redraftSeq[key] || 0) + 1;
+        this._redraftSeq[key] = seq;
+        const draft = turn.draft;
+        this._setTurn(key, { actionMode: 'busy', note: '' });
+        this.liveMessage = 'Updating the draft';
+        return Promise.resolve()
+            .then(() => draftAction({ actionType: draft.action, accountId: draft.accountId, inputJson: JSON.stringify(input) }))
+            .then((d) => {
+                if (this._redraftSeq[key] !== seq) {
+                    return;
+                }
+                const card = draftCardOf(d);
+                if (!card) {
+                    const text = (d && d.message) || ERROR_TEXT;
+                    this._setTurn(key, { actionMode: 'open', note: text });
+                    this.liveMessage = text;
+                    return;
+                }
+                this._setTurn(key, {
+                    draft: { action: d.action || draft.action, accountId: d.accountId || draft.accountId, inputJson: d.inputJson || '{}', status: d.status },
+                    cards: [{ key: 'k0', cardId: key + '-k0', card }],
+                    actionMode: 'open',
+                    note: '',
+                    historyAnswer: card.text || ''
+                });
+                this.liveMessage = d.status === 'READY' ? 'Draft ready to confirm' : 'Draft updated: fields to fill';
+            })
+            .catch(() => {
+                if (this._redraftSeq[key] === seq) {
+                    this._setTurn(key, { actionMode: 'open', note: ERROR_TEXT });
+                    this.liveMessage = ERROR_TEXT;
+                }
+            });
+    }
+
+    handleCardEdit(event) {
+        const turn = this._actionTurnOf(event);
+        const detail = event.detail || {};
+        if (!turn || !turn.isActionDraft || turn.actionMode !== 'open') {
+            return;
+        }
+        const input = withWords(turn.draft, detail.fieldKey, String(detail.value || '').trim());
+        if (input) {
+            this._redraft(turn, input);
+        }
+    }
+
+    handleCardChoose(event) {
+        const turn = this._actionTurnOf(event);
+        const detail = event.detail || {};
+        if (!turn || !turn.isActionDraft || turn.actionMode !== 'open') {
+            return;
+        }
+        const input = withChoice(turn.draft, detail.fieldKey, detail.recordId);
+        if (input) {
+            this._redraft(turn, input);
+        }
+    }
+
+    handleCardAction(event) {
+        const turn = this._actionTurnOf(event);
+        const control = event.detail && event.detail.control;
+        if (!turn) {
+            return;
+        }
+        if (turn.isActionDraft) {
+            if (control === 'confirm') {
+                this._confirm(turn);
+            } else if (control === 'cancel' && turn.actionMode === 'open') {
+                this._setTurn(turn.key, { actionMode: 'closed', note: CANCELLED_TEXT });
+                this.liveMessage = CANCELLED_TEXT;
+            }
+            return;
+        }
+        if (control === 'open') {
+            this._openRecord(turn.result.recordId, turn.result.objectName);
+        } else if (control === 'undo') {
+            this._undo(turn);
+        }
+    }
+
+    /** Confirm: commitAction once, with the draft's action, account and input. Only a READY draft. */
+    _confirm(turn) {
+        if (this._committing || turn.actionMode !== 'open' || turn.draft.status !== 'READY') {
+            return Promise.resolve();
+        }
+        this._committing = true;
+        const key = turn.key;
+        const draft = turn.draft;
+        this._setTurn(key, { actionMode: 'busy', note: '' });
+        this.liveMessage = 'Saving';
+        const draftJson = JSON.stringify({ action: draft.action, accountId: draft.accountId, inputJson: draft.inputJson });
+        return Promise.resolve()
+            .then(() => commitAction({ draftJson }))
+            .then((r) => {
+                const card = r && r.status === 'OK' ? cardsOf(r.cards).find((c) => c.type === 'actionResult') : null;
+                if (!card) {
+                    this._notSaved(key, (r && r.message) || ERROR_TEXT);
+                    return;
+                }
+                this._setTurn(key, { actionMode: 'closed' });
+                this._showResult(r, card, 'Confirm');
+            })
+            .catch(() => this._notSaved(key, ERROR_TEXT))
+            .finally(() => {
+                this._committing = false;
+            });
+    }
+
+    /** A refusal or a failure: the error turn says why, and the draft stays open to fix or cancel. */
+    _notSaved(key, text) {
+        this._setTurn(key, { actionMode: 'open' });
+        this._pinned = true;
+        this._push({ kind: 'text', isText: true, isError: true, question: 'Confirm', text });
+        this.liveMessage = text;
+    }
+
+    _showResult(r, card, question) {
+        const key = this._nextKey('t');
+        this._pinned = true;
+        this._push({
+            key,
+            kind: 'actionResult',
+            isAction: true,
+            isActionDraft: false,
+            isActionResult: true,
+            question,
+            result: { recordId: r.recordId, objectName: r.objectName, undoToken: r.undoToken || null },
+            cards: [{ key: 'k0', cardId: 'k0', card }],
+            hasCards: true,
+            actionMode: 'open',
+            note: '',
+            historyAnswer: card.text || ''
+        });
+        this.liveMessage = card.title || 'Saved';
+        if (r.undoToken) {
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            this._undoTimers[key] = setTimeout(() => this._endUndo(key), UNDO_MS);
+        }
+    }
+
+    /** Takes Undo off a result: its 15 s are up, or it was used. */
+    _endUndo(key) {
+        clearTimeout(this._undoTimers[key]);
+        delete this._undoTimers[key];
+        const turn = this._turnByKey(key);
+        if (!turn || !turn.result || !turn.result.undoToken) {
+            return;
+        }
+        this._setTurn(key, {
+            result: { ...turn.result, undoToken: null },
+            cards: turn.cards.map((c) => ({ ...c, card: withoutUndo(c.card) })),
+            actionMode: turn.actionMode === 'busy' ? 'open' : turn.actionMode
+        });
+    }
+
+    _undo(turn) {
+        const token = turn.result && turn.result.undoToken;
+        if (!token || turn.actionMode !== 'open') {
+            return Promise.resolve();
+        }
+        const key = turn.key;
+        this._setTurn(key, { actionMode: 'busy' });
+        this.liveMessage = 'Undoing';
+        return Promise.resolve()
+            .then(() => undoAction({ undoToken: token }))
+            .then((r) => {
+                this._endUndo(key);
+                const card = r && r.status === 'OK' ? cardsOf(r.cards).find((c) => c.type === 'actionResult') : null;
+                if (card) {
+                    this._showResult({ ...r, undoToken: null }, withoutUndo(card), 'Undo');
+                    return;
+                }
+                const text = (r && r.message) || ERROR_TEXT;
+                this._push({ kind: 'text', isText: true, isError: true, question: 'Undo', text });
+                this.liveMessage = text;
+            })
+            .catch(() => {
+                this._setTurn(key, { actionMode: 'open' });
+                this._push({ kind: 'text', isText: true, isError: true, question: 'Undo', text: ERROR_TEXT });
+                this.liveMessage = ERROR_TEXT;
+            });
+    }
+
+    /** The record's page, by Id. Nothing is built from card text and no href is written. */
+    _openRecord(recordId, objectName) {
+        if (!recordId) {
+            return;
+        }
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: { recordId, objectApiName: objectName, actionName: 'view' }
         });
     }
 
@@ -1086,28 +1549,6 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
         };
     }
 
-    /**
-     * An action card: kind 'actionDraft' (a write the rep confirms) or 'actionResult' (what it did).
-     * FE-14 builds these from the write actions; the card renders title, status and fields as text.
-     */
-    _actionTurn(kind, question, action) {
-        const a = action || {};
-        return {
-            kind,
-            isAction: true,
-            isActionDraft: kind === 'actionDraft',
-            isActionResult: kind === 'actionResult',
-            isError: a.status === 'ERROR',
-            question,
-            action: {
-                title: a.title || '',
-                status: a.status || '',
-                fields: (a.fields || []).map((f, i) => ({ key: 'a' + i, label: f.label, value: cellText(f.value) }))
-            },
-            historyAnswer: a.title || ''
-        };
-    }
-
     /** A result table. A row with an Id drills through a real button in its first cell. */
     _table(rs, key) {
         const columns = rs.columns || [];
@@ -1276,6 +1717,12 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
         event.stopPropagation();
         const detail = event.detail || {};
         if (!detail.recordId) {
+            return;
+        }
+        // A result's record link opens the record it wrote (FE-14).
+        const action = this._actionTurnOf(event);
+        if (action && action.isActionResult) {
+            this._openRecord(detail.recordId, detail.objectName);
             return;
         }
         const host = event.target;

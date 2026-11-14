@@ -356,6 +356,11 @@ h2,
     min-width: 0;
 }
 
+/* Under a write action's card (FE-14): what happened to it, such as "Cancelled. Nothing was saved." */
+.abp-action-note {
+    margin: 0.25rem 0 0;
+}
+
 .abp-card-head {
     display: flex;
     flex-wrap: wrap;
