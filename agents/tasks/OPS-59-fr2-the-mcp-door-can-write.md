@@ -4,8 +4,7 @@ title: FR2: the MCP door can write — CustomerSummaryMcp gains the draft and co
 domain: ops
 tier: frontier
 tier_reason: adds write tools to a live MCP server in a production-classified org, and may touch the shared invocables
-status: blocked
-blocked_by: [BE-27]
+status: queued
 fixes: []
 scope: [mcp-door/**, tests/test_mcp_door.py, docs/research/mcp-door-runbook.md, docs/patterns/09-outside-door-mcp.md, force-app/main/default/classes/CustomerSummaryAction*.cls, force-app/main/default/classes/CustomerSummaryAction*.cls-meta.xml]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
