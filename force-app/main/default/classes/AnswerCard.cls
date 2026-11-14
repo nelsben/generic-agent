@@ -10,8 +10,8 @@
  * - `text` follows its type's rule (plainText) and never holds an Id or markup.
  * - `total` and `shown` sit on a list or a grid; `shown` is the rows or items the card holds.
  *
- * No query, DML or callout: the builders shape what a caller passes in. actionDraft and actionResult are typed here
- * and have a text rule, but nothing builds them yet (BE-27 will).
+ * No query, DML or callout: the builders shape what a caller passes in. actionDraft and actionResult shape the
+ * write-action service's draft and result (BE-27, CustomerSummaryActions).
  */
 public with sharing class AnswerCard {
     /** The contract version every card carries today. */
@@ -405,6 +405,95 @@ public with sharing class AnswerCard {
         return finish(c);
     }
 
+    /**
+     * A drafted write action, for the user to confirm, edit or cancel (BE-27). Each field shows what would be written,
+     * by name: a lookup links to its record by ref, a name that matched several records is 'choose' with their refs,
+     * and a field still to fill is 'missing'. An update shows each value before as '(was X)'. Warnings, field errors
+     * and the refusal message are the notes. A refused draft offers only Cancel.
+     * @param d the draft CustomerSummaryActions built
+     * @return the actionDraft card, status the draft's status, key 'drf'
+     */
+    public static AnswerCard actionDraft(CustomerSummaryActions.Draft d) {
+        AnswerCard c = start('actionDraft', 'drf', d.status);
+        c.title = String.isBlank(d.actionLabel) ? 'Action' : d.actionLabel;
+        List<String> meta = new List<String>();
+        for (String part : new List<String>{ d.objectLabel, d.mode }) {
+            if (String.isNotBlank(part)) {
+                meta.add(part);
+            }
+        }
+        c.meta = String.join(meta, DOT);
+        c.fields = new List<Field>();
+        c.items = new List<Item>();
+        for (CustomerSummaryActions.Field f : d.fields == null ? new List<CustomerSummaryActions.Field>() : d.fields) {
+            c.fields.add(draftField(f, c.refs));
+            if (String.isNotBlank(f.error)) {
+                c.items.add(newItem(f.error, null, null, null));
+            }
+        }
+        for (String w : d.warnings == null ? new List<String>() : d.warnings) {
+            c.items.add(newItem(w, null, null, null));
+        }
+        if (String.isNotBlank(d.message)) {
+            c.items.add(newItem(d.message, null, null, null));
+        }
+        c.controls = new List<Control>();
+        if (d.status != CustomerSummaryActions.REFUSED) {
+            c.controls.add(newControl('confirm', 'Confirm', 'primary'));
+            c.controls.add(newControl('edit', 'Edit', 'neutral'));
+        }
+        c.controls.add(newControl('cancel', 'Cancel', 'link'));
+        return finish(c);
+    }
+
+    private static Field draftField(CustomerSummaryActions.Field f, List<Ref> refs) {
+        Field out = newField(f.api, f.label, f.display == null ? (f.said == null ? '' : f.said) : f.display, null);
+        if (f.choices != null && !f.choices.isEmpty()) {
+            out.state = 'choose';
+            out.choices = new List<String>();
+            for (CustomerSummaryActions.Choice ch : f.choices) {
+                out.choices.add(addRef(refs, ch.id, ch.label));
+            }
+        } else if (f.missing == true || String.isNotBlank(f.error)) {
+            out.state = 'missing';
+        } else if (f.lookup == true && String.isNotBlank(f.value)) {
+            out.ref = addRef(refs, Id.valueOf(f.value), f.display);
+        }
+        if (f.previous != null && out.state == null) {
+            out.value += ' (was ' + f.previous + ')';
+        }
+        return out;
+    }
+
+    /**
+     * What a confirmed write action or an undo did (BE-27). The first field links to the record written; the body is
+     * the plain result. Open is offered when there is a record, and Undo when the result carries an undo token.
+     * @param r the result CustomerSummaryActions returned
+     * @return the actionResult card, status the result's status, key 'res'
+     */
+    public static AnswerCard actionResult(CustomerSummaryActions.Result r) {
+        AnswerCard c = start('actionResult', 'res', r.status);
+        c.title = r.title;
+        c.meta = r.objectLabel;
+        c.fields = new List<Field>();
+        String recordKey = r.recordId == null ? null : addRef(c.refs, r.recordId, r.label);
+        for (CustomerSummaryActions.Field f : r.fields == null ? new List<CustomerSummaryActions.Field>() : r.fields) {
+            if (f.api == 'Id') {
+                continue;
+            }
+            c.fields.add(newField(f.api, f.label, f.display == null ? '' : f.display, c.fields.isEmpty() ? recordKey : null));
+        }
+        c.body = literalLines(r.message);
+        c.controls = new List<Control>();
+        if (recordKey != null) {
+            c.controls.add(newControl('open', 'Open ' + (String.isBlank(r.objectLabel) ? 'record' : r.objectLabel.toLowerCase()), 'primary'));
+        }
+        if (String.isNotBlank(r.undoToken)) {
+            c.controls.add(newControl('undo', 'Undo', 'neutral'));
+        }
+        return finish(c);
+    }
+
     // ------------------------------------------------------------------ parts
 
     /**
@@ -479,6 +568,20 @@ public with sharing class AnswerCard {
         f.value = value;
         f.ref = refKey;
         return f;
+    }
+
+    /**
+     * @param key the control's key, such as confirm
+     * @param label its label
+     * @param kind primary, neutral or link
+     * @return a control
+     */
+    public static Control newControl(String key, String label, String kind) {
+        Control k = new Control();
+        k.key = key;
+        k.label = label;
+        k.kind = kind;
+        return k;
     }
 
     /**

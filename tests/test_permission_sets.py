@@ -74,6 +74,8 @@ class TestDataAccessSet(unittest.TestCase):
             "BrandSettings",
             "CustomerOutcomeSaveAnswer",
             "CustomerOutcomes",
+            "CustomerSummaryActionCommitAction",
+            "CustomerSummaryActionDraftAction",
             "CustomerSummaryContext",
             "CustomerSummaryGetAction",
             "CustomerSummaryHistory",

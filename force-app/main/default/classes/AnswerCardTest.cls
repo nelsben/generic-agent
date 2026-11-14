@@ -476,4 +476,130 @@ private class AnswerCardTest {
         Assert.areEqual('Kept as is', AnswerCard.plainText(c));
         Assert.areEqual('', AnswerCard.plainText(null));
     }
+
+    // ------------------------------------------------------------------ BE-27: actionDraft and actionResult built from the service's shapes
+
+    private static CustomerSummaryActions.Field actionField(String api, String label, String value, String display) {
+        CustomerSummaryActions.Field f = new CustomerSummaryActions.Field();
+        f.api = api;
+        f.label = label;
+        f.value = value;
+        f.display = display;
+        return f;
+    }
+
+    @IsTest
+    static void anActionDraftReadsAsFe18sFixtureWithIdsOnlyInRefs() {
+        Id lee = fakeId(Contact.SObjectType, 1);
+        Id park = fakeId(Contact.SObjectType, 4);
+        Id opp = fakeId(Opportunity.SObjectType, 1);
+        CustomerSummaryActions.Draft d = new CustomerSummaryActions.Draft();
+        d.status = 'NEEDS_INPUT';
+        d.actionLabel = 'Create a task';
+        d.objectLabel = 'Task';
+        d.mode = 'create';
+        d.fields.add(actionField('Subject', 'Subject', 'Follow up on the generator proposal', 'Follow up on the generator proposal'));
+        d.fields.add(actionField('ActivityDate', 'Due', '2026-11-17', '2026-11-17'));
+        CustomerSummaryActions.Field who = actionField('WhoId', 'Contact', null, 'Jordan');
+        who.lookup = true;
+        for (Id cid : new List<Id>{ lee, park }) {
+            CustomerSummaryActions.Choice ch = new CustomerSummaryActions.Choice();
+            ch.id = cid;
+            ch.label = cid == lee ? 'Jordan Lee' : 'Jordan Park';
+            who.choices.add(ch);
+        }
+        d.fields.add(who);
+        CustomerSummaryActions.Field what = actionField('WhatId', 'Related to', opp, 'Edge Emergency Generator');
+        what.lookup = true;
+        d.fields.add(what);
+        CustomerSummaryActions.Field priority = actionField('Priority', 'Priority', null, null);
+        priority.missing = true;
+        d.fields.add(priority);
+        d.warnings.add('Two contacts match "Jordan"; choose one or clear the field.');
+
+        AnswerCard c = AnswerCard.actionDraft(d);
+        AnswerCard fixture = (AnswerCard) JSON.deserialize(FIX_ACTION_DRAFT, AnswerCard.class);
+        Assert.areEqual(fixture.text, c.text, 'the draft reads as FE-18 drew it');
+        Assert.areEqual(AnswerCard.plainText(c), c.text);
+        Assert.areEqual('drf', c.key);
+        Assert.areEqual('Task · create', c.meta);
+        Assert.areEqual(new List<String>{ 'c1', 'c2' }, c.fields[2].choices);
+        Assert.areEqual('o1', c.fields[3].ref);
+        Assert.areEqual('missing', c.fields[4].state);
+        Assert.areEqual(JSON.serialize(fixture.controls), JSON.serialize(c.controls));
+        String cardJson = JSON.serialize(c);
+        for (Id i : new List<Id>{ lee, park, opp }) {
+            Assert.areEqual(1, cardJson.countMatches(String.valueOf(i)), 'an Id appears once, in refs: ' + i);
+            Assert.isFalse(c.text.contains(String.valueOf(i)));
+        }
+    }
+
+    @IsTest
+    static void anUpdateDraftShowsWasAndARefusedDraftOffersOnlyCancel() {
+        CustomerSummaryActions.Draft d = new CustomerSummaryActions.Draft();
+        d.status = 'READY';
+        d.actionLabel = 'Update a contact';
+        d.objectLabel = 'Contact';
+        d.mode = 'update';
+        CustomerSummaryActions.Field target = actionField('Id', 'Contact', fakeId(Contact.SObjectType, 7), 'Maria Lopez');
+        target.lookup = true;
+        d.fields.add(target);
+        CustomerSummaryActions.Field title = actionField('Title', 'Title', 'VP Sales', 'VP Sales');
+        title.previous = 'Buyer';
+        d.fields.add(title);
+        CustomerSummaryActions.Field dept = actionField('Department', 'Department', 'Operations', 'Operations');
+        dept.previous = 'blank';
+        d.fields.add(dept);
+        AnswerCard c = AnswerCard.actionDraft(d);
+        Assert.isTrue(c.text.contains('Contact: Maria Lopez\nTitle: VP Sales (was Buyer)\nDepartment: Operations (was blank)'), c.text);
+        Assert.areEqual(3, c.controls.size());
+
+        CustomerSummaryActions.Draft refused = new CustomerSummaryActions.Draft();
+        refused.status = 'REFUSED';
+        refused.message = 'You can\'t edit contacts with your access.';
+        AnswerCard r = AnswerCard.actionDraft(refused);
+        Assert.areEqual('Action', r.title, 'a draft with no action is titled Action');
+        Assert.areEqual(1, r.controls.size());
+        Assert.areEqual('cancel', r.controls[0].key);
+        Assert.areEqual('You can\'t edit contacts with your access.', r.items[0].label);
+        Assert.isTrue(r.text.endsWith('Note: You can\'t edit contacts with your access.\nOptions: Cancel'), r.text);
+    }
+
+    @IsTest
+    static void anActionResultLinksItsRecordAndOffersUndoOnlyWithAToken() {
+        Id taskId = fakeId(Task.SObjectType, 9);
+        CustomerSummaryActions.Result r = new CustomerSummaryActions.Result();
+        r.status = 'OK';
+        r.title = 'Task created';
+        r.objectLabel = 'Task';
+        r.recordId = taskId;
+        r.label = 'Follow up on the generator proposal';
+        r.message = 'Saved as you, with your access. Undo is offered for 15 seconds after an update.';
+        r.fields.add(actionField('Subject', 'Subject', 'Follow up on the generator proposal', 'Follow up on the generator proposal'));
+        r.fields.add(actionField('ActivityDate', 'Due', '2026-11-17', '2026-11-17'));
+        r.fields.add(actionField('WhoId', 'Contact', fakeId(Contact.SObjectType, 1), 'Jordan Lee'));
+        AnswerCard c = AnswerCard.actionResult(r);
+        AnswerCard fixture = (AnswerCard) JSON.deserialize(FIX_ACTION_RESULT, AnswerCard.class);
+        Assert.areEqual(fixture.text, c.text, 'the result reads as FE-18 drew it');
+        Assert.areEqual('res', c.key);
+        Assert.areEqual('t1', c.fields[0].ref, 'the first field links the record written');
+        Assert.isNull(c.fields[2].ref, 'only the record written is linked');
+        Assert.areEqual(1, c.refs.size());
+        Assert.areEqual(JSON.serialize(fixture.controls), JSON.serialize(c.controls), 'Open task, and no Undo for a create');
+
+        r.undoToken = 'token';
+        r.fields.add(0, actionField('Id', 'Contact', fakeId(Contact.SObjectType, 2), 'Maria Lopez'));
+        AnswerCard withUndo = AnswerCard.actionResult(r);
+        Assert.areEqual('Subject', withUndo.fields[0].key, 'the record\'s own Id field is not shown');
+        Assert.areEqual('undo', withUndo.controls[1].key);
+        Assert.isFalse(JSON.serialize(withUndo).contains('"token"'), 'the token stays off the card');
+
+        CustomerSummaryActions.Result notSaved = new CustomerSummaryActions.Result();
+        notSaved.status = 'REFUSED';
+        notSaved.title = 'Not saved';
+        notSaved.message = 'Nothing was saved.';
+        AnswerCard n = AnswerCard.actionResult(notSaved);
+        Assert.areEqual(0, n.controls.size(), 'nothing to open or undo');
+        Assert.areEqual('Not saved\nNothing was saved.', n.text);
+    }
 }
