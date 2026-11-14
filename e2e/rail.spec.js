@@ -72,7 +72,7 @@ test.describe('right rail', () => {
         await expect(panel.rail).toHaveClass(/cs-rail_overlay/);
 
         // The header: the agent name and the rail's key hint.
-        await expect(panel.rail.getByRole('heading', { level: 2 })).not.toHaveText('');
+        await expect(panel.rail.locator('h2.cs-rail-name')).not.toHaveText('');
         await expect(panel.rail.locator('kbd.cs-rail-key')).toHaveText(/^(⌘⇧K|Ctrl Shift K)$/);
 
         await page.keyboard.press('Escape');

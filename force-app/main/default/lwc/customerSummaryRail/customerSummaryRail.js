@@ -460,6 +460,11 @@ export default class CustomerSummaryRail extends NavigationMixin(LightningElemen
     handleTabLeave() {
         clearTimeout(this._hoverTimer);
         this._hoverTimer = null;
+        // The tab slides out over 180 ms and sits above the peek while it does, so the pointer can leave the
+        // tab without ever entering the rail: that leave ends the peek too.
+        if (this._peek && this._state === 'open') {
+            this.handleRailLeave();
+        }
     }
 
     handleRailEnter() {
@@ -522,6 +527,14 @@ export default class CustomerSummaryRail extends NavigationMixin(LightningElemen
         const rows = this._rows(list);
         const row = rows[Number(index)];
         if (!row || !row.recordId) {
+            return;
+        }
+        // The host navigates when it can: inside customerSummaryPanel the rail lives on a stage moved onto
+        // document.body, out of reach of the page's navigation context, so the panel (still in the utility
+        // bar) takes the event and calls Navigate. On its own, the rail navigates itself.
+        const request = new CustomEvent('railopenrecord', { detail: { recordId: row.recordId }, cancelable: true });
+        this.dispatchEvent(request);
+        if (request.defaultPrevented) {
             return;
         }
         this[NavigationMixin.Navigate]({
