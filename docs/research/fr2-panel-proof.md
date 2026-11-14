@@ -76,6 +76,8 @@ platform message from outside Apex. It is a change in `force-app` and not part o
 
 Fixed by FE-25: `errorText` now always returns the panel's fixed sentence.
 
+2026-11-14 (FE-27): the conversation's View record did nothing in `agent-probe`, in the compact window and in the rail: both new e2e tests (`e2e/conversation-view-record.spec.js`, on `mac` and `windows`) failed on the first run, before any change, on the URL never leaving the account page. Changed: View record now dispatches a cancelable `csopenrecord` first and `customerSummaryPanel` navigates (one method shared with the rail's rows); after the deploy both tests pass.
+
 ## VoiceOver script (about five minutes, macOS Safari or Chrome)
 
 Automated browsers cannot hear a screen reader, so this is by hand. Open the Customer Summary app on an account page

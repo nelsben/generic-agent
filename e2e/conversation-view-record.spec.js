@@ -6,11 +6,17 @@
  *
  * Model calls per run: 1 brief per test, so 2. Tagged @hotkey so both projects (mac, windows) run them.
  */
-const { test, expect } = require('./support/panel');
+const { test, expect, ANSWER_TIMEOUT } = require('./support/panel');
 
 /** Drills into the first drillable line of a fresh brief, then clicks View record. Returns the drilled name. */
 async function drillAndView(page, panel) {
-    const brief = await panel.briefThisAccount();
+    // Not briefThisAccount: the rail shows the sessions list open, and its live region line replaces "Summary ready".
+    const turnsBefore = await panel.turns.count();
+    await panel.briefButton.click();
+    await expect(panel.turns).toHaveCount(turnsBefore + 1, { timeout: ANSWER_TIMEOUT });
+    const brief = panel.turns.last();
+    await expect(panel.cards(brief).first()).toBeVisible({ timeout: ANSWER_TIMEOUT });
+    await expect(panel.spinner).toBeHidden({ timeout: ANSWER_TIMEOUT });
     const line = await panel.firstDrillLine(brief);
     expect(line, 'a brief section line is drillable').not.toBeNull();
     await /** @type {import('@playwright/test').Locator} */ (line).click();
