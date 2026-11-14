@@ -4,8 +4,7 @@ title: FR2: page 07 becomes "Trust by design" — one screen with the rule (it s
 domain: ops
 tier: standard
 tier_reason: shrinks a page into a reference that must match the code's markers and the chapters it points to
-status: blocked
-blocked_by: [OPS-40]
+status: queued
 fixes: []
 scope: [docs/patterns/07-trust-access-and-failure.md, tests/test_pattern_07.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
