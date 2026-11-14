@@ -438,7 +438,7 @@ Each open item from the last version of this page, rechecked.
 - **The "Ask the agent" spec** is gone with its button (FE-20).
 - **The diagram on this page has not been render-checked** on GitHub or locally (see
   [Render check](_diagram-theme.md#render-check)). No card yet.
-- **The four public doc links under [Adopt it](#adopt-it) were taken from search results and not opened:** the
+- **The public doc links under [Adopt it](#adopt-it) were taken from search results and not opened:** the
   documentation site refused automated fetches. No card yet.
 
 [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
