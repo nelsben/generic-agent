@@ -1067,8 +1067,10 @@ private class CustomerSummaryTest {
         }
         Assert.isFalse(stub.systems[stub.systems.size() - 1].contains(CustomerOutcomes.CONTEXT_HEADER), 'nothing before the first summary');
 
+        String authorDay; // the summary's date is the rep's (New York), not the running user's
         Test.startTest();
         System.runAs(u) {
+            authorDay = Datetime.now().format('yyyy-MM-dd');
             out = CustomerSummaryGetAction.getBriefs(requestsFor(new List<Account>{ a }));
         }
         Test.stopTest();
@@ -1077,7 +1079,7 @@ private class CustomerSummaryTest {
         String synthesis = stub.systems[stub.systems.size() - 1];
         Assert.isTrue(synthesis.contains('final account summary'), 'the last call is the synthesis');
         Assert.isTrue(synthesis.contains(CustomerOutcomes.CONTEXT_HEADER), synthesis.right(400));
-        Assert.isTrue(synthesis.contains('- Summary, ' + Datetime.now().format('yyyy-MM-dd') + ': Headline finding.'), synthesis.right(400));
+        Assert.isTrue(synthesis.contains('- Summary, ' + authorDay + ': Headline finding.'), synthesis.right(400));
         Assert.isFalse(synthesis.contains('Body.'), 'the headline only, never the body');
         Assert.areEqual(2, outcomeRows(a.Id).size());
     }

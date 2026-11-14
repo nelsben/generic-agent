@@ -1019,8 +1019,10 @@ private class DataExplorerTest {
         ExploreAction.Request req = new ExploreAction.Request();
         req.question = 'What deals does Acme have?';
         req.contextRecordId = a.Id;
+        String authorDay; // the outcome's date is the rep's (New York), not the running user's
         Test.startTest();
         System.runAs(rep) {
+            authorDay = Datetime.now().format('yyyy-MM-dd');
             CustomerOutcomes.record(last);
             ExploreAction.explore(new List<ExploreAction.Request>{ req });
         }
@@ -1028,7 +1030,7 @@ private class DataExplorerTest {
 
         Assert.areEqual(1, s.prompts.size());
         Assert.isTrue(s.prompts[0].contains(CustomerOutcomes.CONTEXT_HEADER), s.prompts[0]);
-        Assert.isTrue(s.prompts[0].contains('- Summary, ' + Datetime.now().format('yyyy-MM-dd') + ': Renewal on track.'), s.prompts[0]);
+        Assert.isTrue(s.prompts[0].contains('- Summary, ' + authorDay + ': Renewal on track.'), s.prompts[0]);
         Assert.isFalse(s.prompts[0].contains('Two open deals.'), 'the headline only');
     }
 
