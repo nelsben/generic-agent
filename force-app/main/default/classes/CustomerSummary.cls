@@ -4,6 +4,9 @@
  * run() (1) checks the account is visible to the user, (2) builds the included gather sources
  * from the registry, in registry order, (3) reduces them with the model through AgentLlm,
  * (4) records the turn in CustomerSummaryMemory and the summary as a customer outcome, (5) returns a Result.
+ * The reduce step ends with one focused sentiment call (CustomerSentiment, BE-36) on the same reduced sections, after
+ * the synthesis; its score, label and reason go on the summary's outcome only. A sentiment that fails, is malformed or
+ * does not fit the model-time budget is stored as no score, and the summary still returns.
  * runAll() does the same for several briefs in one transaction: every brief's model calls first, then one memory
  * write and one outcome write, each on its own: a failed write is logged and the briefs still return (BE-35).
  * The synthesis also sees the account's outcome context (CustomerOutcomes.contextFor): the last summary's headline
@@ -31,9 +34,9 @@ public with sharing class CustomerSummary {
     @TestVisible private static final String NOT_REQUESTED = 'EMPTY: not requested';
     @TestVisible private static final String SKIPPED = 'EMPTY';
     /**
-     * Briefs built in one runAll call. One brief runs at most about 25 SOQL queries and 3 model calls;
-     * three briefs and the memory write stay well inside the 100-query limit
-     * (CustomerSummaryTest.threeFullRequestsAtTheCapStayWellInsideTheQueryLimit). A fourth could reach it.
+     * Briefs built in one runAll call. One brief runs at most about 25 SOQL queries and 4 model calls (two
+     * pre-reduces, the synthesis and the sentiment); three briefs and the memory write stay well inside the 100-query
+     * limit (CustomerSummaryTest.threeFullRequestsAtTheCapStayWellInsideTheQueryLimit). A fourth could reach it.
      */
     @TestVisible private static final Integer MAX_BRIEFS_PER_CALL = 3;
     @TestVisible private static final String OVER_CAP_TEXT = 'I can build up to ' + MAX_BRIEFS_PER_CALL
@@ -43,6 +46,15 @@ public with sharing class CustomerSummary {
     @TestVisible private static final String CUT_MARKER = '\n[Cut short: this summary reached its length limit.]';
     private static final String SYNTHESIS_PROMPT = 'SummarySynthesis';
     private static final Integer SYNTHESIS_MAX_TOKENS = 1500;
+    /**
+     * The sentiment call runs only while this transaction's summary model calls have taken less than this many
+     * milliseconds. Model calls share the transaction's 120-second callout allowance; the sentiment is short (a
+     * 200-token reply) and the one call a summary can do without, so it is skipped, as no score, when less than
+     * 30 seconds of the allowance would be left for it.
+     */
+    @TestVisible private static final Long SENTIMENT_TIME_BUDGET_MS = 90000;
+    /** Milliseconds spent in this transaction's summary model calls so far. */
+    @TestVisible private static Long modelMillis = 0;
 
     /** The gather registry, in brief order. One line per source: key, then Apex class name. */
     @TestVisible private static List<Source> registry = new List<Source>{
@@ -228,26 +240,51 @@ public with sharing class CustomerSummary {
 
         // 3. Reduce. Any model failure ends the brief here, with no memory write.
         String answer;
+        Map<String, String> reduced = new Map<String, String>();
+        Long started = System.currentTimeMillis();
         try {
-            answer = reduce(acct.Name, question, built, CustomerOutcomes.contextForVisibleAccount(accountId));
+            answer = reduce(acct.Name, question, built, CustomerOutcomes.contextForVisibleAccount(accountId), reduced);
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CustomerSummary reduce failed: ' + e.getTypeName() + ': ' + e.getMessage());
             return finish(r, ERROR, ERROR_TEXT, ERROR_TEXT);
+        } finally {
+            modelMillis += System.currentTimeMillis() - started;
         }
         finish(r, anyOk ? OK : EMPTY, anyOk ? '' : EMPTY_TEXT, clampAnswer(answer));
+        CustomerSentiment.Reading sentiment = sentimentFor(built, reduced);
         memory.add(new CustomerSummaryMemory.Entry(accountId, r.status, question, r.answer));
-        outcomes.add(summaryOutcome(accountId, question, r.answer));
+        outcomes.add(summaryOutcome(accountId, question, r.answer, sentiment));
         return r;
     }
 
-    /** The summary as an outcome: the question (or "Summary") as title, the answer as body, its first line as headline. */
-    private static CustomerOutcomes.Input summaryOutcome(Id accountId, String question, String answer) {
+    /**
+     * The last call of the reduce step: the summary's sentiment from the values the synthesis was given (no new
+     * query). Skipped, as no score, once this transaction's model calls have used SENTIMENT_TIME_BUDGET_MS.
+     * CustomerSentiment never throws.
+     */
+    private static CustomerSentiment.Reading sentimentFor(Map<String, CustomerSummarySection> built, Map<String, String> reduced) {
+        if (modelMillis >= SENTIMENT_TIME_BUDGET_MS) {
+            return new CustomerSentiment.Reading();
+        }
+        Long started = System.currentTimeMillis();
+        CustomerSentiment.Reading reading = CustomerSentiment.forBrief(built, reduced);
+        modelMillis += System.currentTimeMillis() - started;
+        return reading;
+    }
+
+    /**
+     * The summary as an outcome: the question (or "Summary") as title, the answer as body, its first line as headline,
+     * and the sentiment reading (BE-36), whose fields stay empty when there is no reading.
+     */
+    private static CustomerOutcomes.Input summaryOutcome(Id accountId, String question, String answer, CustomerSentiment.Reading sentiment) {
         CustomerOutcomes.Input o = new CustomerOutcomes.Input(accountId, CustomerOutcomes.SUMMARY);
         o.title = String.isBlank(question) ? 'Summary' : question.trim();
         o.body = answer;
         o.skill = 'summary';
         o.model = CustomerOutcomes.modelFor(SYNTHESIS_PROMPT);
-        // BE-36 sets o.sentimentScore, o.sentimentLabel and o.sentimentReason here, from the synthesis it adds.
+        o.sentimentScore = sentiment.score;
+        o.sentimentLabel = sentiment.label;
+        o.sentimentReason = sentiment.reason;
         return o;
     }
 
@@ -368,10 +405,13 @@ public with sharing class CustomerSummary {
 
     /**
      * Pre-reduces where the map says, then synthesizes. Throws on any model failure. outcomeContext (may be blank)
-     * goes after the brand lines in the synthesis system text, so the prompt file is unchanged.
+     * goes after the brand lines in the synthesis system text, so the prompt file is unchanged. synthesisVars is
+     * filled with the values the synthesis is given, for the sentiment call that follows.
      */
-    private static String reduce(String accountName, String question, Map<String, CustomerSummarySection> built, String outcomeContext) {
-        Map<String, String> synthesisVars = new Map<String, String>();
+    private static String reduce(
+        String accountName, String question, Map<String, CustomerSummarySection> built, String outcomeContext,
+        Map<String, String> synthesisVars
+    ) {
         Set<String> preReduced = new Set<String>();
 
         for (PreReduce p : PRE_REDUCES) {

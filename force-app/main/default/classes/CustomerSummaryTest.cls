@@ -13,6 +13,10 @@ private class CustomerSummaryTest {
         Boolean fail = false;
         /** When set, the synthesis call returns this instead of the short fixed brief. */
         String synthesisReply;
+        /** What the sentiment call returns (BE-36); a well-formed positive reading unless a test sets it. */
+        String sentimentReply = '{"score": 1, "label": "Positive", "reason": "A deal won 20 days ago."}';
+        /** Makes only the sentiment call fail. */
+        Boolean failSentiment = false;
 
         public String complete(String systemPrompt, String userPrompt, Integer maxTokens) {
             if (fail) {
@@ -21,6 +25,12 @@ private class CustomerSummaryTest {
             dmlAtCall.add(Limits.getDmlStatements());
             systems.add(systemPrompt);
             users.add(userPrompt);
+            if (systemPrompt.contains(SENTIMENT_MARKER)) {
+                if (failSentiment) {
+                    throw new AgentLlm.LlmException('sentiment model down');
+                }
+                return sentimentReply;
+            }
             if (systemPrompt.contains('engagement data')) {
                 return 'ENGAGEMENT SUMMARY';
             }
@@ -48,7 +58,30 @@ private class CustomerSummaryTest {
             }
             return null;
         }
+
+        /** The system text of the last synthesis call, or null. */
+        String lastSynthesis() {
+            for (Integer i = systems.size() - 1; i >= 0; i--) {
+                if (systems[i].contains('final account summary')) {
+                    return systems[i];
+                }
+            }
+            return null;
+        }
+
+        /** The user text of the first sentiment call, or null. */
+        String sentimentUser() {
+            for (Integer i = 0; i < systems.size(); i++) {
+                if (systems[i].contains(SENTIMENT_MARKER)) {
+                    return users[i];
+                }
+            }
+            return null;
+        }
     }
+
+    /** Words only the sentiment prompt file's system text holds. */
+    private static final String SENTIMENT_MARKER = 'score customer sentiment';
 
     private static Stub install() {
         Stub s = new Stub();
@@ -113,10 +146,11 @@ private class CustomerSummaryTest {
         Assert.areEqual(ALL_KEYS, keysOf(r));
         Assert.isTrue(r.ignored.isEmpty());
 
-        Assert.areEqual(3, stub.systems.size());
+        Assert.areEqual(4, stub.systems.size());
         Assert.areEqual(1, stub.count('engagement data'));
         Assert.areEqual(1, stub.count('deal history for one account'));
-        Assert.isTrue(stub.systems[2].contains('final account summary'), 'synthesis runs last');
+        Assert.isTrue(stub.systems[2].contains('final account summary'), 'synthesis runs after the pre-reduces');
+        Assert.isTrue(stub.systems[3].contains(SENTIMENT_MARKER), 'the sentiment call ends the reduce step');
 
         String engagementUser = stub.users[0];
         Assert.isTrue(engagementUser.contains('Account: ' + a.Name));
@@ -312,7 +346,7 @@ private class CustomerSummaryTest {
             Assert.areEqual(CustomerSummary.OK, resp.status, resp.answer);
             Assert.areEqual('Headline finding.\nAccount\nBody.', resp.answer);
         }
-        Assert.areEqual(9, stub.dmlAtCall.size(), 'three model calls per brief');
+        Assert.areEqual(12, stub.dmlAtCall.size(), 'four model calls per brief: two pre-reduces, the synthesis, the sentiment');
         for (Integer i = 0; i < stub.dmlAtCall.size(); i++) {
             Assert.areEqual(before, stub.dmlAtCall[i], 'model call ' + (i + 1) + ' ran after DML: ' + stub.dmlAtCall);
         }
@@ -476,7 +510,7 @@ private class CustomerSummaryTest {
         Assert.areEqual(8, withId, 'one Id per record line, none elsewhere');
 
         // 2. No Id reaches a model prompt, while the lines themselves do.
-        Assert.areEqual(3, stub.users.size());
+        Assert.areEqual(4, stub.users.size(), 'the pre-reduces, the synthesis and the sentiment, each checked below');
         List<String> prompts = new List<String>(stub.systems);
         prompts.addAll(stub.users);
         for (Id recordId : new List<Id>{ openDeal.Id, wonDeal.Id, c.Id, cs.Id, t.Id, past.Id, next.Id }) {
@@ -544,7 +578,8 @@ private class CustomerSummaryTest {
         for (CustomerSummaryGetAction.Response resp : out) {
             Assert.areEqual(CustomerSummary.OK, resp.status, resp.answer);
         }
-        Assert.areEqual(9, stub.systems.size(), 'every brief at the cap is built');
+        Assert.areEqual(12, stub.systems.size(), 'every brief at the cap is built, sentiment included');
+        Assert.areEqual(3, stub.count(SENTIMENT_MARKER), 'one sentiment call per brief, within the budget');
         // Headroom for the memory write's DUPLICATE_VALUE retry (one more query) and a margin.
         Assert.isTrue(queries <= 90, 'SOQL queries for three full briefs and the memory write: ' + queries);
     }
@@ -569,7 +604,7 @@ private class CustomerSummaryTest {
             Assert.areEqual('ERROR', out[i].status);
             Assert.areEqual('I can build up to 3 summaries in one request. Ask for this account again on its own.', out[i].answer);
         }
-        Assert.areEqual(9, stub.systems.size(), 'no model call for a request past the cap');
+        Assert.areEqual(12, stub.systems.size(), 'no model call for a request past the cap');
         Assert.areEqual(3, memoryRows(), 'only the briefs that ran are remembered');
     }
 
@@ -935,8 +970,9 @@ private class CustomerSummaryTest {
 
     private static List<Customer_Outcome__c> outcomeRows(Id accountId) {
         return [
-            SELECT Outcome_Type__c, Title__c, Headline__c, Body__c, Skill__c, Surface__c, Model__c, CreatedById
-            FROM Customer_Outcome__c WHERE Account__c = :accountId WITH SYSTEM_MODE
+            SELECT Outcome_Type__c, Title__c, Headline__c, Body__c, Skill__c, Surface__c, Model__c, CreatedById,
+                Sentiment_Score__c, Sentiment_Label__c, Sentiment_Reason__c
+            FROM Customer_Outcome__c WHERE Account__c = :accountId WITH SYSTEM_MODE ORDER BY CreatedDate, Id
         ];
     }
 
@@ -1047,7 +1083,7 @@ private class CustomerSummaryTest {
         Test.stopTest();
 
         Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
-        Assert.isFalse(stub.systems[stub.systems.size() - 1].contains(CustomerOutcomes.CONTEXT_HEADER), 'no outcome context');
+        Assert.isFalse(stub.lastSynthesis().contains(CustomerOutcomes.CONTEXT_HEADER), 'no outcome context');
         Assert.areEqual(0, outcomeRows(a.Id).size(), 'no outcome without the outcome set');
         Assert.areEqual(1, memoryRows(), 'the memory write is unaffected');
     }
@@ -1065,7 +1101,7 @@ private class CustomerSummaryTest {
         System.runAs(u) {
             CustomerSummary.run(a.Id, null, null);
         }
-        Assert.isFalse(stub.systems[stub.systems.size() - 1].contains(CustomerOutcomes.CONTEXT_HEADER), 'nothing before the first summary');
+        Assert.isFalse(stub.lastSynthesis().contains(CustomerOutcomes.CONTEXT_HEADER), 'nothing before the first summary');
 
         String authorDay; // the summary's date is the rep's (New York), not the running user's
         Test.startTest();
@@ -1076,11 +1112,205 @@ private class CustomerSummaryTest {
         Test.stopTest();
 
         Assert.areEqual(CustomerSummary.OK, out[0].status, out[0].answer);
-        String synthesis = stub.systems[stub.systems.size() - 1];
-        Assert.isTrue(synthesis.contains('final account summary'), 'the last call is the synthesis');
+        String synthesis = stub.lastSynthesis();
+        Assert.isTrue(synthesis.contains('final account summary'), 'the second summary\'s synthesis');
         Assert.isTrue(synthesis.contains(CustomerOutcomes.CONTEXT_HEADER), synthesis.right(400));
         Assert.isTrue(synthesis.contains('- Summary, ' + authorDay + ': Headline finding.'), synthesis.right(400));
         Assert.isFalse(synthesis.contains('Body.'), 'the headline only, never the body');
         Assert.areEqual(2, outcomeRows(a.Id).size());
+    }
+
+    // ---- BE-36: sentiment on the summary's outcome ----
+
+    private static Customer_Outcome__c onlyOutcome(Id accountId) {
+        List<Customer_Outcome__c> rows = outcomeRows(accountId);
+        Assert.areEqual(1, rows.size(), 'one summary outcome');
+        return rows[0];
+    }
+
+    @IsTest
+    static void theSummarysOutcomeCarriesTheSentimentScoreLabelAndReason() {
+        Account a = mkFullAccount();
+        User u = outcomeRep('Standard User', 'sentok', true);
+        Stub stub = install();
+        stub.sentimentReply = '{"score": -2, "label": "At risk", "reason": "An open high-priority case and an overdue deal."}';
+
+        CustomerSummary.Result r;
+        Integer before;
+        Test.startTest();
+        System.runAs(u) {
+            before = Limits.getDmlStatements();
+            r = CustomerSummary.run(a.Id, null, null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        Assert.areEqual('Headline finding.\nAccount\nBody.', r.answer, 'the answer is the synthesis alone');
+        Assert.areEqual(before, stub.dmlAtCall[stub.dmlAtCall.size() - 1], 'the sentiment call runs before any write');
+        Customer_Outcome__c row = onlyOutcome(a.Id);
+        Assert.areEqual(-2, row.Sentiment_Score__c.intValue());
+        Assert.areEqual('At risk', row.Sentiment_Label__c);
+        Assert.areEqual('An open high-priority case and an overdue deal.', row.Sentiment_Reason__c);
+    }
+
+    @IsTest
+    static void theSentimentReadsTheReducedSectionsAndNoRecordId() {
+        Account a = mkFullAccount();
+        Stub stub = install();
+
+        Test.startTest();
+        CustomerSummary.run(a.Id, null, null);
+        Test.stopTest();
+
+        String user = stub.sentimentUser();
+        Assert.isNotNull(user, 'the sentiment call ran');
+        Assert.isTrue(user.contains('Engagement summary:\nENGAGEMENT SUMMARY'), 'the pre-reduced engagement: ' + user);
+        Assert.isTrue(user.contains('Deal history summary:\nDEAL HISTORY SUMMARY'), 'the pre-reduced deal history');
+        Assert.isTrue(user.contains('Open full deal'), 'the open deals section as the synthesis sees it');
+        Assert.isTrue(user.contains('Open full case'), 'the cases section as the synthesis sees it');
+        List<Id> recordIds = new List<Id>{ a.Id };
+        for (Opportunity o : [SELECT Id FROM Opportunity WHERE AccountId = :a.Id]) {
+            recordIds.add(o.Id);
+        }
+        for (Case c : [SELECT Id FROM Case WHERE AccountId = :a.Id]) {
+            recordIds.add(c.Id);
+        }
+        for (Id recordId : recordIds) {
+            Assert.isFalse(user.contains(String.valueOf(recordId).left(15)), 'no record Id reaches the sentiment prompt');
+        }
+        Assert.isFalse(user.contains(a.Name), 'the account name is not evidence');
+    }
+
+    @IsTest
+    static void aMalformedSentimentIsStoredAsNoScoreAndTheSummaryReturns() {
+        Account a = mkFullAccount();
+        User u = outcomeRep('Standard User', 'sentbad', true);
+        Stub stub = install();
+        stub.sentimentReply = 'They seem pretty happy.';
+
+        CustomerSummary.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            r = CustomerSummary.run(a.Id, null, null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        Assert.areEqual(1, stub.count(SENTIMENT_MARKER));
+        Customer_Outcome__c row = onlyOutcome(a.Id);
+        Assert.isNull(row.Sentiment_Score__c, 'no score');
+        Assert.isNull(row.Sentiment_Label__c, 'no label');
+        Assert.isNull(row.Sentiment_Reason__c, 'no reason');
+        Assert.areEqual(r.answer, row.Body__c, 'the summary is still recorded');
+    }
+
+    @IsTest
+    static void aFailedSentimentCallStillGivesTheSummaryAndItsOutcome() {
+        Account a = mkFullAccount();
+        User u = outcomeRep('Standard User', 'sentfail', true);
+        Stub stub = install();
+        stub.failSentiment = true;
+
+        CustomerSummary.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            r = CustomerSummary.run(a.Id, null, null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        Assert.areEqual('Headline finding.\nAccount\nBody.', r.answer);
+        Customer_Outcome__c row = onlyOutcome(a.Id);
+        Assert.isNull(row.Sentiment_Score__c);
+        Assert.isNull(row.Sentiment_Label__c);
+        Assert.areEqual(1, memoryRows(), 'the memory write is unaffected');
+    }
+
+    @IsTest
+    static void anAccountWithNothingOnRecordIsNotEnoughActivityWithNoSentimentCall() {
+        Account a = mkAccount(false);
+        User u = outcomeRep('Standard User', 'sentnil', true);
+        Stub stub = install();
+
+        CustomerSummary.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            r = CustomerSummary.run(a.Id, null, null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(0, stub.count(SENTIMENT_MARKER), 'sparse data costs no sentiment call');
+        Assert.areEqual(1, stub.count('final account summary'), 'the summary is still written');
+        Customer_Outcome__c row = onlyOutcome(a.Id);
+        Assert.isNull(row.Sentiment_Score__c, 'never a guess');
+        Assert.areEqual(CustomerSentiment.NOT_ENOUGH, row.Sentiment_Label__c);
+        Assert.areEqual(CustomerSentiment.NO_EVIDENCE_REASON, row.Sentiment_Reason__c);
+    }
+
+    @IsTest
+    static void aSummaryOfSomeSectionsHasNoSentimentCall() {
+        Account a = mkFullAccount();
+        User u = outcomeRep('Standard User', 'sentpart', true);
+        Stub stub = install();
+
+        CustomerSummary.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            r = CustomerSummary.run(a.Id, null, new Set<String>{ 'open_deals', 'cases' });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        Assert.areEqual(0, stub.count(SENTIMENT_MARKER), 'a partial summary is not a sentiment reading');
+        Assert.isNull(onlyOutcome(a.Id).Sentiment_Label__c);
+    }
+
+    @IsTest
+    static void pastTheModelTimeBudgetTheSentimentIsSkippedAndTheSummaryStands() {
+        Account a = mkFullAccount();
+        User u = outcomeRep('Standard User', 'sentbud', true);
+        Stub stub = install();
+        CustomerSummary.modelMillis = CustomerSummary.SENTIMENT_TIME_BUDGET_MS;
+
+        CustomerSummary.Result r;
+        Test.startTest();
+        System.runAs(u) {
+            r = CustomerSummary.run(a.Id, null, null);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(CustomerSummary.OK, r.status, r.answer);
+        Assert.areEqual(3, stub.systems.size(), 'the pre-reduces and the synthesis still run');
+        Assert.areEqual(0, stub.count(SENTIMENT_MARKER), 'no sentiment call past the budget');
+        Customer_Outcome__c row = onlyOutcome(a.Id);
+        Assert.isNull(row.Sentiment_Score__c);
+        Assert.isNull(row.Sentiment_Label__c);
+        Assert.areEqual(r.answer, row.Body__c);
+    }
+
+    @IsTest
+    static void underTheModelTimeBudgetTheSentimentRuns() {
+        Account a = mkFullAccount();
+        Stub stub = install();
+        CustomerSummary.modelMillis = CustomerSummary.SENTIMENT_TIME_BUDGET_MS - 1000;
+
+        Test.startTest();
+        CustomerSummary.run(a.Id, null, null);
+        Test.stopTest();
+
+        Assert.areEqual(1, stub.count(SENTIMENT_MARKER), 'the stub returns at once, so the budget still has room');
+    }
+
+    @IsTest
+    static void aFailedSummaryMakesNoSentimentCall() {
+        Account a = mkFullAccount();
+        Stub stub = install();
+        stub.fail = true;
+
+        CustomerSummary.Result r = CustomerSummary.run(a.Id, null, null);
+
+        Assert.areEqual(CustomerSummary.ERROR, r.status);
+        Assert.areEqual(0, stub.count(SENTIMENT_MARKER));
+        Assert.areEqual(0, outcomeRows(a.Id).size(), 'an error is not an outcome');
     }
 }
