@@ -99,7 +99,7 @@ OPS-36's proof table takes these from here.
 | Rail context sections | Open deals, Recent activity, Cases and Last summary all finish loading (`aria-busy` false) with content | same; the rail is 589 px wide | [1440](../assets/fr2-review-1440-rail.png), [1280](../assets/fr2-review-1280-rail.png) |
 | Outcomes timeline | 5 entries shown, with "Show 73 more". Every entry shown is a "Summary, At risk" from today's e2e runs (L9) | same | [1440](../assets/fr2-review-1440-history.png) |
 | Sentiment chart | 47 points in a chart 215 px wide; the points overlap and the axis text is tiny (L6) | same | [1440](../assets/fr2-review-1440-history.png) |
-| History reopen | 10 conversations listed; the newest reopens with its 10 turns | same | [1440](../assets/fr2-review-1440-reopen.png) |
+| History reopen | 10 conversations listed. The newest is labelled "15 turns" in the list, and it reopens with 10 turns (the script counted `[data-turn]` sections). Both numbers are right: the list label is `Turn_Count__c`, which counts every turn ever written to the session. The stored thread `Turns_JSON__c` keeps only the newest `MAX_TURNS` = 10 (CustomerSummaryMemory.cls:27 and :232-237), and that is what a reopen shows | same | [1440](../assets/fr2-review-1440-reopen.png) |
 | Reduced motion | with `reduce`, the window and the rail transitions are `0s`, and no animation is running on the rail. Without it, the window transitions are 0.28 s | same | |
 | Open speed | see the speed table | same | |
 
@@ -163,12 +163,13 @@ Ranked by severity. Each one gives the file and line, and a proposed card title.
 
 **M5. axe fails `target-size` on the compact window's Minimize button at 1280x720.**
 - *Where:* the `.slds-button_icon[title="Minimize"]` button in the window's header. It fails on the compact window
-  and the draft card at 1280 only; 1440 is clean. The likely cause is the small icon buttons sitting next to
-  something else at that size.
-- *Why it matters:* this is WCAG 2.2 AA (2.5.8). a11y-snapshot spec 13 runs only colour contrast, so the suite does
-  not catch it.
-- *Proposed card:* "Panel: header icon buttons meet the 24 px target size at 1280x720, with an axe check in the
-  suite".
+  and the draft card at 1280x720 only; at 1440x900 the same scans are clean. The likely cause is the small icon
+  buttons sitting next to something else at that size.
+- *Why it matters:* this is WCAG 2.2 AA (2.5.8). The suite does scan WCAG 2.2 AA: e2e/panel.spec.js:23 (`WCAG_TAGS`
+  includes `wcag22aa`), :77-90 (`axeScan`) and :360-372 (spec 8, the brief and drill states). But
+  playwright.config.js sets a 1440x900 viewport only, so no axe scan runs at 1280x720, where this failure shows.
+- *Proposed card:* "Panel: header icon buttons meet the 24 px target size at 1280x720, and the suite's axe scan
+  also runs at 1280x720".
 
 ### Low
 
@@ -208,10 +209,14 @@ Ranked by severity. Each one gives the file and line, and a proposed card title.
 - **L11. The MCP door marks `resolve_account` as not read-only.** CustomerSummaryMcp.mcpServerDefinition-meta.xml:45
   has `readOnly` false on `resolve_account`, which only reads. A client may then ask for a confirmation it does not
   need. *Card:* fold into L10's card.
-- **L12. Some research pages have no Undo list.** Sixteen `docs/research/fr2-*.md` pages have no Undo section. Most
-  changed only product metadata that ships in `force-app`, so they leave nothing behind. One page does leave
-  something: [fr2-retire-ask-agent.md](../research/fr2-retire-ask-agent.md) leaves `AccountBriefAgentClient` and its
-  test in the org, with no Undo heading. *Card:* fold into the docs sweep (OPS-48).
+- **L12. Some research pages have no Undo list.** The count uses one rule: a heading that matches `^#.*undo`
+  (case-insensitive). Of the 26 `docs/research/fr2-*.md` pages, 11 have such a heading and 15 do not.
+  - **With one:** action-cards, actions-spike, agent-memory, agent-publish, card-architecture, coworker-spike,
+    explorer-scale, rename-go, rename-org, standard-limits and surfaces-spike. fr2-action-cards' match is "Confirm,
+    the result card and Undo", which is about the product's Undo button, not a list of leftovers.
+  - **Without one:** most of the 15 changed only product metadata that ships in `force-app`, so they leave nothing
+    behind. [fr2-retire-ask-agent.md](../research/fr2-retire-ask-agent.md) is counted among the 15. It has an
+    inline "To undo" line (:63) but no heading, and it leaves `AccountBriefAgentClient` and its test in the org. *Card:* fold into the docs sweep (OPS-48).
 
 ### Notes (no card)
 
@@ -340,8 +345,9 @@ Parked cards: BE-28, BE-38, FE-5, FE-23, OPS-33, OPS-34, OPS-53, OPS-54 and OPS-
 
 This table is built from the Undo list of every `docs/research/fr2-*.md` page, plus the MCP door runbook, which FR2
 renamed. Five pages say their run left nothing but debug logs or session rows: fr2-actions-spike,
-fr2-agent-memory, fr2-coworker-spike, fr2-explorer-scale and fr2-standard-limits. Sixteen pages have no Undo
-section (L12).
+fr2-agent-memory, fr2-coworker-spike, fr2-explorer-scale and fr2-standard-limits. By the rule in L12 (a heading
+that matches `^#.*undo`), 15 of the 26 pages have no Undo section. fr2-retire-ask-agent.md is one of the 15: its
+inline "To undo" line is read for this table anyway.
 
 | What is left | Page | Removing it needs |
 | --- | --- | --- |
@@ -366,3 +372,8 @@ section (L12).
 - **How the e2e suite ran:** one spec file or group at a time. The tool moved two of the runs (the panel spec, and
   the three conversation specs) to the background after 3 minutes; each was waited for and not started twice.
 - **Out of scope:** a non-admin run (FE-5, parked). Everything here ran as the admin user.
+- **Undo count:** the count of pages without an Undo section (15 of 26) uses the rule in L12, a heading that matches
+  `^#.*undo`. fr2-retire-ask-agent.md, with only an inline "To undo" line, counts as having none.
+- **Main has moved on:** this review read `main` at `ea2d7ab`. Since then, page 05 has been rewritten (OPS-43) and
+  the pattern sweep (OPS-48) is under way. The notes on page titles (README and ARCHITECTURE for 07 and 08) and on
+  page 13 (L3) may be stale.
