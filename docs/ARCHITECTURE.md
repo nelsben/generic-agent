@@ -1,199 +1,281 @@
 # Architecture
 
-The engineer reference. The [pattern pages](patterns/) explain each part for adopters, with
-tests and review findings; this page is the map and the rules.
+How Customer Summary fits together: three ways in, one service behind each skill, one card contract, and the rules
+that keep it inside the rep's own access. This is the map. Each part below is a few lines and a pattern number that
+points into [the pattern pages](#the-pattern-pages), which explain it for sellers, service reps and builders. Why the
+product has surfaces and cards of its own, and not only the standard chat, is chapter
+[Why custom](patterns/00-why-custom.md).
 
-The agent answers with a small, fixed set of actions. Each answer follows one pattern:
-**route, gather, reduce**. Everything below the agent is Apex; there are no Flows and no
-prompt template metadata.
+## What the product is
 
+Customer Summary is one branded agent that works like Claude: one place to ask, and it picks the skill. A seller or a
+service rep gets a summary of an account, asks the next question in their own words, or asks for a follow-up to be
+written down, and every answer comes back as readable cards. It is Agentforce with its own skin: the platform's models
+through its trust layer, behind surfaces this repo controls, and every call runs as the signed-in user.
+
+## Three ways in
+
+All three call the same services, and each one reaches only what the rep can see.
+
+- **The compact window.** A small window one key away on any page (Cmd-K or Ctrl-K), with a minimize and an expand.
+  Pattern 03.
+- **The right rail.** A full-height side panel with the same conversation, plus the account's deals, activity, cases,
+  last summary, history and sentiment. It opens with Cmd-Shift-K or Ctrl-Shift-K, or from the compact window's expand.
+  Pattern 12.
+- **The outside door over MCP.** An AI client outside Salesforce, such as Claude, signs in as the rep and calls tools.
+  Every tool is an Apex action, so there is no second set of rules. Pattern 09.
+
+The two surfaces are frames around one conversation component. The frame owns the key, the corner and hiding; the
+thread, composer, voice input, quick actions, cards and history are the same in both. A third frame, the embedded surface for a service rep taking a call, is not built: [its placeholder page](patterns/14-embedded-surface.md) records the idea.
+
+**The optional agent is an add-on and a test bench, never a way in.** The registered Agentforce agent calls the same
+Apex actions, for a team that also wants the standard chat or wants to test the skills in Agentforce's tooling.
+Agentforce's own panel and the agent are not a way in to this product, and the agent is not an MCP tool. Appendix 06.
+
+## One service behind each skill
+
+Each skill is one Apex service. The compact window and the rail call it through one controller
+(`CustomerSummaryPanelController`), MCP calls it through the Apex actions, and a team's own agent can call the same
+actions.
+
+| Skill | Service | What it does | Pattern |
+|---|---|---|---|
+| Summary | `CustomerSummary` | Resolves the account, gathers each source in user mode, condenses the noisy parts, then writes the summary from those parts only. Up to 4 model calls: engagement, deal history, the synthesis and the sentiment score | 01 |
+| Ask anything | `DataExplorer` | The model fills a JSON query plan; Apex checks it, builds bound SOQL and runs it in user mode. No DML | 02 |
+| Act | `CustomerSummaryActions` | Builds a draft that writes nothing, and commits it only on the rep's Confirm. Over MCP the pair is Draft Action and Commit Action | 13 |
+
+Behind them: `CustomerSummaryResolver` turns words into one account, `AgentLlm` is the only door to a model,
+`CustomerSummaryMemory` and `CustomerOutcomes` keep what was done, `AnswerCard` builds the cards and `BrandSettings`
+holds the brand.
+
+**How a skill is built.** The pattern is route, gather, reduce: code routes the request and gathers records in the
+rep's access, then one prompt writes the answer from what was gathered. Apex emits facts and fixed one-line statuses;
+prompts write the prose, and a prompt never queries data.
+
+## The card contract
+
+Every answer is a set of typed cards plus its own plain text, built once in Apex (`AnswerCard`) and read by every
+surface. A card holds data, never markup: rich text is runs of bold, italic and code, and a record link is a key that
+the surface turns into a button. The same cards go out over MCP as JSON next to the text, so an answer reads correctly
+even where a card cannot be drawn. One shared component, `customerSummaryCard`, draws them at both widths. Patterns 03
+and 12 show them on each surface; the contract itself is in
+[the card architecture page](research/fr2-card-architecture.md) and
+[its Apex build](research/fr2-card-contract-apex.md).
+
+## The two diagrams
+
+The component diagram shows the shared conversation core and the frames around it. The theme is the shared one in
+[_diagram-theme.md](patterns/_diagram-theme.md).
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+flowchart TB
+    subgraph FR["Frames: they own the key, the corner and hiding"]
+        direction LR
+        CW["Compact window<br/>customerSummaryPanel"]
+        RR["Right rail<br/>customerSummaryRail"]
+        EM["Embedded surface<br/>not built"]
+    end
+    subgraph CORE["Shared conversation core: customerSummaryConversation"]
+        direction LR
+        TH["Thread and composer"]
+        VO["Voice input"]
+        CA["Cards<br/>customerSummaryCard"]
+        HI["History"]
+    end
+    subgraph APX["Apex, in the rep's access"]
+        direction LR
+        PC["CustomerSummaryPanelController"]
+        SK["Skill services<br/>CustomerSummary, DataExplorer,<br/>CustomerSummaryActions"]
+        AC["AnswerCard<br/>the card contract"]
+        ST["Memory and outcomes<br/>CustomerSummaryMemory,<br/>CustomerOutcomes"]
+        BR["BrandSettings"]
+    end
+    subgraph MODEL["The model, through the trust layer"]
+        LLM["AgentLlm<br/>and the model"]
+    end
+    subgraph OUT["Other callers of the same Apex actions"]
+        direction LR
+        MCP["Outside door over MCP"]
+        AG["Optional agent<br/>add-on and test bench"]
+    end
+    CW --> CORE
+    RR --> CORE
+    EM -.-> CORE
+    CORE --> PC
+    PC --> SK
+    SK --> AC
+    SK --> ST
+    SK --> LLM
+    BR -.-> CORE
+    BR -.-> LLM
+    MCP --> SK
+    AG --> SK
+    classDef frame fill:#EEF2FA,stroke:#4A5D85,color:#1B2233
+    classDef apex fill:#DEF3E6,stroke:#4A5D85,color:#1B2233
+    classDef model fill:#FFD6CC,stroke:#4A5D85,color:#1B2233
+    classDef later fill:#FFFFFF,stroke:#8A96AD,color:#1B2233,stroke-dasharray: 4 3
+    class CW,RR,TH,VO,CA,HI frame
+    class PC,SK,AC,ST,BR,MCP,AG apex
+    class LLM model
+    class EM later
 ```
-User -> Agent (route) or panel (customerSummaryPanel -> CustomerSummaryPanelController)
-  1. Resolve Account for Brief   CustomerSummaryResolver   -> RESOLVED / AMBIGUOUS / NOT_FOUND
-  2. Get Customer Summary           CustomerSummaryGetAction  -> CustomerSummary.run(accountId, question, include)
-       gather:  registry sources, deterministic Apex, no model
-       reduce:  contacts + activity + calls -> BriefEngagement  (pre-reduce)
-                deal_history                -> BriefDealHistory (pre-reduce)
-                everything else + both summaries + question -> BriefSynthesis
-       memory:  CustomerSummaryMemory.recordAll, once, after every model call
-  3. Explore Data                ExploreAction          -> DataExplorer.explore(question, contextRecordId, historyJson)
+
+The sequence diagram follows one question from a surface to an answer with cards. The numbers match the steps under it.
+The coral block is the model calls; everything else is the browser and deterministic Apex.
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+sequenceDiagram
+    autonumber
+    box rgb(247, 249, 252) The surface
+        actor U as Seller or service rep
+        participant S as Frame and conversation
+    end
+    box rgb(247, 249, 252) Apex, in the rep's access
+        participant C as CustomerSummaryPanelController
+        participant K as Skill service
+        participant M as Memory and outcomes
+    end
+    box rgb(255, 236, 230) The model, through the trust layer
+        participant L as AgentLlm and the model
+    end
+    rect rgb(225, 236, 252)
+        Note over U,C: Route
+        U->>S: ask in words, a chip or by voice
+        S->>C: the question and the open record
+    end
+    rect rgb(222, 243, 230)
+        Note over C,K: Gather
+        C->>K: the skill's one service
+        K->>K: read records in user mode, build the context
+    end
+    rect rgb(238, 232, 250)
+        Note over K,L: Reduce
+        rect rgb(255, 214, 204)
+            K->>L: focused prompts, up to 4 model calls for a summary
+            L-->>K: text
+        end
+        K->>K: build the cards and their plain text
+    end
+    rect rgb(234, 238, 242)
+        Note over K,U: Remember and answer
+        K->>M: save the turn and the outcome, once, after every model call
+        K-->>C: the answer as cards
+        C-->>S: cards and text
+        S-->>U: cards drawn in the thread
+    end
 ```
 
-Route: the agent always resolves first and briefs only a RESOLVED Id. Gather: each source
-builds one plain-text section. Reduce: the model writes prose from those sections only.
-Pattern pages: [01 route, gather, reduce](patterns/01-route-gather-reduce.md),
-[06 agent routing](patterns/06-agent-routing-and-verbatim-relay.md).
+1. **Ask.** The rep types, speaks or taps a chip. The conversation sends the question and the open record to the
+   controller.
+2. **Route.** The controller hands the request to the one service for the skill it asks for: a summary, a question or
+   an action.
+3. **Gather.** The service reads records in user mode and builds its context. No model is involved.
+4. **Reduce.** Focused prompts condense the noisy parts and write the answer from what was gathered. For a summary that
+   is up to 4 model calls; its synthesis prompt is `AgentPrompt_SummarySynthesis`.
+5. **Cards.** The service builds the cards and their plain text from data it already holds.
+6. **Remember.** The turn and the outcome are saved once, after every model call. A failed save is logged and the
+   answer still returns.
+7. **Answer.** The controller returns the cards and the surface draws them in the thread.
 
-## Class map
+## The two memories
 
-| Class | Job |
-|---|---|
-| `CustomerSummaryResolver` | Words or the open record to one Account (the resolve action) |
-| `CustomerSummaryGetAction` | The Get Customer Summary action; parses `include`, calls `CustomerSummary` |
-| `CustomerSummary` | The brief's only entry point: visibility gate, registry, reduce map, memory |
-| `CustomerSummarySource` | Interface every gather source implements: `key()`, `title()`, `build(Id)` |
-| `CustomerSummary*Section` | The seven sources: profile, open_deals, cases, contacts, activity, calls, deal_history |
-| `CustomerSummarySection` | The one shape a source returns: key, title, status, body, total, shown |
-| `CustomerSummaryMemory` | Per-user, per-account memory of past briefs. The only DML, in system mode. No invocable entry point |
-| `AgentLlm` | The only door to a model: loads a prompt, fills `{{vars}}`, calls the provider |
-| `AgentLlmModelsApi` | Default provider: the Salesforce Models API, model held in one constant |
-| `DataExplorer` | Explore loop (`explore`) and model-free drill-down (`drill`); see Explore |
-| `ExploreCatalog` | Curated objects and fields, describe-checked for the running user |
-| `ExplorePlan` | The JSON query plan the model fills, and its validation |
-| `ExploreQuery` | Builds bound SOQL from a resolved plan and runs it in user mode (read-only) |
-| `ExploreAction` | The Explore Data action: question in, status and answer plus a table out |
-| `CustomerSummaryPanelController` | `@AuraEnabled` door for the panel: resolve, getBrief, explore, drill, history, sources, agentId. Catches everything |
+- **Conversation history.** One row per rep, account and session: the title, the times and the newest 10 turns. A
+  session ends after 30 idle minutes. A rep sees only their own sessions, and only while they can read the account.
+  Pattern 05.
+- **Customer outcomes.** What the product did for a customer (a summary, an action, a saved answer) is kept against the
+  account, with a retention by type. Anyone who can see the account sees an outcome's type, date and sentiment label;
+  only its author sees its text, unless its type is marked to share. The next summary and the next question start from
+  the rep's own last outcomes. Pattern 05.
 
-The panel is the LWC `customerSummaryPanel` in the `Customer_Summary_UtilityBar` utility bar
-([03 hotkey panel](patterns/03-hotkey-panel.md)). Cmd/Ctrl-Shift-K or Expand opens it as the right rail
-([12 right rail](patterns/12-right-rail.md)).
+## The model door
+
+`AgentLlm` is the only door to a model. It loads a prompt file (`AgentPrompt_<Name>`, plain text with a system part and
+a user part), fills its placeholders and calls the provider, by default the platform's Models API. A prompt template is
+an opt-in per prompt; swapping a provider changes one class. Prompts are files a team can edit and redeploy in
+minutes. Pattern 04.
+
+## Brand settings
+
+One custom metadata record holds the agent name, company name, logo, colours and tone. Each surface sets them as CSS
+variables, and the tone is added to the summary and explorer prompts. Nothing hard-codes a name, a colour or a font, so a
+seller can rename the agent for a prospect by changing the record. Pattern 10.
 
 ## Add a source
 
-Pattern page: [01 route, gather, reduce](patterns/01-route-gather-reduce.md).
+To add a source to the summary: write one class that implements `CustomerSummarySource`, add one line to the registry
+in `CustomerSummary`, and reference its key in `AgentPrompt_SummarySynthesis` or a pre-reduce. Pattern 01.
 
-1. Write `CustomerSummaryXSection implements CustomerSummarySource`. `build()` never throws; it
-   returns OK, EMPTY (one human sentence) or ERROR, plain text, capped. Query `WITH USER_MODE`
-   and return `CustomerSummarySection.failed(...)` from the catch block.
-2. Add one line to `CustomerSummary.registry` (key, class name). Registry order is brief order.
-3. To get it narrated, either add its key to a `PRE_REDUCES` entry or reference `{{key}}`
-   in `AgentPrompt_BriefSynthesis`. Its key is then a valid `include` value.
+## Where else to change things
 
-## Add a provider
+- **Add a provider:** one class that implements `AgentLlm.Provider`. Pattern 04.
+- **Add an object** to what Ask anything can reach: one entry in `ExploreCatalog`. Pattern 02.
+- **Add an action** the rep can confirm: one `Spec` in `CustomerSummaryActionCatalog`. Pattern 13.
+- **Add a card type:** one Apex builder, one view and one plain-text rule; no surface changes. Pattern 03.
 
-Pattern page: [04 model provider seam](patterns/04-model-provider-seam.md).
+## Why you can trust it
 
-Write one class implementing `AgentLlm.Provider` and set `AgentLlm.PROVIDER_CLASS` to it.
-Nothing else changes. Only the provider class may reference a vendor or platform model API.
-`AgentLlm` caps every reply at `maxTokens` x 4 characters, for every provider.
+Runs as the signed-in user: every class is `with sharing`, and every read or write of CRM data names user mode
+(`WITH USER_MODE` or `AccessLevel.USER_MODE`), so the rep's object, field and record access all apply, in the compact
+window, the rail, MCP and the optional agent alike. A failure shows the rep one fixed sentence, never raw error text.
 
-## Where prompts live
+System context: only where the product keeps its own records, each named in the code with a `// system-context:`
+marker and its reason. [test_trust_rule.py](../tests/test_trust_rule.py) fails a build that adds a system-context use
+with no marker, or a marker with no system-context use. The uses, from the trust-rule page
+([fr2-trust-rule.md](research/fr2-trust-rule.md)):
 
-Pattern page: [04 model provider seam](patterns/04-model-provider-seam.md).
+| Class | Where | Why the user's own access is not enough |
+|---|---|---|
+| `AgentLlm` | `querySettings`, the prompt settings query | The product's own prompt configuration, the same for every user; reps hold no read access to the type |
+| `CustomerSummaryMemory` | `write` | The product's own session rows, written for the running user; reps have no write access to the object |
+| `CustomerSummaryMemory` | `purgeOverflow` | Deletes the running user's own old session rows; reps have no delete access to the object |
+| `CustomerSummaryMemory` | `findRows` | Reads the running user's own session rows; reps have no access to the object |
+| `CustomerSummaryMemory` | `findRowsForUpdate` | Locks the running user's own session rows for a write; reps have no access to the object |
 
-`force-app/main/default/staticresources/AgentPrompt_<Name>.resource`, plain text, with a
-`---system---` part then a `---user---` part. Placeholders are `{{name}}`, filled in one
-literal pass; a placeholder with no value is an error. Edit the file and redeploy: no
-version bumps. Callers name a prompt without the prefix: `AgentLlm.complete('BriefSynthesis', ...)`.
-A prompt is read once per transaction and cached.
+Later cards added markers for customer outcome text and the expiry purge; each is listed with its guard and its test on
+the principles page, pattern 07.
 
-## Rules
-
-Pattern page: [07 trust, access and failure](patterns/07-trust-access-and-failure.md).
-
-- No prose in Apex. Apex emits facts and fixed one-line statements; prompts write prose.
-- A prompt never queries data. Every fact it states was gathered upstream.
-- Caps: each source caps its rows and body; prompts cap their length. Keep the final
-  answer well under the chat relay ceiling (about 6K characters).
-- Sections reach the model as their body when OK, `<STATUS>: <body>` otherwise, and
-  `EMPTY: not requested` when not included. A skipped pre-reduce passes `EMPTY`.
-- Status is relayed verbatim. NOT_FOUND and ERROR carry fixed user-facing text in `answer`.
-  A brief where no section is OK and at least one failed is ERROR, not EMPTY.
-- DML last: memory is written once per transaction, through `CustomerSummaryMemory.recordAll`,
-  only after every model call, and only on OK or EMPTY. A model failure gives ERROR, keeps the
-  sections, and writes nothing. A failed memory write is logged and the brief still returns.
-- `with sharing` everywhere; the brief adds no visibility the user lacks. Every read of CRM data
-  states `WITH USER_MODE` or `AccessLevel.USER_MODE`. Only memory runs in system mode.
-- The panel controller turns any unexpected exception into an `AuraHandledException` with one
-  fixed line.
-- Tests set `AgentLlm.stub`; no test calls a model.
-
-## Permission sets
-
-Pattern page: [07 trust, access and failure](patterns/07-trust-access-and-failure.md).
-
-- `Customer_Summary_Data_Access`: app visibility for `Customer_Summary`, class access to the five entry
-  points only (`CustomerSummaryGetAction`, `CustomerSummaryMemory`, `CustomerSummaryPanelController`,
-  `CustomerSummaryResolver`, `ExploreAction`), and Read on `Customer_Summary_Session__c` and its fields.
-  No Create, Edit, Delete, View All or Modify All: memory writes run in system mode, so users
-  never need them.
-- `Customer_Summary_Agent_Access`: access to the `Customer_Summary` agent, nothing else.
-- `tests/test_permission_sets.py` pins both. A new entry point needs a line in the set and in
-  the test.
-
-## Memory
-
-Pattern page: [05 conversation memory](patterns/05-conversation-memory.md).
-
-- One `Customer_Summary_Session__c` row per user and account, keyed by `Session_Key__c`
-  (User Id + `_` + Account Id). `Turns_JSON__c` is a ring of the newest 10 turns
-  (`MAX_TURNS`); headlines are clipped to 200 characters.
-- `recordAll` reads the rows it will change `FOR UPDATE`, inserts a missing row, and on
-  DUPLICATE_VALUE redoes the whole write once from a fresh locked read.
-- Rows per user are capped at 200 (`maxRowsPerUser`). After a write that created rows, the
-  user's least recently active rows beyond the cap are deleted. Other users' rows are never
-  touched.
-- There is no invocable entry point. The old `recordFromFlow` action is gone; only the engine
-  writes memory.
-- Reads: `history(accountId)` feeds the panel's "Earlier summaries". `lastBrief(accountId)` has no
-  production caller yet.
-- In a conversation, the panel sends its last 5 turns to `DataExplorer.explore` as
-  `historyJson`; the agent keeps `briefed_account_id` and `briefed_account_name`.
-
-## Explore
-
-Pattern page: [02 ask-anything explorer](patterns/02-ask-anything-explorer.md).
-
-Ask anything, drill into anything. The model never writes SOQL: it fills a JSON plan, and
-Apex checks, builds and runs it. Entry points: `DataExplorer.explore(question, contextRecordId,
-historyJson)`, `DataExplorer.drill(recordId, relatedObject)` (no model), and the `Explore Data`
-action (`ExploreAction`).
-
-- **Loop.** Each turn `AgentPrompt_Explore` gets the catalog, the open record, the history, the
-  question, the turns so far and `queries_left`. The model replies with one JSON object:
-  `{"action":"query","plan":{...}}` or `{"action":"answer","text":"...","followups":[...]}`. Caps:
-  5 turns, 4 queries. At 0 queries left the prompt says answer now. A bad reply, a plan error, a
-  QueryException or a row-cap refusal goes back as `INVALID: <reason>` (a refused or failed query
-  still counts as a query). The model sees 20 rows plus the total per query.
-- **Turn cap.** When the turns run out with result sets in hand, they are kept: the status is
-  OK (EMPTY when no set has rows) and the answer is `TURN_CAP_TEXT`, so the caller still shows
-  the last result. Turns that run out with nothing read, and any model failure, are ERROR.
-- **Plan.** `object`, `fields[]`, `filters[]` of `{field, op, value}` joined by AND (ops
-  `= != < <= > >= LIKE IN`), `orderBy {field, dir}`, `limit`, `groupBy[]`,
-  `aggregates[]` of `{fn, field}` (COUNT SUM AVG MIN MAX). Date values are `YYYY-MM-DD`
-  (a Datetime field also takes `YYYY-MM-DDThh:mm:ssZ`) or a token from
-  `ExplorePlan.DATE_LITERALS` / `DATE_LITERALS_N`.
-- **Dates.** A date-only value on a Datetime field means the whole day in the running user's
-  time zone, never midnight GMT. `=` becomes a range from that local midnight to the next and
-  `!=` its outside (or null); `>` and `<=` move to the start of the next local day; `<` and `>=`
-  use the start of the day; each date-only `IN` item gets its own day range.
-- **Guards.** `ExplorePlan.resolve` matches every name to the catalog and returns errors in plain
-  English. `ExploreQuery` resolves again and builds SOQL only from catalog paths, fixed tokens
-  and its own aliases. Every value is bound. The limit defaults to 50 and is capped at 200; an
-  aggregate without groupBy gets no LIMIT. Queries run in `AccessLevel.USER_MODE`. There is no DML.
-  A model failure returns ERROR with fixed text and keeps the result sets already read. The panel
-  shows them; the agent's `ExploreAction` relays only the fixed text (apex-review-2 N4).
-- **Row cap.** A LIMIT on an aggregate limits groups, not the records read, and the 50,000
-  query-row limit cannot be caught. So an aggregate first runs `COUNT()` with
-  `LIMIT ROW_CAP + 1` (`ROW_CAP` is 10,000, shrunk to what the transaction has left), and throws
-  `ExploreQuery.RowCapException` instead of running when more match. An aggregate whose only
-  functions are `COUNT(Id)` skips the pre-count. Four queries at most 10,001 rows each keep one
-  question under the limit.
-- **Labels.** Each result set carries a plain label per column (no dots, unique). Answers, the
-  model preview and the panel show labels; rows stay keyed by field path.
-- **Catalog.** `ExploreCatalog.CURATED` maps each object to its allowed fields and one-level
-  parent paths. Each name is describe-checked for the running user: anything not accessible or
-  not in the org is dropped. Long text is shown but not filterable.
-- **In the agent.** The `explore` subagent runs `explore_data` deterministically in
-  `before_reasoning`, with `@system_variables.user_input` as the question, and relays its answer
-  verbatim. It passes no open record and no history. `ExploreAction` keeps the answer plus the
-  last result's table under 5,900 characters.
-
-To add an object, add one `CURATED` entry, `'Object' => new List<String>{ 'Id', 'Name', ... }`,
-with names as strings. Lookups and parent paths such as `Account.Name` work from then on in
-plans and in `drill`. Nothing else changes.
+Access is granted in one step: assign the permission set group `Customer_Summary_User`. It holds the data-access set
+and the outcome-access set and no agent access, because reps reach the product through the surfaces. The agent-access
+set sits outside the group, for the optional agent only. What has run in a real org is kept in one place, the README's
+[Status table](../README.md#status).
 
 ## Tests and release
 
-Pattern page: [08 test and release lifecycle](patterns/08-test-and-release-lifecycle.md).
+Local: `python3 -m unittest discover -s tests` and `npm run test:unit`. Org, check-only: `bash scripts/validate-org.sh`.
+Docs: `bash scripts/check-docs.sh`. Browser: `npm run test:e2e`. Tests set `AgentLlm.stub`, so no test calls a model.
+Pattern 08.
 
-Local: `python3 -m unittest discover -s tests` and `npm run test:unit`. Org, check-only:
-`bash scripts/validate-org.sh` (all `*Test` classes) and `bash scripts/agent-check.sh`. Then the
-agent's draft-first lifecycle: Studio save and preview, publish, activate, `sf agent test run`.
-Browser: `npm run test:e2e`.
+## The pattern pages
 
-## Outside callers
+The same pages, titles and order as the [pattern index](patterns/README.md). The pattern numbers above refer to this
+list.
 
-Pattern page: [09 outside door (MCP)](patterns/09-outside-door-mcp.md). Designed, not built: a
-Salesforce Hosted MCP server exposing `CustomerSummaryResolver` and `CustomerSummaryGetAction` as tools,
-run as the signed-in user. `ExploreAction` and the agent as a tool come later.
+| # | Page | Kind |
+| --- | --- | --- |
+| 00 | [Why custom](patterns/00-why-custom.md) | chapter |
+| 01 | [Route, gather, reduce](patterns/01-route-gather-reduce.md) | chapter |
+| 02 | [Ask anything](patterns/02-ask-anything-explorer.md) | chapter |
+| 03 | [Hotkey panel](patterns/03-hotkey-panel.md) | chapter |
+| 04 | [Model provider seam](patterns/04-model-provider-seam.md) | chapter |
+| 05 | [Memory and customer history](patterns/05-conversation-memory.md) | chapter |
+| 06 | [Appendix: the Agentforce agent (optional)](patterns/06-agent-routing-and-verbatim-relay.md) | appendix |
+| 07 | [Trust by design](patterns/07-trust-access-and-failure.md) | principles page |
+| 08 | [Testing an AI feature on Salesforce](patterns/08-test-and-release-lifecycle.md) | chapter |
+| 09 | [Outside door (MCP)](patterns/09-outside-door-mcp.md) | chapter |
+| 10 | [Brand and theming](patterns/10-brand-and-theming.md) | chapter |
+| 11 | [Voice input](patterns/11-voice-input.md) | chapter |
+| 12 | [Right rail](patterns/12-right-rail.md) | chapter |
+| 13 | [Write actions](patterns/13-write-actions.md) | chapter |
+| 14 | [Embedded surface (call centre)](patterns/14-embedded-surface.md) | placeholder |
+
+## Limits and open items
+
+- The two diagrams were not run through the Mermaid render check written up in
+  [_diagram-theme.md](patterns/_diagram-theme.md), and how they draw on GitHub is unchecked. OPS-61 (parked) has the
+  check.
+- The embedded surface is not built; the placeholder page records the idea only.
+- Run status for every part is in the README's [Status table](../README.md#status), and only there.
+
+[Back to the pattern index](patterns/README.md) | [Back to the README](../README.md)
