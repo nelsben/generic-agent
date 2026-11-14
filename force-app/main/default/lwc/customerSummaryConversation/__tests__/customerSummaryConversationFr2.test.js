@@ -609,13 +609,49 @@ describe('c-customer-summary-conversation FE-22', () => {
     });
 
     describe('section headings at the compact width', () => {
-        // FE-22 kept FE-12's two tools headings as lightning-accordion-section labels: the panel's
-        // own suite (customerSummaryPanel.test.js, outside this card's scope) pins them there, and a
-        // base component's label cannot be made to wrap from here. The headings FE-22 adds wrap.
-        it('the earlier summaries heading keeps its full text as the section label', async () => {
+        // FE-26: the two tools headings are native disclosures, so their text can wrap.
+        it('the earlier summaries heading keeps its full text on a native disclosure button, closed to start', async () => {
             history.mockResolvedValue([{ at: '2026-11-12T09:00:00.000Z', status: 'OK', question: '', headline: 'Acme is steady.', kind: 'summary' }]);
             const el = await mountOnAccount();
-            expect($(el, '.abp-history-section').label).toBe('Earlier summaries of Acme (1)');
+            const toggle = $(el, '.abp-history-section button.abp-tool-toggle');
+            expect(toggle.textContent.trim()).toBe('Earlier summaries of Acme (1)');
+            expect(toggle.getAttribute('aria-expanded')).toBe('false');
+            const panel = $(el, '.abp-history-section .abp-tool-panel');
+            expect(toggle.getAttribute('aria-controls')).toBe(panel.id);
+            expect(panel.hidden).toBe(true);
+            toggle.click();
+            await flush();
+            expect(toggle.getAttribute('aria-expanded')).toBe('true');
+            expect($(el, '.abp-history-section .abp-tool-panel').hidden).toBe(false);
+            toggle.click();
+            await flush();
+            expect(toggle.getAttribute('aria-expanded')).toBe('false');
+            expect($(el, '.abp-history-section .abp-tool-panel').hidden).toBe(true);
+        });
+
+        it('the two tools headings are native disclosures, not accordion sections, and their CSS never truncates', () => {
+            const html = SOURCE_HTML.replace(/<!--[\s\S]*?-->/g, '');
+            expect(html).toMatch(/<button[^>]*abp-include-toggle[^>]*aria-expanded=\{includeExpanded\}[^>]*aria-controls="abp-tool-include"/);
+            expect(html).toMatch(/<button[^>]*abp-history-toggle[^>]*aria-expanded=\{historyExpanded\}[^>]*aria-controls="abp-tool-history"/);
+            expect(html).not.toMatch(/lightning-accordion-section[^>]*label=\{(includeSummary|historyLabel)\}/);
+            const css = SOURCE_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+            const rule = /\.abp-tool-toggle\s*\{([^}]*)\}/.exec(css);
+            expect(rule).not.toBeNull();
+            expect(rule[1]).not.toMatch(/nowrap|text-overflow|slds-truncate/);
+            expect(rule[1]).toMatch(/white-space:\s*normal/);
+            expect(html).not.toMatch(/class="[^"]*abp-tool[^"]*slds-truncate/);
+        });
+
+        it('the Sections heading opens and closes by click and keeps its text', async () => {
+            const el = await mountOnAccount();
+            const toggle = $(el, 'button.abp-include-toggle');
+            expect(toggle.textContent.trim()).toBe('Sections: all');
+            expect(toggle.getAttribute('aria-expanded')).toBe('false');
+            expect($(el, '.abp-include-toggle + .abp-tool-panel').hidden).toBe(true);
+            toggle.click();
+            await flush();
+            expect(toggle.getAttribute('aria-expanded')).toBe('true');
+            expect($(el, '.abp-include-toggle + .abp-tool-panel').hidden).toBe(false);
         });
 
         it('the sessions heading and the card titles wrap: no truncation', () => {

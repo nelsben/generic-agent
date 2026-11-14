@@ -507,7 +507,7 @@ describe('c-customer-summary-panel', () => {
             await flush();
             expect(history).toHaveBeenCalledWith({ accountId: ACME });
             expect(text(el)).toContain('Acme headline');
-            expect($(el, '.abp-history-section').label).toBe('Earlier summaries of Acme (1)');
+            expect($(el, '.abp-history-section .abp-tool-toggle').textContent.trim()).toBe('Earlier summaries of Acme (1)');
 
             CurrentPageReference.emit(HOME_PAGE);
             await flush();
@@ -864,14 +864,14 @@ describe('c-customer-summary-panel', () => {
             const body = $(el, '.abp-body');
             const tools = body.querySelector('.abp-tools');
             expect(tools).not.toBeNull();
-            const sections = tools.querySelectorAll('lightning-accordion-section');
-            expect(Array.from(sections).map((s) => s.label)).toEqual(['Sections: all', 'Earlier summaries of Acme (1)']);
+            const sections = tools.querySelectorAll('button.abp-tool-toggle');
+            expect(Array.from(sections).map((s) => s.textContent.trim())).toEqual(['Sections: all', 'Earlier summaries of Acme (1)']);
             expect(tools.textContent).toContain('Acme headline');
 
             // A chip still narrows the next brief.
             tools.querySelector('lightning-button-stateful[data-key="open_deals"]').click();
             await flush();
-            expect(sections[0].label).toBe('Sections: Open deals');
+            expect(sections[0].textContent.trim()).toBe('Sections: Open deals');
             getBrief.mockResolvedValueOnce(briefResult());
             $(el, '.abp-brief').click();
             await flush();

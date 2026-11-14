@@ -242,6 +242,8 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
     liveMessage = '';
     // Every accordion starts collapsed; never reassigned, so a rerender keeps open sections open.
     closedSections = [];
+    // The two tools headings are native disclosures (FE-26); both start closed.
+    toolsOpen = { include: false, history: false };
 
     _recordId = null;
     _objectApiName = null;
@@ -583,6 +585,35 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             return 'Sections: all';
         }
         return 'Sections: ' + this.sourceList.filter((s) => this.selectedKeys.includes(s.key)).map((s) => s.title).join(', ');
+    }
+
+    get includeExpanded() {
+        return String(this.toolsOpen.include);
+    }
+
+    get includeClosed() {
+        return !this.toolsOpen.include;
+    }
+
+    get includeIcon() {
+        return this.toolsOpen.include ? 'utility:chevrondown' : 'utility:chevronright';
+    }
+
+    get historyExpanded() {
+        return String(this.toolsOpen.history);
+    }
+
+    get historyClosed() {
+        return !this.toolsOpen.history;
+    }
+
+    get historyIcon() {
+        return this.toolsOpen.history ? 'utility:chevrondown' : 'utility:chevronright';
+    }
+
+    handleToolToggle(event) {
+        const tool = event.currentTarget.dataset.tool;
+        this.toolsOpen = { ...this.toolsOpen, [tool]: !this.toolsOpen[tool] };
     }
 
     handleChip(event) {

@@ -143,3 +143,19 @@ test('FR2 3. a whole-org question goes without the account and its answer shows 
     expect(await articles.count(), 'the answer is drawn as cards').toBeGreaterThan(0);
     await expect(answer.getByRole('article', { name: 'Answer', exact: true }).first()).not.toHaveText('');
 });
+
+test('FR2 4. at 320 px the two tools headings show their full text: wrapped, not clipped', async ({ page, panel }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await panel.open();
+    await panel.briefThisAccount();
+    // The brief reloads the account's earlier summaries, which gives the second heading.
+    await expect(panel.historyHeader).toBeAttached();
+    const headings = [panel.host.getByRole('button', { name: /^Sections: / }), panel.historyHeader];
+    for (const heading of headings) {
+        await expect(heading).toBeVisible();
+        const fits = await heading.evaluate((el) => el.scrollWidth <= el.clientWidth);
+        expect(fits, 'the heading is no wider than its box: no clipping').toBe(true);
+        const clip = await heading.evaluate((el) => getComputedStyle(el).textOverflow);
+        expect(clip, 'no ellipsis').not.toBe('ellipsis');
+    }
+});
