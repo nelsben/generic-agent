@@ -4,7 +4,7 @@ title: FR2: pattern 01 as a workbook chapter — route, gather, reduce told in t
 domain: ops
 tier: frontier
 tier_reason: the repo's lead chapter, written for a business reader and an architect at once, from Ben's own notes
-status: queued
+status: merged
 fixes: []
 scope: [docs/patterns/01-route-gather-reduce.md, docs/patterns/_diagram-theme.md, tests/test_pattern_01.py, tests/pattern_shape.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -27,3 +27,31 @@ Feature revision 2 (FR2), Ben's chapter notes on pattern 01. He wants the page t
 - **Page rules (fr2-design.md 'Pattern page shape'):** the H1 is the title with no number. The H2 headings are the exact strings listed there, in that order, less the parts it exempts this page from; a part of this page's own is an extra H2 between them, and the page's test lists it. The page never says a run is proven or not yet proven: it links the README's Status table (the 'Status' heading in README.md), the one place that is changed when a run passes. It names roles, not people. A limit names the open item in plain words (it may give a card id) and never links a card file
 - **Prompt name (OPS-30):** the summary's synthesis prompt is now the static resource `AgentPrompt_SummarySynthesis`, not `AgentPrompt_BriefSynthesis`, which stays in the org only for the old code (docs/research/fr2-rename-org.md, "The fix"). Write the new name wherever this page names the synthesis prompt
 - Uses Customer Summary names throughout. Leave the 'See it' images and their alt text as they are; OPS-52 recaptures them. **The shared shape check:** create tests/pattern_shape.py, a helper every chapter's test calls (its name does not start with test_, so test discovery skips it). The caller passes the page path, which of the eight parts the page has, and any extra H2 parts it adds. The helper checks that the H1 has no number, that those H2 headings are the exact strings in fr2-design.md in that order, that every mermaid sequence diagram starts with autonumber and carries the theme block, and that the part 'Why you can trust it', when the page has it, holds a line starting 'Runs as the signed-in user:' and a line starting 'System context:'. No page name is written into the helper, so the exemptions for pages 00, 04, 06, 07 and 14 need no later edit to it. tests/test_pattern_01.py calls it and adds its own checks: the reduction table lists every registry key in the engine class, and the page never names the confidential guide (the test reads a word list from an environment variable and skips that check when the variable is unset, so the list is never committed). Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-14). One attempt (31636cc). The verifier found the report consistent. A sonnet review returned 19 confirmed, 0 refuted and 4 unverifiable. The reviewer checked the page's own statements against the Apex, the prompts and the tests, as well as the hand-back.
+
+Findings:
+- docs/patterns/01-route-gather-reduce.md is rewritten to the fr2-design page shape. It has the eight fixed H2s in order, plus 'When something fails' between 'How it scales' and 'Adopt it'.
+- Its main sequence diagram has the shared theme line, `autonumber`, three boxes, five phase rects and two coral model-call rects. Its 21 steps match the numbers in the text.
+- The reduction table lists all 7 registry keys. Their reads, caps, pre-reduce flags and token budgets match CustomerSummary.cls, and a test parses the keys from the class.
+- The worked swaps match the real signatures and are marked "Example, not shipped code".
+- The trust lines, the fixed texts and all 30 cited test names match the code.
+- The page cites the reviewed build only as "a production Agentforce build we reviewed".
+- New docs/patterns/_diagram-theme.md holds the one-line init snippet, the colour table, an example and a Render check section.
+- New tests/pattern_shape.py is a page-agnostic shape checker for every pattern page. New tests/test_pattern_01.py adds the page-specific checks.
+
+Gate: 186 Python tests pass, 1 skipped (verifier). check-docs passes, 65 pages with 0 broken (reviewer).
+
+Disclosed and accepted:
+- No diagram has been render-checked. The worker's Mermaid check, which loads Mermaid in Playwright's Chromium, was refused twice by the session's permission policy and never ran. The theme page and the chapter's Limits list both say so. The rule for the next card: trust the check only once it prints FAIL on the broken sample.
+- Dark-theme legibility of the colours is unverified.
+- The guide-word test skips when PATTERN_GUIDE_WORDS is unset, which is the 1 skip in the gate. The brain's denylist grep over the diff found no hits, and the words "landscape", "confidential" and "proprietary" do not appear in it.
+- The card says "one query per section"; the page instead says "a fixed few queries per section, never one per record", which is accurate.
+- A tests/__pycache__ made by the gate runs was removed before review and before merge.
+
+Still open:
+- A render check of all five Mermaid blocks in GitHub light and dark, owed by OPS-36 or the next chapter.
+
+Privacy grep over the diff (723 added lines): 0 denylist hits. One email-shaped hit, "mermaid@11.4.1", is a CDN package version, not an address.
