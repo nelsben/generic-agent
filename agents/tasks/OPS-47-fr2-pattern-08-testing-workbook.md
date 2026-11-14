@@ -4,8 +4,7 @@ title: FR2: pattern 08 as a testing workbook — how to test an AI feature on Sa
 domain: ops
 tier: frontier
 tier_reason: teaches a practice to readers new to it, so it has to be plain, encouraging and exact about what each check proves
-status: blocked
-blocked_by: [OPS-46]
+status: queued
 fixes: []
 scope: [docs/patterns/08-test-and-release-lifecycle.md, tests/test_pattern_08.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
