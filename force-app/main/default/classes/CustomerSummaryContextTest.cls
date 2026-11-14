@@ -212,6 +212,61 @@ private class CustomerSummaryContextTest {
         Assert.areEqual(Date.today(), ctx.lastSummary.summaryDate.date(), 'dated when it was saved');
     }
 
+    /** Moves the account's current session row back in time, as if its last summary was saved `days` ago. */
+    private static void backdate(Id accountId, Integer days) {
+        String key = String.valueOf(UserInfo.getUserId()) + '_' + String.valueOf(accountId);
+        Customer_Summary_Session__c row = [SELECT Id FROM Customer_Summary_Session__c WHERE Session_Key__c = :key];
+        row.Last_Activity__c = daysAgo(days);
+        row.Last_Brief_At__c = daysAgo(days);
+        // system-context: test setup moves the session row in time; reps have no write access to the object
+        Database.update(row, true, AccessLevel.SYSTEM_MODE);
+    }
+
+    @IsTest
+    static void aLaterExplorerTurnDoesNotMoveTheSummaryDate() {
+        Account a = makeAccount('Context Explorer Later');
+        CustomerSummaryMemory.record(a.Id, 'OK', 'summarize', 'Renewal at risk.');
+        backdate(a.Id, 3);
+        CustomerSummaryMemory.recordAll(new List<CustomerSummaryMemory.Entry>{
+            new CustomerSummaryMemory.Entry(a.Id, 'OK', 'which deals?', 'Two deals.', CustomerSummaryMemory.KIND_EXPLORER)
+        });
+
+        CustomerSummaryContext.Context ctx = CustomerSummaryContext.getContext(a.Id);
+
+        Assert.isNotNull(ctx.lastSummary, 'the stored brief is returned');
+        Assert.areEqual('Renewal at risk.', ctx.lastSummary.firstLines, 'the brief');
+        Assert.areEqual(daysAgo(3), ctx.lastSummary.summaryDate, 'still dated when the summary was saved');
+    }
+
+    @IsTest
+    static void aSessionThatTimesOutAndRestartsKeepsTheSummaryDate() {
+        Account a = makeAccount('Context Restart');
+        CustomerSummaryMemory.record(a.Id, 'OK', 'summarize', 'Quiet quarter.');
+        backdate(a.Id, 3);
+        // More than the timeout later: an explorer question starts a new session that carries the brief forward.
+        CustomerSummaryMemory.recordAll(new List<CustomerSummaryMemory.Entry>{
+            new CustomerSummaryMemory.Entry(a.Id, 'OK', 'any cases?', 'None.', CustomerSummaryMemory.KIND_EXPLORER)
+        });
+
+        CustomerSummaryContext.Context ctx = CustomerSummaryContext.getContext(a.Id);
+
+        Assert.isNotNull(ctx.lastSummary, 'the brief is carried into the new session');
+        Assert.areEqual(daysAgo(3), ctx.lastSummary.summaryDate, 'the new session does not redate the summary');
+    }
+
+    @IsTest
+    static void aNewSummaryMovesTheSummaryDateToNow() {
+        Account a = makeAccount('Context Newer Summary');
+        CustomerSummaryMemory.record(a.Id, 'OK', 'summarize', 'Old brief.');
+        backdate(a.Id, 3);
+        CustomerSummaryMemory.record(a.Id, 'OK', 'summarize', 'Newer brief.');
+
+        CustomerSummaryContext.Context ctx = CustomerSummaryContext.getContext(a.Id);
+
+        Assert.areEqual('Newer brief.', ctx.lastSummary.firstLines, 'the newer brief');
+        Assert.areEqual(Date.today(), ctx.lastSummary.summaryDate.date(), 'dated when the newer summary was saved');
+    }
+
     @IsTest
     static void aRepWithTheDataAccessSetReadsTheirOwnLastSummary() {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];

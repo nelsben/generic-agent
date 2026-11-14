@@ -13,7 +13,7 @@
 | `openDeals` | up to 5 open Opportunities | soonest close first, no close date last | name, stage, amount, close date |
 | `recentActivity` | up to 10 items | newest first, across every source | kind, text, date, who |
 | `openCases` | up to 5 open Cases | High, Medium, Low, then any other priority; oldest first within one | number, subject, status, priority |
-| `lastSummary` | the running user's own newest stored summary for the account, or null | | date saved, first 3 non-blank lines |
+| `lastSummary` | the running user's own newest stored summary for the account, or null | | date the summary was saved, first 3 non-blank lines |
 | `unavailable` | the keys of the parts that could not load for this user | | |
 
 Every row keeps its record Id (`recordId`) so the rail can open the record. No text field carries an Id.
@@ -38,6 +38,12 @@ Recent activity merges five sources:
 - System context: none on this path. The last summary is read from the user's own row of
   `Customer_Summary_Session__c` in user mode; `Customer_Summary_Data_Access` already grants read on it. The test
   `aRepWithTheDataAccessSetReadsTheirOwnLastSummary` runs this as a Standard User with only that set added.
+- The summary's date is `Last_Brief_At__c`, set by `CustomerSummaryMemory` only when it records a summary turn and
+  copied forward when a timed-out session restarts. An explorer question or a new session does not move it, which
+  `Last_Activity__c` does (BE-49). It is a field, not read from the stored turns, because the turns are a ring of
+  the newest 10 and ten explorer questions would push the summary out. Rows saved before the field existed have it
+  blank and fall back to `Last_Activity__c`; the next summary fills it. The field is read-only in
+  `Customer_Summary_Data_Access`.
 - The account is read first. An account the user cannot see, or no Account access at all, gives an empty context.
 - Each part loads on its own. A part the user cannot read (no EmailMessage access, say) comes back empty and its key
   is listed in `unavailable`; the other parts still load. An unexpected failure becomes an `AuraHandledException`

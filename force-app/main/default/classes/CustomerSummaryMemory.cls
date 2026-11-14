@@ -8,7 +8,7 @@
  * One Customer_Summary_Session__c row is one session: one user, one account. The current session of a user and
  * an account holds Session_Key__c = 18-char User Id + '_' + 18-char Account Id. A turn more than
  * sessionTimeoutMinutes after the session's last activity ends it: the ended row is re-keyed to that key plus
- * '_' + its own Id, and a new row takes the plain key, carrying the last brief forward. Turns_JSON__c holds a
+ * '_' + its own Id, and a new row takes the plain key, carrying the last brief and the time it was saved (Last_Brief_At__c) forward. Turns_JSON__c holds a
  * ring buffer of the session's newest 10 turns (summaries and explorer questions), stored oldest first;
  * history() returns the summaries newest first. Reads here and every write run in system mode, because reps
  * have read-only access to the object; the rows are always the running user's own. CustomerSummaryHistory
@@ -173,7 +173,8 @@ public with sharing class CustomerSummaryMemory {
             Turn_Count__c = 0,
             Last_Brief__c = previous?.Last_Brief__c,
             Last_Question__c = previous?.Last_Question__c,
-            Last_Status__c = previous?.Last_Status__c
+            Last_Status__c = previous?.Last_Status__c,
+            Last_Brief_At__c = previous?.Last_Brief_At__c
         );
     }
 
@@ -247,6 +248,7 @@ public with sharing class CustomerSummaryMemory {
             row.Last_Status__c = clip(e.status, 40);
             row.Last_Question__c = clip(e.question, 255);
             row.Last_Brief__c = clip(e.answer, 32768);
+            row.Last_Brief_At__c = now;
         }
     }
 
@@ -323,7 +325,7 @@ public with sharing class CustomerSummaryMemory {
     // system-context: locks the running user's own session rows for a write; reps have no access to the object
     private static Map<String, Customer_Summary_Session__c> findRowsForUpdate(Set<String> keys) {
         return toMap([
-            SELECT Id, Session_Key__c, Turns_JSON__c, Last_Brief__c, Last_Question__c, Last_Status__c, Brief_Count__c,
+            SELECT Id, Session_Key__c, Turns_JSON__c, Last_Brief__c, Last_Brief_At__c, Last_Question__c, Last_Status__c, Brief_Count__c,
                    Turn_Count__c, Title__c, Started__c, Last_Activity__c
             FROM Customer_Summary_Session__c
             WHERE Session_Key__c IN :keys
