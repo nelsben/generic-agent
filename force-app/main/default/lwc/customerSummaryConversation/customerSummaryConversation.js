@@ -13,7 +13,30 @@
  *   @api focusComposer()     moves focus to the composer.
  *   @api ask(text, contextRecordId)  runs one composer text, with that record as its context.
  *   @api summarize(recordId) briefs the account with that Id.
- *   event sessionchange      detail { sessionId }: fired whenever the session id changes here.
+ *   @api density             'compact' (the default) or 'comfortable' (the rail); anything else is
+ *                            compact. Every answer card is drawn at this density.
+ *   @api sessionsOpen        true shows the sessions control open (the FE-15 rail reuses it); the
+ *                            header's History button opens and closes it too.
+ *   event sessionchange      detail { sessionId }: fired whenever the session id changes here,
+ *                            including when an earlier conversation is reopened or a new one started.
+ *
+ * Sessions (FE-22): the History button lists this account's earlier conversations, newest first
+ * (CustomerSummaryHistory.listSessions). Reopening one loads its turns in order (getSession), as
+ * text, since memory keeps no cards; it sets sessionId and fires sessionchange. "New conversation"
+ * starts a clean thread with a new id. An empty list, a failed load and a conversation whose account
+ * the user can no longer see each say so in one sentence.
+ *
+ * Scope chip (FE-22): above the composer, "About <account>" (or "About this record") with a button
+ * to ask the whole org instead, or "Whole org" with a button to summarize an account. A whole-org
+ * question goes to explore with contextRecordId null. The quick actions and a host ask with a record
+ * keep their record whatever the chip says.
+ *
+ * Cards (FE-22): an answer, a summary, a resolver notice and a drill that carry cards draw them with
+ * c-customer-summary-card, in place of their text rendering; with no cards they render as before.
+ * The resolver's cards arrive as JSON text and the others as a list; unreadable cards leave the text.
+ * cardopen drills here by the Id it carries (never an href); cardask is asked like a follow-up, and
+ * a related object on a drill's record card drills to its rows. cardchoose and cardaction are not
+ * handled here: they bubble out to the host. An AMBIGUOUS resolve keeps its candidate buttons.
  *
  * Requests: every entry point (composer, chip, follow-up, candidate, Summarize, drill, the host's
  * ask and summarize) goes through _request. The latest wins: each carries a token, and a reply
@@ -35,6 +58,8 @@ import explore from '@salesforce/apex/CustomerSummaryPanelController.explore';
 import drill from '@salesforce/apex/CustomerSummaryPanelController.drill';
 import history from '@salesforce/apex/CustomerSummaryPanelController.history';
 import sources from '@salesforce/apex/CustomerSummaryPanelController.sources';
+import listSessions from '@salesforce/apex/CustomerSummaryHistory.listSessions';
+import getSession from '@salesforce/apex/CustomerSummaryHistory.getSession';
 
 const BRIEF_COMMAND = /^\/brief\s+/i;
 const ACCOUNT_OBJECT = 'Account';
@@ -55,6 +80,12 @@ const PIN_SLACK_PX = 24;
 // **strong** or *em*; an em run starts with a non-space, so '5 * 3' stays plain.
 const RUN = /\*\*([^*\n]+)\*\*|\*([^*\s\n][^*\n]*)\*/g;
 const ROVE_STEP = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+const SESSION_LIMIT = 20;
+const SESSIONS_NO_ACCOUNT = 'Open or summarize an account to see your earlier conversations about it.';
+const SESSIONS_LOADING = 'Loading earlier conversations.';
+const SESSIONS_FAILED = "Couldn't load your earlier conversations. Try again in a minute.";
+const SESSION_HIDDEN = "That conversation can't be opened: you can no longer see its account.";
+const SESSION_FAILED = "Couldn't open that conversation. Try again in a minute.";
 
 /**
  * One exchange in the thread. kind is one of 'text', 'ambiguous', 'brief', 'explore',
@@ -166,6 +197,27 @@ function isComposing(event) {
     return event.isComposing || event.keyCode === 229;
 }
 
+/**
+ * The cards on a reply: a list as it is, JSON text (the resolver's) parsed. Anything unreadable is
+ * no cards, so the reply's text renders as before.
+ */
+function cardsOf(value) {
+    let list = value;
+    if (typeof value === 'string') {
+        try {
+            list = JSON.parse(value);
+        } catch (e) {
+            return [];
+        }
+    }
+    return Array.isArray(list) ? list.filter((c) => c && typeof c === 'object' && !Array.isArray(c)) : [];
+}
+
+function timeOf(value) {
+    const t = Date.parse(value || '');
+    return Number.isNaN(t) ? 0 : t;
+}
+
 function newSessionId() {
     return 'cs-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 }
@@ -203,6 +255,14 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
     _pinned = true;
     _lastTop = 0;
     _voiceBase = null;
+    _density = 'compact';
+    _sessionsOpen = false;
+    _sessionsState = 'idle';
+    _sessionsAccountId = null;
+    _sessionsNote = '';
+    _sessionRows = [];
+    _scopeOrg = false;
+    _focusCardAfterRender = null;
 
     // ------------------------------------------------------------ public interface
 
@@ -230,6 +290,29 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
     }
     set sessionId(value) {
         this._sessionId = value || null;
+    }
+
+    @api
+    get density() {
+        return this._density;
+    }
+    set density(value) {
+        this._density = value === 'comfortable' ? 'comfortable' : 'compact';
+    }
+
+    @api
+    get sessionsOpen() {
+        return this._sessionsOpen;
+    }
+    set sessionsOpen(value) {
+        const open = !!value;
+        if (open === this._sessionsOpen) {
+            return;
+        }
+        this._sessionsOpen = open;
+        if (open) {
+            this._loadSessions();
+        }
     }
 
     @api
@@ -268,8 +351,7 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
         if (this._sessionId) {
             return;
         }
-        this._sessionId = newSessionId();
-        this.dispatchEvent(new CustomEvent('sessionchange', { detail: { sessionId: this._sessionId } }));
+        this._setSession(newSessionId());
     }
 
     // ------------------------------------------------------------ wires and lifecycle
@@ -292,6 +374,14 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
 
     renderedCallback() {
         this._syncRoving();
+        if (this._focusCardAfterRender) {
+            const { card, ref } = this._focusCardAfterRender;
+            this._focusCardAfterRender = null;
+            const host = Array.from(this.template.querySelectorAll('c-customer-summary-card')).find((c) => c.dataset.card === card);
+            if (!(host && host.focusLink(ref))) {
+                this.focusComposer();
+            }
+        }
         if (this._focusAfterRender) {
             const target = this.template.querySelector(this._focusAfterRender);
             this._focusAfterRender = null;
@@ -364,6 +454,7 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
         }
         this._lastContextId = id;
         this.pageAccount = null;
+        this._scopeOrg = false;
         // The account changed: an earlier account's briefs must not stay on screen.
         this.historyAccount = null;
         this.historyItems = [];
@@ -375,6 +466,7 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
                 if (r && r.status === 'RESOLVED' && this._lastContextId === id) {
                     this.pageAccount = { id: r.accountId, name: r.accountName };
                     this._loadHistory(this.pageAccount);
+                    this._loadSessions();
                 }
             })
             .catch(() => {
@@ -443,9 +535,9 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             case 'summarize':
                 return this.handleBriefThisAccount();
             case 'deals':
-                return this.submit('Which open deals does ' + name + ' have?');
+                return this.submit('Which open deals does ' + name + ' have?', this._recordId);
             case 'activity':
-                return this.submit('What is the recent activity on ' + name + '?');
+                return this.submit('What is the recent activity on ' + name + '?', this._recordId);
             case 'followup':
                 return this._prefill('Create a follow-up task for ' + name + ': ');
             case 'call':
@@ -663,11 +755,13 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
      * in flight (same key) is ignored. Resolves to the short line the live region announces.
      * onError(text) handles a failure itself; a string it returns is announced in place of text.
      */
-    _request({ key, label, loading, work, onError }) {
+    _request({ key, label, loading, work, onError, keepSession }) {
         if (this.pending && key === this._inFlightKey) {
             return Promise.resolve();
         }
-        this._ensureSession();
+        if (!keepSession) {
+            this._ensureSession();
+        }
         this._requestId += 1;
         const token = this._requestId;
         const isCurrent = () => token === this._requestId;
@@ -729,7 +823,8 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
                 }
             });
         }
-        const context = contextRecordId || this.contextRecordId || null;
+        // The chip's whole-org scope drops the page's context; a record the caller passes is kept.
+        const context = contextRecordId || (this._scopeOrg ? null : this.contextRecordId) || null;
         return this._request({
             key: 'ask:' + q,
             label: q,
@@ -803,8 +898,15 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
 
     _push(turn) {
         const key = turn.key || this._nextKey('t');
-        this.turns = [...this.turns, { isError: false, ...turn, key }];
+        const cardList = (turn.cards || []).map((c) => ({ ...c, cardId: key + '-' + c.cardId }));
+        this.turns = [...this.turns, { isError: false, ...turn, cards: cardList, key }];
         this._scrollAfterRender = '[data-turn="' + key + '"]';
+    }
+
+    /** A reply's cards as the template draws them: { cards: [{ key, cardId, card }], hasCards }. */
+    _cardsOn(value) {
+        const cards = cardsOf(value).map((card, i) => ({ key: 'k' + i, cardId: 'k' + i, card }));
+        return { cards, hasCards: cards.length > 0 };
     }
 
     _afterResolve(r, label, isCurrent) {
@@ -820,7 +922,7 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             return turn.header || 'Pick an account';
         }
         // NOT_FOUND: the resolver's text, verbatim.
-        this._push({ kind: 'text', isText: true, question: label, text: r.message, historyAnswer: r.message });
+        this._push({ kind: 'text', isText: true, question: label, text: r.message, historyAnswer: r.message, ...this._cardsOn(r.cards) });
         return r.message;
     }
 
@@ -857,9 +959,13 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             return null;
         }
         this.briefedAccount = { id: accountId, name: accountName };
+        this._scopeOrg = false;
         const turn = this._briefTurn(r, label, accountName);
         this._push(turn);
         this._loadHistory(this.briefedAccount);
+        if (this._sessionsOpen) {
+            this._loadSessions();
+        }
         return turn.verbatim ? r.message : 'Summary ready: ' + (turn.header || accountName);
     }
 
@@ -903,7 +1009,8 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             hasSections: sections.length > 0,
             sections,
             ignoredText: r.ignored && r.ignored.length ? 'Not sections: ' + r.ignored.join(', ') : '',
-            historyAnswer: verbatim ? r.message : answer
+            historyAnswer: verbatim ? r.message : answer,
+            ...this._cardsOn(r.cards)
         };
     }
 
@@ -939,7 +1046,8 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             trailLabel: 'Ran ' + trail.length + (trail.length === 1 ? ' query' : ' queries'),
             followups: (r.followups || []).map((text, i) => ({ key: 'f' + i, text })),
             hasFollowups: !!(r.followups && r.followups.length),
-            historyAnswer: r.answer
+            historyAnswer: r.answer,
+            ...this._cardsOn(r.cards)
         };
     }
 
@@ -1041,8 +1149,14 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
             event.preventDefault();
         }
         this.drillStack = [];
-        this._focusAfterRender = this._drillOrigin ? '[data-focus="' + this._drillOrigin + '"]' : '.abp-composer';
+        const origin = this._drillOrigin;
         this._drillOrigin = null;
+        if (origin && typeof origin === 'object') {
+            // A drill from a card returns to the card's link it started from.
+            this._focusCardAfterRender = origin;
+            return;
+        }
+        this._focusAfterRender = origin ? '[data-focus="' + origin + '"]' : '.abp-composer';
     }
 
     handleViewRecord() {
@@ -1087,13 +1201,18 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
     _drillEntry(d, recordId, relatedObject) {
         const key = this._nextKey('d');
         const rs = d.result || {};
+        const drawn = this._cardsOn(d.cards);
+        const cards = drawn.cards.map((c) => ({ ...c, cardId: key + '-' + c.cardId }));
         if (relatedObject) {
             return {
                 key,
                 recordId,
                 isRecord: false,
                 label: relatedObject,
-                table: this._table(rs, key)
+                table: this._table(rs, key),
+                cards,
+                hasCards: drawn.hasCards,
+                showTable: !drawn.hasCards
             };
         }
         const row = (rs.rows && rs.rows[0]) || {};
@@ -1108,8 +1227,268 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
                 .filter((c) => c !== 'Id')
                 .map((c, i) => ({ key: 'f' + i, label: c, value: cellText(row[c]) || '—' })),
             related: (d.related || []).map((name) => ({ key: name, name })),
-            hasRelated: !!(d.related && d.related.length)
+            hasRelated: !!(d.related && d.related.length),
+            cards,
+            hasCards: drawn.hasCards,
+            showFields: !drawn.hasCards
         };
+    }
+
+    // ------------------------------------------------------------ card events
+
+    /** A record link on a card: drill here by the Id the event carries. Nothing navigates by href. */
+    handleCardOpen(event) {
+        event.stopPropagation();
+        const detail = event.detail || {};
+        if (!detail.recordId) {
+            return;
+        }
+        const host = event.target;
+        const card = host && host.dataset ? host.dataset.card : null;
+        const origin = card && !this.isDrilling ? { card, ref: detail.ref } : null;
+        this._drill(detail.recordId, null, this.isDrilling, origin);
+    }
+
+    /**
+     * A follow-up chip, or a related object on a drill's record card. The record card's related
+     * items are the drill's related objects in order, so the chip's index names the object.
+     */
+    handleCardAsk(event) {
+        event.stopPropagation();
+        const text = ((event.detail && event.detail.text) || '').trim();
+        if (!text) {
+            return;
+        }
+        const top = this.drillTop;
+        if (top && top.isRecord) {
+            const record = (top.cards || []).map((c) => c.card).find((c) => c.type === 'record');
+            const related = ((record && record.items) || []).filter((i) => i && i.kind === 'related');
+            const index = related.findIndex((i) => i.label === text);
+            if (index >= 0 && top.related[index]) {
+                this._drill(top.recordId, top.related[index].name, true, null);
+                return;
+            }
+        }
+        this._pinned = true;
+        this.submit(text);
+    }
+
+    // ------------------------------------------------------------ scope chip
+
+    /** What a question is about when the chip says so: the account, this record, or nothing. */
+    get scopeName() {
+        if (this.isAccountPage) {
+            return this.accountName || 'this account';
+        }
+        if (this._recordId) {
+            return 'this record';
+        }
+        return this.briefedAccount ? this.briefedAccount.name : '';
+    }
+
+    get hasScopeContext() {
+        return !!this.contextRecordId;
+    }
+
+    get scopeLabel() {
+        return !this.hasScopeContext || this._scopeOrg ? 'Whole org' : 'About ' + this.scopeName;
+    }
+
+    get scopeSwitchLabel() {
+        if (!this.hasScopeContext) {
+            return 'Ask about an account';
+        }
+        return this._scopeOrg ? 'Ask about ' + this.scopeName : 'Ask the whole org';
+    }
+
+    handleScopeSwitch() {
+        if (!this.hasScopeContext) {
+            // No account yet: start a summary, which gives the questions after it their account.
+            return this._prefill('/brief ');
+        }
+        this._scopeOrg = !this._scopeOrg;
+        this.liveMessage = this._scopeOrg ? 'Questions now go to the whole org' : 'Questions now about ' + this.scopeName;
+        return Promise.resolve();
+    }
+
+    // ------------------------------------------------------------ sessions
+
+    /** The account whose conversations are listed: the open Account page's, else the last summarized. */
+    get sessionsAccount() {
+        if (this.isAccountPage) {
+            return this.pageAccount;
+        }
+        return this._recordId ? null : this.briefedAccount;
+    }
+
+    get sessionsExpanded() {
+        return String(this._sessionsOpen);
+    }
+
+    get sessionsHidden() {
+        return !this._sessionsOpen;
+    }
+
+    get sessionsHeading() {
+        const account = this.sessionsAccount;
+        return account ? 'Earlier conversations about ' + account.name : 'Earlier conversations';
+    }
+
+    get sessionItems() {
+        return this._sessionRows.map((row, i) => ({
+            key: 'ss' + i,
+            index: String(i),
+            title: row.title,
+            at: row.at,
+            hasAt: !!row.at,
+            turnLabel: row.turnCount + (row.turnCount === 1 ? ' turn' : ' turns')
+        }));
+    }
+
+    get hasSessions() {
+        return !!this.sessionsAccount && this._sessionsState === 'ready' && this._sessionRows.length > 0;
+    }
+
+    /** The one sentence the control shows instead of, or above, the list; empty when the list says it all. */
+    get sessionsMessage() {
+        const account = this.sessionsAccount;
+        if (!account) {
+            return SESSIONS_NO_ACCOUNT;
+        }
+        if (this._sessionsNote) {
+            return this._sessionsNote;
+        }
+        switch (this._sessionsState) {
+            case 'loading':
+                return SESSIONS_LOADING;
+            case 'error':
+                return SESSIONS_FAILED;
+            case 'ready':
+                return this._sessionRows.length ? '' : 'No earlier conversations about ' + account.name + ' yet.';
+            default:
+                return '';
+        }
+    }
+
+    handleSessionsToggle() {
+        this.sessionsOpen = !this._sessionsOpen;
+    }
+
+    /** Lists the account's conversations, newest first. A reply for another account is dropped. */
+    _loadSessions() {
+        this._sessionsNote = '';
+        const account = this.sessionsAccount;
+        if (!this._connected || !this._sessionsOpen || !account || !account.id) {
+            return;
+        }
+        const accountId = account.id;
+        if (accountId !== this._sessionsAccountId) {
+            this._sessionRows = [];
+        }
+        this._sessionsAccountId = accountId;
+        this._sessionsState = 'loading';
+        listSessions({ accountId, limitSize: SESSION_LIMIT })
+            .then((rows) => {
+                if (accountId !== this._sessionsAccountId) {
+                    return;
+                }
+                this._sessionRows = (rows || [])
+                    .filter((r) => r && r.id)
+                    .map((r) => ({
+                        id: r.id,
+                        title: r.title || 'Untitled conversation',
+                        at: r.lastActive || r.startedAt || null,
+                        turnCount: r.turnCount || 0
+                    }))
+                    .sort((a, b) => timeOf(b.at) - timeOf(a.at));
+                this._sessionsState = 'ready';
+                this.liveMessage = this.sessionsMessage || this._sessionRows.length + ' earlier conversations';
+            })
+            .catch(() => {
+                if (accountId === this._sessionsAccountId) {
+                    this._sessionRows = [];
+                    this._sessionsState = 'error';
+                    this.liveMessage = SESSIONS_FAILED;
+                }
+            });
+    }
+
+    /** Reopens one earlier conversation: its turns, in order, become the thread. */
+    handleSessionOpen(event) {
+        const row = this._sessionRows[Number(event.currentTarget.dataset.index)];
+        if (!row) {
+            return Promise.resolve();
+        }
+        const sessionId = row.id;
+        this._sessionsNote = '';
+        return this._request({
+            key: 'session:' + sessionId,
+            label: '',
+            loading: 'Opening conversation',
+            keepSession: true,
+            onError: () => {
+                this._sessionsNote = SESSION_FAILED;
+                return SESSION_FAILED;
+            },
+            work: async (isCurrent) => {
+                const detail = await getSession({ sessionId });
+                if (!isCurrent()) {
+                    return null;
+                }
+                if (!detail) {
+                    this._sessionsNote = SESSION_HIDDEN;
+                    return SESSION_HIDDEN;
+                }
+                this.drillStack = [];
+                this._drillOrigin = null;
+                this._scopeOrg = false;
+                this.turns = (detail.turns || []).map((t) => {
+                    const text = t.headline || '';
+                    return {
+                        key: this._nextKey('t'),
+                        kind: 'text',
+                        isText: true,
+                        isError: t.status === 'ERROR',
+                        question: t.question || 'Summary',
+                        text,
+                        historyAnswer: text,
+                        cards: [],
+                        hasCards: false
+                    };
+                });
+                this._setSession(detail.id || sessionId);
+                this._sessionsOpen = false;
+                this._pinned = true;
+                this._focusAfterRender = '.abp-composer';
+                return 'Opened ' + (detail.title || row.title);
+            }
+        });
+    }
+
+    /** Starts a clean thread with a new session id. A reply still on its way is dropped. */
+    handleNewConversation() {
+        this._requestId += 1;
+        this.pending = false;
+        this.pendingQuestion = '';
+        this._inFlightKey = null;
+        this.turns = [];
+        this.drillStack = [];
+        this._drillOrigin = null;
+        this._scopeOrg = false;
+        this._sessionsNote = '';
+        this._sessionsOpen = false;
+        this._setSession(newSessionId());
+        this._pinned = true;
+        this.liveMessage = 'New conversation';
+        this._focusAfterRender = '.abp-composer';
+    }
+
+    _setSession(id) {
+        if (id === this._sessionId) {
+            return;
+        }
+        this._sessionId = id;
+        this.dispatchEvent(new CustomEvent('sessionchange', { detail: { sessionId: id } }));
     }
 
     // ------------------------------------------------------------ history

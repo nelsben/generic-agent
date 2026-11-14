@@ -1,0 +1,212 @@
+<template>
+    <article class={cardClass} aria-labelledby={labelledBy} aria-label={ariaLabel} data-type={view.type} data-family={view.family}>
+        <!-- Pinned: the title, the meta line and the status. A folding card's title is its toggle. -->
+        <template lwc:if={hasHead}>
+            <header class="cs-head">
+                <template lwc:if={view.folds}>
+                    <h3 class="cs-title" id={titleId}>
+                        <button class="cs-toggle" aria-expanded={ariaExpanded} aria-controls={bodyId} onclick={handleToggle}>
+                            <span class="cs-chevron" aria-hidden="true">{toggleIcon}</span><span class="cs-title-text">{view.title}</span>
+                        </button>
+                    </h3>
+                </template>
+                <template lwc:elseif={hasTitle}>
+                    <h3 class="cs-title" id={titleId}><span class="cs-title-text">{view.title}</span></h3>
+                </template>
+                <template lwc:if={view.meta}><span class="cs-meta">{view.meta}</span></template>
+                <template lwc:if={view.hasStatus}><span class={statusClass}>{statusLabel}</span></template>
+            </header>
+        </template>
+
+        <div class="cs-body" id={bodyId}>
+            <template lwc:if={showBody}>
+                <!-- List: section lines, records, candidates, a timeline, the query trail. One Tab stop. -->
+                <template lwc:if={isList}>
+                    <template lwc:if={hasItems}>
+                        <ul class="cs-items" data-roving onkeydown={handleRovingKeydown} onfocusin={handleRovingFocusin}>
+                            <template for:each={visibleItems} for:item="i">
+                                <li key={i.key} class="cs-item">
+                                    <template lwc:if={i.hasAt}><time class="cs-at" datetime={i.at}>{i.at}</time></template>
+                                    <span class="cs-item-main">
+                                        <template lwc:if={i.isLink}>
+                                            <button class="cs-link cs-item-label" data-roving-item data-ref={i.ref} aria-label={i.buttonLabel} onclick={handleOpen}>{i.label}</button>
+                                        </template>
+                                        <template lwc:else><span class="cs-item-label">{i.label}</span></template>
+                                        <template lwc:if={i.hasDetail}><span class="cs-item-detail">{i.detail}</span></template>
+                                    </span>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                </template>
+
+                <!-- Fields: one record (an action draft and result once drawn). -->
+                <template lwc:elseif={isFields}>
+                    <dl class="cs-fields">
+                        <template for:each={view.fields} for:item="f">
+                            <div key={f.key} class="cs-field">
+                                <dt class="cs-dt">{f.label}</dt>
+                                <dd class={f.ddClass}>
+                                    <template lwc:if={f.isLink}>
+                                        <button class="cs-link" data-ref={f.ref} aria-label={f.linkLabel} onclick={handleOpen}>{f.value}</button>
+                                    </template>
+                                    <template lwc:else><span>{f.value}</span></template>
+                                    <template lwc:if={f.hasChoices}>
+                                        <span class="cs-choices" role="group" aria-label={f.label}>
+                                            <template for:each={f.choices} for:item="ch">
+                                                <button key={ch.key} class="cs-chip" data-ref={ch.ref} data-field={ch.fieldKey} onclick={handleChoose}>{ch.label}</button>
+                                            </template>
+                                        </span>
+                                    </template>
+                                </dd>
+                            </div>
+                        </template>
+                    </dl>
+                    <template lwc:if={hasNotes}>
+                        <ul class="cs-notes">
+                            <template for:each={noteItems} for:item="n">
+                                <li key={n.key}>{n.label}</li>
+                            </template>
+                        </ul>
+                    </template>
+                </template>
+
+                <!-- Grid: a result table or a comparison. Compact, or too wide: stacked rows. -->
+                <template lwc:elseif={isGrid}>
+                    <template lwc:if={gridTable}>
+                        <div class="cs-table-wrap" tabindex={wrapTabindex} role="region" aria-labelledby={labelledBy} aria-label={ariaLabel}>
+                            <table class="cs-table">
+                                <thead>
+                                    <tr>
+                                        <template for:each={view.columns} for:item="col">
+                                            <th key={col.key} scope="col" class={col.thClass}>{col.label}</th>
+                                        </template>
+                                    </tr>
+                                </thead>
+                                <tbody data-roving onkeydown={handleRovingKeydown} onfocusin={handleRovingFocusin}>
+                                    <template for:each={visibleRows} for:item="row">
+                                        <tr key={row.key}>
+                                            <template for:each={row.cells} for:item="cell">
+                                                <template lwc:if={cell.isFirst}>
+                                                    <th key={cell.key} scope="row" class="cs-td cs-rowhead">
+                                                        <template lwc:if={cell.isLinkCell}>
+                                                            <button class="cs-link" data-roving-item data-ref={row.ref} aria-label={row.linkLabel} onclick={handleOpen}>{cell.value}</button>
+                                                        </template>
+                                                        <template lwc:else>{cell.value}</template>
+                                                    </th>
+                                                </template>
+                                                <template lwc:else>
+                                                    <td key={cell.key} class={cell.tdClass}>{cell.value}</td>
+                                                </template>
+                                            </template>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <ul class="cs-stack" data-roving onkeydown={handleRovingKeydown} onfocusin={handleRovingFocusin}>
+                            <template for:each={visibleRows} for:item="row">
+                                <li key={row.key} class="cs-stack-row">
+                                    <template lwc:if={row.ref}>
+                                        <button class="cs-link cs-stack-head" data-roving-item data-ref={row.ref} aria-label={row.linkLabel} onclick={handleOpen}>{row.head}</button>
+                                    </template>
+                                    <template lwc:else><span class="cs-stack-head">{row.head}</span></template>
+                                    <dl class="cs-stack-fields">
+                                        <template for:each={row.rest} for:item="s">
+                                            <div key={s.key} class="cs-stack-field">
+                                                <dt class="cs-dt">{s.label}</dt>
+                                                <dd class="cs-dd">{s.value}</dd>
+                                            </div>
+                                        </template>
+                                    </dl>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                </template>
+
+                <!-- Metric: one figure large, the rest beside it. -->
+                <template lwc:elseif={isMetric}>
+                    <dl class="cs-metrics">
+                        <template for:each={view.items} for:item="m">
+                            <div key={m.key} class={m.itemClass}>
+                                <dt class="cs-metric-label">{m.label}</dt>
+                                <dd class="cs-metric-value">{m.value}</dd>
+                                <template lwc:if={m.hasDetail}><dd class="cs-metric-detail">{m.detail}</dd></template>
+                            </div>
+                        </template>
+                    </dl>
+                </template>
+
+                <!-- Chips: follow-up questions. -->
+                <template lwc:elseif={isChips}>
+                    <div class="cs-chips">
+                        <template for:each={view.items} for:item="p">
+                            <button key={p.key} class="cs-chip" data-text={p.label} onclick={handleAsk}>{p.label}</button>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Fallback: the card's own plain text, line by line. -->
+                <template lwc:elseif={isFallback}>
+                    <div class="cs-fallback" data-reason={view.reason}>
+                        <template for:each={view.lines} for:item="l">
+                            <div key={l.key} class="cs-line">{l.text}</div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Rich text from the body runs: prose, a list with no lines, the note under the fields. -->
+                <template lwc:if={showBlocks}>
+                    <div class={blocksClass}>
+                        <template for:each={view.blocks} for:item="g">
+                            <template lwc:if={g.isP}>
+                                <p key={g.key} class="cs-p"><template for:each={g.runs} for:item="run"><template lwc:if={run.isStrong}><strong key={run.key}>{run.text}</strong></template><template lwc:elseif={run.isEm}><em key={run.key}>{run.text}</em></template><template lwc:elseif={run.isCode}><code key={run.key} class="cs-code">{run.text}</code></template><template lwc:elseif={run.isLink}><button key={run.key} class="cs-link" data-ref={run.ref} aria-label={run.linkLabel} onclick={handleOpen}>{run.text}</button></template><template lwc:else><span key={run.key}>{run.text}</span></template></template></p>
+                            </template>
+                            <template lwc:elseif={g.isUl}>
+                                <ul key={g.key} class="cs-ul">
+                                    <template for:each={g.items} for:item="b">
+                                        <li key={b.key}><template for:each={b.runs} for:item="run"><template lwc:if={run.isStrong}><strong key={run.key}>{run.text}</strong></template><template lwc:elseif={run.isEm}><em key={run.key}>{run.text}</em></template><template lwc:elseif={run.isCode}><code key={run.key} class="cs-code">{run.text}</code></template><template lwc:elseif={run.isLink}><button key={run.key} class="cs-link" data-ref={run.ref} aria-label={run.linkLabel} onclick={handleOpen}>{run.text}</button></template><template lwc:else><span key={run.key}>{run.text}</span></template></template></li>
+                                    </template>
+                                </ul>
+                            </template>
+                            <template lwc:else>
+                                <ol key={g.key} class="cs-ol">
+                                    <template for:each={g.items} for:item="b">
+                                        <li key={b.key}><template for:each={b.runs} for:item="run"><template lwc:if={run.isStrong}><strong key={run.key}>{run.text}</strong></template><template lwc:elseif={run.isEm}><em key={run.key}>{run.text}</em></template><template lwc:elseif={run.isCode}><code key={run.key} class="cs-code">{run.text}</code></template><template lwc:elseif={run.isLink}><button key={run.key} class="cs-link" data-ref={run.ref} aria-label={run.linkLabel} onclick={handleOpen}>{run.text}</button></template><template lwc:else><span key={run.key}>{run.text}</span></template></template></li>
+                                    </template>
+                                </ol>
+                            </template>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Under a record's fields: its related objects, then a draft's or a result's buttons. -->
+                <template lwc:if={hasRelated}>
+                    <div class="cs-chips" role="group" aria-label="Related records">
+                        <template for:each={relatedItems} for:item="r">
+                            <button key={r.key} class="cs-chip" data-text={r.label} onclick={handleAsk}>{r.label}</button>
+                        </template>
+                    </div>
+                </template>
+                <template lwc:if={hasControls}>
+                    <div class="cs-controls">
+                        <template for:each={view.controls} for:item="k">
+                            <button key={k.key} class={k.btnClass} data-control={k.key} onclick={handleControl}>{k.label}</button>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Pinned under a list or a grid: what is left out, then the fold. -->
+                <template lwc:if={view.countText}>
+                    <p class="cs-count">{view.countText}</p>
+                </template>
+                <template lwc:if={showMore}>
+                    <button class="cs-more" onclick={handleMore}>{moreLabel}</button>
+                </template>
+            </template>
+        </div>
+    </article>
+</template>
