@@ -3,7 +3,7 @@
         <!-- Announces each request's start and its result to screen readers (WCAG 4.1.3). -->
         <div class="slds-assistive-text" role="status" aria-live="polite" data-testid="abp-live-region">{liveMessage}</div>
 
-        <!-- Header: one row, pinned. The brand (logo beside the agent name) and, on an Account, Summarize. -->
+        <!-- Header: one row, pinned. The brand (logo beside the agent name), History and, on an Account, Summarize. -->
         <div class="abp-bar">
             <div class="abp-bar-row">
                 <template lwc:if={hasBrand}>
@@ -16,6 +16,8 @@
                         </template>
                     </div>
                 </template>
+                <button class="slds-button slds-button_neutral abp-sessions-toggle" aria-expanded={sessionsExpanded}
+                    aria-controls="abp-sessions" title="Earlier conversations" onclick={handleSessionsToggle}>History</button>
                 <template lwc:if={isAccountPage}>
                     <!-- A native button: it shows "Summarize"; its accessible name and tooltip keep the account. -->
                     <button class="slds-button slds-button_brand abp-brief" title={briefButtonLabel} aria-label={briefButtonLabel}
@@ -24,12 +26,36 @@
             </div>
         </div>
 
+        <!-- Sessions: this account's earlier conversations, newest first, and a new one. -->
+        <div class="abp-sessions" id="abp-sessions" hidden={sessionsHidden}>
+            <div class="abp-sessions-head">
+                <h2 class="abp-sessions-heading">{sessionsHeading}</h2>
+                <button class="slds-button slds-button_neutral abp-sessions-new" onclick={handleNewConversation}>New conversation</button>
+            </div>
+            <template lwc:if={sessionsMessage}>
+                <p class="abp-sessions-message">{sessionsMessage}</p>
+            </template>
+            <template lwc:if={hasSessions}>
+                <ul class="abp-sessions-list" data-roving onkeydown={handleRovingKeydown} onfocusin={handleRovingFocusin}>
+                    <template for:each={sessionItems} for:item="s">
+                        <li key={s.key}>
+                            <button class="abp-session" data-roving-item data-index={s.index} onclick={handleSessionOpen}><span
+                                class="abp-session-title">{s.title}</span><span class="abp-session-meta"><template lwc:if={s.hasAt}><lightning-formatted-date-time
+                                value={s.at} year="numeric" month="short" day="numeric" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                · </template>{s.turnLabel}</span></button>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+        </div>
+
         <template lwc:if={notice}>
             <div class="abp-notice slds-text-body_small" role="alert">{notice}</div>
         </template>
 
         <!-- Body: the drill view over the thread; the thread stays rendered underneath. -->
-        <div class="abp-body" role="region" aria-label="Conversation" onscroll={handleBodyScroll}>
+        <div class="abp-body" role="region" aria-label="Conversation" onscroll={handleBodyScroll}
+            oncardopen={handleCardOpen} oncardask={handleCardAsk}>
             <template lwc:if={isDrilling}>
                 <div class="slds-m-vertical_x-small">
                     <lightning-breadcrumbs>
@@ -46,6 +72,15 @@
                             <h2 class="abp-card-title abp-drill-heading" tabindex="-1">{drillTop.label}</h2>
                             <span class="abp-meta">{drillTop.objectName}</span>
                         </div>
+                        <template lwc:if={drillTop.hasCards}>
+                            <div class="abp-cards slds-m-top_x-small">
+                                <template for:each={drillTop.cards} for:item="c">
+                                    <c-customer-summary-card key={c.key} class="abp-answer-card" data-card={c.cardId} card={c.card}
+                                        density={density}></c-customer-summary-card>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:if={drillTop.showFields}>
                         <dl class="slds-m-top_x-small">
                             <template for:each={drillTop.fields} for:item="f">
                                 <div key={f.key} class="abp-field">
@@ -54,6 +89,8 @@
                                 </div>
                             </template>
                         </dl>
+                        </template>
+                        <template lwc:if={drillTop.showFields}>
                         <template lwc:if={drillTop.hasRelated}>
                             <div class="abp-chips slds-m-top_x-small">
                                 <template for:each={drillTop.related} for:item="r">
@@ -62,9 +99,19 @@
                                 </template>
                             </div>
                         </template>
+                        </template>
                     </template>
                     <template lwc:else>
                         <h2 class="abp-card-title abp-drill-heading" tabindex="-1">{drillTop.table.title}</h2>
+                        <template lwc:if={drillTop.hasCards}>
+                            <div class="abp-cards slds-m-top_x-small">
+                                <template for:each={drillTop.cards} for:item="c">
+                                    <c-customer-summary-card key={c.key} class="abp-answer-card" data-card={c.cardId} card={c.card}
+                                        density={density}></c-customer-summary-card>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:if={drillTop.showTable}>
                         <template lwc:if={drillTop.table.hasRows}>
                             <div class="abp-table-wrap slds-m-top_x-small" data-roving onkeydown={handleRovingKeydown}
                                 onfocusin={handleRovingFocusin}>
@@ -93,6 +140,7 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </template>
                         </template>
                     </template>
                     <div class="slds-m-top_x-small">
@@ -152,7 +200,17 @@
 
                             <!-- Plain text: NOT_FOUND from the resolver, an Apex error -->
                             <template lwc:if={turn.isText}>
-                                <div class="abp-pre abp-agent-text" data-error={turn.isError}>{turn.text}</div>
+                                <template lwc:if={turn.hasCards}>
+                                    <div class="abp-cards">
+                                        <template for:each={turn.cards} for:item="c">
+                                            <c-customer-summary-card key={c.key} class="abp-answer-card" data-card={c.cardId} card={c.card}
+                                                density={density}></c-customer-summary-card>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template lwc:else>
+                                    <div class="abp-pre abp-agent-text" data-error={turn.isError}>{turn.text}</div>
+                                </template>
                             </template>
 
                             <!-- AMBIGUOUS: candidates re-resolve by Id -->
@@ -171,6 +229,18 @@
 
                             <!-- Brief: summary card, then one accordion section per brief section -->
                             <template lwc:if={turn.isBrief}>
+                                <template lwc:if={turn.hasCards}>
+                                    <div class="abp-cards">
+                                        <template for:each={turn.cards} for:item="c">
+                                            <c-customer-summary-card key={c.key} class="abp-answer-card" data-card={c.cardId} card={c.card}
+                                                density={density}></c-customer-summary-card>
+                                        </template>
+                                    </div>
+                                    <template lwc:if={turn.ignoredText}>
+                                        <div class="abp-meta">{turn.ignoredText}</div>
+                                    </template>
+                                </template>
+                                <template lwc:else>
                                 <template lwc:if={turn.showMessage}>
                                     <div class="abp-pre abp-agent-text" data-error={turn.messageIsError}>{turn.message}</div>
                                 </template>
@@ -211,10 +281,20 @@
                                         </template>
                                     </lightning-accordion>
                                 </template>
+                                </template>
                             </template>
 
                             <!-- Explore: answer, result tables, query trail, follow-ups -->
                             <template lwc:if={turn.isExplore}>
+                                <template lwc:if={turn.hasCards}>
+                                    <div class="abp-cards">
+                                        <template for:each={turn.cards} for:item="c">
+                                            <c-customer-summary-card key={c.key} class="abp-answer-card" data-card={c.cardId} card={c.card}
+                                                density={density}></c-customer-summary-card>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template lwc:else>
                                 <div class="abp-pre abp-agent-text abp-answer" data-error={turn.isError}><template for:each={turn.answerRuns} for:item="run"><template lwc:if={run.strong}><strong key={run.key}>{run.text}</strong></template><template lwc:elseif={run.em}><em key={run.key}>{run.text}</em></template><template lwc:else><span key={run.key}>{run.text}</span></template></template></div>
                                 <template for:each={turn.tables} for:item="t">
                                     <div key={t.key} class="abp-card slds-m-top_x-small">
@@ -268,6 +348,7 @@
                                                 data-text={f.text} onclick={handleFollowup}>{f.text}</button>
                                         </template>
                                     </div>
+                                </template>
                                 </template>
                             </template>
 
@@ -329,6 +410,11 @@
                 <template for:each={quickChips} for:item="chip">
                     <button key={chip.key} class="slds-button abp-quick" data-key={chip.key} onclick={handleQuick}>{chip.label}</button>
                 </template>
+            </div>
+            <!-- What the next question is about, and the one control that changes it. -->
+            <div class="abp-scope" role="group" aria-label="Question scope">
+                <span class="abp-scope-label">{scopeLabel}</span>
+                <button class="slds-button abp-scope-switch" onclick={handleScopeSwitch}>{scopeSwitchLabel}</button>
             </div>
             <div class="abp-composer-row">
                 <textarea class="abp-composer" aria-label="Ask or /brief an account" placeholder="Ask or /brief an account"
