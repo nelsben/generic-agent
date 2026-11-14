@@ -4,7 +4,7 @@ title: FR2: write-action service — one Apex service with draft and commit for 
 domain: backend
 tier: frontier
 tier_reason: the first code that writes customer records; security, user mode and the draft/commit contract all carry risk
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/classes/CustomerSummaryActions*.cls, force-app/main/default/classes/CustomerSummaryActions*.cls-meta.xml, force-app/main/default/classes/CustomerSummaryAction*.cls, force-app/main/default/classes/CustomerSummaryAction*.cls-meta.xml, force-app/main/default/permissionsets/Customer_Summary_Data_Access.permissionset-meta.xml, docs/patterns/13-write-actions.md, force-app/main/default/staticresources/AgentPrompt_Action*, tests/test_permission_sets.py, force-app/main/default/customMetadata/Agent_Prompt_Setting.*, force-app/main/default/classes/AnswerCard.cls, force-app/main/default/classes/AnswerCardTest.cls, force-app/main/default/classes/CustomerSummaryPanelController.cls, force-app/main/default/classes/CustomerSummaryPanelControllerTest.cls]
 forbid: [force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -27,3 +27,42 @@ Feature revision 2 (FR2): sellers create follow-ups and updates "verbally or thr
 - Exposure: @AuraEnabled draftAction and commitAction (and undoAction) for the panel, added to CustomerSummaryPanelController, which stays the panel's only Apex door (BE-22); keep its existing members and tests unchanged and add the new ones to CustomerSummaryPanelControllerTest. Invocable actions for MCP and for any agent a team adds later: one pair, draft_action and commit_action, with the draft passed as JSON text (BE-22's choice), with input and output descriptions that read well to a model. No MCP write tool is exposed in FR2 without Ben's go (his to-do); the invocables are ready for it. No change to the agent bundle in this card. Permission set additions go in the Customer_Summary data-access set, listed field by field
 - **Org rules:** `agent-probe` only, with `-o agent-probe` on every `sf` command. Never touch `experimental` or use it as a Dev Hub. Never create a user. Never sign in or out, accept consent or enter credentials. Never retrieve or commit a consumer key or secret. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No destructive deploy unless this card's own Approvals row names one. No security or red-team agent test. A deploy is a validate with RunLocalTests and then a quick deploy with the confirmation marker, never `deploy start`. Skip any org step whose Approvals row does not start with "approved", and hand back. A read-only step (a query, a describe, a list, or a retrieve of force-app metadata to a temporary folder outside the repo) needs no row
 - Tests with Assert.* cover each action's draft and commit, draftFromText with a mocked model (an action, a missing field, not an action), undo of an update inside and outside the window, a changed token, validation failures, the allow-list, a user without edit rights (runAs a minimum-access user created in the test), relative date parsing, and that draft does no DML (Limits.getDmlStatements() is 0). Write docs/patterns/13-write-actions.md: the flow, the draft and confirm rule and why, user mode, the F17 choice, and how to add a seventh action. Org, agent-probe only, under the standing approval: validate with RunLocalTests, then quick deploy with CONFIRM_PROD=1; no records are created in the org by this card. Never publish or activate an agent, never create a user, never touch experimental. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit, bash scripts/validate-org.sh and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-14). Three attempts; the last is at sha 764ed9d.
+- Attempt 1 ($10.77) ended without a report: the worker ended its turn while its own background job was still running. It was resumed.
+- Attempt 2 ($0.92) handed back gate=fail. Four tests already on main were failing at night: they computed the expected date in UTC while the test users run on America/New_York. The fix was cut as BE-51 and merged. The brain then raised the brief's budget from 2 to 3 attempts.
+- Attempt 3 ($1.30) rebased onto a5d1ee3 with no other change, then validated and quick deployed. A sonnet review returned 17 confirmed, 0 refuted, 6 unverifiable; the unverifiable rows are org-side and process claims.
+
+Findings:
+- New action service CustomerSummaryActions (about 1,240 lines) supports draft, commit and undo for creating a task, logging a call, creating a case and the related updates. Its helpers are CustomerSummaryActionCatalog (the verb pre-check and the catalog), CustomerSummaryActionResolver, CustomerSummaryActionDraftAction and CustomerSummaryActionCommitAction (the invocables).
+- Every new class is `with sharing`, and every query and DML runs in user mode. One test read uses WITH SYSTEM_MODE to check what was written.
+- Drafting writes nothing; seven DML-count assertions pin this. A commit records a customer outcome, and a failed outcome write is logged as a warning without undoing the action. An undo within 15 seconds removes the record and its outcome through CustomerOutcomes.remove.
+- log_call writes an Event (the F17 default), set by one constant whose comment names F17.
+- The worker renamed a TIME/CLOCK constant pair that collided with a reserved word.
+- AnswerCard gains only the actionDraft and actionResult builders, plus helpers. CustomerSummaryPanelController gains draftAction, draftFromText, commitAction and undoAction; its existing members are unchanged.
+- New Agent_Prompt_Setting.ActionDraft record and AgentPrompt_ActionDraft static resource (Static_Resource source, as for every prompt setting).
+- Customer_Summary_Data_Access gains class access only, with no object or field change. tests/test_permission_sets.py is updated to match.
+- New doc docs/patterns/13-write-actions.md.
+- No MCP write tool is exposed yet; OPS-59 does that.
+
+Gate (verifier at 764ed9d): 176 Python tests, 264 Jest in 6 suites, validate-org pass (142 components, 379 tests). The reviewer ran check-docs: 63 pages, 0 broken.
+
+Org (worker's account): a scoped validate of the 16 components with RunLocalTests (472 tests, 0 failures, 06:29:51Z to 06:35:14Z), then a quick deploy under the standing row (06:35:32Z to 06:35:38Z). No records were created, nothing was published or activated, and experimental was not touched.
+
+Disclosed and accepted:
+- The org figures are the worker's account; nothing in git shows them.
+- The org gate ran as a background child process, against the worker rule. The worker waited for it in foreground polls.
+- The worktree's gitignored .sf/config.json was set to agent-probe for the deploy hook, then unset.
+- The brain raised the attempt budget to 3 after a gate failure that was not caused by this card.
+- A tests/__pycache__ made by the gate runs was removed before review and before merge.
+
+Still open:
+- The first-word verb pre-check misses 9 phrasings, listed as ACTIONS_MISSED in CustomerSummaryActionCatalogTest, for example "Follow up with Maria next week" and "File a case about the broken router". Widening it is Ben's call. For demos, start with a plain verb.
+- Two of the pinned questions cost a model call before they are classified.
+- The undo token is unsigned. It is bounded by the user's own access; signing it is Ben's call.
+- CustomerSummaryActions is about 1,240 lines; splitting it is a candidate follow-up card.
+- F17 (Task or Event) is still Ben's answer; the default is Event, a one-constant change.
+
+Privacy grep over the diff (3,589 added lines): 0 hits.
