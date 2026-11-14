@@ -82,15 +82,16 @@ or in a report, sees no title, headline, body or reason; the panel and the outco
 grants Read on the master (Account). The data-access set grants no Account access, and adding it there broke
 BE-26's test of a rep who loses the account. So the outcome access lives in its own set,
 `Customer_Summary_Outcome_Access`: Read on Account, Read and Create on `Customer_Outcome__c`, and read and edit on
-the eight non-text fields. It grants no edit, no delete, no View All and no class. One of those eight is
-`Related_Record_Id__c`: our surfaces and the report type withhold it from anyone but the author, but a rep with
-the set can read it through the API, a list view or the record page. The card closes only the four text fields;
-closing the link too would mean moving it into system context like them. The data-access set gains class
+the eight non-text fields. It grants no edit, no delete, no View All and no class. Any holder of the
+set can read all eight outside our surfaces, through the API, a list view and the report type: the
+record link (`Related_Record_Id__c`), skill, surface, model, sentiment score and label, type and expiry. (The
+report type leaves out the record link; the API and a list view do not.) Our surfaces (`view()`) show other
+reps only the type, date, fixed phrase and sentiment label; the record link only the author sees. The card closes
+only the four text fields; closing the rest would mean moving them into system context like them. The data-access set gains class
 access to `CustomerOutcomes` and `CustomerOutcomeSaveAnswer` only.
 
-Reps need both sets. A rep with only the data-access set still gets every summary, with no outcome context and no
-outcome recorded, and the failed write is logged (`aRepWithoutTheOutcomeSetStillGetsTheSummary`). Adding the
-outcome set to the product's permission set group is a follow-up for the card that owns the group. Admins without
+The `Customer_Summary_User` group grants both sets. A rep with only the data-access set still gets every summary, with no outcome context and no
+outcome recorded, and the failed write is logged (`aRepWithoutTheOutcomeSetStillGetsTheSummary`). Admins without
 the set are in the same position, because new fields come with no field access for any profile.
 
 **Remove.** `remove(outcomeId)` reads the row in user mode, refuses anyone but its author, then deletes in system
@@ -158,8 +159,8 @@ Under the approved row "FR2: live checks in `agent-probe`", after the validate (
 failures) and quick deploy of this card's components only. The account was the seed account Edge Communications.
 Each step was a separate anonymous Apex run, as the developer user, printing types and counts only.
 
-- **Setup:** the developer user was given `Customer_Summary_Outcome_Access`. Its permission set group does not
-  include the set yet (see [Field access](#field-access)), and without it no outcome is recorded.
+- **Setup:** the developer user was given `Customer_Summary_Outcome_Access`. The group did not hold
+  the set then (BE-50 added it), and without the set no outcome is recorded.
 - **Before:** 0 outcomes and 2 session rows on the account.
 - **Summary 1:** `CustomerSummary.run`, status OK. The outcome context before it was empty.
 - **Summary 2:** status OK. The outcome context before it had 2 lines: the header and the last summary.

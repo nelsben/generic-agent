@@ -1,6 +1,6 @@
 """Static checks for the Customer Summary permission set group.
 
-Customer_Summary_User holds only the data-access set: reps reach the product through our
+Customer_Summary_User holds the data-access and outcome-access sets and nothing else: reps reach the product through our
 surfaces, not the agent. Customer_Summary_Agent_Access stays in the repo, outside the group,
 for a team that adds the agent to a channel later.
 """
@@ -13,7 +13,7 @@ GROUPS = ROOT / "force-app/main/default/permissionsetgroups"
 PERMSETS = ROOT / "force-app/main/default/permissionsets"
 GROUP = GROUPS / "Customer_Summary_User.permissionsetgroup-meta.xml"
 NS = {"p": "http://soap.sforce.com/2006/04/metadata"}
-EXPECTED = {"Customer_Summary_Data_Access"}
+EXPECTED = {"Customer_Summary_Data_Access", "Customer_Summary_Outcome_Access"}
 
 
 class TestAccessGroup(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestAccessGroup(unittest.TestCase):
         self.assertTrue(GROUP.is_file(), "group file is missing")
         self.root = ET.parse(GROUP).getroot()
 
-    def test_group_holds_only_the_data_access_set(self):
+    def test_group_holds_only_the_data_and_outcome_sets(self):
         names = [e.text for e in self.root.findall("p:permissionSets", NS)]
         self.assertEqual(sorted(names), sorted(EXPECTED))
 

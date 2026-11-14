@@ -16,6 +16,7 @@ AGENT_SET = PERMSETS / "Customer_Summary_Agent_Access.permissionset-meta.xml"
 DATA_SET = PERMSETS / "Customer_Summary_Data_Access.permissionset-meta.xml"
 OUTCOME_SET = PERMSETS / "Customer_Summary_Outcome_Access.permissionset-meta.xml"
 OUTCOME_TEXT_FIELDS = ("Title__c", "Headline__c", "Body__c", "Sentiment_Reason__c")
+GROUP = ROOT / "force-app/main/default/permissionsetgroups/Customer_Summary_User.permissionsetgroup-meta.xml"
 NS = {"p": "http://soap.sforce.com/2006/04/metadata"}
 
 
@@ -129,6 +130,13 @@ class TestOutcomeAccessSet(unittest.TestCase):
         self.assertEqual(children(self.root, "classAccesses"), [])
         fields = [text_of(f, "field") for f in children(self.root, "fieldPermissions")]
         self.assertEqual([f for f in fields if not f.startswith("Customer_Outcome__c.")], [])
+
+
+class TestUserGroup(unittest.TestCase):
+    def test_group_holds_the_data_and_outcome_sets_and_nothing_else(self):
+        root = load(GROUP)
+        sets = sorted(p.text for p in children(root, "permissionSets"))
+        self.assertEqual(sets, ["Customer_Summary_Data_Access", "Customer_Summary_Outcome_Access"])
 
 
 if __name__ == "__main__":
