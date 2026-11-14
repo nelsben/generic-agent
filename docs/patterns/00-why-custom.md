@@ -278,4 +278,4 @@ is Coworker is the product owner's decision under ledger row F83, which stands
   [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page; only their structure is tested. No
   card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

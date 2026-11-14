@@ -210,4 +210,4 @@ All optional. Do them after the README's quick start, which deploys the Apex the
   it printed `FAIL` for the broken sample. GitHub draws with its own Mermaid build, so a look at the pushed page is
   still open. No card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

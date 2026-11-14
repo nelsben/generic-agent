@@ -285,4 +285,4 @@ Whether a run in a real org has passed is kept in one place, the README's [Statu
 - **The accuracy check finds made-up numbers, not misplaced ones,** and wording changes from run to run (BE-29). No
   card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

@@ -25,32 +25,37 @@ redeploying re-brands the whole product. Nothing in the panel hard-codes a name,
 
 ## How it works
 
+The numbers in the diagram match the steps under it. The coral block is the model call. The theme is the shared one
+in [_diagram-theme.md](_diagram-theme.md).
+
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, Segoe UI, Helvetica, Arial, sans-serif", "primaryColor": "#eef4fb", "primaryTextColor": "#181818", "primaryBorderColor": "#0176d3", "lineColor": "#5c5c5c", "noteBkgColor": "#fff8e6", "noteTextColor": "#181818"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
 sequenceDiagram
     autonumber
-    box The page
+    box rgb(247, 249, 252) The surface
         participant P as Panel
     end
-    box Apex
+    box rgb(247, 249, 252) Apex
         participant B as BrandSettings
         participant S as Summary or explorer
     end
-    box The model
-        participant M as Models API
+    box rgb(255, 236, 230) The model, through the trust layer
+        participant M as AgentLlm and the model
     end
-    rect rgba(1, 118, 211, 0.10)
+    rect rgb(225, 236, 252)
         Note over P,B: Brand the panel
-        P->>B: getSettings() (cacheable)
+        P->>B: getSettings(), cacheable
         B-->>P: agent name, company, logo URL, colours, fonts, radius, tone
-        P->>P: set --cs-* variables on its host, show logo and name
+        P->>P: set the brand variables on its host, show the logo and name
     end
-    rect rgba(46, 132, 74, 0.10)
-        Note over S,M: Brand the prompts
+    rect rgb(222, 243, 230)
+        Note over B,M: Brand the prompts
         S->>B: promptLines()
-        B-->>S: "Company: ..." and "Tone: ..."
-        S->>M: prompt file's system text, then the two lines
-        M-->>S: summary or answer
+        B-->>S: the Company line and the Tone line
+        rect rgb(255, 214, 204)
+            S->>M: the prompt file's system text, then the two lines
+            M-->>S: summary or answer
+        end
     end
 ```
 
@@ -69,7 +74,7 @@ sequenceDiagram
 
 ## Swap the brand: step by step
 
-This is the part a seller follows before a demo. It takes about ten minutes, most of it waiting for
+This is the part a seller follows before a demo, in five steps. It takes about ten minutes, most of it waiting for
 the deploy.
 
 ### 1. Edit the Default record
@@ -121,7 +126,21 @@ find the `componentInstanceProperties` whose `<name>` is `label`, and change its
 `Customer Summary`). Or in Setup: **Setup > App Manager > Customer Summary > Edit > Utility Items >
 Customer Summary > Label**.
 
-### 4. Redeploy
+### 4. Put the history and the sentiment chart on the Account record page
+
+The rail shows the account's history timeline and its sentiment chart ([12](12-right-rail.md)). A team that also wants
+them on the Account record page places them there; the quick start does not.
+
+1. Open an account, then **Setup (the gear) > Edit Page** to open the Lightning App Builder on the Account record page.
+2. From the custom components, drag **Customer Summary History** (the timeline of the account's outcomes) and
+   **Customer Summary Sentiment** (sentiment over time) onto the page.
+3. **Save**, then **Activate** the page for the app, profiles or record types the team uses.
+
+The two components ask Apex for nothing about the brand. Inside the rail they draw in the brand's colours, which the
+panel sets on its host; on the record page they draw in their neutral fallback colours. A page saved in the App Builder
+is live at once but is not in the repo, the same as a record edited in Setup.
+
+### 5. Redeploy
 
 From the repo folder, validate with the local tests, then deploy the validated job:
 
@@ -160,10 +179,12 @@ still read "Customer Summary" in both: that label comes from the app, not the re
 
 ## Why you can trust it
 
-Runs as the signed-in user: the brand record is read in user mode; the data-access permission set
+Runs as the signed-in user: the brand record is read in user mode; the data-access permission set, in the group,
 grants read on `Brand_Setting__mdt` and the `BrandSettings` class.
 
-System context: none on this path.
+System context: none on the brand read. The prompts the brand lines join are sent through `AgentLlm`, which reads the
+prompt settings in system context because they are the product's own configuration, the same for every user
+([07](07-trust-access-and-failure.md#the-exceptions)).
 
 - A value that is not safe to put in a style (a colour that is not hex, a font list with a
   semicolon, a logo name with a path in it) falls back to the default:
@@ -201,7 +222,11 @@ System context: none on this path.
 - The utility item label is set in the app's utility bar page, not from the brand record.
 - The corner radius has no field yet; it is one fixed value in `BrandSettings`.
 - Fonts must already be on the user's machine; the panel loads no web fonts.
+- On a record page the history timeline and the sentiment chart draw in neutral colours, not the brand's: only the
+  panel reads the brand and sets the variables. No card yet.
 - One brand per org. Different brands for different users would need a second record and a way to
   choose it; no card yet.
+- The diagram on this page has not been render-checked: the render check in
+  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

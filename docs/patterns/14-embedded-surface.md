@@ -11,7 +11,13 @@ and nothing on this page is a setup guide.
 > have to fit. They are not claimed to work with this agent. A later spike decides that. Do not follow this page as a
 > procedure.
 
-## The story, in the product owner's words
+This page is a labelled placeholder, so it is exempt from the full page shape. Why the product has surfaces of its own,
+and not only the standard Agentforce chat, is chapter [00](00-why-custom.md); the frames that are built are the compact
+window ([03](03-hotkey-panel.md)) and the right rail ([12](12-right-rail.md)).
+
+## The business problem
+
+The story, in the product owner's words.
 
 The request was to put the agent "embedding on a page directly". Taking CTI as the example: "you would accept the call,
 that customer's information would populate your screen and an agentic prompt or conversation would potentially start
@@ -29,7 +35,8 @@ placeholder.
 1. The service rep accepts an incoming call.
 2. The customer's record opens, and the agent starts a brief on its own, without a prompt.
 3. The brief shows next to an account map and the key fields of the account.
-4. The rep can chat with the agent, as in the compact window and the rail.
+4. The rep can chat with the agent, as in the compact window and the rail, and see the account's history and
+   sentiment, as the rail shows them today.
 5. Knowledge articles that fit the call are offered.
 6. The rep takes a follow-up action: a task, a logged call, a case, each shown as a draft first.
 
@@ -50,12 +57,28 @@ Named from public Salesforce documentation. Whether and how each one works with 
   (`customerSummaryConversation`) that the compact window and the rail use. The thread, composer, cards and history stay
   the same; only the frame differs ([fr2-design.md](../plans/fr2-design.md#surfaces)).
 - **The summary skill.** The brief is the same one-ask summary, started by an event, not a typed request.
-- **The context call.** The record in front of the rep supplies the context, so nobody passes it back by hand.
+- **The context call.** The record in front of the rep supplies the context, so nobody passes it back by hand, as the
+  rail's context column does today.
+- **The history and the trend.** The account's history timeline and its sentiment chart already sit in the rail and can
+  be placed on an Account record page (FE-19). A console page could hold them the same way.
+- **Opening a record.** The conversation's View record link opens a record from the compact window and from the rail
+  (FE-27); a frame outside the page's navigation routes the click through its host, as the rail does.
 - **The write actions.** Follow-ups use the same actions, with the same draft and confirm step. Nothing is written
   until the rep confirms.
 - **The same access.** The agent would run as the signed-in service rep and see what the rep sees.
 
-## Questions the later spike must answer
+## What is deliberately not done
+
+- No code, no metadata, no component and no test for this surface.
+- No telephony set-up, no CTI adapter and no Omni-Channel configuration.
+- No claim that any platform piece above works with the agent.
+- No change to the compact window or the rail on account of this page.
+- No estimate of effort or date. The spike is parked until the product owner says go.
+
+## Limits and open items
+
+Nothing on this page is built. The spike that would build it is parked until the product owner says go
+(OPS-33 has it). These are the questions it must answer:
 
 - **Telephony:** which products would a team actually use (Service Cloud Voice, a partner CTI through Open CTI, or
   none), and what does each hand to a page when a call arrives?
@@ -66,12 +89,4 @@ Named from public Salesforce documentation. Whether and how each one works with 
 - **Knowledge:** which articles may the agent read as the rep, and how are they chosen for a call?
 - **Unknown callers:** what happens when the number matches no account, or several?
 
-## What is deliberately not done
-
-- No code, no metadata, no component and no test for this surface.
-- No telephony set-up, no CTI adapter and no Omni-Channel configuration.
-- No claim that any platform piece above works with the agent.
-- No change to the compact window or the rail on account of this page.
-- No estimate of effort or date. The spike is parked until the product owner says go.
-
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

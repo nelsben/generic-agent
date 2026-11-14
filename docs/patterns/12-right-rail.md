@@ -1,17 +1,18 @@
 # Right rail
 
 A full-height side panel on the right of the page: the same conversation as the compact window, with the account's
-deals, activity, cases and last summary beside it.
+deals, activity, cases, last summary, history and sentiment beside it.
 
 ## The business problem
 
 The compact window is for a quick question. A seller who is working an account for the next ten minutes needs more
 room for the answer, and needs the account's own facts in view while they read it: which deals are open, what happened
-last week, which cases are still open and what the last summary said. Without that, the seller flips between the
-answer and the record's related lists and loses the thread.
+last week, which cases are still open, what the last summary said, and how the account has gone over time. Without
+that, the seller flips between the answer and the record's related lists and loses the thread.
 
 The rail is for that seller. It opens on one key from anywhere on the page, or from the compact window when a quick
-question turns into a longer one, and it keeps the conversation the seller already started.
+question turns into a longer one, and it keeps the conversation the seller already started. Why this is a surface of
+the product's own, and not the standard Agentforce chat, is chapter [00](00-why-custom.md).
 
 ## The architecture in a few steps
 
@@ -21,10 +22,14 @@ question turns into a longer one, and it keeps the conversation the seller alrea
 3. The one conversation element moves out of the compact window into the rail, so the thread, the session and the
    composer's text are the same. The composer has focus.
 4. The context column fills from one read-only Apex call: open deals, recent activity, open cases and the last summary.
+   Under them, the account's history timeline and its sentiment chart each read the account's outcomes.
 5. Esc or Close sends the conversation back to the window and focus back to where it was. Minimize leaves a slim tab on
    the right edge; resting the pointer on the tab peeks the rail back out.
 
 ## How it works
+
+The numbers in the diagram match the steps under it. The rail makes no model call. The theme is the shared one in
+[_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
@@ -35,9 +40,11 @@ sequenceDiagram
         participant P as Panel (utility bar)
         participant R as Rail
         participant C as Conversation
+        participant H as History timeline and sentiment chart
     end
     box rgb(247, 249, 252) Apex
         participant A as CustomerSummaryContext
+        participant O as CustomerOutcomes
     end
     rect rgb(225, 236, 252)
         Note over U,A: Open
@@ -51,6 +58,9 @@ sequenceDiagram
     rect rgb(222, 243, 230)
         Note over U,A: Context
         A-->>R: deals, activity, cases, last summary
+        R->>H: draw for the rail's account
+        H->>O: listOutcomes(accountId)
+        O-->>H: the outcomes, text only where the seller may see it
         U->>R: click a deal, case or activity
         R-->>P: railopenrecord
         P->>P: Navigate to the record page
@@ -66,11 +76,12 @@ sequenceDiagram
 Steps 1 to 6: the panel (`customerSummaryPanel`) owns the rail (`customerSummaryRail`) and opens it. The key is caught
 by a document listener and by a capture listener on the panel's stage, because the composer stops most keys before they
 reach the document. The rail calls `getContext` first and draws while the call is on its way; the panel then moves the
-one conversation element into the rail's slot and puts focus in the composer. Steps 7 to 10: the context arrives and
-fills four sections. A click on a row asks the panel to open the record: the rail lives on the stage the panel moved onto
-`document.body`, outside the page's navigation context, so the panel (which stays in the utility bar) does the
-navigation. Steps 11 to 13: Esc or Close puts the conversation back in the compact window and focus back where the key
-was pressed.
+one conversation element into the rail's slot and puts focus in the composer. Step 7: the context arrives and fills
+four sections. Steps 8 to 10: under them, the history timeline and the sentiment chart read the account's outcomes (see
+[The history and the trend](#the-history-and-the-trend)). Steps 11 to 13: a click on a row asks the panel to open the
+record: the rail lives on the stage the panel moved onto `document.body`, outside the page's navigation context, so the
+panel (which stays in the utility bar) does the navigation. Steps 14 to 16: Esc or Close puts the conversation back in
+the compact window and focus back where the key was pressed.
 
 ### How it opens
 
@@ -113,6 +124,23 @@ cannot read says "Your access doesn't include this." and the others still load. 
 column says it has no account to show; once an account has been seen, the rail keeps it while the seller opens one of
 its deals or cases.
 
+### The history and the trend
+
+Under the four sections, while the rail is open, the context column shows two more panes from FE-19. A closed rail makes
+neither call.
+
+- **History.** `customerSummaryHistoryTimeline` lists the account's outcomes newest first (summaries, actions taken and
+  saved answers, up to 100), as one `timeline` card drawn by the shared card renderer, with a filter by type and a
+  detail under the card for each entry.
+- **Sentiment over time.** `customerSummarySentimentChart` draws each of the account's last 50 summaries as a point on
+  the band of its sentiment label, oldest on the left, with a text table for screen readers. It draws labels only: no
+  line and no numeric axis, because the score behind a label is not steady enough to chart; an edit to one prompt rule
+  moved a label by two steps ([fr2-sentiment.md](../research/fr2-sentiment.md)).
+
+Both draw only what `CustomerOutcomes` returns: another rep's entry shows its type, date and label, and says its text
+stays with its author. How outcomes are written and shared is chapter [05](05-conversation-memory.md). The same two
+components can also go on an Account record page ([10](10-brand-and-theming.md#swap-the-brand-step-by-step), step 4).
+
 ### Speed budget
 
 Measured by e2e spec Rail 6 (warm, three fresh pages per project, Playwright Chromium, 1440x900, `agent-probe`,
@@ -145,33 +173,53 @@ under the conversation and scrolls with it; there is no sticky header. The rail 
 
 ![Cmd-K opens the compact window, a question is typed and answered, then Expand moves the same thread into the rail and the account's context fills beside it](../assets/fr2-rail.gif)
 
+The three captures above predate the history and the trend. FE-19 took two stills of the rail on an account record page
+at 1440 by 900, which OPS-52 links here with the rest of this page's captures:
+
+- `fr2-history-timeline.png`: the rail with the history timeline in its context column.
+- `fr2-history-sentiment.png`: the rail with the sentiment chart in its context column, a point focused.
+
 ## Why you can trust it
 
 Runs as the signed-in user: `CustomerSummaryContext` is `with sharing` and every query runs `WITH USER_MODE`, so object,
 field and record access all apply. It is read-only. The conversation in the rail is the same component, with the same
 doors, as in the compact window.
 
-System context: none on this path.
+System context: one use on this path. The history timeline and the sentiment chart read outcome text through
+`CustomerOutcomes` in system context, only for the rows they show in full (the seller's own, or a type marked to
+share), because reps hold no field access to outcome text ([07](07-trust-access-and-failure.md#the-exceptions)). The
+conversation in the rail uses the same doors as the compact window, named on [01](01-route-gather-reduce.md) and
+[05](05-conversation-memory.md).
 
 - **Jest covers the rail.** [customerSummaryRail.test.js](../../force-app/main/default/lwc/customerSummaryRail/__tests__/customerSummaryRail.test.js)
   covers the key on and off a Mac, the expand message and `open()` with a session Id, focus in and back, overlay (no
   page style touched), minimize to the tab, the hover peek and its timings, every section with rows, empty,
   unavailable, loading and error, the rail keeping its account while a deal is opened, opening a record (by the rail or by its host), no record Id in the
-  markup, and axe in each state.
+  markup, and axe in each state. It also puts the timeline and the sentiment chart in the context column, on the rail's
+  account, once the rail is open.
+- **Jest covers the history and the trend.**
+  [customerSummaryHistoryTimeline.test.js](../../force-app/main/default/lwc/customerSummaryHistoryTimeline/__tests__/customerSummaryHistoryTimeline.test.js)
+  and [customerSummarySentimentChart.test.js](../../force-app/main/default/lwc/customerSummarySentimentChart/__tests__/customerSummarySentimentChart.test.js)
+  cover another rep's entry showing type, date and label but never its text, no record Id in the markup, and a point
+  per summary with no line.
 - **Jest covers the panel's side.** [customerSummaryPanel.test.js](../../force-app/main/default/lwc/customerSummaryPanel/__tests__/customerSummaryPanel.test.js)
   covers the flag off, Expand keeping the same element, turns and session, the sessions list open with a reopen, the
   launcher expand and its prefetch, Cmd/Ctrl-Shift-K from the composer and the page, Esc bringing the thread home, Cmd-K
   bringing it back, a minimized rail, an Open prompt landing in the rail, the panel navigating for a row, and axe.
 - **It runs in a real org.** `e2e/rail.spec.js` (six specs, in [e2e/README.md](../../e2e/README.md)): open by key,
   geometry and focus return; Expand with the thread intact; one question answered in the rail; every context section and
-  a row opening its record; minimize, peek and tab; and the speed budget.
+  a row opening its record; minimize, peek and tab; and the speed budget. `e2e/history.spec.js` opens the timeline and
+  the sentiment chart in the rail.
 - **Lightning Web Security.** No blocked API: document listeners, timers, `<dialog>` `show()` and `close()`,
   `appendChild` into the component's own `lwc:dom="manual"` containers, and `NavigationMixin`.
 
 ## How it scales
 
 - The context is one cacheable call of at most 8 queries per account, kept in the rail per account, so a seller moving
-  between the window and the rail on one account asks once.
+  between the window and the rail on one account asks once
+  ([CustomerSummaryContextTest](../../force-app/main/default/classes/CustomerSummaryContextTest.cls)).
+- The timeline and the chart each make one read of the account's outcomes, capped at 100 and 50 rows, and only while
+  the rail is open ([customerSummaryRail.test.js](../../force-app/main/default/lwc/customerSummaryRail/__tests__/customerSummaryRail.test.js)).
 - The rail adds no model call. The only model calls are the questions the seller asks, as in the compact window.
 - There is one conversation element for both frames, so a second surface costs no second session or second history
   load.
@@ -185,7 +233,6 @@ System context: none on this path.
 
 ## Limits and open items
 
-- The diagram on this page was not render-checked.
 - Push is not offered: the rail always slides over the page (see Push or overlay).
 - Reopening a past conversation from the History list in the rail closes the list; that is the conversation
   component's own behaviour (FE-22).
@@ -194,5 +241,11 @@ System context: none on this path.
 - The speed numbers are from Playwright's Chromium on one machine, warm; a cold first open also loads the component.
 - Rail 1 failed once on `mac` on the first open after a deploy (Esc did not close: focus was not yet in the rail), then
   passed three runs in a row; treat a single failure there as a cold-cache flake and rerun before chasing it.
+- The sentiment chart draws labels only, because the score is not steady enough to chart. With up to 50 points in the
+  narrow rail, the points crowd. No card yet.
+- On a record page the two FE-19 components draw in neutral colours, not the brand's (see
+  [10](10-brand-and-theming.md#limits-and-open-items)). No card yet.
+- The diagram on this page has not been render-checked: the render check in
+  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
