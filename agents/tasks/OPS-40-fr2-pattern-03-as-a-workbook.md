@@ -4,7 +4,7 @@ title: FR2: pattern 03 as a workbook chapter — the hotkey panel told as the wa
 domain: ops
 tier: frontier
 tier_reason: a chapter written for a business reader and an architect at once, from Ben's own notes
-status: queued
+status: merged
 fixes: []
 scope: [docs/patterns/03-hotkey-panel.md, tests/test_pattern_03.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -26,3 +26,30 @@ Feature revision 2 (FR2), Ben's chapter notes on pattern 03. He likes it "for th
 - **Why you can trust it** opens with the two trust lines fr2-design.md 'Pattern page shape' fixes: one starting 'Runs as the signed-in user:' and one starting 'System context:', which names each system-context use on this path with its reason, or says 'none on this path'. This part and **How it scales** include the panel's failure behaviour from page 07 (ledger F85): one fixed sentence, never raw error text, and model text rendered as text, never markup. Each claim links to a Jest test, an e2e test, a review or the FE-16 proof page. **Limits and open items:** each names the open item in plain words and the card that has it by id (FE-5, FE-16, FE-17's proposed cards) or says "no card yet", and never links a card file; what FE-12, FE-22, FE-13 and FE-16 closed moves out of the list. **What comes later:** the top of FE-17's ranked list, marked plainly as not built
 - **Page rules (fr2-design.md 'Pattern page shape'):** the H1 is the title with no number. The H2 headings are the exact strings listed there, in that order, less the parts it exempts this page from; a part of this page's own is an extra H2 between them, and the page's test lists it. The page never says a run is proven or not yet proven: it links the README's Status table (the 'Status' heading in README.md), the one place that is changed when a run passes. It names roles, not people. A limit names the open item in plain words (it may give a card id) and never links a card file
 - Leave the See it images and their alt text as they are; OPS-52 recaptures them per surface. Uses Customer Summary names throughout. tests/test_pattern_03.py calls the shared helper tests/pattern_shape.py (from OPS-38), passing the parts this page has and the extra parts it adds; the helper checks the headings in order, autonumber on every mermaid sequence diagram, the theme block and the two trust lines, and adds its own check that the numbered steps under each diagram cover its numbers. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-14). One attempt (fa36ab4, $5.30 including one advisor call at $1.67). The verifier found the report consistent and the gate green. A sonnet review returned 14 confirmed, 0 refuted and 4 unverifiable.
+
+Findings:
+- docs/patterns/03-hotkey-panel.md is rewritten as a workbook page titled "Hotkey panel", with the compact window named in the line under the title.
+- One sequence diagram in five phases: Open, Ask through Apex, Switch chats, Driven by another component, and Close. It has an Apex box and a model box, and the coral accent wraps only the model call.
+- Numbered steps cite "(step N)", "(steps A to B)" or "(steps A and B)", and together cover the diagram's arrows 1 to 24 once each.
+- "The cards" (an H3 under How it works) is a 13-row table built from AnswerCard, cardContract.js and the customerSummaryCard component. It includes FE-14's actionDraft and actionResult and names the types the contract has but nothing draws.
+- "What comes later" (an H3 under Limits and open items) lists FE-17's ranked P1 to P5 as not built and links fr2-panel-later.md.
+- The page states no proof status of its own; it links README.md#status.
+- The See it images and their alt text are unchanged.
+- New tests/test_pattern_03.py covers the title, phases, step coverage, model accent, card catalog, status link and the fixed error sentence. The old product name in the test is built from parts so the rename test stays green.
+
+Gate (verifier at fa36ab4): Python 278 tests, 2 skipped. Brain: check-docs 71 pages, 0 broken.
+
+Disclosed and accepted:
+- The diagram is not render-checked; the brain told the worker not to run the Mermaid CDN check until Ben answers. The Limits section says so and links _diagram-theme.md#render-check.
+- The review's unverifiable rows: check-docs (the brain ran it), the first-run gate failures and the advisor's changes (both in the worker's transcript only), and the GitHub render.
+- The See it alt text still names the old product, as the rename test allows.
+- A tests/__pycache__ made by the gate runs was removed before review and before merge.
+
+Still open:
+- The render check for page 03's diagram, after Ben's answer on loading Mermaid from a CDN.
+
+Privacy check over the full branch diff (546 added lines): 0 denylist hits; no URLs, Ids, local paths or job Ids.
