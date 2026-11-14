@@ -444,6 +444,30 @@ h2,
     min-width: 24px;
 }
 
+.abp-tool-toggle {
+    display: flex;
+    align-items: flex-start;
+    max-width: 100%;
+    height: auto;
+    min-height: 24px;
+    padding: 0.25rem 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.375;
+    font-weight: 600;
+    color: var(--cs-color-primary, #0176d3);
+}
+
+.abp-tool-icon {
+    margin-top: 0.125rem;
+    flex: none;
+}
+
+.abp-tool-panel[hidden] {
+    display: none;
+}
+
 .abp-history {
     padding: 0.25rem 0;
     border-bottom: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);

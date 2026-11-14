@@ -154,8 +154,12 @@
                 <!-- What the next brief includes, and the account's earlier briefs: they scroll away with the thread. -->
                 <div class="abp-tools">
                     <template lwc:if={hasSources}>
-                        <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
-                            <lightning-accordion-section name="include" label={includeSummary}>
+                        <div class="abp-tool">
+                            <button class="slds-button abp-tool-toggle abp-include-toggle" aria-expanded={includeExpanded}
+                                aria-controls="abp-tool-include" data-tool="include" onclick={handleToolToggle}>
+                                <lightning-icon icon-name={includeIcon} size="xx-small"
+                                    class="slds-m-right_x-small abp-tool-icon"></lightning-icon><span class="abp-tool-label">{includeSummary}</span></button>
+                            <div id="abp-tool-include" class="abp-tool-panel" hidden={includeClosed}>
                                 <div class="abp-chips">
                                     <template for:each={includeChips} for:item="chip">
                                         <lightning-button-stateful key={chip.key} data-key={chip.key} selected={chip.selected}
@@ -164,12 +168,16 @@
                                             icon-name-when-hover="utility:close" onclick={handleChip}></lightning-button-stateful>
                                     </template>
                                 </div>
-                            </lightning-accordion-section>
-                        </lightning-accordion>
+                            </div>
+                        </div>
                     </template>
                     <template lwc:if={hasHistory}>
-                        <lightning-accordion allow-multiple-sections-open active-section-name={closedSections} class="abp-accordion">
-                            <lightning-accordion-section name="history" label={historyLabel} class="abp-history-section">
+                        <div class="abp-tool abp-history-section">
+                            <button class="slds-button abp-tool-toggle abp-history-toggle" aria-expanded={historyExpanded}
+                                aria-controls="abp-tool-history" data-tool="history" onclick={handleToolToggle}>
+                                <lightning-icon icon-name={historyIcon} size="xx-small"
+                                    class="slds-m-right_x-small abp-tool-icon"></lightning-icon><span class="abp-tool-label">{historyLabel}</span></button>
+                            <div id="abp-tool-history" class="abp-tool-panel" hidden={historyClosed}>
                                 <ul>
                                     <template for:each={historyItems} for:item="h">
                                         <li key={h.key} class="abp-history">
@@ -183,8 +191,8 @@
                                         </li>
                                     </template>
                                 </ul>
-                            </lightning-accordion-section>
-                        </lightning-accordion>
+                            </div>
+                        </div>
                     </template>
                 </div>
 
