@@ -98,11 +98,14 @@ async function axeScan(panel, testInfo, state) {
 test('1. @smoke @hotkey Cmd/Ctrl-K before the window was ever opened opens it in the bottom right corner and focuses the composer', async ({ page, panel }) => {
     await expect(panel.dialog).toBeHidden();
     await test.step('the launcher sits in the corner with the agent name and the key hint', async () => {
-        const box = await panel.launcher.boundingBox();
+        // The launcher group: the launcher and, with the rail on (FE-15), its expand button on the corner side.
+        const box = await panel.host.locator('.cs-launch').boundingBox();
         expect(box).not.toBeNull();
         if (!box) return;
         expect(Math.round(VIEWPORT.width - (box.x + box.width))).toBe(WINDOW.right);
         expect(Math.round(VIEWPORT.height - (box.y + box.height))).toBe(WINDOW.bottom);
+        const launcher = await panel.launcher.boundingBox();
+        expect(launcher && Math.round(VIEWPORT.height - (launcher.y + launcher.height)), 'the launcher is on the bottom line').toBe(WINDOW.bottom);
         const mac = (await panel.hotkey()) === 'Meta+k';
         await expect(panel.launcher.locator('kbd')).toHaveText(mac ? '⌘K' : 'Ctrl K');
         await expect(panel.launcher).toHaveAttribute('aria-keyshortcuts', mac ? 'Meta+K' : 'Control+K');
