@@ -95,7 +95,7 @@ async function axeScan(panel, testInfo, state) {
     return violations;
 }
 
-test('1. Cmd/Ctrl-K before the window was ever opened opens it in the bottom right corner and focuses the composer', async ({ page, panel }) => {
+test('1. @smoke @hotkey Cmd/Ctrl-K before the window was ever opened opens it in the bottom right corner and focuses the composer', async ({ page, panel }) => {
     await expect(panel.dialog).toBeHidden();
     await test.step('the launcher sits in the corner with the agent name and the key hint', async () => {
         const box = await panel.launcher.boundingBox();
@@ -313,7 +313,7 @@ test('5. a second request sent before the first answers: only the second answer 
     await expect(panel.liveRegion).not.toHaveText('Answer ready');
 });
 
-test('6. typing enables Send without blur, and Enter sends', async ({ page, panel }) => {
+test('6. @smoke typing enables Send without blur, and Enter sends', async ({ page, panel }) => {
     await panel.open();
     await expect(panel.send).toBeDisabled();
     await page.keyboard.type(NO_SUCH_ACCOUNT);
@@ -389,7 +389,7 @@ test('9. Minimize collapses to the launcher and keeps the conversation; Expand i
     await expect(panel.turns.first()).toContainText(NO_SUCH_ACCOUNT);
 });
 
-test('10. opening takes under 300 ms from the key to the first frame painted with the window open (warm cache)', async ({ page, panel }, testInfo) => {
+test('10. @hotkey opening takes under 300 ms from the key to the first frame painted with the window open (warm cache)', async ({ page, panel }, testInfo) => {
     const key = await panel.hotkey();
     const anchor = pageAnchor(page);
     // Warm: one open and close first, so the code and the conversation are loaded. From the Search

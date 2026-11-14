@@ -23,6 +23,8 @@ const { ACCOUNT_NAME, APP_PATH, RUN_FILE } = require('./env');
 const COMPOSER_LABEL = 'Ask or /brief an account';
 // A brief needs a model call (15-30 s); a question runs a short agentic loop. Generous on purpose.
 const ANSWER_TIMEOUT = 150_000;
+// Age of the record page (ms since its navigation) before a test may focus anything; see gotoAccount.
+const PAGE_SETTLE_MS = 6_000;
 
 function runInfo() {
     if (!fs.existsSync(RUN_FILE)) {
@@ -99,6 +101,12 @@ class Panel {
             timeout: 60_000
         });
         await expect(this.composer).toBeHidden();
+        // The record page drops focus to the body about 3 s after it was loaded (FE-21: a focused
+        // element, at any moment between 2.8 and 3.3 s, goes to the body with the page still focused;
+        // see docs/research/fr2-front-end-tests.md). A test that focuses something before then loses
+        // it, which is what failed spec 2 now and then. So no test starts before the page is
+        // PAGE_SETTLE_MS old.
+        await this.page.waitForFunction((ms) => performance.now() > ms, PAGE_SETTLE_MS);
     }
 
     /** Cmd-K on a Mac, Ctrl-K elsewhere: what the panel's isMac() will see in this browser. */
@@ -247,7 +255,44 @@ class Panel {
     }
 }
 
+// What the panel's isMac() will read, per platform project (playwright.config.js). Set before any
+// page script runs, so a Mac runs the Windows branch and the other way round. Only the platform
+// strings change: the user agent and the keys the test presses are the project's own.
+function platformScript(platform) {
+    const value = platform === 'mac' ? 'MacIntel' : 'Win32';
+    const name = platform === 'mac' ? 'macOS' : 'Windows';
+    return `(() => {
+        const set = (obj, key, v) => { try { Object.defineProperty(obj, key, { get: () => v, configurable: true }); } catch (e) {} };
+        set(Navigator.prototype, 'platform', ${JSON.stringify(value)});
+        const data = window.navigator.userAgentData;
+        if (data) {
+            const patched = Object.create(Object.getPrototypeOf(data));
+            for (const k of ['brands', 'mobile', 'getHighEntropyValues', 'toJSON']) {
+                const v = data[k];
+                set(patched, k, typeof v === 'function' ? v.bind(data) : v);
+            }
+            set(patched, 'platform', ${JSON.stringify(name)});
+            set(Navigator.prototype, 'userAgentData', patched);
+        }
+    })();`;
+}
+
 const test = base.extend({
+    // 'mac' or 'windows': the hotkey branch the project runs. 'auto' (no project option) is the machine's own.
+    platform: ['auto', { option: true }],
+    page: async ({ page, platform }, use, testInfo) => {
+        if (platform === 'mac' || platform === 'windows') {
+            await page.addInitScript(platformScript(platform));
+        }
+        // The page's console and uncaught errors, kept for a failure only (tracing stays off).
+        const lines = [];
+        page.on('console', (m) => lines.push(m.type() + ': ' + m.text()));
+        page.on('pageerror', (e) => lines.push('pageerror: ' + e.message));
+        await use(page);
+        if (testInfo.status !== testInfo.expectedStatus) {
+            await testInfo.attach('console.log', { body: lines.slice(-200).join('\n'), contentType: 'text/plain' });
+        }
+    },
     panel: async ({ page }, use) => {
         const panel = new Panel(page);
         await panel.gotoAccount();

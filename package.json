@@ -6,6 +6,7 @@
   "scripts": {
     "test:unit": "sfdx-lwc-jest",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --grep @smoke",
     "capture": "playwright test -c playwright.capture.config.js"
   },
   "devDependencies": {

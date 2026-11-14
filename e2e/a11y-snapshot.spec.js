@@ -171,7 +171,7 @@ test('11. accessibility snapshot: closed, open, pending, answered and in error',
     });
 });
 
-test('12. the fallback names ("Assistant", "Ask the assistant") are not in a live region and not heard once brand settings load', async ({ page }) => {
+test('12. @smoke the fallback names ("Assistant", "Ask the assistant") are not in a live region and not heard once brand settings load', async ({ page }) => {
     // Watch the launcher's text from the first document on, in every frame: the page itself loads before
     // the panel does, so the observer starts at document start and records each text the launcher shows.
     await page.addInitScript(() => {

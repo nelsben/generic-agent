@@ -31,5 +31,11 @@ module.exports = defineConfig({
         video: 'off',
         screenshot: 'only-on-failure'
     },
-    projects: [{ name: 'chromium', use: { browserName: 'chromium' } }]
+    // One browser, two hotkey branches (FE-21): `mac` runs every spec with the panel reading a Mac
+    // (Cmd-K), `windows` runs only the hotkey specs (tagged @hotkey) reading Windows (Ctrl-K).
+    // Whatever machine runs them; the project, not the machine, sets the branch.
+    projects: [
+        { name: 'mac', use: { browserName: 'chromium', platform: 'mac' } },
+        { name: 'windows', grep: /@hotkey/, use: { browserName: 'chromium', platform: 'windows' } }
+    ]
 });
