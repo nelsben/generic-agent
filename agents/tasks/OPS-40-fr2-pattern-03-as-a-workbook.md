@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: a chapter written for a business reader and an architect at once, from Ben's own notes
 status: blocked
-blocked_by: [OPS-38, OPS-41, FE-22, FE-14, FE-15]
+blocked_by: [OPS-38, OPS-41, FE-14, FE-15]
 fixes: []
 scope: [docs/patterns/03-hotkey-panel.md, tests/test_pattern_03.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

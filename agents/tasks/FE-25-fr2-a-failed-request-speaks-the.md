@@ -4,8 +4,7 @@ title: FR2: a failed request speaks the panel's own fixed sentence in the live r
 domain: frontend
 tier: standard
 tier_reason: one function in one component with a named red test
-status: blocked
-blocked_by: [FE-22]
+status: queued
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryConversation/**, docs/research/fr2-panel-proof.md]
 forbid: [force-app/main/default/classes/**, force-app/main/default/objects/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/permissionsets/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json, package.json]
