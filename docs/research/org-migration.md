@@ -8,6 +8,7 @@
   were the brain's decisions on the same approval line.
 - Status words: verified (seen in a command result or an org query), unproven (inference, not run).
 - No record Ids, org Ids, job Ids, usernames, hostnames or URLs are written here.
+- The README quick-start run in a new scratch org (OPS-28) is recorded in [fresh-org-run.md](fresh-org-run.md).
 
 ## Plain answer
 
