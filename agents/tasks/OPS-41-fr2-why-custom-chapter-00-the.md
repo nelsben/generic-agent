@@ -4,7 +4,7 @@ title: FR2: "why custom" as chapter 00 — the case for bringing our own surface
 domain: ops
 tier: frontier
 tier_reason: the argument the whole GTM story rests on, written for sellers and architects at once, and fair to the platform
-status: queued
+status: merged
 fixes: []
 scope: [docs/patterns/00-why-custom.md, tests/test_pattern_00.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -27,3 +27,30 @@ Feature revision 2 (FR2), Ben's note on the hotkey panel and every surface: "rea
 - **Page rules (fr2-design.md 'Pattern page shape'):** the H1 is the title with no number. The H2 headings are the exact strings listed there, in that order, less the parts it exempts this page from; a part of this page's own is an extra H2 between them, and the page's test lists it. The page never says a run is proven or not yet proven: it links the README's Status table (the 'Status' heading in README.md), the one place that is changed when a run passes. It names roles, not people. A limit names the open item in plain words (it may give a card id) and never links a card file
 - **Why not Coworker (added by the brain, 2026-11-13):** one short paragraph, no new H2, that links docs/research/fr2-coworker-spike.md. Say three things and no more: Salesforce documents no in-org call to Agentforce Coworker and no way to place its UI in our page; the documented extension model is the other way round (our agent, and its Lightning type cards, can show inside Coworker's UI through delegation, not Coworker's UI inside ours); and whether an agent may be a way in when the door is Coworker is Ben's decision under ledger F83, which stands. Quote no price, licence or edition from the spike page; link it instead
 - Every diagram renders on GitHub; check each with the render check written up in docs/patterns/_diagram-theme.md (OPS-38) and say so in the hand-back. tests/test_pattern_00.py calls the shared helper tests/pattern_shape.py (from OPS-38), passing the parts page 00 has, and adds its own checks: that every number in the business problem has a link on the same line, and (from an env-var word list, never committed) that no reference-guide name appears. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-14). Two attempts.
+- Attempt 1 (3688009, $1.97): the verifier found the report consistent. A sonnet review returned 14 confirmed, 1 refuted and 4 unverifiable. The refuted row: the page presented the right-hand rail as built, but the rail is FE-15 and still queued. The brain resumed the worker to fix it.
+- Attempt 2 (4d5aed9, $0.42): the page and its test only. A sonnet review returned 12 confirmed, 0 refuted and 3 unverifiable. The unverifiable rows are the check-docs count (the brain then ran it: 66 pages, 0 broken), the worker's account of rewriting red-2.txt, and the GitHub render.
+
+Findings:
+- docs/patterns/00-why-custom.md is the "why custom" chapter in the shared chapter shape. It makes the case for our own surfaces and cards and draws the two paths.
+- Built surfaces named as built: the compact window on Cmd-K or Ctrl-K, with past conversations behind its History button and one place to brand, and the MCP door. The rail is named only as planned (FE-15), in the Ask step, the measured part, the Do-not-say column and a new Limits item. The compact window's expand stays off until the rail ships.
+- The diagram's participant is "Compact window"; its 9 messages match steps 1 to 9. The shared init line is untouched.
+- The Say / Do not say table keeps "the standard panel has no hotkey or history" as do-not-say (unproven).
+- The page says "the product owner's decision", not a person's name.
+- tests/test_pattern_00.py runs pattern_shape.check_page plus page checks; attempt 2 adds two: Limits names FE-15, and neither the architecture steps nor the Say column mention the rail.
+
+Gate (verifier at 4d5aed9): 204 Python tests, 2 skipped. Brain: check-docs 66 pages, 0 broken.
+
+Disclosed and accepted:
+- Card item not met: "Every diagram renders on GitHub; check each with the render check". The brain told the worker not to run the Mermaid CDN render check until Ben says whether loading Mermaid from a CDN in Chromium is allowed. The page's Limits list says the diagrams have not been render-checked.
+- The guide-word test skips when PATTERN_GUIDE_WORDS is unset (the skips). The brain's denylist grep over the diff found no hits, and "landscape", "confidential" and "proprietary" do not appear. The only URLs are three public Salesforce developer docs pages with no query string.
+- A tests/__pycache__ made by the gate runs was removed before review and before merge.
+
+Still open:
+- When FE-15 merges, page 00 should describe the rail as built (for OPS-40 or OPS-36), and OPS-48 should check page 14's rail wording.
+- A GitHub light and dark render check of the Mermaid blocks, owed by OPS-36.
+
+Privacy grep over the diff (408 added lines): 0 hits.
