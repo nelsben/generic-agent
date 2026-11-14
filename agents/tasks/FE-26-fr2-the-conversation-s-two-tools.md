@@ -4,8 +4,7 @@ title: FR2: the conversation's two tools headings stay readable at compact width
 domain: frontend
 tier: standard
 tier_reason: swap two base-component sections for native disclosures with their tests; the method is decided in the card
-status: blocked
-blocked_by: [FE-25]
+status: queued
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryPanel/__tests__/customerSummaryPanel.test.js, e2e/**]
 forbid: [force-app/main/default/lwc/customerSummaryCard/**, force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/lwc/customerSummaryPanel/customerSummaryPanel.js, force-app/main/default/lwc/customerSummaryPanel/customerSummaryPanel.html, force-app/main/default/lwc/customerSummaryPanel/customerSummaryPanel.css, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, scripts/**, tests/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
