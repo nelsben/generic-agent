@@ -1640,6 +1640,20 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
         if (!top) {
             return;
         }
+        // The conversation can sit on a stage moved out of the page's navigation context (the panel moves it onto
+        // document.body), where Navigate does nothing. The panel listens for this and navigates; with no listener
+        // that prevents the default, the conversation navigates itself.
+        const proceed = this.dispatchEvent(
+            new CustomEvent('csopenrecord', {
+                detail: { recordId: top.recordId },
+                bubbles: true,
+                composed: true,
+                cancelable: true
+            })
+        );
+        if (!proceed) {
+            return;
+        }
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: { recordId: top.recordId, actionName: 'view' }
