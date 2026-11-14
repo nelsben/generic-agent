@@ -10,6 +10,9 @@ import drill from '@salesforce/apex/CustomerSummaryPanelController.drill';
 import history from '@salesforce/apex/CustomerSummaryPanelController.history';
 import sources from '@salesforce/apex/CustomerSummaryPanelController.sources';
 import getSettings from '@salesforce/apex/BrandSettings.getSettings';
+import getContext from '@salesforce/apex/CustomerSummaryContext.getContext';
+import listSessions from '@salesforce/apex/CustomerSummaryHistory.listSessions';
+import getSession from '@salesforce/apex/CustomerSummaryHistory.getSession';
 
 const mockNavigate = jest.fn();
 
@@ -47,6 +50,9 @@ jest.mock(
     },
     { virtual: true }
 );
+jest.mock('@salesforce/apex/CustomerSummaryContext.getContext', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/CustomerSummaryHistory.listSessions', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/CustomerSummaryHistory.getSession', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/messageChannel/CustomerSummaryOpen__c', () => ({ default: 'CustomerSummaryOpen__c' }), { virtual: true });
 jest.mock('@salesforce/messageChannel/CustomerSummaryExpand__c', () => ({ default: 'CustomerSummaryExpand__c' }), { virtual: true });
 
@@ -161,6 +167,8 @@ describe('c-customer-summary-panel', () => {
         Element.prototype.scrollIntoView = jest.fn();
         history.mockResolvedValue([]);
         resolve.mockResolvedValue({ status: 'NOT_FOUND', message: 'No account matches.' });
+        getContext.mockResolvedValue({ openDeals: [], recentActivity: [], openCases: [], lastSummary: null, unavailable: [] });
+        listSessions.mockResolvedValue([]);
     });
 
     afterEach(() => {
@@ -1274,6 +1282,176 @@ describe('c-customer-summary-panel', () => {
                 await flush();
                 expect(focusLauncher).toHaveBeenCalled();
                 expect(document.activeElement).not.toBe(outside);
+            });
+        });
+
+        // FE-15: the right rail. One conversation moves between the window and the rail, so no turn is lost.
+        describe('right rail', () => {
+            const railEl = () => stage().querySelector('c-customer-summary-rail');
+            const railOpen = () => railEl().shadowRoot.querySelector('dialog.cs-rail').getAttribute('data-open') === 'true';
+            const inRail = (el) => conversation(el).parentElement.classList.contains('cs-conversation-home_rail');
+            const launcherExpand = () => stage().querySelector('.cs-launcher-expand');
+            const SESSIONS = [{ id: 'sess-old', title: 'Renewal questions', lastActive: '2026-11-10T10:00:00.000Z', turnCount: 1 }];
+
+            async function mountRail(props) {
+                const el = await mountCompact({ expandEnabled: true, recordId: ACME, objectApiName: 'Account', ...(props || {}) });
+                return el;
+            }
+
+            it('is not on the page unless the expandEnabled flag is on, and Ctrl-Shift-K then does nothing', async () => {
+                const el = await mountCompact();
+                expect(railEl()).toBeNull();
+                expect(launcherExpand()).toBeNull();
+                key(composer(el), { code: 'KeyK', key: 'K', ctrlKey: true, shiftKey: true });
+                await flush();
+                expect(isOpen()).toBe(false);
+                expect(getContext).not.toHaveBeenCalled();
+            });
+
+            it('expand opens the rail on the same session with the same thread, and the window closes', async () => {
+                explore.mockResolvedValue(exploreResult('First answer.'));
+                const el = await mountRail();
+                key(document.body, { code: 'KeyK', key: 'k', ctrlKey: true });
+                await flush();
+                await ask(el, 'Anything?');
+                await flush();
+                const before = conversation(el);
+                const sessionId = before.sessionId;
+                expect(text(el)).toContain('First answer.');
+
+                stage().querySelector('.cs-expand').click();
+                await flush();
+                expect(isOpen()).toBe(false);
+                expect(railOpen()).toBe(true);
+                expect(conversation(el)).toBe(before);
+                expect(inRail(el)).toBe(true);
+                expect(before.sessionId).toBe(sessionId);
+                expect(text(el)).toContain('First answer.');
+                expect(before.density).toBe('comfortable');
+                expect(getContext).toHaveBeenCalledWith({ accountId: ACME });
+                expect(launcher().classList.contains('cs-launcher_away')).toBe(true);
+                expect(active(el)).toBe(composer(el));
+            });
+
+            it('shows the sessions list open in the rail, and a reopened session becomes the thread', async () => {
+                resolve.mockResolvedValue({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme' });
+                listSessions.mockResolvedValue(SESSIONS);
+                getSession.mockResolvedValue({
+                    id: 'sess-old',
+                    title: 'Renewal questions',
+                    turns: [{ question: 'When is the renewal?', headline: 'December 15.', status: 'OK' }]
+                });
+                const el = await mountRail();
+                launcherExpand().click();
+                await flush();
+                expect(conversation(el).sessionsOpen).toBe(true);
+                expect(listSessions).toHaveBeenCalledWith({ accountId: ACME, limitSize: 20 });
+                const row = $(el, 'button.abp-session');
+                expect(row.textContent).toContain('Renewal questions');
+
+                row.click();
+                await flush();
+                expect(getSession).toHaveBeenCalledWith({ sessionId: 'sess-old' });
+                expect(text(el)).toContain('December 15.');
+                expect(conversation(el).sessionId).toBe('sess-old');
+                expect(railOpen()).toBe(true);
+            });
+
+            it('opens from the launcher expand, and the context starts loading on hover of it', async () => {
+                const el = await mountRail();
+                expect(launcherExpand().getAttribute('title')).toBe('Open the side panel');
+                launcherExpand().dispatchEvent(new CustomEvent('mouseenter'));
+                expect(getContext).toHaveBeenCalledTimes(1);
+                launcherExpand().click();
+                await flush();
+                expect(railOpen()).toBe(true);
+                expect(inRail(el)).toBe(true);
+                expect(getContext).toHaveBeenCalledTimes(1);
+            });
+
+            it('opens on Ctrl-Shift-K typed in the composer, before the composer can stop the key', async () => {
+                const el = await mountRail();
+                launcher().click();
+                await flush();
+                const event = key(composer(el), { code: 'KeyK', key: 'K', ctrlKey: true, shiftKey: true });
+                await flush();
+                expect(event.defaultPrevented).toBe(true);
+                expect(isOpen()).toBe(false);
+                expect(railOpen()).toBe(true);
+                expect(inRail(el)).toBe(true);
+            });
+
+            it('opens on Ctrl-Shift-K on the page and takes the thread with it', async () => {
+                const el = await mountRail();
+                key(document.body, { code: 'KeyK', key: 'K', ctrlKey: true, shiftKey: true });
+                await flush();
+                expect(railOpen()).toBe(true);
+                expect(inRail(el)).toBe(true);
+                expect(active(el)).toBe(composer(el));
+            });
+
+            it('Esc in the composer closes the rail, brings the thread home and gives focus back', async () => {
+                const outside = document.createElement('input');
+                document.body.appendChild(outside);
+                const el = await mountRail();
+                outside.focus();
+                key(outside, { code: 'KeyK', key: 'K', ctrlKey: true, shiftKey: true });
+                await flush();
+                expect(active(el)).toBe(composer(el));
+
+                key(composer(el), { key: 'Escape' });
+                await flush();
+                expect(railOpen()).toBe(false);
+                expect(inRail(el)).toBe(false);
+                expect(sheet().contains(conversation(el))).toBe(true);
+                expect(conversation(el).density).toBe('compact');
+                expect(document.activeElement).toBe(outside);
+                expect(launcher().classList.contains('cs-launcher_away')).toBe(false);
+            });
+
+            it('Ctrl-K with the rail out brings the thread back to the window', async () => {
+                explore.mockResolvedValue(exploreResult('Kept answer.'));
+                const el = await mountRail();
+                launcherExpand().click();
+                await flush();
+                await ask(el, 'Anything?');
+                await flush();
+                key(composer(el), { code: 'KeyK', key: 'k', ctrlKey: true });
+                await flush();
+                expect(railOpen()).toBe(false);
+                expect(isOpen()).toBe(true);
+                expect(inRail(el)).toBe(false);
+                expect(text(el)).toContain('Kept answer.');
+            });
+
+            it('a minimized rail brings the launcher back', async () => {
+                await mountRail();
+                launcherExpand().click();
+                await flush();
+                railEl().minimize();
+                await flush();
+                expect(launcher().classList.contains('cs-launcher_away')).toBe(false);
+                expect(railEl().state).toBe('minimized');
+            });
+
+            it('runs a CustomerSummaryOpen prompt in the rail while the rail is out', async () => {
+                explore.mockResolvedValue(exploreResult('Rail answer.'));
+                const el = await mountRail();
+                launcherExpand().click();
+                await flush();
+                const onMessage = subscribe.mock.calls.find((c) => c[1] === 'CustomerSummaryOpen__c')[2];
+                await onMessage({ prompt: 'Open deals?', recordId: ACME });
+                await flush();
+                expect(railOpen()).toBe(true);
+                expect(isOpen()).toBe(false);
+                expect(text(el)).toContain('Rail answer.');
+            });
+
+            it('is accessible with the rail open', async () => {
+                await mountRail();
+                launcherExpand().click();
+                await flush();
+                await expect(stage()).toBeAccessible();
             });
         });
 

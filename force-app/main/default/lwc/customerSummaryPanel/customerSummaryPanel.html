@@ -19,17 +19,39 @@
                 <lightning-button-icon class="cs-minimize" icon-name="utility:minimize_window" variant="bare"
                     alternative-text="Minimize" title="Minimize" onclick={handleMinimize}></lightning-button-icon>
             </div>
-            <c-customer-summary-conversation class="cs-conversation" lwc:ref="conversation" record-id={pageRecordId}
-                object-api-name={pageObjectApiName} brand={brand} session-id={sessionId}
-                onsessionchange={handleSessionChange}></c-customer-summary-conversation>
+            <!-- The conversation's home in the window. The one conversation moves between here and the rail. -->
+            <div class="cs-conversation-home" lwc:ref="compactHome" lwc:dom="manual"></div>
         </dialog>
-        <button type="button" class={launcherClass} lwc:ref="launcher" aria-keyshortcuts={keyShortcut}
-            onclick={handleLauncher}>
-            <template lwc:if={logoUrl}>
-                <img class="cs-launcher-logo" src={logoUrl} alt="" />
+        <!-- Where the conversation renders; renderedCallback moves it into the window at once (see _placeConversation). -->
+        <div class="cs-conversation-stash" lwc:ref="stash">
+            <c-customer-summary-conversation class="cs-conversation" lwc:ref="conversation" record-id={pageRecordId}
+                object-api-name={pageObjectApiName} brand={brand} session-id={sessionId} density={conversationDensity}
+                sessions-open={sessionsOpen} onsessionchange={handleSessionChange}></c-customer-summary-conversation>
+        </div>
+        <template lwc:if={expandEnabled}>
+            <!-- The right rail (FE-15): slides over the page; the conversation moves into its slot while it is out. -->
+            <c-customer-summary-rail class="cs-rail-host" lwc:ref="rail" record-id={pageRecordId}
+                object-api-name={pageObjectApiName} brand={brand} onrailopen={handleRailOpen}
+                onrailclose={handleRailClose} onrailminimize={handleRailMinimize}>
+                <div slot="conversation" class="cs-conversation-home cs-conversation-home_rail" lwc:ref="railHome"
+                    lwc:dom="manual"></div>
+            </c-customer-summary-rail>
+        </template>
+        <div class="cs-launch">
+            <button type="button" class={launcherClass} lwc:ref="launcher" aria-keyshortcuts={keyShortcut}
+                onclick={handleLauncher}>
+                <template lwc:if={logoUrl}>
+                    <img class="cs-launcher-logo" src={logoUrl} alt="" />
+                </template>
+                <span class="cs-launcher-name">{launcherName}</span>
+                <kbd class="cs-launcher-key">{keyHint}</kbd>
+            </button>
+            <template lwc:if={expandEnabled}>
+                <lightning-button-icon class={launcherExpandClass} icon-name="utility:expand_alt" variant="border-filled"
+                    alternative-text="Open the side panel" title="Open the side panel"
+                    onclick={handleLauncherExpand} onmouseenter={handleLauncherExpandHover}
+                    onfocusin={handleLauncherExpandHover}></lightning-button-icon>
             </template>
-            <span class="cs-launcher-name">{launcherName}</span>
-            <kbd class="cs-launcher-key">{keyHint}</kbd>
-        </button>
+        </div>
     </div>
 </template>

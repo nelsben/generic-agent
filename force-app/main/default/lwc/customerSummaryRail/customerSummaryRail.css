@@ -1,0 +1,370 @@
+/*
+ * The right rail (FE-15). It is rendered inside customerSummaryPanel's stage, which the panel moves onto
+ * document.body, so position: fixed is fixed to the window.
+ *
+ * Overlay, not push (docs/research/fr2-surfaces-spike.md, "Rail"): the rail slides over the right of the page
+ * with a soft shadow and no backdrop. Nothing here touches the page's own layout.
+ *
+ * Theme (fr2-design.md "Theming"): every colour, font and radius reads a --cs-* variable the panel sets from
+ * the brand settings, with a neutral fallback. Borders and shadows mix the ink colour.
+ *
+ * Motion (fr2-design.md "Motion"): the sheet slides with cubic-bezier(0.32, 0.72, 0, 1) at 280 ms; the edge tab
+ * and the section chevrons move at 120 to 180 ms with cubic-bezier(0.25, 0.46, 0.45, 0.94); the skeleton rows
+ * pulse. prefers-reduced-motion turns all of it off.
+ */
+:host {
+    display: block;
+}
+
+/* The sheet: full height on the right, 480 to 640 px (640 at a 1440 px window). */
+.cs-rail {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 8100;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    width: clamp(480px, 46vw, 640px);
+    max-width: 100vw;
+    height: 100vh;
+    max-height: none;
+    overflow: hidden;
+    border: 0;
+    border-left: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 16%, transparent);
+    background-color: var(--cs-color-surface, #ffffff);
+    color: var(--cs-color-ink, #181818);
+    font-family: var(--cs-font-body, inherit);
+    box-shadow: -12px 0 32px color-mix(in srgb, var(--cs-color-ink, #181818) 18%, transparent);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition:
+        transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+        visibility 0s linear 280ms;
+}
+
+.cs-rail_open {
+    transform: none;
+    visibility: visible;
+    transition:
+        transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+        visibility 0s;
+}
+
+.cs-rail-header {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem 0.625rem 1rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);
+}
+
+.cs-rail-logo {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+}
+
+.cs-rail-name {
+    margin: 0;
+    font-family: var(--cs-font-display, inherit);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.cs-rail-key {
+    padding: 0.0625rem 0.375rem;
+    border: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 22%, transparent);
+    border-radius: 0.25rem;
+    background-color: color-mix(in srgb, var(--cs-color-primary, #0176d3) 10%, var(--cs-color-surface, #ffffff));
+    color: var(--cs-color-ink, #181818);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.cs-rail-controls {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: auto;
+}
+
+/* Two columns: the conversation, and the account's context beside it. */
+.cs-rail-body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.cs-rail-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.cs-rail-main:focus {
+    outline: none;
+}
+
+.cs-rail-main:focus-visible {
+    outline: 2px solid var(--cs-color-primary, #0176d3);
+    outline-offset: -2px;
+}
+
+.cs-rail-context {
+    flex: 0 0 15rem;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.75rem;
+    border-left: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);
+    background-color: color-mix(in srgb, var(--cs-color-ink, #181818) 3%, var(--cs-color-surface, #ffffff));
+    font-size: 0.8125rem;
+}
+
+.cs-ctx-heading {
+    margin: 0 0 0.5rem;
+    font-family: var(--cs-font-display, inherit);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.cs-ctx-section + .cs-ctx-section {
+    margin-top: 0.5rem;
+}
+
+.cs-ctx-title {
+    margin: 0;
+    font-size: inherit;
+}
+
+.cs-ctx-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    width: 100%;
+    min-height: 2rem;
+    padding: 0.25rem;
+    border: 0;
+    border-radius: var(--cs-radius, 0.5rem);
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cs-ctx-toggle:hover {
+    background-color: color-mix(in srgb, var(--cs-color-primary, #0176d3) 8%, transparent);
+}
+
+.cs-ctx-toggle:focus-visible,
+.cs-ctx-item:focus-visible,
+.cs-rail-tab:focus-visible {
+    outline: 2px solid var(--cs-color-primary, #0176d3);
+    outline-offset: 1px;
+}
+
+.cs-ctx-count {
+    margin-left: auto;
+    padding: 0 0.375rem;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--cs-color-ink, #181818) 10%, transparent);
+    font-size: 0.75rem;
+}
+
+.cs-ctx-body {
+    padding: 0.125rem 0 0.25rem 0.25rem;
+}
+
+.cs-ctx-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cs-ctx-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+    width: 100%;
+    padding: 0.375rem 0.5rem;
+    border: 0;
+    border-radius: var(--cs-radius, 0.5rem);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 120ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.cs-ctx-item:hover {
+    background-color: color-mix(in srgb, var(--cs-color-primary, #0176d3) 8%, transparent);
+}
+
+.cs-ctx-item-title {
+    color: var(--cs-color-primary, #0176d3);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.cs-ctx-item-meta,
+.cs-ctx-summary-date,
+.cs-ctx-note,
+.cs-ctx-empty,
+.cs-ctx-none {
+    color: color-mix(in srgb, var(--cs-color-ink, #181818) 72%, var(--cs-color-surface, #ffffff));
+}
+
+.cs-ctx-item-meta {
+    font-size: 0.75rem;
+}
+
+.cs-ctx-amount {
+    margin-right: 0.25rem;
+}
+
+.cs-ctx-kind {
+    padding: 0 0.375rem;
+    border: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 22%, transparent);
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.cs-ctx-note,
+.cs-ctx-empty,
+.cs-ctx-none,
+.cs-ctx-summary-date {
+    margin: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.cs-ctx-summary-line {
+    margin: 0.25rem 0.5rem;
+}
+
+.cs-ctx-error {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+.cs-ctx-error p {
+    margin: 0;
+}
+
+/* Skeleton rows: two soft bars per row while the context loads, so no section is ever a blank block. */
+.cs-ctx-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.375rem 0.5rem;
+}
+
+.cs-ctx-skeleton-line {
+    display: block;
+    width: 90%;
+    height: 0.625rem;
+    border-radius: 0.25rem;
+    background-color: color-mix(in srgb, var(--cs-color-ink, #181818) 10%, transparent);
+    animation: cs-pulse 1.2s ease-in-out infinite;
+}
+
+.cs-ctx-skeleton-line_short {
+    width: 55%;
+}
+
+@keyframes cs-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
+    }
+}
+
+/* The edge tab: a slim strip on the right edge while the rail is minimized. */
+.cs-rail-tab {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    z-index: 8100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-height: 7.5rem;
+    padding: 0.5rem 0;
+    border: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 22%, transparent);
+    border-right: 0;
+    border-radius: var(--cs-radius, 0.5rem) 0 0 var(--cs-radius, 0.5rem);
+    background-color: var(--cs-color-surface, #ffffff);
+    color: var(--cs-color-ink, #181818);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: -4px 0 14px color-mix(in srgb, var(--cs-color-ink, #181818) 14%, transparent);
+    transform: translate(100%, -50%);
+    visibility: hidden;
+    transition:
+        transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        visibility 0s linear 180ms;
+}
+
+.cs-rail-tab_shown {
+    transform: translate(0, -50%);
+    visibility: visible;
+    transition:
+        transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        visibility 0s;
+}
+
+.cs-rail-tab-text {
+    writing-mode: vertical-rl;
+    white-space: nowrap;
+}
+
+/* At a narrow window the context folds under the conversation instead of beside it. */
+@media (max-width: 1040px) {
+    .cs-rail-body {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .cs-rail-context {
+        flex: 0 0 auto;
+        border-left: 0;
+        border-top: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);
+    }
+
+    .cs-rail-main {
+        min-height: 60vh;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-rail,
+    .cs-rail_open,
+    .cs-rail-tab,
+    .cs-rail-tab_shown,
+    .cs-ctx-item {
+        transition: none;
+    }
+
+    .cs-ctx-skeleton-line {
+        animation: none;
+    }
+}
