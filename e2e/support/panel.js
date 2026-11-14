@@ -8,7 +8,8 @@
  *
  * Locators reach into the components with Playwright's built-in engine: roles, labels, the panel's
  * test hooks (data-testid: abp-live-region, abp-spinner, abp-summary-headline) and the data
- * attributes it renders (data-cs-stage, data-turn, data-id, data-focus). The few tags the panel
+ * attributes it renders (data-cs-stage, data-turn, data-id, data-focus). Answer cards (FE-22) are
+ * found by their tag, c-customer-summary-card, and the card's own data-type and classes. The few tags the panel
  * offers no hook for are named in e2e/README.md.
  *
  * Focus: Lightning runs the components in synthetic shadow, where document.activeElement reads the
@@ -147,9 +148,17 @@ class Panel {
         return this.turns.last();
     }
 
-    /** The brief's summary headline: one per brief turn, apart from the section headers. */
+    /**
+     * The brief's summary headline: one per brief turn, apart from the section headers. With answer
+     * cards (FE-22) it is the summary card's title; without them, the panel's own headline.
+     */
     headline(turn) {
-        return turn.getByTestId('abp-summary-headline');
+        return turn.getByTestId('abp-summary-headline').or(turn.locator('c-customer-summary-card article[data-type="summary"] .cs-title-text'));
+    }
+
+    /** The answer cards of a turn (c-customer-summary-card, FE-22). */
+    cards(turn) {
+        return turn.locator('c-customer-summary-card');
     }
 
     /**
@@ -162,16 +171,37 @@ class Panel {
         expect(await this.focused(locator), message + ', and stayed there').toBe(true);
     }
 
-    /** The brief's section headers (lightning-accordion-section buttons). */
+    /**
+     * The brief's section headers: each section card's fold button (FE-22), or the
+     * lightning-accordion-section buttons of a brief drawn without cards.
+     */
     sectionHeaders(turn) {
-        return turn.locator('lightning-accordion-section').getByRole('button');
+        return turn
+            .locator('c-customer-summary-card article[data-type="section"] .cs-toggle')
+            .or(turn.locator('lightning-accordion-section').getByRole('button'));
     }
 
     /**
-     * Expands sections one at a time until one shows a drillable line (a button with data-id).
-     * Returns that line's button, or null when no section of the brief has one.
+     * Expands sections one at a time until one shows a drillable line: a record link of a section
+     * card (FE-22), or a button with data-id in a brief drawn without cards. Returns that line's
+     * button, or null when no section of the brief has one.
      */
     async firstDrillLine(turn) {
+        const cards = turn.locator('c-customer-summary-card article[data-type="section"]');
+        const c = await cards.count();
+        for (let i = 0; i < c; i += 1) {
+            const card = cards.nth(i);
+            const toggle = card.locator('.cs-toggle');
+            if ((await toggle.count()) && (await toggle.getAttribute('aria-expanded')) === 'false') {
+                await toggle.click();
+                await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+            }
+            const links = card.locator('button.cs-link[data-ref]');
+            if ((await links.count()) > 0) {
+                await expect(links.first()).toBeVisible();
+                return links.first();
+            }
+        }
         const sections = turn.locator('lightning-accordion-section');
         const n = await sections.count();
         for (let i = 0; i < n; i += 1) {

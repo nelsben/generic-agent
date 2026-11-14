@@ -460,6 +460,14 @@ describe('safety', () => {
         radii.forEach((r) => expect(r).toMatch(/^var\(--cs-(card-)?radius/));
     });
 
+    test('a chip’s wash is the primary mixed into the surface, never the brand accent (a strong colour under ink)', () => {
+        const css = SOURCE_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+        const accent = /--cs-card-accent:\s*([^;]+);/.exec(css);
+        expect(accent).not.toBeNull();
+        expect(accent[1]).toMatch(/^color-mix\(in srgb, var\(--cs-color-primary[^)]*\) \d+%, var\(--cs-color-surface/);
+        expect(css).not.toContain('--cs-color-accent');
+    });
+
     test('a record link, a chip and a fold button meet the 24 px target size', () => {
         const css = SOURCE_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
         const rule = /([^{}]*)\{[^}]*min-height:\s*24px;[^}]*min-width:\s*24px;[^}]*\}/.exec(css);

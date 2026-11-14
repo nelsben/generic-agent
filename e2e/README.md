@@ -41,7 +41,7 @@ go to `test-results/`, the HTML report to `playwright-report/`; both are gitigno
 
 ## Model calls
 
-A full run makes **at most about seven model calls** (briefs and questions), so
+A full run makes **at most about nine model calls** (briefs and questions), so
 it costs money and writes brief memory rows, as any use of the panel does:
 
 | Spec | Calls |
@@ -59,6 +59,9 @@ it costs money and writes brief memory rows, as any use of the panel does:
 | 11. Accessibility snapshot of the stage: closed, open, pending, answered, error; names, live region, focus after Esc (`a11y-snapshot.spec.js`, FE-16) | 0 |
 | 12. The fallback names are short-lived and outside the live region (FE-16) | 0 |
 | 13. axe `color-contrast` on the open window, light theme (FE-16) | 0 |
+| FR2 1. History lists the account's conversations; New conversation starts clean; reopening the newest loads its turns (`conversation-fr2.spec.js`, FE-22) | 1 |
+| FR2 2. The scope chip reads About the account, switches to Whole org and back by keyboard (FE-22) | 0 |
+| FR2 3. A whole-org question is sent with no context record and its answer is drawn as cards (FE-22) | 1 |
 
 Specs 5 and 6 send `/brief` of a name that matches no account: the resolver answers from SOQL
 with no model call. Spec 5 uses it as the second request because it lands well before the first
@@ -84,11 +87,18 @@ roles and labels first, then the panel's test hooks and the data attributes it r
   enough: the page has other `role=status` regions)
 - `data-testid="abp-spinner"`, the pending turn: the question and the pulse until the reply lands
 - `data-testid="abp-summary-headline"`, the brief's summary headline, apart from the accordion
-  section headers, which are also level-2 headings
+  section headers, which are also level-2 headings, for a brief drawn without cards
+- `c-customer-summary-card` (FE-22), an answer card, and inside it the card's own hooks: `article[data-type]`
+  (`summary`, `section`, ...), `.cs-title-text` (the summary card's title is the headline), `.cs-toggle`
+  (a section card's fold button, collapsed by default) and `button.cs-link[data-ref]` (a record link:
+  the drill origin). The page cannot read a card's markup (outerHTML reads empty from outside the
+  component), so the check that no record Id reaches it is in the Jest suite
+- `.abp-sessions` and `button.abp-session` (FE-22), the History list and its rows; the group named
+  `Question scope` and `.abp-scope-label`, the scope chip
 - `lightning-breadcrumbs` and `lightning-accordion-section`, to find the drill trail, each brief
   section and its header button
 - `article`, to find the drill view's heading
-- `button[data-id]`, a drillable section line or result row
+- `button[data-id]`, a drillable section line or result row of an answer drawn without cards
 
 Spec 3 measures the window at 420x560 after one brief, with the account's "Earlier summaries" list
 rendered: from the controls row's bottom edge to the top of the scroll box is at most 80 CSS px,
