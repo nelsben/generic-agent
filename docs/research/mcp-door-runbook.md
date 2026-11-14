@@ -15,13 +15,17 @@
 - History: OPS-23 built the first door on 2026-11-12 as `AccountBriefMcp` and
   `AccountBriefMcpClient`, with the agent as a third tool. Both are still in agent-probe (see
   "Undo"). This run rebuilt the door under the new names with Apex-action tools only.
+- **Update, OPS-59 (2026-11-14, 07:50 to 08:00 UTC):** the server gained the write pair,
+  `draft_action` and `commit_action`, limited to creating a task and logging a call. See
+  [Write tools (OPS-59)](#write-tools-ops-59). Approval: "FR2: MCP clients may write (create a
+  task, log a call)" in the same Approvals table read "approved" before the run.
 
 ## Plain answer
 
 - **The door is built in agent-probe under the new names and stops at the sign-in (verified).**
-  There is a custom hosted MCP server `CustomerSummaryMcp`. It is active and has three tools, all
-  Apex actions: `resolve_account`, `get_account_summary` and `ask_anything` (the explorer). The
-  agent is not a tool. There is also a dedicated External Client App `CustomerSummaryMcpClient`
+  There is a custom hosted MCP server `CustomerSummaryMcp`. It is active and has five tools, all
+  Apex actions: `resolve_account`, `get_account_summary`, `ask_anything` (the explorer) and, since
+  OPS-59, `draft_action` and `commit_action`. The agent is not a tool. There is also a dedicated External Client App `CustomerSummaryMcpClient`
   with the scopes `MCP` and `RefreshToken` and PKCE. Its description now names the scopes the way
   its metadata does.
 - **The server is live and its URL asks for a token (verified), but the 401 alone proves little.**
@@ -30,7 +34,11 @@
   401, and so did a call to `CustomerSummaryMcp` before it existed. The token check runs before the
   server lookup, so the proof that the server exists and is active is the API Catalog listing
   (`active: true`), not the 401.
-- **No tool has been called.** The first call needs Ben's OAuth sign-in (step 9). What is proven
+- **The door can write, but only two things (verified as built, not yet called).** Over MCP,
+  `draft_action` and `commit_action` create a task or log a call (an Event, by ledger F17) and
+  refuse any other action with a fixed text. The client must show the draft and commit only after
+  the person says yes. See [Write tools (OPS-59)](#write-tools-ops-59).
+- **No tool has been called, read or write.** The first call needs Ben's OAuth sign-in (step 9). What is proven
   about a real call is tracked in the README's [Status table](../../README.md#status).
 - **The metadata is in the repo, in its own package folder.** It lives in `mcp-door/`, a
   non-default package directory in `sfdx-project.json`. The README quick start and
@@ -46,6 +54,8 @@
 | `resolve_account` | Tool, source `APEX_ACTION`, `CustomerSummaryResolver` | Own description; all hints false | Steps 3 and 4 |
 | `get_account_summary` | Tool, source `APEX_ACTION`, `CustomerSummaryGetAction` | Own description; all hints false | Steps 3 and 4 |
 | `ask_anything` | Tool, source `APEX_ACTION`, `ExploreAction` | Own description; all hints false | Steps 3 and 4 |
+| `draft_action` | Tool, source `APEX_ACTION`, `CustomerSummaryActionDraftAction` | Own description; `readOnlyHint` true, the other hints false | OPS-59, steps W3 to W5 |
+| `commit_action` | Tool, source `APEX_ACTION`, `CustomerSummaryActionCommitAction` | Own description; `destructiveHint` true, `readOnlyHint` false, the other hints false | OPS-59, steps W3 to W5 |
 | `AccountBriefMcp`, `AccountBriefMcpClient` | The OPS-23 server (still active, with its three old tools) and client app | Untouched by this run | Left from before the rename (see "Undo") |
 
 Nothing else was created. No user was created, no permission set was assigned, no plugin was
@@ -69,6 +79,8 @@ secret were not retrieved.
 | Input and output field descriptions (`@InvocableVariable`, including "Relay it verbatim.") stay out of the client schema | **unproven**: the override covers the tool description only |
 | A real tool call, including whether `public` invocable methods run | See the README's [Status table](../../README.md#status) |
 | The consent screen is skipped for users with `Customer_Summary_Data_Access` (admin-approved policy) | **unproven** |
+| The server takes two write tools with their own hints, and keeps the three read tools through the replacing `PUT` | verified: OPS-59, steps W3 and W4 |
+| A client asks the person before `commit_action`, and a write runs over MCP | **unproven**: no tool call has been made (OPS-59, "Not proven yet") |
 | The External Client App is usable right away | **unproven**: Salesforce documents up to 30 minutes after creation |
 
 ## Steps, in order
@@ -252,7 +264,119 @@ with the returned Id, then `ask_anything` with "Which open deals close this quar
 - The API log entry with `API_CLIENT_CATEGORY = SALESFORCE_HOSTED_MCP`.
 - Later, as a user without access to the account: NOT_FOUND.
 
+The write pair (`draft_action`, then `commit_action` after a yes) is not part of this first call:
+a call that creates a record waits on its own Approvals row.
+
 Then update the README's [Status table](../../README.md#status).
+
+## Write tools (OPS-59)
+
+Run on 2026-11-14 in agent-probe, between 07:50 and 08:00 UTC. The approval row "FR2: MCP
+clients may write (create a task, log a call)" read "approved" before anything changed. The
+deploy went through the standing approval for production-classified deploys to `agent-probe`.
+Nobody signed in, and no tool was called, so no record was created in the org.
+
+### What the door can write
+
+- **Two tools, not six.** `draft_action` (`CustomerSummaryActionDraftAction`) drafts and writes
+  nothing. `commit_action` (`CustomerSummaryActionCommitAction`) writes the draft as the
+  signed-in user, in user mode, so the door can only write what that user may write. Both go
+  through `CustomerSummaryActions`, the service the panel uses ([13](../patterns/13-write-actions.md)).
+- **Two actions only.** Over the door, the only actions are `create_task` and `log_call`. A logged
+  call is an Event by default, as ledger F17 decides (`CustomerSummaryActions.LOG_CALL_AS`).
+- **Any other action is refused, with one fixed text, and writes nothing:** "Only two actions are
+  allowed here: create a task (create_task) and log a call (log_call). Nothing was drafted or
+  saved." `draft_action` checks both the action named and the action the model drafted from
+  words. `commit_action` reads the draft once and refuses it unless its action is one of the two,
+  so a hand-made draft cannot reach the other four.
+- **The panel is unchanged.** It calls `CustomerSummaryActions` through its own controller, not
+  these invocables, so it keeps all six actions. The allow-list is
+  `CustomerSummaryActionDraftAction.DOOR_ACTIONS`. A team agent that later calls the same two
+  invocables gets the same two actions.
+- **The confirm rule travels with the tools.** Each tool description tells the client to show
+  the draft to the person, call `commit_action` only after they say yes, and pass the Draft JSON
+  back unchanged. `commitDraft` rebuilds and checks the draft again in user mode, because the
+  server cannot prove that a person said yes.
+
+Tests: `CustomerSummaryActionDoorTest` (a refused action by name, by words and as a hand-made
+draft at commit; an allowed task and logged call; the panel's six), plus the updated invocable test
+in `CustomerSummaryActionsTest`. `tests/test_mcp_door.py` checks the five tools, the two markings,
+the confirm rule in both descriptions, and that no tool is the agent.
+
+### W1. Deploy the allow-list first (changes the org: yes)
+
+The allow-list had to be live before the tools were. Only the changed classes were deployed:
+
+```bash
+sf project deploy validate --metadata ApexClass:CustomerSummaryActionDraftAction \
+  --metadata ApexClass:CustomerSummaryActionCommitAction --metadata ApexClass:CustomerSummaryActionsTest \
+  --metadata ApexClass:CustomerSummaryActionDoorTest --target-org <alias> --test-level RunLocalTests --wait 9 --json
+CONFIRM_PROD=1 sf project deploy quick --job-id <validation id> --target-org <alias> --wait 5 --json
+```
+
+Validate: 4 of 4 components, 518 of 518 Apex tests, 0 failures. Quick deploy: 4 components,
+completed 07:58:23Z (verified).
+
+### W2. Read-only checks (changes the org: no)
+
+`GET .../assets/available/sources/APEX_ACTION` listed `CustomerSummaryActionDraftAction` and
+`CustomerSummaryActionCommitAction` (verified). A `GET .../assets` before the change listed the
+three OPS-31 tools with their names, descriptions and all-false hints (verified), kept as the
+snapshot to compare against.
+
+### W3. Deactivate, then replace the tool set (changes the org: yes)
+
+Tools can be edited only while the server is inactive.
+
+```bash
+sf api request rest /services/data/v68.0/api-catalog/mcp-servers/<server-id>/deactivate -X POST --body @empty.json -o <alias>
+sf api request rest /services/data/v68.0/api-catalog/mcp-servers/<server-id>/assets -X PUT --body @assets.json -o <alias>
+```
+
+Deactivate: HTTP 204, then `active: false` (verified; this was unproven before). The `PUT` body
+is the step 3 body with two more entries, because it replaces the whole set:
+
+```json
+{"assetId": "CustomerSummaryActionDraftAction", "kind": "MCP_TOOL", "source": "APEX_ACTION", "sourceId": "apex-CustomerSummaryActionDraftAction"},
+{"assetId": "CustomerSummaryActionCommitAction", "kind": "MCP_TOOL", "source": "APEX_ACTION", "sourceId": "apex-CustomerSummaryActionCommitAction"}
+```
+
+HTTP 200. The three OPS-31 tools kept their names, descriptions and hints (verified against the
+W2 snapshot). The two new tools came back as `<Class>apex_<Class>` with all hints false.
+
+### W4. Name, describe and mark the two tools (changes the org: yes)
+
+One `PUT .../assets/<asset-id>` each, with `name`, `description` and `annotations`. Both returned
+HTTP 200, and a `GET .../assets` then showed the names and the hints below (verified):
+
+| Tool | Hints | Description |
+|---|---|---|
+| `draft_action` | `readOnlyHint` true; `destructiveHint`, `idempotentHint`, `openWorldHint`, `returnDirect` false | Draft one write for an account and save nothing: create a task (create_task) or log a call (log_call), the only two actions allowed here. Give the account Id that resolve_account returned, and either the request in plain words as Text, or Action Type with Input JSON. Show the Draft Text to the person and ask them to confirm. Call commit_action only after they say yes, and pass it the Draft JSON unchanged. Any other action is refused and nothing is drafted. |
+| `commit_action` | `destructiveHint` true; `readOnlyHint`, `idempotentHint`, `openWorldHint`, `returnDirect` false | Save a draft from draft_action, as the signed-in user and with their access: create a task (create_task) or log a call (log_call) only. Call it only after the person has seen the draft and said yes, and pass the Draft JSON from draft_action unchanged. The draft is checked again before it is saved; any other action is refused and nothing is saved. Tell the person the Message. |
+
+`commit_action` is destructive because the service it calls can change existing records
+(BE-22), even though the door only creates.
+
+### W5. Activate and check (changes the org: yes, then no)
+
+`POST .../activate`: HTTP 204 at 07:59Z, then `active: true` (verified). A `tools/list` POST
+with no `Authorization` header to the server's `serverUrl` still returned HTTP 401 (verified).
+As in step 8, the 401 shows the token gate; the listing shows the server.
+
+### W6. Retrieve the definition (changes the org: no)
+
+As in step 5, to a folder outside the repo, then copied over
+`mcp-door/main/default/mcpServerDefinitions/CustomerSummaryMcp.mcpServerDefinition-meta.xml`. The
+file now lists five tools; the two new ones carry `<readOnly>true</readOnly>` (draft) and
+`<destructive>true</destructive>` (commit). `mcp-door/` itself was not redeployed in this run.
+
+### Not proven yet
+
+- **No real tool call has been made, read or write.** Nothing proves a client sees these
+  descriptions, that the client asks for approval before `commit_action`, or that a write runs,
+  until Ben signs in (step 9). A record-creating call also waits on its own Approvals row.
+- The `@InvocableVariable` field texts now name only the two actions, but whether a client sees
+  them is the same open question as for the other tools.
 
 ## Deploy mcp-door on purpose
 
@@ -270,8 +394,12 @@ server through the API.
 
 ## Undo
 
-- Deactivate: `POST .../mcp-servers/<server-id>/deactivate` (unproven: the path follows the
-  activate call and has not been run).
+- **Remove the write tools (OPS-59):** deactivate the server, `PUT .../assets` with only the
+  three OPS-31 entries from step 3 (the `PUT` replaces the set, so the two write tools go), then
+  activate, and retrieve the definition into `mcp-door/` again. The read tools stay as they are.
+  The allow-list in the two invocables can stay; it only narrows what they do.
+- Deactivate: `POST .../mcp-servers/<server-id>/deactivate` with `--body @empty.json` (verified
+  in OPS-59, step W3: HTTP 204, then `active: false`).
 - Delete the server: `DELETE .../mcp-servers/<server-id>` with `--body @empty.txt` returned 204
   for an inactive server in the earlier probe (verified there, not here).
 - Remove the client app: a destructive deploy of `ExternalClientApplication:CustomerSummaryMcpClient`
@@ -290,6 +418,9 @@ server through the API.
 - Names: server `CustomerSummaryMcp`, client app `CustomerSummaryMcpClient`, explorer tool
   `ask_anything`.
 - Tools: Apex actions only. The agent is not a tool (the plan review's call in
-  `docs/plans/feature-revision-2.md`). Write tools (create a task, log a call) come later in
-  `OPS-59`.
-- Hints: the defaults, all false, for all three tools.
+  `docs/plans/feature-revision-2.md`). Write tools (create a task, log a call) were added in
+  `OPS-59` as `draft_action` and `commit_action`.
+- Hints: the defaults, all false, for the three read tools. `draft_action` is read-only and
+  `commit_action` is destructive (OPS-59, from BE-22).
+- OPS-59: the door's allow-list lives in the two invocable classes, not in the service, so the
+  panel keeps all six actions. One fixed refusal text covers both tools.
