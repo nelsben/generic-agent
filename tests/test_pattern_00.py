@@ -90,19 +90,24 @@ class PatternZeroShape(unittest.TestCase):
         for card in ("BE-31", "BE-28"):
             self.assertIn(card, limits)
 
-    def test_limits_name_the_rail_as_planned_under_fe_15(self):
-        limits = pattern_shape.part_body(self.text, "Limits and open items")
-        self.assertIn("FE-15", limits)
+    def test_links_the_right_rail_page(self):
+        self.assertIn("12-right-rail.md", self.text)
 
-    def test_never_presents_the_rail_as_built_in_the_steps_or_the_say_column(self):
-        steps = pattern_shape.part_body(self.text, "The architecture in a few steps")
-        self.assertNotIn("the rail", steps.lower())
+    def test_names_the_rail_in_the_say_column(self):
         measured = pattern_shape.part_body(self.text, "What was measured, and how to say it")
         rows = [line for line in measured.splitlines() if line.startswith("| ") and not line.startswith("| ---")]
         self.assertGreater(len(rows), 1, "the Say / Do not say table")
-        for row in rows[1:]:
-            say = row.split("|")[1]
-            self.assertNotIn("rail", say.lower(), "the Say column presents the rail: %r" % say)
+        says = [row.split("|")[1].lower() for row in rows[1:]]
+        self.assertTrue(any("rail" in say for say in says), "no Say cell names the rail")
+        for say in says:
+            for claim in ("push", "sticky", "screen reader"):
+                self.assertNotIn(claim, say, "the Say column claims %r: %r" % (claim, say))
+
+    def test_never_calls_the_rail_planned_or_fe_15_work(self):
+        sentences = re.split(r"(?<=[.!?])\s+|\n\s*\n|\n(?=\s*(?:[-*]|\d+\.|\|))", self.text)
+        for sentence in sentences:
+            if "rail" in sentence.lower():
+                self.assertNotRegex(sentence, r"(?i)\bplanned\b|FE-15", "the rail is built: %r" % sentence)
 
     def test_claims_no_object_or_combination_beyond_pattern_02(self):
         for phrase in ("any object", "any combination"):

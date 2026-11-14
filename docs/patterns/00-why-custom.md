@@ -34,8 +34,10 @@ better choice is in [When the standard chat fits](#when-the-standard-chat-fits).
 
 ## The architecture in a few steps
 
-1. **The rep asks where they work:** the compact window (Cmd-K or Ctrl-K) or an MCP client signed in as the rep. A
-   larger right-hand surface is planned on the same component (see [Limits and open items](#limits-and-open-items)).
+1. **The rep asks where they work:** the compact window (Cmd-K or Ctrl-K), the right rail
+   ([12](12-right-rail.md)), or an MCP client signed in as the rep. The rail is a full-height sheet that slides over the
+   page, opened with Cmd-Shift-K or Ctrl-Shift-K, with Expand in the compact window, or with the expand button beside the
+   launcher.
 2. **The surface calls the Apex services directly,** in the rep's own access. No agent turn sits between the rep and
    the answer.
 3. **The services call the platform's models** through the Models API and the trust layer, with prompts the team keeps
@@ -152,8 +154,8 @@ sequenceDiagram
     end
 ```
 
-1. **Ask (steps 1 and 2).** The compact window holds the conversation component, which the planned rail will reuse
-   (FE-15). It calls
+1. **Ask (steps 1 and 2).** The compact window holds the conversation component, and the right rail
+   ([12](12-right-rail.md)) moves that same conversation out of the window, so the thread is kept. Either one calls
    `CustomerSummaryPanelController`, which passes each service's result through as the service built it. No agent turn
    and no relay.
 2. **Gather (step 3).** Code reads the records in the rep's own access: the summary's fixed sections
@@ -204,8 +206,8 @@ questions on the direct path. Every figure here is from [its write-up](../resear
   agent's name have no public doc, and the panel was not opened in a browser in this run
   ([BE-32](../research/fr2-standard-limits.md#the-launcher-and-panel)). So say only what our surfaces add: the compact
   window on Cmd-K or Ctrl-K ([03](03-hotkey-panel.md)), the rep's past conversations behind its History button
-  ([05](05-conversation-memory.md)), and one place to brand ([10](10-brand-and-theming.md)). A rail is planned, not
-  built, so do not offer it yet.
+  ([05](05-conversation-memory.md)), and one place to brand ([10](10-brand-and-theming.md)). The right rail ([12](12-right-rail.md)) is built: say
+  what it shows and how it opens, and nothing about how it pushes the page, a sticky header or a screen reader.
 
 | Say | Do not say |
 | --- | --- |
@@ -213,7 +215,8 @@ questions on the direct path. Every figure here is from [its write-up](../resear
 | "The only cut we saw was our own 5,900-character cap." | "The platform dropped rows." |
 | "The agent re-laid out a formatted summary in 6 of 6 runs." | "The agent loses sections." No section went missing. |
 | "A turn took 13 to 33 s through the agent, against 5 to 9 s direct." | Any adjective about the platform. |
-| "Our compact window opens on a hotkey, keeps your past conversations under History, and is branded in one place." | "The standard panel has no hotkey or history," which is unproven, or "there is a rail," which is planned. |
+| "Our compact window opens on a hotkey, keeps your past conversations under History, and is branded in one place." | "The standard panel has no hotkey or history," which is unproven. |
+| "A rep can expand the same conversation into a larger rail that slides over the page, with the account's open deals, recent activity, open cases and last summary beside it." | "The rail pushes the page aside," "the rail has a sticky header," or "the rail has been tested with a screen reader." |
 
 ## What changes for a team
 
@@ -258,8 +261,8 @@ is Coworker is the product owner's decision under ledger row F83, which stands
 - **Every relay was run as an admin.** Whether a non-admin rep sees the same relay is not measured. No card yet. The
   non-admin run of our own surfaces is FE-5's.
 - **The standard launcher's place, size, hotkey, history and branding are unproven.** No card yet.
-- **The rail is planned, not built.** The compact window and the MCP door are built; a larger right-hand rail on the
-  same conversation component is FE-15, and the compact window's expand stays off until it ships.
+- **The rail's own limits are on its page.** See [Limits and open items](12-right-rail.md#limits-and-open-items) on
+  page 12.
 - **The custom code a customer now maintains.** The surfaces, their controller, the card component and their tests
   are the team's to keep current with each release, where the standard chat gets its updates with no work. No card
   yet.
