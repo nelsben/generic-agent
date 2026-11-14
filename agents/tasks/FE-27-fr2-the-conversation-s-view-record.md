@@ -4,8 +4,7 @@ title: FR2: the conversation's View record link opens the record from the compac
 domain: frontend
 tier: standard
 tier_reason: one e2e probe and, only if dead, an event route copied from FE-15's rail pattern; method decided in the card
-status: blocked
-blocked_by: [FE-26]
+status: queued
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryPanel/**, e2e/**, docs/research/fr2-panel-proof.md]
 forbid: [force-app/main/default/lwc/customerSummaryCard/**, force-app/main/default/lwc/customerSummaryRail/**, force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/flexipages/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
