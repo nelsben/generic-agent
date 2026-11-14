@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: independent cross-cutting review of the whole revision in a live org
 status: blocked
-blocked_by: [FE-14, FE-15, FE-19, FE-21, BE-36, OPS-46]
+blocked_by: [FE-14, FE-15, FE-19, BE-36, OPS-46]
 fixes: []
 scope: [docs/reviews/fr2-build-review.md, docs/assets/fr2-review-*.png, e2e/review/**]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
