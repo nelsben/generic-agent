@@ -134,14 +134,14 @@ question Q7 in [feature-revision-2.md](../plans/feature-revision-2.md) and is no
 
 The sheet slides in 280 ms with `cubic-bezier(0.32, 0.72, 0, 1)`; the edge tab, rows and chevrons move in 120 to 180 ms.
 With reduced motion asked for, nothing slides or pulses. Every colour, font and radius reads a `--cs-*` variable from
-the brand settings, as in [brand and theming](10-brand-and-theming.md). Below 1040 px wide the context column folds
-under the conversation.
+the brand settings, as in [brand and theming](10-brand-and-theming.md). At 1040 px wide or less the context column folds
+under the conversation and scrolls with it; there is no sticky header. The rail keeps its account while a deal is opened.
 
 ## See it
 
-![The Edge Communications record page with the rail open on the right, 640 px wide and full height: the header with the agent name and ⌘⇧K, the conversation with one answered question in the main column, and the context column with open deals, recent activity, open cases and the last summary](../assets/fr2-rail-open.png)
+![The Edge Communications record page with the rail open on the right, 640 px wide and full height: the header with the agent name and ⌘⇧K, the conversation with one answered question in the main column, and the context column with Open deals and the start of Recent activity; Open cases and Last summary are further down the column, below the fold](../assets/fr2-rail-open.png)
 
-![The rail alone: the conversation beside the "About Edge Communications" column, its sections filled](../assets/fr2-rail-context.png)
+![The rail alone: the conversation beside the "About Edge Communications" column, showing Open deals (5) and Recent activity cut off at its sixth row; Open cases and Last summary are further down the column](../assets/fr2-rail-context.png)
 
 ![Cmd-K opens the compact window, a question is typed and answered, then Expand moves the same thread into the rail and the account's context fills beside it](../assets/fr2-rail.gif)
 
@@ -156,7 +156,7 @@ System context: none on this path.
 - **Jest covers the rail.** [customerSummaryRail.test.js](../../force-app/main/default/lwc/customerSummaryRail/__tests__/customerSummaryRail.test.js)
   covers the key on and off a Mac, the expand message and `open()` with a session Id, focus in and back, overlay (no
   page style touched), minimize to the tab, the hover peek and its timings, every section with rows, empty,
-  unavailable, loading and error, the sticky account, opening a record (by the rail or by its host), no record Id in the
+  unavailable, loading and error, the rail keeping its account while a deal is opened, opening a record (by the rail or by its host), no record Id in the
   markup, and axe in each state.
 - **Jest covers the panel's side.** [customerSummaryPanel.test.js](../../force-app/main/default/lwc/customerSummaryPanel/__tests__/customerSummaryPanel.test.js)
   covers the flag off, Expand keeping the same element, turns and session, the sessions list open with a reopen, the

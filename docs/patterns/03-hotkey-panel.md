@@ -79,7 +79,8 @@ sequenceDiagram
    mounted, so the thread is there when it opens again. Expand hands the conversation to the right
    rail (FE-15): it fires an `expand` event and publishes on the `CustomerSummaryExpand` channel,
    both with `{ sessionId, recordId }`, then closes the window. It is behind the item's
-   `expandEnabled` property, off by default, so no dead button ships before the rail.
+   `expandEnabled` property. FE-15 turns it on in the `Customer_Summary_UtilityBar` utility bar, and
+   Expand opens the [right rail](12-right-rail.md).
 7. **The utility bar item.** Its own panel (340 by 200) holds only a note and an Open button, for
    a rep who clicks "Customer Summary" in the bar: the button puts the utility panel away and opens
    the window.
@@ -117,7 +118,7 @@ at the bottom left.
   focus to a field inside another component and falling back to the launcher, `show()` and
   `close()` of the dialog, Tab never trapped, Esc during IME, and axe on the window closed and open.
 - **The metadata shape is tested.** [test_app.py](../../tests/test_app.py) checks the utility bar
-  has exactly one item, the panel, eager, with `corner` right and `expandEnabled` off, that the
+  has exactly one item, the panel, eager, with `corner` right and `expandEnabled` on (FE-15, for the rail), that the
   `CustomerSummaryExpand` channel carries `sessionId` and `recordId`, and that the app has no brand
   block.
 - **It runs in a real org.** The Playwright suite ([e2e/README.md](../../e2e/README.md)) passed
@@ -142,7 +143,8 @@ at the bottom left.
 4. **Change the hotkey** in `isHotkey` near the top of `customerSummaryPanel.js` if K clashes with
    something in your org, and the key hint next to it.
 5. **Pick the corner** with the utility item's `corner` property (right, or left for a mirrored
-   bar), and turn on `expandEnabled` once the rail is deployed.
+   bar). `expandEnabled` is on in the shipped utility bar (FE-15) and Expand opens the right rail;
+   turn it off if you do not deploy `customerSummaryRail`.
 
 ## Limits and open items
 
