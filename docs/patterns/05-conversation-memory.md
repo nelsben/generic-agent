@@ -426,4 +426,4 @@ Every item on the earlier version of this page, and every limit BE-26, BE-34, BE
   the rep's last summary.
 - **A rep with the group recorded no outcomes.** Closed by BE-50: the group grants the outcome permission set.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

@@ -53,4 +53,4 @@ Add a class to `Customer_Summary_Data_Access` only when it becomes an entry poin
 - A number in a brief line that looks like a record Id no longer becomes a drill button (FE-12).
 - Whether the Models API call needs anything extra for a rep: no card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

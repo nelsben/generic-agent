@@ -398,4 +398,4 @@ Until those land, the explorer answers what the catalog and the plan above can e
 - **The diagrams on this page have not been render-checked:** the render check in
   [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

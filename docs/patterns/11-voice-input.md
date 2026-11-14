@@ -7,7 +7,8 @@ A seller talks to the agent instead of typing, and the words land in the compose
 Sellers are between calls, in a car park or walking to a meeting. Typing a question to the agent is slow on a phone-sized
 window and easy to skip, so the agent goes unused at the moments it would help most.
 
-With this pattern, every Customer Summary window carries a mic button. The seller taps it, speaks, and watches the words
+With this pattern, the composer in every Customer Summary window, the compact window and the rail alike, carries a
+mic button. The seller taps it, speaks, and watches the words
 appear in the composer. Nothing is sent until the seller sends it, so a misheard word costs one edit, not a wrong answer.
 
 ## The architecture in a few steps
@@ -20,28 +21,35 @@ appear in the composer. Nothing is sent until the seller sends it, so a misheard
 
 ## How it works
 
+The numbers in the diagram match the steps under it. No model is involved: recognition is the browser's. The theme
+is the shared one in [_diagram-theme.md](_diagram-theme.md).
+
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, Segoe UI, Helvetica, Arial, sans-serif", "primaryColor": "#eef4fb", "primaryTextColor": "#181818", "primaryBorderColor": "#0176d3", "lineColor": "#5c5c5c", "noteBkgColor": "#fff8e6", "noteTextColor": "#181818"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
 sequenceDiagram
     autonumber
-    participant U as Seller
-    participant V as Voice input
-    participant B as Browser speech recognition
-    participant C as Composer (host)
-    rect rgb(238, 244, 251)
+    box rgb(247, 249, 252) Where the seller works
+        actor U as Seller
+        participant C as Composer, in the conversation
+        participant V as Voice input
+    end
+    box rgb(247, 249, 252) The seller's browser
+        participant B as Browser speech recognition
+    end
+    rect rgb(225, 236, 252)
         Note over U,B: Listen
         U->>V: Tap the mic
-        V->>B: start (continuous, interim results)
+        V->>B: start, continuous, with interim results
         B-->>V: recording started
         V-->>C: recordingstate
     end
-    rect rgb(240, 248, 240)
-        Note over B,C: Transcribe
+    rect rgb(222, 243, 230)
+        Note over C,B: Transcribe
         B-->>V: interim and final text
         V-->>C: transcriptupdate, transcriptfinal
     end
-    rect rgb(255, 248, 230)
-        Note over U,C: Stop and review
+    rect rgb(253, 242, 214)
+        Note over U,B: Stop and review
         U->>V: Tap again, or 3 s of silence
         V->>B: stop
         V-->>C: recordingstate
@@ -110,7 +118,10 @@ mocked recognizer and the real check is by hand, once per release.
 
 ### Embed it
 
-Place the component beside the composer and listen for its events. The component is not exposed on any page by itself.
+The conversation component (`customerSummaryConversation`) already embeds it on the composer's row, so the compact
+window and the rail both have the mic. Its handlers put the transcript after any text already typed and never send.
+To embed it in another surface, place the component beside that surface's composer and listen for its events. The
+component is not exposed on any page by itself.
 
 ```html
 <c-customer-summary-voice-input
@@ -127,7 +138,9 @@ those, each with a neutral fallback.
 
 ## See it
 
-None yet. The component is not on any page until the conversation component embeds it, so there is no capture to show.
+No capture yet. The mic sits on the composer's row in the compact window and the rail, but no still or GIF of it
+has been taken; OPS-52 takes the captures from a written list. A capture cannot show the transcript itself, which is
+checked by hand (see [Test it by hand](#test-it-by-hand)).
 
 ## Why you can trust it
 
@@ -144,8 +157,10 @@ System context: none on this path.
 ## How it scales
 
 - Each window runs its own recognizer in its own browser, so voice adds no server load: the audio goes from the browser
-  to the browser vendor's speech service, not to Salesforce.
-- A new surface embeds the same component and listens for the same four events.
+  to the browser vendor's speech service, not to Salesforce
+  ([the surfaces spike](../research/fr2-surfaces-spike.md)).
+- A new surface embeds the same component and listens for the same four events, as the conversation component does
+  (`customerSummaryConversation.test.js` covers the mic filling its composer).
 
 ## Adopt it
 
@@ -158,6 +173,14 @@ System context: none on this path.
 - The recognizer is the browser's, so accuracy, language list and the audio privacy line are the browser vendor's.
 - Only the user's locale is tried, with `en-US` as the fallback; there is no language picker.
 - The real transcript is checked by hand, not in automation.
-- Embedding it in the conversation composer is not done here; no card yet.
+- The by-hand check (a real microphone in Chrome) is not recorded in the README's [Status table](../../README.md#status)
+  yet. OPS-53 records it, and it is parked.
+- The diagram on this page has not been render-checked: the render check in
+  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+### Closed since the earlier version of this page
+
+- **The mic was on no page.** Closed by FE-12: the conversation component embeds it beside the composer, so the
+  compact window and the rail both have it.
+
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

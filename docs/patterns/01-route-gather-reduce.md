@@ -412,4 +412,4 @@ Each failure reads as one fixed sentence that says what to do next. No raw error
 - **The diagrams on this page have not been render-checked:** no check could be made to fail in this card (see
   [Render check](_diagram-theme.md#render-check)). No card yet.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)

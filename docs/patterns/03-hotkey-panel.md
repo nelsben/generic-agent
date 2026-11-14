@@ -366,4 +366,4 @@ each a proposed card a reader can pick by its id:
 4. **P4, a signal when a slow answer is ready while the window is hidden,** so hiding it costs nothing.
 5. **P5, keep an answer on the account.** FE-23 has it, and it is parked.
 
-[Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
+[Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
