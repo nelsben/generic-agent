@@ -26,7 +26,8 @@
         <div class="cs-conversation-stash" lwc:ref="stash">
             <c-customer-summary-conversation class="cs-conversation" lwc:ref="conversation" record-id={pageRecordId}
                 object-api-name={pageObjectApiName} brand={brand} session-id={sessionId} density={conversationDensity}
-                sessions-open={sessionsOpen} onsessionchange={handleSessionChange}></c-customer-summary-conversation>
+                sessions-open={sessionsOpen} onsessionchange={handleSessionChange}
+                oncsopenrecord={handleConversationOpenRecord}></c-customer-summary-conversation>
         </div>
         <template lwc:if={expandEnabled}>
             <!-- The right rail (FE-15): slides over the page; the conversation moves into its slot while it is out. -->

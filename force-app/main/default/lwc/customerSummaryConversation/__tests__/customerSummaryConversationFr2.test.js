@@ -510,6 +510,41 @@ describe('c-customer-summary-conversation FE-22', () => {
             expect($(el, '.abp-view-record')).not.toBeNull();
         });
 
+        it('View record dispatches csopenrecord with the drilled recordId and navigates only when it was not prevented', async () => {
+            explore.mockResolvedValue({
+                status: 'OK',
+                answer: 'One deal.',
+                resultSets: [{ objectName: 'Opportunity', columns: ['Id', 'Name'], rows: [{ Id: DEAL, Name: 'Edge SLA' }], total: 1, shown: 1 }],
+                trail: [],
+                followups: [],
+                cards: [RECORD_CARD]
+            });
+            drill.mockResolvedValue({
+                result: { objectName: 'Opportunity', columns: ['Id', 'Name'], rows: [{ Id: DEAL, Name: 'Edge SLA' }], total: 1, shown: 1 },
+                related: [],
+                cards: [RECORD_CARD]
+            });
+            const el = await mount();
+            await ask(el, 'deals?');
+            cards(el)[0].shadowRoot.querySelector('button.cs-link').click();
+            await flush();
+            const heard = [];
+            let prevent = true;
+            el.addEventListener('csopenrecord', (e) => {
+                heard.push({ detail: e.detail, bubbles: e.bubbles, composed: e.composed, cancelable: e.cancelable });
+                if (prevent) e.preventDefault();
+            });
+            mockNavigate.mockClear();
+            $(el, '.abp-view-record').click();
+            expect(heard).toEqual([{ detail: { recordId: ACME }, bubbles: true, composed: true, cancelable: true }]);
+            expect(mockNavigate).not.toHaveBeenCalled();
+            prevent = false;
+            $(el, '.abp-view-record').click();
+            expect(heard).toHaveLength(2);
+            expect(mockNavigate).toHaveBeenCalledTimes(1);
+            expect(mockNavigate).toHaveBeenCalledWith({ type: 'standard__recordPage', attributes: { recordId: ACME, actionName: 'view' } });
+        });
+
         it('back from a card’s drill, focus returns to the link it started from', async () => {
             explore.mockResolvedValue({ status: 'OK', answer: 'One deal.', resultSets: [], trail: [], followups: [], cards: [TEXT_CARD] });
             drill.mockResolvedValue({

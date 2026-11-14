@@ -485,6 +485,16 @@ export default class CustomerSummaryPanel extends NavigationMixin(LightningEleme
      * onto document.body, out of reach of the page's navigation context; this element stays in the utility bar.
      */
     handleRailOpenRecord(event) {
+        this._openRecordFrom(event);
+    }
+
+    /** The conversation's View record (compact window or rail): the panel navigates, for the same reason as the rail's rows. */
+    handleConversationOpenRecord(event) {
+        this._openRecordFrom(event);
+    }
+
+    /** Cancels the event and opens the record of its detail on the page; the one place that navigates for both. */
+    _openRecordFrom(event) {
         const recordId = event.detail && event.detail.recordId;
         if (!recordId) {
             return;

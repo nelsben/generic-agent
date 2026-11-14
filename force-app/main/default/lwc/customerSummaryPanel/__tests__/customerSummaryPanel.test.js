@@ -1454,6 +1454,32 @@ describe('c-customer-summary-panel', () => {
                 });
             });
 
+            it('navigates for the conversation’s View record, in the window and in the rail, and cancels the event', async () => {
+                const el = await mountRail();
+                const open = () => {
+                    const e = new CustomEvent('csopenrecord', {
+                        detail: { recordId: '006000000000001AAA' },
+                        bubbles: true,
+                        composed: true,
+                        cancelable: true
+                    });
+                    conversation(el).dispatchEvent(e);
+                    return e;
+                };
+                mockNavigate.mockClear();
+                expect(open().defaultPrevented).toBe(true);
+                expect(mockNavigate).toHaveBeenCalledTimes(1);
+                expect(mockNavigate).toHaveBeenCalledWith({
+                    type: 'standard__recordPage',
+                    attributes: { recordId: '006000000000001AAA', actionName: 'view' }
+                });
+                launcherExpand().click();
+                await flush();
+                mockNavigate.mockClear();
+                open();
+                expect(mockNavigate).toHaveBeenCalledTimes(1);
+            });
+
             it('runs a CustomerSummaryOpen prompt in the rail while the rail is out', async () => {
                 explore.mockResolvedValue(exploreResult('Rail answer.'));
                 const el = await mountRail();
