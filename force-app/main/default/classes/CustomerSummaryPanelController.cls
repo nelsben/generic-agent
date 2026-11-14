@@ -8,6 +8,9 @@
  * drill adds its own cards member (BE-46): a record card for one record, the explorer's card for related rows.
  * explore also keeps the explorer's turn in the rep's conversation history (BE-26): an OK or EMPTY answer about
  * an Account is saved through CustomerSummaryMemory after the engine's last callout, as the brief's turns are.
+ * draftAction, draftFromText, commitAction and undoAction are the write actions (BE-27, CustomerSummaryActions):
+ * a draft writes nothing, and a commit is its own call after the user confirms, so a model call and a write never
+ * share a transaction. Refusals come back as results with plain text, not as exceptions.
  * Engine failures that carry user-facing text come back as AuraHandledException with that text.
  * Anything unexpected is logged and comes back as AuraHandledException with ERROR_TEXT, the fixed
  * line the engine uses for ERROR: raw exception text never reaches the panel.
@@ -230,6 +233,50 @@ public with sharing class CustomerSummaryPanelController {
             }
         }
         return out;
+    }
+
+    /** Drafts one write action from its type and fields as JSON: CustomerSummaryActions.draftJson. Writes nothing. */
+    @AuraEnabled
+    public static CustomerSummaryActions.Draft draftAction(String actionType, Id accountId, String inputJson) {
+        try {
+            failIfInjected();
+            return CustomerSummaryActions.draftJson(actionType, accountId, inputJson);
+        } catch (Exception e) {
+            throw unexpected('draftAction', e);
+        }
+    }
+
+    /** Drafts one write action from a sentence: CustomerSummaryActions.draftFromText. Calls the model; writes nothing. */
+    @AuraEnabled
+    public static CustomerSummaryActions.Draft draftFromText(Id accountId, String text) {
+        try {
+            failIfInjected();
+            return CustomerSummaryActions.draftFromText(accountId, text);
+        } catch (Exception e) {
+            throw unexpected('draftFromText', e);
+        }
+    }
+
+    /** Writes a confirmed draft, sent back as JSON: CustomerSummaryActions.commitJson. Its own call, no model. */
+    @AuraEnabled
+    public static CustomerSummaryActions.Result commitAction(String draftJson) {
+        try {
+            failIfInjected();
+            return CustomerSummaryActions.commitJson(draftJson);
+        } catch (Exception e) {
+            throw unexpected('commitAction', e);
+        }
+    }
+
+    /** Undoes an update within 15 seconds: CustomerSummaryActions.undo. */
+    @AuraEnabled
+    public static CustomerSummaryActions.Result undoAction(String undoToken) {
+        try {
+            failIfInjected();
+            return CustomerSummaryActions.undo(undoToken);
+        } catch (Exception e) {
+            throw unexpected('undoAction', e);
+        }
     }
 
     private static void failIfInjected() {

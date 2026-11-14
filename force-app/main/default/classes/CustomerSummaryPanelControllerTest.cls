@@ -480,4 +480,70 @@ private class CustomerSummaryPanelControllerTest {
             Assert.isFalse(JSON.serialize(c).contains('Zzindustryhidden'));
         }
     }
+
+    // ---- BE-27: the write actions ----
+
+    @IsTest
+    static void thePanelDraftsCommitsAndUndoesAWriteAction() {
+        Account a = acme();
+        Test.startTest();
+        CustomerSummaryActions.Draft d = CustomerSummaryPanelController.draftAction('update_contact', a.Id,
+            '{"contact":"Panelist","changes":{"Title":"Head of Buying"}}');
+        Integer draftDml = Limits.getDmlStatements();
+        CustomerSummaryActions.Result r = CustomerSummaryPanelController.commitAction(JSON.serialize(d));
+        String saved = [SELECT Title FROM Contact WHERE LastName = 'Panelist' LIMIT 1].Title;
+        CustomerSummaryActions.Result u = CustomerSummaryPanelController.undoAction(r.undoToken);
+        Test.stopTest();
+        Assert.areEqual(0, draftDml, 'a draft writes nothing');
+        Assert.areEqual(CustomerSummaryActions.READY, d.status, JSON.serialize(d.fields));
+        Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
+        Assert.areEqual('Head of Buying', saved);
+        Assert.areEqual(CustomerSummaryActions.OK, u.status, u.message);
+        Assert.areEqual('Buyer', [SELECT Title FROM Contact WHERE LastName = 'Panelist' LIMIT 1].Title);
+        Map<String, Object> draftWire = wire(d, new List<String>{ 'status', 'action', 'actionLabel', 'fields', 'missing', 'warnings', 'inputJson', 'cards' });
+        wire(((List<Object>) draftWire.get('fields'))[0], new List<String>{ 'api', 'label', 'value', 'display', 'previous', 'choices' });
+        wire(r, new List<String>{ 'status', 'title', 'recordId', 'label', 'linkPath', 'undoToken', 'message', 'cards' });
+    }
+
+    @IsTest
+    static void thePanelDraftsFromASentenceThroughTheModelSeam() {
+        Account a = acme();
+        Stub s = stub(new List<String>{ '{"action":"create_task","fields":{"subject":"Call Panelist","dueDate":"tomorrow","contact":"Panelist"}}' });
+        Test.startTest();
+        CustomerSummaryActions.Draft d = CustomerSummaryPanelController.draftFromText(a.Id, 'Create a task to call Panelist tomorrow');
+        CustomerSummaryActions.Draft question = CustomerSummaryPanelController.draftFromText(a.Id, 'Which deals close this quarter?');
+        Test.stopTest();
+        Assert.areEqual(CustomerSummaryActions.READY, d.status, JSON.serialize(d.fields));
+        Assert.areEqual('actionDraft', d.cards[0].type);
+        Assert.areEqual(CustomerSummaryActions.NOT_AN_ACTION, question.status);
+        Assert.areEqual(1, s.prompts.size(), 'a question costs no model call');
+        Assert.areEqual(0, [SELECT COUNT() FROM Task], 'drafting writes nothing');
+    }
+
+    @IsTest
+    static void theWriteActionsTurnUnexpectedExceptionsIntoFixedText() {
+        Account a = acme();
+        String raw = 'Too many DML statements: 151 (raw platform text)';
+        CustomerSummaryPanelController.failure = new PanelTestException(raw);
+        Test.startTest();
+        for (String method : new List<String>{ 'draftAction', 'draftFromText', 'commitAction', 'undoAction' }) {
+            try {
+                if (method == 'draftAction') {
+                    CustomerSummaryPanelController.draftAction('create_task', a.Id, '{}');
+                } else if (method == 'draftFromText') {
+                    CustomerSummaryPanelController.draftFromText(a.Id, 'Create a task');
+                } else if (method == 'commitAction') {
+                    CustomerSummaryPanelController.commitAction('{}');
+                } else {
+                    CustomerSummaryPanelController.undoAction('token');
+                }
+                Assert.fail(method + ': expected an AuraHandledException');
+            } catch (AuraHandledException e) {
+                Assert.areEqual(FIXED_ERROR, e.getMessage(), method);
+                Assert.isFalse(e.getMessage().contains(raw), method + ' leaked the raw exception text');
+            }
+        }
+        Test.stopTest();
+        Assert.areEqual(0, [SELECT COUNT() FROM Task]);
+    }
 }
