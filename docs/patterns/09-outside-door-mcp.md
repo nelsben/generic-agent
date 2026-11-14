@@ -172,8 +172,23 @@ sequenceDiagram
 
 ## See it
 
-This pattern has no screen of its own: the client draws the answer. This text block is the tool list as the server
-holds it in the test org, from the runbook's record of the server's tools after OPS-59
+This pattern has no screen of its own: the client draws the answer. The text block below is not a real tool call. It is
+the one call that can run without a signed-in rep: a `tools/list` POST with no `Authorization` header to the server's
+own URL in the test org, taken by OPS-52 on 2026-11-14 at 21:31Z, with the org's host and path replaced by
+placeholders. The server answers HTTP 401 before it reads the request, so the call shows the token gate and nothing
+about the tools; the [runbook](../research/mcp-door-runbook.md) records that a made-up server name on the same path
+gets the same 401.
+
+```text
+not a real tool call: no token, so the server refuses it
+POST https://<my-domain>/platform/mcp/v1/<org-path>/custom/CustomerSummaryMcp
+     Content-Type: application/json
+     {"jsonrpc":"2.0","id":1,"method":"tools/list"}
+HTTP 401
+     {"errors":[{"message":"JWT Token is required"}]}
+```
+
+The tool list as the server holds it in the test org, from the runbook's record of the server's tools after OPS-59
 ([runbook, W4](../research/mcp-door-runbook.md#w4-name-describe-and-mark-the-two-tools-changes-the-org-yes)). It is a
 record of the server's setup, not a tool call.
 

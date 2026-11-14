@@ -330,6 +330,13 @@ Both runs it records were taken while the org carried the right rail's panel wor
 two components. No run has been recorded since that work merged. The second run added `--agent`: `agent-compile`
 passed and `agent-suite` printed `skipped: agent suite not built`.
 
+The e2e rung's own report, from a full `npx playwright test` against the test org, captured by OPS-52 on 2026-11-14
+([capture record](../research/fr2-captures.md)). The run had a 560 s limit to keep the capture's wait short, so it
+stopped after 30 of its 42 tests: the 30 passed, and the other 12 show as skipped, with the two timeout lines at the
+top.
+
+![The Playwright HTML report of the end-to-end run: All 30, Passed 30, Failed 0, Flaky 0, Skipped 12, a total time of 9.3 minutes, an Errors box with the two "Timed out waiting 560s" lines, then the spec files a11y-snapshot.spec.js, conversation-actions.spec.js and conversation-fr2.spec.js with their passed tests, each tagged mac and some smoke](../assets/fr2-08-e2e-report.png)
+
 ## Why you can trust it
 
 Runs as the signed-in user: the browser suite signs in through the builder's own sf CLI session and acts as that

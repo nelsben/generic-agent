@@ -187,10 +187,12 @@ No permission set change is needed: the action writes with the seller's own obje
 
 ## See it
 
-FE-14 took one still of the draft card at 1440 by 900, which OPS-52 links here with the rest of this page's captures:
+Captured by OPS-52 on 2026-11-14 on the Edge Communications record page, each still the whole 1440 by 900 window
+([capture record](../research/fr2-captures.md)). Each run cancels the draft after the still, so nothing is saved.
 
-- `fr2-action-draft.png`: the compact window on Edge Communications with a "Create a follow-up" draft. Subject is
-  filled, Due is marked "Needed", and Confirm is off. The run cancels the draft after the still.
+![The compact window after the "Create a follow-up" chip: a "Create a task" draft card marked NEEDS INPUT, Subject filled with "Send the renewal quote", Due outlined in red and marked "Needed", Contact empty, Related to Edge Communications, Priority Normal, and Confirm greyed out beside Edit and Cancel](../assets/fr2-action-draft.png)
+
+![The same draft card in the right rail's conversation column, beside the "About Edge Communications" column: Subject filled, Due marked "Needed", Confirm off](../assets/fr2-action-draft-rail.png)
 
 The result card has no capture: a result needs a saved record, and runs that create a record wait on their own
 approval (see [Limits and open items](#limits-and-open-items)).

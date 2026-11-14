@@ -138,9 +138,16 @@ those, each with a neutral fallback.
 
 ## See it
 
-No capture yet. The mic sits on the composer's row in the compact window and the rail, but no still or GIF of it
-has been taken; OPS-52 takes the captures from a written list. A capture cannot show the transcript itself, which is
-checked by hand (see [Test it by hand](#test-it-by-hand)).
+Captured by OPS-52 on 2026-11-14 on the Edge Communications record page, each still the whole 1440 by 900 window
+([capture record](../research/fr2-captures.md)).
+
+![The compact window in its empty state with the mic button focused, a ring round it, between the composer and Send](../assets/fr2-11-mic-compact.png)
+
+![The right rail with History open and the empty state, and the mic button between the composer and Send at the foot of the conversation column](../assets/fr2-11-mic-rail.png)
+
+The recording state has no capture. The capture browser runs with no recognizer stub and no microphone permission, so
+a press of the mic ends at once and "Listening" never shows; OPS-52's run pressed it once and recorded that. The
+recording state and the transcript itself are checked by hand (see [Test it by hand](#test-it-by-hand)).
 
 ## Why you can trust it
 
