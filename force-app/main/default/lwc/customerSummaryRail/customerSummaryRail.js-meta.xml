@@ -3,5 +3,5 @@
     <apiVersion>68.0</apiVersion>
     <isExposed>false</isExposed>
     <masterLabel>Customer Summary Right Rail</masterLabel>
-    <description>The right rail (FE-15): a full-height side panel that slides over the page on Cmd/Ctrl-Shift-K or expand, with the shared conversation beside the account's open deals, recent activity, open cases and last summary. Rendered by customerSummaryPanel; not placed on a page by itself.</description>
+    <description>The right rail: a full-height side panel on Cmd/Ctrl-Shift-K or Expand, with the shared conversation beside the account&apos;s deals, activity, cases and last summary. Rendered by customerSummaryPanel.</description>
 </LightningComponentBundle>
