@@ -4,8 +4,7 @@ title: FR2: write-action cards in the conversation — draft card with Confirm, 
 domain: frontend
 tier: frontier
 tier_reason: first UI that writes records in a live org, with an e2e that creates and removes data
-status: blocked
-blocked_by: [FE-15]
+status: queued
 fixes: []
 scope: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryActionCard/**, e2e/**, docs/assets/fr2-action-*.png, docs/assets/MANIFEST.md, docs/research/fr2-action-cards.md, force-app/main/default/lwc/customerSummaryCard/**]
 forbid: [force-app/main/default/lwc/customerSummaryPanel/**, force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, spikes/**, scripts/**, data/**, agents/**, docs/plans/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
