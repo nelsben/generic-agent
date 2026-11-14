@@ -11,6 +11,23 @@ const { test, expect, still, settle } = require('./kit');
 const FULL = { x: 0, y: 0, width: 1440, height: 900 };
 const CSS = { scale: /** @type {'css'} */ ('css') };
 
+/**
+ * Scrolls only the context column's own scroll box so the element sits at its top. scrollIntoView would
+ * also scroll the rail's dialog and leave the page half off screen (seen in OPS-52's run).
+ */
+async function toTopOfColumn(locator) {
+    await locator.evaluate((el) => {
+        let box = el.parentElement;
+        const up = (n) => n.parentElement || (n.getRootNode() instanceof ShadowRoot ? /** @type {any} */ (n.getRootNode()).host : null);
+        while (box && !(box.scrollHeight > box.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(box).overflowY))) {
+            box = up(box);
+        }
+        if (box) {
+            box.scrollTop += el.getBoundingClientRect().top - box.getBoundingClientRect().top - 8;
+        }
+    });
+}
+
 test('fr2-history-timeline.png, fr2-history-sentiment.png', async ({ page, panel }) => {
     await settle(page, 2500);
     await panel.openRail();
@@ -23,11 +40,11 @@ test('fr2-history-timeline.png, fr2-history-sentiment.png', async ({ page, panel
     await expect(chart.locator('svg').or(chart.getByTestId('note')).first()).toBeVisible({ timeout: 20_000 });
     await panel.composer.blur();
 
-    await history.scrollIntoViewIfNeeded();
+    await toTopOfColumn(history);
     await page.mouse.move(400, 500);
     await still(page, 'fr2-history-timeline.png', FULL, CSS);
 
-    await chart.scrollIntoViewIfNeeded();
+    await toTopOfColumn(chart);
     const point = chart.locator('[data-point]').first();
     if (await point.count()) {
         await point.focus();

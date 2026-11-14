@@ -198,13 +198,21 @@ sequenceDiagram
 
 ## See it
 
-![The follow-up "In one sentence, what was the main risk in that brief?" answered with "The main risk is that two overdue deals and a high-priority BGP case threaten the support-plan renewal currently in discussion with finance.", then four suggested follow-ups, the first "What are the details of the two overdue deals?"](../assets/memory-followup.png)
+Captured by OPS-52 on 2026-11-14 on the Edge Communications record page, each still the whole 1440 by 900 window
+([capture record](../research/fr2-captures.md)). The follow-up is asked right after a summary, in the same thread.
 
-The follow-up still predates the FR2 compact window and rail. FE-19 took two stills of the rail on an account record
-page at 1440 by 900, which OPS-52 links here with the rest of this page's captures:
+![The compact window with the follow-up "In one sentence, what is the main risk in that summary?" answered from the summary above it: "The main risk is that the support renewal at $125,540 is overdue and a high-priority escalated case is disrupting core BGP routing, which could jeopardize the renewal conversation.", then an Ask next card with four suggested questions](../assets/fr2-05-followup-compact.png)
 
-- `fr2-history-timeline.png`: the rail with the history timeline in its context column.
-- `fr2-history-sentiment.png`: the rail with the sentiment chart in its context column, a point focused.
+![The same thread after Expand, in the right rail: the summary's folded section cards, then the follow-up and its answer and the Ask next card in the conversation column, beside the "About Edge Communications" column](../assets/fr2-05-followup-rail.png)
+
+![The compact window after History: an earlier conversation about the account reopened, its turns back in the thread, two Summary requests and their answers, the first "The support plan renewal is nine days overdue and a high-priority BGP outage has been escalated for two days."](../assets/fr2-05-reopened-compact.png)
+
+![The right rail with History open: "Earlier conversations about Edge Communications", each row a first question, a date and a turn count, with New conversation above them](../assets/fr2-05-reopened-rail.png)
+
+![The right rail with History open in the conversation column and the context column scrolled to the account's outcomes: the History timeline, newest first, each entry a date, a Summary link and a sentiment label, Concerned or At risk, with "Show 75 more" under it, then the "Sentiment over time" chart, labels only, with its points on the At risk and Concerned rows](../assets/fr2-05-outcomes-rail.png)
+
+FE-19's two stills of the rail, `fr2-history-timeline.png` and `fr2-history-sentiment.png`, were retaken by OPS-52
+and are linked on [the right rail's page](12-right-rail.md#see-it).
 
 ## Why you can trust it
 

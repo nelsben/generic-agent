@@ -202,16 +202,21 @@ reopened chat shows as text, because memory keeps no cards.
 
 ## See it
 
+Captured by OPS-52 on 2026-11-14 on the Edge Communications record page, each still the whole 1440 by 900 window
+([capture record](../research/fr2-captures.md)).
+
+![Cmd-K opens the compact window, "/brief Zephyr Quartz Holdings" is typed and answered at once with the NOT FOUND card, Minimize hides the window and the launcher comes back, Cmd-K opens it again with the same thread, and Expand moves that thread into the right rail beside the "About Edge Communications" column](../assets/fr2-03-hotkey.gif)
+
 ![The Edge Communications record page with the compact window closed: the launcher "Ask Customer Summary ⌘K" at the bottom right, above the utility bar](../assets/fr2-compact-launcher.png)
 
-![The same page after Cmd-K: the 420 by 560 window at the bottom right with the Minimize button, the brand row, the empty state, the quick chips and the composer](../assets/fr2-compact-open.png)
+![The same page after Cmd-K: the 420 by 560 window at the bottom right with Expand and Minimize, the brand row with History and Summarize, the empty state with two suggested questions, the quick chips and the focused composer](../assets/fr2-compact-open.png)
+
+Earlier frames, from before FE-13, when the panel opened in the utility panel at the bottom left, kept because this
+page's test still names them:
 
 ![The Account Brief panel opens over an account page with the Sections and Earlier briefs rows and an empty composer, "Which cases are still open?" is typed into it, then the panel minimizes back to the utility bar](../assets/hotkey-open.gif)
 
 ![The panel with the Open deals section expanded under the one-row bar: "Open deals · 5 of 5" with an OK badge, "5 open, $634,180 total pipeline, 2 overdue", then Edge Core Router Refresh and Edge Support Plan Renewal, each marked OVERDUE with its contacts, and the start of Edge Fiber Backhaul Expansion, above the composer](../assets/panel-sections-open.png)
-
-The GIF and the sections still are from before FE-13, when the panel opened in the utility panel
-at the bottom left.
 
 ## Why you can trust it
 

@@ -225,13 +225,22 @@ sequenceDiagram
 
 ## See it
 
+Captured by OPS-52 on 2026-11-14 from the Edge Communications record page, the scope switched to the whole org, each
+still the whole 1440 by 900 window ([capture record](../research/fr2-captures.md)).
+
+![The compact window with the scope set to Whole org: the question "Which 5 open opportunities have the largest amounts?", a short answer, "The largest open opportunity is Juniper Project B at $293,920. These are the top 5 by amount.", and a table card that the narrow window shows as one block per row: Juniper Project B with its Amount, Account, Stage and Close Date, then the start of Fernhollow Project C](../assets/fr2-02-explorer-compact.png)
+
+![The same answer after Expand, in the right rail: the table card as a table with Name, Amount, Account, Stage and Close columns and five rows from Juniper Project B to United Oil Singapore Terminal Link (the Close column is cut at the rail's edge), "Showing 5 of 36 rows", and a folded "Ran 1 query" trail](../assets/fr2-02-explorer-rail.png)
+
+![In the compact window, a click on Juniper Project B in the table card opens its drill view under the breadcrumb "Conversation > Juniper Project B", with Stage, Amount, Close Date, Probability, Forecast Category, Account and Owner, and a click on Conversation goes back to the answer](../assets/fr2-02-drill.gif)
+
+Earlier frames, from before the compact window and the cards, kept because this page's test still names them:
+
 ![An explorer result in the panel: the plain question "Which 5 open opportunities have the largest amounts?", then a two-sentence answer over four lines, "The 5 largest open opportunities total $1,372,400, led by Juniper Project B at $293,920. All five are in mid-to-late stages with close dates between November 2026 and January 2027.", then the caption "Opportunity · 5 of 36 rows", the Name, Amount and Stage headers and the first two rows, Juniper Project B and Fernhollow Project C](../assets/explore-answer.png)
 
 ![The answer to "Which 5 open opportunities have the largest amounts?" with the table's first two rows, then a click on Juniper Project B dims the panel under a spinner and opens its drill view under a "Conversation > Juniper Project B" breadcrumb, then the breadcrumb goes back to the conversation, showing the end of the answer and the table's first three rows: Juniper Project B, Fernhollow Project C and Pimble Project B](../assets/explore-drill.gif)
 
 ![The drill view of Juniper Project B, the top row of "Which 5 open opportunities have the largest amounts?": the breadcrumb "Conversation > Juniper Project B", the record name with its type, Opportunity, and its fields Name, Stage, Amount, Close Date and Probability (%), the last cut off at the bottom of the scroll box](../assets/drill-view.png)
-
-These captures are from before the compact window and the cards. OPS-52 recaptures them on each surface.
 
 ## Why you can trust it
 

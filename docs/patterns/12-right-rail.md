@@ -167,17 +167,19 @@ under the conversation and scrolls with it; there is no sticky header. The rail 
 
 ## See it
 
-![The Edge Communications record page with the rail open on the right, 640 px wide and full height: the header with the agent name and ⌘⇧K, the conversation with one answered question in the main column, and the context column with Open deals and the start of Recent activity; Open cases and Last summary are further down the column, below the fold](../assets/fr2-rail-open.png)
+Retaken by OPS-52 on 2026-11-14 on the Edge Communications record page, each still the whole 1440 by 900 window
+unless it says otherwise ([capture record](../research/fr2-captures.md)). The rail slides over the page and does not
+push it (see Push or overlay): the left of each still is the record page, unmoved, under the rail.
 
-![The rail alone: the conversation beside the "About Edge Communications" column, showing Open deals (5) and Recent activity cut off at its sixth row; Open cases and Last summary are further down the column](../assets/fr2-rail-context.png)
+![The Edge Communications record page with the rail open over its right side, 640 px wide and full height: the header with the agent name and ⌘⇧K, History open above one answered question, "How many open opportunities does this account have?", and its table card in the main column, and the context column with Open deals (5) and Recent activity (10)](../assets/fr2-rail-open.png)
+
+![The rail alone, 640 by 900: the conversation beside the "About Edge Communications" column, showing Open deals with five deals and Recent activity cut off at its fifth row](../assets/fr2-rail-context.png)
 
 ![Cmd-K opens the compact window, a question is typed and answered, then Expand moves the same thread into the rail and the account's context fills beside it](../assets/fr2-rail.gif)
 
-The three captures above predate the history and the trend. FE-19 took two stills of the rail on an account record page
-at 1440 by 900, which OPS-52 links here with the rest of this page's captures:
+![The rail with its context column scrolled to History: the timeline, newest first, each entry a date, a Summary link and a sentiment label, At risk or Concerned, with Show more under it, and the start of the sentiment chart below](../assets/fr2-history-timeline.png)
 
-- `fr2-history-timeline.png`: the rail with the history timeline in its context column.
-- `fr2-history-sentiment.png`: the rail with the sentiment chart in its context column, a point focused.
+![The same rail with a point of the "Sentiment over time" chart focused: the chart is labels only, its points on the At risk and Concerned rows, and the focused point's text shows under it](../assets/fr2-history-sentiment.png)
 
 ## Why you can trust it
 

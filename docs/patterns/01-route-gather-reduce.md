@@ -284,9 +284,20 @@ The sections decide what the summary knows; the synthesis prompt decides how it 
 
 ## See it
 
-![The Account Brief panel on an account page: it opens with an empty conversation, "/brief Edge Communications" is typed and sent, a spinner shows, and the brief arrives and settles on its headline, "Two overdue deals and a high-priority BGP case threaten the support-plan renewal now in discussion with finance.", with the Account, Open deals and Service health rows under it](../assets/brief-flow.gif)
+Captured by OPS-52 on 2026-11-14 on the sample account Edge Communications, each still the whole 1440 by 900 window
+([capture record](../research/fr2-captures.md)).
 
-![A finished brief under the one-row bar of "Brief Edge Communicat…" (the image still shows the retired "Ask the agent" button): the request "/brief Edge Communications", the headline "Two overdue deals and a high-priority BGP case threaten the support-plan renewal now in discussion with finance.", a collapsed "Full summary" toggle, then the rows Account · 1 of 1, Open deals · 5 of 5 and Service health · 5 of 5, each marked OK, above the composer](../assets/panel-brief.png)
+![Cmd-K opens the compact window on the Edge Communications record page, "/brief Edge Communications" is typed and sent, three dots show while it works (the wait is cut), and the summary arrives as a summary card headed "Edge Communications' support renewal is overdue and a high-priority escalated case is disrupting core BGP routing."](../assets/fr2-01-summary.gif)
+
+![The compact window at the bottom right of the Edge Communications record page: the request "/brief Edge Communications", then the summary card with its headline about the overdue support renewal and the escalated BGP case, and the account summary under it, starting with Account and Open deals, above the quick chips and the composer](../assets/fr2-01-summary-compact.png)
+
+![The same summary after Expand, in the right rail over the page: the request and the summary card in the conversation column, the account summary in larger type, and beside it the "About Edge Communications" column with Open deals (5) and Recent activity (10)](../assets/fr2-01-summary-rail.png)
+
+When the name does not resolve, the resolver answers without a model call:
+
+![The compact window after "/brief Zephyr Quartz Holdings": a card marked NOT FOUND that reads "No account matches "Zephyr Quartz Holdings". Try a fuller or different account name."](../assets/fr2-01-not-found.png)
+
+![The compact window after "/brief United Oil": "Several accounts match "United Oil". Which one?" and three buttons, United Oil & Gas Corp. — New York, United Oil & Gas, Singapore — Singapore and United Oil & Gas, UK — no city](../assets/fr2-01-several-matches.png)
 
 ## Why you can trust it
 
