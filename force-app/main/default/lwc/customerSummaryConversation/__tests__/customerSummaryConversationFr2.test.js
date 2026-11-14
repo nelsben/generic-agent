@@ -480,6 +480,15 @@ describe('c-customer-summary-conversation FE-22', () => {
             expect(el.shadowRoot.textContent).toContain('Not sections: bogus');
         });
 
+        it('a summary with cards announces the summary card’s title, the headline on screen', async () => {
+            resolve.mockResolvedValueOnce({ status: 'RESOLVED', accountId: ACME, accountName: 'Acme', cards: '[]' });
+            const summary = { type: 'summary', version: 1, key: 'sum', title: 'Acme is steady', status: 'OK', text: 'Acme is steady', body: [], refs: [] };
+            getBrief.mockResolvedValue({ status: 'OK', message: '', answer: '**Acme** is steady', sections: [], ignored: [], cards: [summary] });
+            const el = await mount();
+            await ask(el, '/brief Acme');
+            expect($(el, '[data-testid="abp-live-region"]').textContent).toBe('Summary ready: Acme is steady');
+        });
+
         it('cardopen drills in the panel by the Id it carries; the drill draws its record card', async () => {
             explore.mockResolvedValue({ status: 'OK', answer: 'One deal.', resultSets: [], trail: [], followups: [], cards: [TEXT_CARD] });
             drill.mockResolvedValue({

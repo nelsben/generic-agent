@@ -50,7 +50,9 @@ async function drillOrigin(panel, { briefed = false, requireSectionDrill = true 
     await panel.ask(DRILL_QUESTION);
     await expect(panel.turns).toHaveCount(2, { timeout: ANSWER_TIMEOUT });
     await expect(panel.spinner).toBeHidden({ timeout: ANSWER_TIMEOUT });
-    const row = panel.turns.last().locator('button[data-id]').first();
+    // A result row: a record link of an answer card (FE-22), or a button with data-id without cards.
+    const last = panel.turns.last();
+    const row = last.locator('c-customer-summary-card button.cs-link[data-ref]').or(last.locator('button[data-id]')).first();
     await expect(row, 'the answer has a drillable result row').toBeVisible();
     return row;
 }
@@ -221,7 +223,7 @@ test('3. a brief renders with its headline and collapsed accordions, announced b
     await expect(panel.spinner).toBeHidden();
 
     const turn = panel.turns.last();
-    // The summary card's heading, told apart from the accordion section headers by its test hook.
+    // The summary's headline, told apart from the section headers: the summary card's title (FE-22).
     const headline = panel.headline(turn);
     await expect(headline).toHaveCount(1);
     await expect(headline).toBeVisible();

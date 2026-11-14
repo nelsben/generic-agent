@@ -966,7 +966,9 @@ export default class CustomerSummaryConversation extends NavigationMixin(Lightni
         if (this._sessionsOpen) {
             this._loadSessions();
         }
-        return turn.verbatim ? r.message : 'Summary ready: ' + (turn.header || accountName);
+        // With cards, the headline on screen is the summary card's title: announce that one.
+        const summary = (turn.cards || []).find((c) => c.card.type === 'summary');
+        return turn.verbatim ? r.message : 'Summary ready: ' + ((summary && summary.card.title) || turn.header || accountName);
     }
 
     _briefTurn(r, label, accountName) {

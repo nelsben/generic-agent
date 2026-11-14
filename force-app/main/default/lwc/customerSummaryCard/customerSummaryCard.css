@@ -1,7 +1,7 @@
 /*
  * Every colour, font and radius comes from the brand variables the surface sets on its host
- * (--cs-color-primary, -accent, -surface, -ink, --cs-font-display, --cs-font-body, --cs-radius), each
- * with a neutral fallback, plus the platform's error colour. Muted text and lines are the ink mixed
+ * (--cs-color-primary, -surface, -ink, --cs-font-display, --cs-font-body, --cs-radius), each with a
+ * neutral fallback, plus the platform's error colour. Muted text and lines are the ink mixed
  * into the surface. The card's own --cs-card-* variables are built only from these.
  */
 :host {
@@ -10,7 +10,9 @@
     --cs-card-ink: var(--cs-color-ink, #181818);
     --cs-card-surface: var(--cs-color-surface, #ffffff);
     --cs-card-primary: var(--cs-color-primary, #0b5cab);
-    --cs-card-accent: var(--cs-color-accent, #e9f2fb);
+    /* A chip's wash: the primary mixed into the surface. Not --cs-color-accent, which a brand sets to a
+       strong second colour for hovers and links (Brand_Setting__mdt.Accent_Color__c), too dark under ink. */
+    --cs-card-accent: color-mix(in srgb, var(--cs-color-primary, #0b5cab) 10%, var(--cs-color-surface, #ffffff));
     --cs-card-muted: color-mix(in srgb, var(--cs-color-ink, #181818) 70%, var(--cs-color-surface, #ffffff));
     --cs-card-line: color-mix(in srgb, var(--cs-color-ink, #181818) 14%, var(--cs-color-surface, #ffffff));
     --cs-card-wash: color-mix(in srgb, var(--cs-color-ink, #181818) 6%, var(--cs-color-surface, #ffffff));
