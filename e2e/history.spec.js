@@ -23,8 +23,8 @@ test.describe('customer history and sentiment in the rail', () => {
         const empty = history.getByText(EMPTY_HISTORY);
         await expect(card.or(empty).first()).toBeVisible({ timeout: 20_000 });
         if (await card.count()) {
+            await expect(card.locator('time.cs-at').first()).toBeVisible();
             const dates = await card.locator('time.cs-at').allInnerTexts();
-            expect(dates.length).toBeGreaterThan(0);
             expect(dates, 'newest first').toEqual(dates.slice().sort().reverse());
             // Opening an entry shows its detail; Close hides it. Nothing is written.
             await card.locator('button.cs-item-label').first().click();
