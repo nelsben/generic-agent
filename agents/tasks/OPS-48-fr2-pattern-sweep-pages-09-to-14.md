@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: five pages rewritten to one shape from the work of ten build cards, plus the index and the test every later page change answers to
 status: blocked
-blocked_by: [OPS-39, OPS-40, OPS-43, OPS-45, FE-19]
+blocked_by: [OPS-39, OPS-43, OPS-45, FE-19]
 fixes: []
 scope: [docs/patterns/**, tests/test_pattern_pages.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, docs/ARCHITECTURE.md, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
