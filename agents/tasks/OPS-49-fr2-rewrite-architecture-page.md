@@ -4,8 +4,7 @@ title: FR2: docs/ARCHITECTURE.md rewritten for Customer Summary — three ways i
 domain: ops
 tier: standard
 tier_reason: one page rewritten from research pages and an index that already exist
-status: blocked
-blocked_by: [OPS-48]
+status: queued
 fixes: []
 scope: [docs/ARCHITECTURE.md, tests/test_architecture_doc.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/patterns/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]

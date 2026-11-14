@@ -4,8 +4,7 @@ title: FR2: captures and the See it part of every page — an exact capture list
 domain: ops
 tier: frontier
 tier_reason: a capture run against a live org across three surfaces, where every image must be read for private data before it is committed
-status: blocked
-blocked_by: [OPS-48]
+status: queued
 fixes: []
 scope: [e2e/capture/**, docs/assets/**, docs/patterns/**, docs/research/fr2-captures.md]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, agents/**, docs/plans/**, docs/reviews/**, docs/ARCHITECTURE.md, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
