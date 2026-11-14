@@ -3,15 +3,16 @@
 ## The outcome
 
 An AI client outside Salesforce, such as Claude, can ask for the same account summary, signed in
-as the rep. It goes through the same Apex, with the same access rules and the same fixed failure
-text. This pattern is built in agent-probe up to the sign-in. Whether a real MCP tool call is
+as the rep, and can create a task or log a call once the rep says yes. It goes through the same
+Apex, with the same access rules and the same fixed failure text. This pattern is built in agent-probe up to the sign-in. Whether a real MCP tool call is
 proven is tracked in the README's [Status table](../../README.md#status).
 
 ## Status in agent-probe
 
-As of 2026-11-13, agent-probe has an active custom server `CustomerSummaryMcp` with three tools,
-all Apex actions: `resolve_account`, `get_account_summary` and `ask_anything` (the explorer). The
-agent is not a tool. Each tool has its own client-facing description, so the agent-facing "Relay
+As of 2026-11-14, agent-probe has an active custom server `CustomerSummaryMcp` with five tools,
+all Apex actions: `resolve_account`, `get_account_summary`, `ask_anything` (the explorer), and the
+write pair `draft_action` and `commit_action` (OPS-59, see
+[Writing from an outside client](#writing-from-an-outside-client)). The agent is not a tool. Each tool has its own client-facing description, so the agent-facing "Relay
 it verbatim" wording is not the tool text. There is also a dedicated External Client App,
 `CustomerSummaryMcpClient`, with PKCE and access limited to holders of
 `Customer_Summary_Data_Access`. Its metadata and its description name its scopes `MCP` and
@@ -64,11 +65,52 @@ sequenceDiagram
    through the explorer. The optional agent is not a tool: the client model does the routing.
 4. **Annotate the tools.** An unannotated tool is treated as destructive, so set the hints
    explicitly. A summary writes one memory row, so `readOnlyHint` is false; `destructiveHint`,
-   `idempotentHint` and `openWorldHint` are false too. All three tools keep these defaults.
+   `idempotentHint` and `openWorldHint` are false too. The three read tools keep these defaults.
+   `draft_action` writes nothing, so it is read-only; `commit_action` is not read-only and is
+   destructive.
 5. **Same rules.** Each call runs as the signed-in rep, so `with sharing`, `USER_MODE` and the
    fixed status texts all apply as they do in the panel.
 6. **Same order.** The client resolves first and briefs only a RESOLVED Id, as the agent does in
    [06](06-agent-routing-and-verbatim-relay.md).
+
+## Writing from an outside client
+
+The door can write two things: **create a task** (`create_task`) and **log a call** (`log_call`,
+written as an Event, as ledger F17 decides). It writes in two steps, with the person in between.
+
+```mermaid
+sequenceDiagram
+    actor U as Rep in an MCP client
+    participant CL as MCP client
+    participant DA as draft_action
+    participant CA as commit_action
+    U->>CL: Log a call with Maria, she wants a quote
+    CL->>DA: accountId and the words (or create_task / log_call with fields)
+    DA-->>CL: READY, Draft Text, Draft JSON (nothing written)
+    CL->>U: shows the Draft Text and asks
+    U->>CL: yes
+    CL->>CA: the Draft JSON, unchanged
+    CA-->>CL: OK, the record, a link path and the message
+```
+
+1. **Draft.** `draft_action` takes the account Id from `resolve_account` and either the request in
+   plain words or one of the two actions with its fields. It returns the draft as text to show and
+   as JSON to send back. It writes nothing.
+2. **The client's yes.** Both tool descriptions tell the client to show the draft to the person
+   and to call `commit_action` only after they say yes. The client's own approval prompt for a
+   destructive tool is a second check. The server cannot prove a person said yes.
+3. **Commit.** `commit_action` takes the Draft JSON back unchanged and writes it as the signed-in
+   user, in user mode. It rebuilds and checks the draft first, so a changed draft writes nothing
+   the user could not write by hand.
+4. **The refusal.** Any other action (an event, a case, a contact or opportunity update), asked
+   for by name, drafted from words, or sent as a hand-made draft, gets one fixed text and writes
+   nothing: "Only two actions are allowed here: create a task (create_task) and log a call
+   (log_call). Nothing was drafted or saved." The panel does not go through these two tools and
+   keeps all six actions ([13](13-write-actions.md)).
+
+**No real tool call has been made, read or write.** The tools are built, marked and described in
+agent-probe, but nothing runs until Ben signs in, and a call that creates a record waits on its
+own Approvals row. The [runbook](../research/mcp-door-runbook.md#write-tools-ops-59) has the steps.
 
 ## See it
 
@@ -82,7 +124,8 @@ This pattern has no screen yet. The diagram above is the design.
   added and described, the client app and the server definition deployed from source, the server
   was activated, and a call without a token was refused ([runbook](../research/mcp-door-runbook.md)).
 - **The actions behind the door are tested.** They are the same classes the panel and agent use.
-  See [01](01-route-gather-reduce.md) and [07](07-trust-access-and-failure.md).
+  See [01](01-route-gather-reduce.md) and [07](07-trust-access-and-failure.md). The door's
+  two-action allow-list has its own Apex tests (`CustomerSummaryActionDoorTest`).
 - **Access follows the rep.** Salesforce documents that every hosted MCP tool call carries the
   user's object, field and sharing access ([salesforce-mcp.md](../research/salesforce-mcp.md),
   facts table).
@@ -100,12 +143,16 @@ and the API steps that build the server where that deploy is not enough.
    `refresh_token` scopes.
 3. Create a custom server, add `CustomerSummaryResolver`, `CustomerSummaryGetAction` and
    `ExploreAction` as tools, name and describe each, set the four hints, and activate it.
-   Activation can take up to 2 minutes.
+   Activation can take up to 2 minutes. To let clients write, also add
+   `CustomerSummaryActionDraftAction` (read-only) and `CustomerSummaryActionCommitAction`
+   (destructive), with descriptions that carry the confirm rule.
 4. Add the server to your MCP client with your own OAuth client.
 5. Test one call with a plain HTTP client first, to see the raw tool JSON, then in your MCP
    client. Check that a user without access to the account gets NOT_FOUND.
 6. **Change the tools** by adding or removing Apex actions on the server. Tool names and
    descriptions are what the client model reads to choose a tool, so keep them task-specific.
+   To take the writes away again, remove `draft_action` and `commit_action` from the server
+   definition ([runbook, Undo](../research/mcp-door-runbook.md#undo)).
 
 ## Limits and open items
 
@@ -122,7 +169,9 @@ and the API steps that build the server where that deploy is not enough.
   org is not yet tested, and activation is not in source.
 - `ask_anything` opens the explorer to outside clients. It runs read-only queries as the
   signed-in rep and calls a model on each turn.
-- Write tools (create a task, log a call) are not on the server yet; they come later.
+- Write tools: only create a task and log a call, through `draft_action` and `commit_action`. No
+  write has been made over MCP yet; whether a client really asks the person before
+  `commit_action` is not proven.
 - For a real MCP tool call, see the README's [Status table](../../README.md#status) and the
   re-reviews ([apex-review-2.md](../reviews/apex-review-2.md),
   [lwc-review-2.md](../reviews/lwc-review-2.md), [agent-review-2.md](../reviews/agent-review-2.md)).
