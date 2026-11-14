@@ -4,7 +4,7 @@ title: FR2: pattern 02 as a workbook chapter — the ask-anything explorer told 
 domain: ops
 tier: frontier
 tier_reason: the chapter that carries the product's core operating principle, written for a business reader and an architect at once
-status: queued
+status: merged
 fixes: []
 scope: [docs/patterns/02-ask-anything-explorer.md, tests/test_pattern_02.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
@@ -25,3 +25,32 @@ Feature revision 2 (FR2), Ben's chapter notes on pattern 02. The business outcom
 - **How it scales:** what works today (the catalog, the caps, user mode, the live follow-up result from BE-30) and the scale-out path BE-31 recommends, marked plainly as not yet built, with its proposed cards. Never claim "any object" as done before it is. **Why you can trust it** opens with the two trust lines fr2-design.md 'Pattern page shape' fixes: one starting 'Runs as the signed-in user:' and one starting 'System context:', which names each system-context use on this path with its reason, or says 'none on this path'. Then each claim links to a test, a review or a recorded run. **Limits and open items:** each names the open item in plain words and the card that has it by id (BE-30, FE-22, BE-31's proposed cards, FE-5; an agent-only item says it moved to the optional appendix, OPS-44) or says "no card yet". Never link a card file
 - **Page rules (fr2-design.md 'Pattern page shape'):** the H1 is the title with no number. The H2 headings are the exact strings listed there, in that order, less the parts it exempts this page from; a part of this page's own is an extra H2 between them, and the page's test lists it. The page never says a run is proven or not yet proven: it links the README's Status table (the 'Status' heading in README.md), the one place that is changed when a run passes. It names roles, not people. A limit names the open item in plain words (it may give a card id) and never links a card file
 - Leave the See it images and their alt text as they are; OPS-52 recaptures them per surface. Uses Customer Summary names throughout. tests/test_pattern_02.py calls the shared helper tests/pattern_shape.py (from OPS-38), passing the parts this page has and the extra parts it adds; the helper checks the headings in order, autonumber on every mermaid sequence diagram, the theme block and the two trust lines, and adds its own check that the principle line is present. Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-14). One attempt (a6c837d, $5.00 including one advisor call at $1.52). The verifier found the report consistent and the gate green. A sonnet review returned 19 confirmed, 0 refuted and 4 unverifiable.
+
+Findings:
+- docs/patterns/02-ask-anything-explorer.md is rewritten as the "Ask anything" workbook chapter, with the eight fixed H2 parts in order and no extra H2.
+- The business problem is sourced only as "a production Agentforce build we reviewed", with no numbers, and opens the principle line "The operating principle. A follow-up is never a new build." with a link to fr2-design.md#operating-principles.
+- Six architecture steps (Plan, Check, Run in the rep's access, Correct, Answer, Drill), as the card lists them.
+- The main diagram has 25 numbered messages in five phases, each theme tint used once, with the coral accent only around model calls. The H3 "A follow-up after a summary" holds an 18-message diagram of how a summary's records reach the follow-up. The numbered steps cover every arrow.
+- Why you can trust it opens with the shared "Runs as the signed-in user:" and "System context:" lines, and names three system uses (prompt settings, session rows, outcome text), each backed by a marker in the code.
+- How it scales cites BE-30's live follow-up set (18 of 20 in run 2). The H3 "The scale-out path" is marked not yet built and lists BE-41 to BE-45 as parked; "any object" appears only there.
+- Limits name open items by card id (BE-41 to BE-45, FE-5, OPS-44) or "No card yet", and link no card files. The page links README.md#status and states no proof status.
+- The See it images and alt text are unchanged; one line says OPS-52 recaptures them.
+- New tests/test_pattern_02.py checks the page shape, principle, steps, phases, accent, autonumber, step coverage, trust lines, limits and the way back.
+
+Gate (verifier at a6c837d): Python 299 tests, 3 skipped. Brain: check-docs 71 pages, 0 broken.
+
+Disclosed and accepted:
+- The diagrams are not render-checked. The brain told the worker not to run the Mermaid CDN check until Ben answers, so the card's render-check item is unmet. The Limits section says so, as page 03 does.
+- The review's unverifiable rows: the coordinator's render-check rule (in the brain's message to the worker, not the brief), the intermediate fix rounds and the advisor's changes (worker transcript only), the GitHub render, and the live figure behind "18 of 20" (traceable to fr2-follow-ups.md).
+- MCP follow-ups are left out of Limits because the research pages disagree on whether the explorer tool is approved. OPS-31 is approved; a later docs card should reconcile.
+- A tests/__pycache__ made by the gate runs was removed before review and before merge.
+
+Still open:
+- The render check for page 02's two diagrams, after Ben's answer on loading Mermaid from a CDN.
+- Reconcile the research pages on the explorer as an MCP tool, then add the MCP follow-ups to page 02's Limits.
+
+Privacy check over the full branch diff (613 added lines): 0 denylist hits; no URLs, Ids, local paths or job Ids.
