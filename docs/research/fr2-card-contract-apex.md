@@ -221,6 +221,8 @@ Each is the shape the named test asserts, with record Ids written `record-id:<ke
 }
 ```
 
+On 2026-11-13 the four changed classes were validated with RunLocalTests in `agent-probe` (419 tests, 0 failures, every AccountBrief* test among them) and quick deployed. No session was opened and no record was written beyond the tests' own rolled-back data.
+
 ### Open: Ids in the AMBIGUOUS message
 
 The AMBIGUOUS `message` still has each candidate's record Id in its text (`Name — City — 001...`), and `CustomerSummaryResolver` still returns it unchanged. The agent relays it and an MCP client reads it, and the pasted-Id step of the resolver depends on it: a rep answers by pasting an Id back. The card has the Ids only in `refs`, as the contract says, but removing them from the message changes what the agent and an MCP client read. That is Ben's decision and is still open. Until then the `text` rule for cards is kept (no card's `text` holds an Id) and the message is the one place an Id is in text.
