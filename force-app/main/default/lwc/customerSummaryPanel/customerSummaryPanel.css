@@ -11,6 +11,9 @@
  *
  * Borders and shadows mix the ink colour, so a dark brand surface gets light edges, not grey ones.
  *
+ * The right rail (FE-15) has its own stylesheet (customerSummaryRail.css); this file styles the conversation's
+ * homes, which the panel's template renders, in the window and in the rail's slot.
+ *
  * Motion (fr2-design.md "Motion"): the window slides with cubic-bezier(0.32, 0.72, 0, 1) at 280 ms; the
  * launcher scales away at 180 ms with cubic-bezier(0.25, 0.46, 0.45, 0.94). prefers-reduced-motion
  * turns both off.
@@ -34,20 +37,38 @@
     font-family: var(--cs-font-body, inherit);
 }
 
-.cs-launcher,
+.cs-launch,
 .cs-sheet {
     position: fixed;
     bottom: 48px;
 }
 
-.cs-corner_right .cs-launcher,
+.cs-corner_right .cs-launch,
 .cs-corner_right .cs-sheet {
     right: 16px;
 }
 
-.cs-corner_left .cs-launcher,
+.cs-corner_left .cs-launch,
 .cs-corner_left .cs-sheet {
     left: 16px;
+}
+
+/* The launcher and, with the rail on, its expand button beside it. */
+.cs-launch {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.cs-corner_left .cs-launch {
+    flex-direction: row-reverse;
+}
+
+.cs-launcher-expand {
+    transition:
+        transform 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        opacity 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        visibility 0s;
 }
 
 /* The launcher: the agent's name and the key that opens it. */
@@ -176,9 +197,23 @@
     min-width: 0;
 }
 
+/* The conversation's two homes (the window and the rail's slot), and the stash it renders in first. */
+.cs-conversation-home {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+}
+
+.cs-conversation-stash {
+    display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .cs-launcher,
     .cs-launcher_away,
+    .cs-launcher-expand,
     .cs-sheet,
     .cs-sheet_open {
         transition: none;

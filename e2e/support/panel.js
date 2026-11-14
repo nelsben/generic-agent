@@ -2,7 +2,8 @@
 /**
  * The Customer Summary panel as a front-end user meets it: the Customer Summary app, the record page of
  * Edge Communications, and the compact window (FE-13): a launcher at the bottom right of the page and
- * a 420x560 window above it, opened by Cmd/Ctrl-K or the launcher. The eager utility bar item
+ * a 420x560 window above it, opened by Cmd/Ctrl-K or the launcher. The right rail (FE-15) is on the
+ * same stage: a full-height side panel opened by Cmd/Ctrl-Shift-K or either Expand. The eager utility bar item
  * "Customer Summary" mounts them on the page body (its stage, data-cs-stage); its own utility panel
  * holds only a note.
  *
@@ -44,9 +45,10 @@ class Panel {
         this.host = page.locator('[data-cs-stage]');
         // "Ask <agent name>" and the key hint: ⌘K on a Mac, Ctrl K elsewhere.
         this.launcher = this.host.getByRole('button', { name: /^Ask .+(⌘K|Ctrl K)$/ });
-        this.dialog = this.host.getByRole('dialog');
-        // The window whether it is shown or not (getByRole leaves hidden elements out).
-        this.sheet = this.host.locator('dialog');
+        // The compact window, by its class: the stage also holds the rail's dialog (FE-15).
+        this.dialog = this.host.locator('dialog.cs-sheet');
+        // The window whether it is shown or not.
+        this.sheet = this.host.locator('dialog.cs-sheet');
         this.minimizeButton = this.host.getByRole('button', { name: 'Minimize', exact: true });
         this.expandButton = this.host.getByRole('button', { name: 'Expand to the side panel', exact: true });
         this.composer = this.host.getByRole('textbox', { name: COMPOSER_LABEL });
@@ -63,6 +65,31 @@ class Panel {
         this.panelHeader = this.host.locator('.cs-sheet-controls');
         // The header of the account's "Earlier summaries" list.
         this.historyHeader = this.host.getByRole('button', { name: /^Earlier summaries/ });
+        // The right rail (FE-15): a full-height dialog on the right, on the same stage.
+        this.rail = this.host.locator('dialog.cs-rail');
+        this.railContext = this.rail.getByRole('complementary', { name: 'Account context', exact: true });
+        this.railMinimize = this.host.getByRole('button', { name: 'Minimize the side panel', exact: true });
+        this.railClose = this.host.getByRole('button', { name: 'Close the side panel', exact: true });
+        this.railTab = this.host.getByRole('button', { name: /^Open the .+ side panel$/ });
+        this.launcherExpand = this.host.getByRole('button', { name: 'Open the side panel', exact: true });
+    }
+
+    /** One context section's body in the rail: deals, activity, cases or summary. */
+    railSection(name) {
+        return this.rail.locator('[data-section-body="' + name + '"]');
+    }
+
+    /** Cmd-Shift-K on a Mac, Ctrl-Shift-K elsewhere: the rail's key. */
+    async railHotkey() {
+        const key = await this.hotkey();
+        return key.replace('+k', '+Shift+k');
+    }
+
+    /** Opens the rail by its key and waits for the composer to have focus in it. */
+    async openRail() {
+        await this.page.keyboard.press(await this.railHotkey());
+        await expect(this.rail).toBeVisible();
+        await this.expectFocused(this.composer, 'the composer has focus in the rail');
     }
 
     get recordUrl() {

@@ -67,8 +67,8 @@ class TestUtilityBarFlexipage(unittest.TestCase):
     def test_panel_compact_window_properties(self):
         props = panel_props()
         self.assertEqual(props["corner"], "right")
-        # Expand stays off until the rail (FE-15) ships.
-        self.assertEqual(props["expandEnabled"], "false")
+        # The rail (FE-15) ships with this item: Expand, the launcher's expand and Cmd/Ctrl-Shift-K are on.
+        self.assertEqual(props["expandEnabled"], "true")
 
 
 class TestExpandChannel(unittest.TestCase):

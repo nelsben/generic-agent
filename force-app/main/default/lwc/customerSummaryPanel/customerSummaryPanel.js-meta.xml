@@ -10,7 +10,7 @@
     <targetConfigs>
         <targetConfig targets="lightning__UtilityBar">
             <property name="corner" type="String" label="Corner" datasource="right,left" default="right" description="Where the launcher and the compact window sit: right, or left for a utility bar mirrored to the right."/>
-            <property name="expandEnabled" type="Boolean" label="Show Expand" default="false" description="Shows the Expand button that hands the conversation to the right rail. Leave off until the rail is deployed."/>
+            <property name="expandEnabled" type="Boolean" label="Right rail" default="false" description="Turns on the right rail: the Expand buttons and Cmd/Ctrl-Shift-K open a full-height side panel with the same conversation and the account&apos;s context."/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

@@ -28,8 +28,16 @@
  * The composer stops every other key, so Lightning's single-key shortcuts don't fire while typing.
  *
  * Minimize closes the window to the launcher; the conversation stays mounted, so the thread is kept.
- * Expand (for the rail, FE-15) is behind @api expandEnabled, off by default, so no dead button ships.
- * It fires 'expand' and publishes on CustomerSummaryExpand, both with { sessionId, recordId }.
+ *
+ * The right rail (FE-15, c-customer-summary-rail) is behind @api expandEnabled. With it on, the stage
+ * also holds the rail, the window shows an Expand button and the launcher an expand button beside it.
+ * Expand fires 'expand' and publishes on CustomerSummaryExpand, both with { sessionId, recordId }, and
+ * opens the rail. Cmd/Ctrl-Shift-K opens the rail from anywhere: the rail's own document listener on
+ * the page, and a capture listener on the stage here, since the composer stops keys from leaving it.
+ * There is one conversation: it renders once, lives in the window (compactHome) and moves into the
+ * rail's slot (railHome) while the rail is out, so the thread, the session and any reply on its way
+ * are the same on both surfaces. In the rail it is drawn comfortable, with the sessions list open
+ * (FE-22's control). Cmd/Ctrl-K with the rail out brings the thread back to the window.
  */
 import { LightningElement, api, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
@@ -74,6 +82,14 @@ function isHotkey(event) {
     return isMac() ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
 }
 
+/** The rail's key: Cmd-Shift-K on Mac, Ctrl-Shift-K elsewhere (customerSummaryRail owns the same test). */
+function isRailHotkey(event) {
+    if (event.code !== 'KeyK' || !event.shiftKey || event.altKey) {
+        return false;
+    }
+    return isMac() ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+}
+
 /** The focused element itself, through open shadow roots: document.activeElement stops at the outermost host. */
 function deepActiveElement() {
     let active = document.activeElement;
@@ -101,7 +117,7 @@ function moveToBody(el) {
 export default class CustomerSummaryPanel extends LightningElement {
     @api recordId;
     @api objectApiName;
-    /** Shows the Expand button (the rail, FE-15). Off until the rail ships, so no dead button. */
+    /** Turns on the right rail (FE-15): the Expand buttons, Cmd/Ctrl-Shift-K and the rail itself. */
     @api expandEnabled = false;
     /** right (default) or left: left for an org that mirrors its utility bar to the right. */
     @api corner = 'right';
@@ -119,6 +135,10 @@ export default class CustomerSummaryPanel extends LightningElement {
     _focusGuard = null;
     _stage = null;
     _stageMounted = false;
+    _stageCapture = null;
+    /** closed, open or minimized: the rail's state, from its events. */
+    railState = 'closed';
+    _conversationPlace = null;
 
     messageContext;
 
@@ -183,8 +203,14 @@ export default class CustomerSummaryPanel extends LightningElement {
     renderedCallback() {
         if (!this._stage && this.refs && this.refs.stage) {
             this._stage = this.refs.stage;
+            // Capture phase: the composer stops every key but Esc and Cmd/Ctrl-K from leaving it.
+            this._stageCapture = (event) => this._handleStageCapture(event);
+            this._stage.addEventListener('keydown', this._stageCapture, true);
             this._mountStage();
             this._applyTheme();
+        }
+        if (!this._conversationPlace) {
+            this._placeConversation('compact');
         }
     }
 
@@ -198,6 +224,7 @@ export default class CustomerSummaryPanel extends LightningElement {
             this._stage.remove();
             this._stageMounted = false;
         }
+
         if (this._subscription) {
             unsubscribe(this._subscription);
             this._subscription = null;
@@ -223,6 +250,26 @@ export default class CustomerSummaryPanel extends LightningElement {
         );
     }
 
+    /**
+     * Moves the one conversation into the window or the rail. Both homes are lwc:dom="manual" containers,
+     * so the move is the panel's own DOM work. The conversation keeps its state across the move.
+     */
+    _placeConversation(place) {
+        const conversation = this._conversation();
+        const home = place === 'rail' ? this.refs && this.refs.railHome : this.refs && this.refs.compactHome;
+        if (!conversation || !home) {
+            return;
+        }
+        if (this._conversationPlace !== place || conversation.parentNode !== home) {
+            home.appendChild(conversation);
+        }
+        this._conversationPlace = place;
+    }
+
+    _rail() {
+        return (this.expandEnabled && this.refs && this.refs.rail) || null;
+    }
+
     // ------------------------------------------------------------ template state
 
     get agentName() {
@@ -241,8 +288,26 @@ export default class CustomerSummaryPanel extends LightningElement {
         return 'cs-stage ' + (this.corner === 'left' ? 'cs-corner_left' : 'cs-corner_right');
     }
 
+    /** The launcher scales away while the window or the rail is out; a minimized rail brings it back. */
+    get launcherAway() {
+        return this.isOpen || this.railState === 'open';
+    }
+
     get launcherClass() {
-        return 'cs-launcher' + (this.isOpen ? ' cs-launcher_away' : '');
+        return 'cs-launcher' + (this.launcherAway ? ' cs-launcher_away' : '');
+    }
+
+    get launcherExpandClass() {
+        return 'cs-launcher-expand' + (this.launcherAway ? ' cs-launcher_away' : '');
+    }
+
+    /** The rail draws the conversation comfortable, with the sessions list open (FE-22's control). */
+    get conversationDensity() {
+        return this.railState === 'closed' ? 'compact' : 'comfortable';
+    }
+
+    get sessionsOpen() {
+        return this.railState === 'open';
     }
 
     get sheetClass() {
@@ -293,6 +358,16 @@ export default class CustomerSummaryPanel extends LightningElement {
         }
     }
 
+    /** Cmd/Ctrl-Shift-K inside the stage, before the composer can stop it: opens the rail. */
+    _handleStageCapture(event) {
+        const rail = this._rail();
+        if (!rail || event.defaultPrevented || !isRailHotkey(event)) {
+            return;
+        }
+        event.preventDefault();
+        this._openRail({ source: 'hotkey' });
+    }
+
     /**
      * Keys inside the stage (the composer, the launcher), which the document listeners cannot hear:
      * Cmd/Ctrl-K, and any key ends the focus guard, as a key on the page does.
@@ -339,12 +414,114 @@ export default class CustomerSummaryPanel extends LightningElement {
         if (this.messageContext) {
             publish(this.messageContext, CUSTOMER_SUMMARY_EXPAND, { ...detail });
         }
-        // The rail takes the thread over; the compact window closes as on minimize.
-        this._close();
+        // The rail takes the thread over, on the same session; the window closes.
+        this._openRail({ ...detail, source: 'expand' });
+    }
+
+    /** The launcher's expand button: the rail, straight from the corner. */
+    handleLauncherExpand() {
+        this._openRail({ source: 'launcher' });
+    }
+
+    /** Pointer or keyboard on the launcher's expand: start loading the account's context now. */
+    handleLauncherExpandHover() {
+        const rail = this._rail();
+        if (rail) {
+            rail.prefetch();
+        }
+    }
+
+    /**
+     * Opens the rail from the panel's own controls and keys. Focus goes back, on close, to where it was
+     * before the window opened (or the launcher), never to the composer the rail is taking over.
+     */
+    _openRail(options) {
+        const rail = this._rail();
+        if (!rail) {
+            return;
+        }
+        let returnFocus;
+        if (this.isOpen) {
+            returnFocus = this._returnFocus;
+            this._closeQuietly();
+        } else if (!this._stageHasFocus()) {
+            returnFocus = deepActiveElement();
+        }
+        rail.open({ ...options, returnFocus: returnFocus || (this.refs && this.refs.launcher) || null });
+    }
+
+    /** The rail opened (by any route): the window closes, and the thread moves into the rail. */
+    handleRailOpen(event) {
+        const detail = event.detail || {};
+        if (detail.focus) {
+            // The panel places focus itself: on the composer.
+            event.preventDefault();
+        }
+        if (this.isOpen) {
+            this._closeQuietly();
+        }
+        if (detail.sessionId && detail.sessionId !== this.sessionId) {
+            this.sessionId = detail.sessionId;
+        }
+        this._placeConversation('rail');
+        this.railState = 'open';
+        if (detail.focus) {
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            setTimeout(() => {
+                const conversation = this._conversation();
+                if (conversation && this.railState === 'open') {
+                    conversation.focusComposer();
+                }
+            }, 0);
+        }
+    }
+
+    handleRailMinimize() {
+        this.railState = 'minimized';
+    }
+
+    /** The rail closed: the thread comes back to the window. When the rail could not put focus back, the launcher takes it. */
+    handleRailClose(event) {
+        const detail = event.detail || {};
+        this.railState = 'closed';
+        this._placeConversation('compact');
+        if (detail.hadFocus && !detail.restored) {
+            const launcher = this.refs && this.refs.launcher;
+            if (launcher) {
+                // After the rerender brings the launcher back.
+                // eslint-disable-next-line @lwc/lwc/no-async-operation
+                setTimeout(() => {
+                    if (!deepActiveElement()) {
+                        launcher.focus();
+                    }
+                }, 0);
+            }
+        }
+    }
+
+    _stageHasFocus() {
+        const stage = this._stage;
+        return Boolean(stage) && stage.matches(':focus-within');
+    }
+
+    /** Closes the window without moving focus: the rail is about to take it. */
+    _closeQuietly() {
+        this._stopFocusGuard();
+        this._returnFocus = null;
+        this.isOpen = false;
+        const sheet = this.refs && this.refs.sheet;
+        if (sheet && sheet.open && typeof sheet.close === 'function') {
+            sheet.close();
+        }
     }
 
     _openAndFocus() {
         this._stopFocusGuard();
+        // The rail out (or minimized): Cmd/Ctrl-K brings the thread back to the window.
+        const rail = this._rail();
+        if (rail && this.railState !== 'closed') {
+            rail.close();
+        }
         // Record where focus was, unless it is already inside the window.
         if (!this._sheetHasFocus()) {
             this._returnFocus = deepActiveElement();
@@ -458,7 +635,10 @@ export default class CustomerSummaryPanel extends LightningElement {
             return Promise.resolve();
         }
         const recordId = message.recordId || null;
-        this._openAndFocus();
+        // With the rail out, the request runs there; otherwise the window opens for it.
+        if (this.railState !== 'open') {
+            this._openAndFocus();
+        }
         const conversation = this._conversation();
         if (!conversation) {
             return Promise.resolve();

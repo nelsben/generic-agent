@@ -369,11 +369,12 @@ test('8. axe finds no WCAG A/AA violations in the open panel: brief state and dr
     expect.soft(drillViolations, 'axe violations in the drill state').toEqual([]);
 });
 
-test('9. Minimize collapses to the launcher and keeps the conversation; Expand is off by default', async ({ page, panel }) => {
+test('9. Minimize collapses to the launcher and keeps the conversation; Expand is on with the rail', async ({ page, panel }) => {
     const anchor = pageAnchor(page);
     await anchor.focus();
     await panel.open();
-    await expect(panel.expandButton).toHaveCount(0);
+    // The rail (FE-15) ships with the utility item, so Expand is shown (e2e/rail.spec.js uses it).
+    await expect(panel.expandButton).toBeVisible();
     await panel.ask(NO_SUCH_ACCOUNT);
     await expect(panel.turns).toHaveCount(1, { timeout: 60_000 });
     await expect(panel.spinner).toBeHidden();

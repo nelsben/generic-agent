@@ -24,12 +24,18 @@ test.describe('hotkey branches @hotkey', () => {
         await expect(panel.dialog).toBeHidden();
     });
 
-    test('Cmd/Ctrl-Shift-K and Alt do not open the window', async ({ page, panel, platform }) => {
+    test('Cmd/Ctrl-Shift-K opens the rail, not the window, and Alt opens neither', async ({ page, panel, platform }) => {
         const mod = platform === 'mac' ? 'Meta' : 'Control';
+        // Shift is the rail's key (FE-15): the compact window stays shut.
         await page.keyboard.press(mod + '+Shift+k');
+        await expect(panel.rail).toBeVisible();
+        await expect(panel.dialog).toBeHidden();
+        await page.keyboard.press('Escape');
+        await expect(panel.rail).toBeHidden();
         await page.keyboard.press(mod + '+Alt+k');
         await page.waitForTimeout(1_000);
         await expect(panel.dialog).toBeHidden();
+        await expect(panel.rail).toBeHidden();
     });
 
     test('on a Mac, Ctrl-K inside a text field is left alone: the window stays shut and the key is not taken', async ({ page, panel, platform }) => {

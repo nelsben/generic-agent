@@ -1,0 +1,152 @@
+<template>
+    <dialog
+        class={railClass}
+        aria-label={railLabel}
+        aria-keyshortcuts={keyShortcut}
+        data-open={openState}
+        lwc:ref="rail"
+        onkeydown={handleRailKeydown}
+        onmouseenter={handleRailEnter}
+        onmouseleave={handleRailLeave}
+        onpointerdown={handleRailEngage}
+        onfocusin={handleRailFocusIn}
+        onfocusout={handleRailFocusOut}
+    >
+        <header class="cs-rail-header">
+            <template lwc:if={logoUrl}>
+                <img class="cs-rail-logo" src={logoUrl} alt={logoAlt} />
+            </template>
+            <h2 class="cs-rail-name">{agentName}</h2>
+            <kbd class="cs-rail-key">{keyHint}</kbd>
+            <span class="cs-rail-controls">
+                <lightning-button-icon
+                    data-action="minimize"
+                    icon-name="utility:minimize_window"
+                    variant="bare"
+                    alternative-text="Minimize the side panel"
+                    title="Minimize the side panel"
+                    onclick={handleMinimize}
+                ></lightning-button-icon>
+                <lightning-button-icon
+                    data-action="close"
+                    icon-name="utility:close"
+                    variant="bare"
+                    alternative-text="Close the side panel"
+                    title="Close the side panel"
+                    onclick={handleClose}
+                ></lightning-button-icon>
+            </span>
+        </header>
+        <div class="cs-rail-body">
+            <div class="cs-rail-main" tabindex="-1" lwc:ref="main">
+                <slot name="conversation"></slot>
+            </div>
+            <aside class="cs-rail-context" aria-label="Account context">
+                <h3 class="cs-ctx-heading">{contextHeading}</h3>
+                <p class="cs-ctx-status slds-assistive-text" role="status">{liveMessage}</p>
+                <template lwc:if={hasAccount}>
+                    <template lwc:if={isError}>
+                        <div class="cs-ctx-error">
+                            <p>{errorText}</p>
+                            <lightning-button data-action="retry" label="Try again" onclick={handleRetry}></lightning-button>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <template for:each={sections} for:item="s">
+                            <div key={s.key} class="cs-ctx-section" data-testid={s.testId}>
+                                <h4 class="cs-ctx-title">
+                                    <button
+                                        class="cs-ctx-toggle"
+                                        type="button"
+                                        data-section={s.key}
+                                        aria-expanded={s.ariaExpanded}
+                                        aria-controls={s.bodyId}
+                                        onclick={handleSectionToggle}
+                                    >
+                                        <lightning-icon icon-name={s.icon} size="xx-small" class="cs-ctx-chevron"></lightning-icon>
+                                        <span class="cs-ctx-title-text">{s.title}</span>
+                                        <template lwc:if={s.hasCount}>
+                                            <span class="cs-ctx-count" data-count={s.key}>{s.count}</span>
+                                        </template>
+                                    </button>
+                                </h4>
+                                <div id={s.bodyId} class={s.bodyClass} data-section-body={s.key} aria-busy={busy}>
+                                    <template lwc:if={s.loading}>
+                                        <template for:each={skeletonRows} for:item="row">
+                                            <div key={row} class="cs-ctx-skeleton" aria-hidden="true">
+                                                <span class="cs-ctx-skeleton-line"></span>
+                                                <span class="cs-ctx-skeleton-line cs-ctx-skeleton-line_short"></span>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template lwc:elseif={s.unavailable}>
+                                        <p class="cs-ctx-note">{s.unavailableText}</p>
+                                    </template>
+                                    <template lwc:elseif={s.empty}>
+                                        <p class="cs-ctx-empty">{s.emptyText}</p>
+                                    </template>
+                                    <template lwc:elseif={s.hasItems}>
+                                        <ul class="cs-ctx-list">
+                                            <template for:each={s.items} for:item="item">
+                                                <li key={item.key}>
+                                                    <button
+                                                        class="cs-ctx-item"
+                                                        type="button"
+                                                        data-list={s.key}
+                                                        data-index={item.index}
+                                                        onclick={handleOpenRecord}
+                                                    >
+                                                        <template lwc:if={item.hasKind}>
+                                                            <span class={item.kindClass}>{item.kindLabel}</span>
+                                                        </template>
+                                                        <span class="cs-ctx-item-title">{item.title}</span>
+                                                        <span class="cs-ctx-item-meta">
+                                                            <template lwc:if={item.hasAmount}>
+                                                                <lightning-formatted-number
+                                                                    class="cs-ctx-amount"
+                                                                    value={item.amount}
+                                                                    format-style="currency"
+                                                                    maximum-fraction-digits="0"
+                                                                ></lightning-formatted-number>
+                                                            </template>
+                                                            {item.meta}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                        <template lwc:if={s.hasNote}>
+                                            <p class="cs-ctx-note">{s.note}</p>
+                                        </template>
+                                    </template>
+                                    <template lwc:elseif={s.hasSummary}>
+                                        <p class="cs-ctx-summary-date">{s.summaryDate}</p>
+                                        <template for:each={s.lines} for:item="line">
+                                            <p key={line.key} class="cs-ctx-summary-line">{line.text}</p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+                </template>
+                <template lwc:else>
+                    <p class="cs-ctx-none">{noAccountText}</p>
+                </template>
+            </aside>
+        </div>
+    </dialog>
+    <button
+        class={tabClass}
+        type="button"
+        aria-label={tabLabel}
+        aria-keyshortcuts={keyShortcut}
+        lwc:ref="tab"
+        onclick={handleTabClick}
+        onmouseenter={handleTabEnter}
+        onmouseleave={handleTabLeave}
+        onfocus={handleTabFocus}
+    >
+        <span class="cs-rail-tab-text">{agentName}</span>
+    </button>
+</template>
