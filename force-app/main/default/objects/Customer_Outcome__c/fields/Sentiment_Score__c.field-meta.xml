@@ -6,5 +6,5 @@
     <precision>5</precision>
     <scale>2</scale>
     <required>false</required>
-    <description>The account sentiment score set with a summary. Shown to anyone who can see the account.</description>
+    <description>The account sentiment score set with a summary. Other reps' panel views (view()) hide it; holders of the Customer_Summary_Outcome_Access set can read it through the API.</description>
 </CustomField>
