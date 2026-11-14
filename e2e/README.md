@@ -22,8 +22,8 @@ one worker, no parallelism. Two projects run in the one run, whatever machine it
 `mac` runs every spec with the panel reading a Mac (Cmd-K), and `windows` runs only the specs
 tagged `@hotkey`, with the panel reading Windows (Ctrl-K). `support/panel.js` sets what the page's
 `navigator.platform` and `userAgentData.platform` say before any page script runs; the keys the
-tests press follow it. A full run is 26 tests (one skips on `windows`: the Mac-only Ctrl-K check), 6.8 minutes (FE-21, in
-`agent-probe`); the smoke run is 7 tests, 1.3 minutes.
+tests press follow it. A full run is 34 tests (one skips on `windows`: the Mac-only Ctrl-K check; FE-15 ran it in chunks,
+so there is no single-run time yet); the smoke run is 9 tests.
 
 ### Smoke subset
 
@@ -37,6 +37,7 @@ front-end change (the full suite stays the release check). They make no model ca
 | The conversation | FR2 2. the scope chip |
 | The accessible names | 12. the fallback names |
 | The hotkey, both branches | `hotkey-platforms.spec.js`, the platform key opens the window (runs on `mac` and `windows`) |
+| The right rail | `rail.spec.js` 1. Cmd/Ctrl-Shift-K opens the rail over the page, full height; Esc returns focus (runs on `mac` and `windows`) |
 
 ### Reading the HTML report
 
@@ -68,7 +69,7 @@ go to `test-results/`, the HTML report to `playwright-report/`; both are gitigno
 
 ## Model calls
 
-A full run makes **at most about nine model calls** (briefs and questions), so
+A full run makes **at most about ten model calls** (briefs and questions), so
 it costs money and writes brief memory rows, as any use of the panel does:
 
 The `windows` project runs only specs that make no model call, so it adds none.
@@ -83,18 +84,24 @@ The `windows` project runs only specs that make no model call, so it adds none.
 | 6. Typing enables Send; Enter sends | 0 |
 | 7. Drill and breadcrumb | 1 (it fails if no brief section line is drillable) |
 | 8. axe in the brief and drill states | 1, or 2 when no brief section line is drillable |
-| 9. Minimize keeps the conversation; no Expand button by default | 0 |
+| 9. Minimize keeps the conversation; Expand is on with the rail (FE-15) | 0 |
 | 10. Time from Cmd/Ctrl-K to the window's first paint, under 300 ms warm | 0 |
 | 11. Accessibility snapshot of the stage: closed, open, pending, answered, error; names, live region, focus after Esc (`a11y-snapshot.spec.js`, FE-16) | 0 |
 | 12. The fallback names are short-lived and outside the live region (FE-16) | 0 |
 | 13. axe `color-contrast` on the open window, light theme (FE-16) | 0 |
 | Hotkey 1. The platform key opens the window, the launcher names it (`@smoke`, `mac` and `windows`) | 0 |
 | Hotkey 2. The other platform's key does nothing | 0 |
-| Hotkey 3. Cmd/Ctrl-Shift-K and Alt do not open it | 0 |
+| Hotkey 3. Cmd/Ctrl-Shift-K opens the rail, not the window; Alt opens neither (FE-15) | 0 |
 | Hotkey 4. On a Mac, Ctrl-K inside a text field is left alone: window shut, key not taken (`mac` only) | 0 |
 | FR2 1. History lists the account's conversations; New conversation starts clean; reopening the newest loads its turns (`conversation-fr2.spec.js`, FE-22) | 1 |
 | FR2 2. The scope chip reads About the account, switches to Whole org and back by keyboard (FE-22) | 0 |
 | FR2 3. A whole-org question is sent with no context record and its answer is drawn as cards (FE-22) | 1 |
+| Rail 1. Cmd/Ctrl-Shift-K opens the rail flush right, 640 px wide and full height, over the page (the page does not move); header; Esc returns focus (`rail.spec.js`, FE-15; `@smoke`, `mac` and `windows`) | 0 |
+| Rail 2. Expand from the window opens the rail on the same session with the thread intact and History open | 0 (a `/brief` of no account) |
+| Rail 3. One question asked in the rail is answered in the rail | 1 |
+| Rail 4. Each context section shows rows or its empty line, activity rows name their kind, a row opens its record | 0 |
+| Rail 5. Minimize leaves a slim edge tab; resting on it opens a peek that slides back; a click opens it for real | 0 |
+| Rail 6. First paint under 300 ms after Cmd/Ctrl-Shift-K and the context filled within 1.5 s, three fresh pages, warm (`mac` and `windows`) | 0 |
 
 Specs 5 and 6 send `/brief` of a name that matches no account: the resolver answers from SOQL
 with no model call. Spec 5 uses it as the second request because it lands well before the first
@@ -189,12 +196,13 @@ What it needs:
 - `playwright-report/index.html` from a full `npm run test:e2e` run, for `e2e-report.png`.
 - `/opt/homebrew/bin/ffmpeg` and `ffprobe`, which turn the recorded video into GIFs (two-pass
   palette, 12 fps, at most 900 px wide).
-- Model calls per run: three, all in the custom panel (one brief, one follow-up question and one
-  explorer question). The `test:e2e` run adds about seven. The resolver stills (`not-found.png`,
+- Model calls per run: four, all in the custom panel (one brief, one follow-up question, one
+  explorer question and the rail's one question). The `test:e2e` run adds about seven. The resolver stills (`not-found.png`,
   `ambiguous.png`), `hotkey-open.gif`, the whole-window `fr2-conversation-core.png`
   (`08-conversation-core`, the open panel's empty state) and the whole-window
   `fr2-compact-launcher.png` and `fr2-compact-open.png` (`09-compact`, the launcher and the open
-  window's empty state) make none. The other capture scripts were written for the 340x480 utility
+  window's empty state) make none. `10-rail` (FE-15: `fr2-rail.gif`, `fr2-rail-open.png` and
+  `fr2-rail-context.png`, the whole window and the rail alone) asks one question. The other capture scripts were written for the 340x480 utility
   panel and have not been re-run since FE-13 moved the conversation into the window. Nothing is written to the org by the capture
   itself beyond the panel's own memory rows.
 
