@@ -51,7 +51,9 @@ conversation they were in, and the summaries, actions and saved answers kept aga
 ## Agentforce's Agent Memory
 
 Agentforce's Agent Memory is per user and per agent, not keyed to an account, and never reaches the panel, the rail or
-MCP; the measurements and sources are in [fr2-agent-memory.md](../research/fr2-agent-memory.md).
+MCP. That last point is reasoned from the design, not tested: Agent Memory lives inside a registered agent's runtime,
+and the panel, the rail and MCP call Apex services, not the agent. The measurements and sources are in
+[fr2-agent-memory.md](../research/fr2-agent-memory.md).
 
 **What it is.** A feature of Agent Script agents, which Salesforce lists as generally available. A model writes short
 memories about the user from their conversations with one agent (a preference, their name), up to 50 per user per
@@ -62,7 +64,7 @@ to an individual's profile in Data 360 and is read through an API.
 
 **How it fits.** It does well what our design does not try to do: remember a rep's own preferences inside an
 Agentforce agent, curated by a model and managed by the rep. Our surfaces and the MCP door call Apex services, not
-the agent, so nothing it keeps reaches them. It covers neither of our two memories, so both stay as designed.
+the agent, so by design nothing it keeps reaches them. It covers neither of our two memories, so both stay as designed.
 
 | Need | Agent Memory | Data 360 agentic memory | Our design |
 | --- | --- | --- | --- |
@@ -339,7 +341,10 @@ Every item on the earlier version of this page, and every limit BE-26, BE-34, BE
   it now shows in the timeline.
 - **How long an agent conversation keeps its context.** Measured by BE-34 in the optional agent: kept after
   1, 5 and 15 idle minutes, lost at 30, on one sample per gap. The cause of the loss at 30 is not known: idle time is not
-  separated from the session's age or the number of sessions open at once. A team using the optional agent should
+  separated from the session's age or the number of sessions open at once, and a routing slip is not ruled out. "Kept"
+  does not show that the stored account variable itself was read, because a session trace would be needed and traces
+  need Data 360, and the reply at 30 minutes was not kept. Salesforce states no idle timeout for an agent session
+  through the Agent API or the invocable action. A team using the optional agent should
   not count on a follow-up after 30 idle minutes keeping its context; the panel, the rail and MCP never lean on the
   agent's session ([fr2-agent-memory.md](../research/fr2-agent-memory.md#how-long-an-agent-conversation-keeps-its-context)).
   No card yet.
@@ -350,18 +355,32 @@ Every item on the earlier version of this page, and every limit BE-26, BE-34, BE
 - **Agent Memory is not turned on in the optional agent.** Parked with BE-28: it is one `context:` line and a
   publish, for a rep's preferences inside that agent only. Whether the org-wide memory setting is on could not be
   read from the settings BE-34 retrieved.
-- **The platform's memory actions have not been called from Apex.** Accepted: outcomes do not depend on them
+- **The platform's memory actions have not been called from Apex,** and no queryable object or report type for Agent
+  Memory was found. Accepted: outcomes do not depend on them (BE-34).
+- **Agent Memory has no time-based expiry** that Salesforce's docs state: only the rule that the oldest memory is
+  replaced when the 50 are full. Accepted: our outcomes keep their own retention by type and do not depend on it
   (BE-34).
+- **Agent Memory's licence and cost are not stated** in any Salesforce text BE-34 could read, nor whether it needs
+  Data 360. Open until the optional agent turns it on; Parked with BE-28.
+- **Whether Agent Memory applies through the REST Agent API, or the invocable action the optional agent's tests use,
+  is not known:** nothing Salesforce publishes says either way. Parked with BE-28, whose opt-in test would show it.
+- **"Never reaches the panel, the rail or MCP" is reasoned from the design, not tested.** Agent Memory is per user and
+  per agent, inside the agent's runtime, and those surfaces call Apex, not the agent. BE-34's proposed opt-in test
+  checks it (the panel and MCP should not follow a remembered preference). Parked with BE-28.
 - **Data 360's agentic memory is not used.** Accepted: it needs Data 360, and it keys memory to a person, not an
   account (BE-34).
-- **The purge job is not scheduled in the test org.** Open: the script is ready, and running it waits for its
-  approval. No card yet.
+- **The purge job is not scheduled in the test org,** and it has not run there; it is covered by Apex tests only.
+  Open: the script is ready, and running it waits for its approval. No card yet.
 - **No type shares its text.** Open: whether a summary, an action or a saved answer is shown in full to others is a
   per-type choice for the product owner (BE-35). No card yet.
 - **Eight outcome fields are readable outside our surfaces.** Open: any holder of the outcome permission set can read
   the record link, skill, surface, model, sentiment score and label, type and expiry through the API and a list view;
   the report type leaves out the record link. Only the four text fields are closed (BE-35, documented by BE-50). No
   card yet.
+- **A user without the outcome permission set records no outcome,** and gets no outcome context; the summary still
+  returns and the failed write is logged. An admin who does not hold the group is in the same position, because new
+  fields come with no field access for any profile. Accepted: the `Customer_Summary_User` group grants the set
+  (BE-50).
 - **The text shows only in our surfaces, even to its author.** Accepted: a record page or a report shows no title,
   headline, body or reason, which is what keeps the rule on who sees them from being bypassed (BE-35).
 - **No MCP tool lists an account's outcomes,** and the MCP path's context is shown by Apex tests through the actions,
@@ -370,16 +389,25 @@ Every item on the earlier version of this page, and every limit BE-26, BE-34, BE
   an answer. Parked with FE-23.
 - **Sentiment is labels only.** BE-36 found repeated runs agree, but an edit to one prompt rule moved one sample
   account's label two steps, and the model mis-added the rubric; so the chart shows labels only, with no line
-  ([fr2-sentiment.md](../research/fr2-sentiment.md#result)). Open: moving the arithmetic to Apex and repeating the
-  check with more accounts. No card yet.
+  ([fr2-sentiment.md](../research/fr2-sentiment.md#result)). The check used three sample accounts, three runs each,
+  and after the prompt fix one account still did not match the label its records give under the rubric; the fix was
+  written after seeing the first results. Open: moving the arithmetic to Apex and repeating the check with more
+  accounts. No card yet.
+- **The e2e README's model-call counts predate the sentiment call.** A summary now makes 4 model calls, not 3, and
+  the e2e README's model-call counts, per spec and per run, were written before that (BE-36). No card yet.
 - **Whether a new summary says what changed has not been checked on a live run.** The outcome context reaching the
   prompt is tested and was seen in BE-35's live check; the prompt file has no rule of its own that asks for a
   comparison. No card yet.
 - **A sharing rule that hides an account has not been tried.** The test org's account sharing is Public Read/Write,
-  so the tests hide an account by taking away Account Read (BE-35). No card yet.
+  so the tests hide an account by taking away Account Read, and the setting that lets a rep with read-only access to
+  an account still record a summary on it matters only in an org with tighter sharing (BE-35). No card yet.
 - **The swap guide does not list the record-page step yet.** Placing the timeline and the chart on a record page is a
   step for the swap guide, and page 10 does not have it. No card yet.
-- **A reopened chat shows as text, not cards,** because the session keeps no cards. No card yet.
+- **A reopened chat shows as text, not cards,** because the session keeps no cards: each turn keeps its question and
+  a 200-character headline, not the full answer; only the last summary is kept whole (BE-26). No card yet.
+- **Sessions have no time-based expiry.** Accepted: a rep's oldest sessions go once they pass the cap of 200, and a rep
+  who opens many short sessions reaches it sooner. A session whose account is deleted loses its account, is hidden,
+  and goes with the cap in time (BE-26).
 - **A run as a non-admin user** with only the permission set group has not been recorded; the Apex tests use `runAs`.
   Parked: FE-5 has it.
 - **The diagram on this page has not been render-checked:** the render check in

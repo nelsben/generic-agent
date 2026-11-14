@@ -104,6 +104,18 @@ class PatternFiveShape(unittest.TestCase):
         self.assertGreaterEqual(len(rows), 4, "a header and a row per need, from BE-34's table")
         self.assertIsNone(re.search(r"(?i)\breplaces? (BE-26|BE-35)", part), "never says Agent Memory replaces ours")
 
+    def test_agent_memory_section_gives_the_basis_of_never_reaching_our_surfaces(self):
+        part = " ".join(pattern_shape.part_body(self.text, AGENT_MEMORY).split()).lower()
+        self.assertIn("reasoned from the design", part)
+        self.assertIn("not tested", part)
+
+    def test_limits_carry_every_open_row_of_the_agent_memory_and_sentiment_research(self):
+        limits = " ".join(pattern_shape.part_body(self.text, "Limits and open items").split())
+        lower = limits.lower()
+        for phrase in ("time-based expiry", "licence", "cost", "rest agent api", "reasoned from the design",
+                       "not tested", "model-call counts", "e2e"):
+            self.assertIn(phrase, lower, "Limits names " + phrase)
+
     def test_architecture_in_a_few_steps_has_the_five_steps(self):
         part = pattern_shape.part_body(self.text, "The architecture in a few steps")
         steps = re.findall(r"(?m)^\d+\. \*\*([^*]+)\*\*", part)
