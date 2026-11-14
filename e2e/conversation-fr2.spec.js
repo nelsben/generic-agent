@@ -95,7 +95,7 @@ test('FR2 1. History lists the account’s conversations; New conversation start
     await expect(page.locator('body')).not.toContainText("Couldn't open that conversation");
 });
 
-test('FR2 2. the scope chip reads About the account and switches to Whole org and back, by keyboard', async ({ page, panel }) => {
+test('FR2 2. @smoke the scope chip reads About the account and switches to Whole org and back, by keyboard', async ({ page, panel }) => {
     const { group, label } = scopeOf(panel);
     await panel.open();
     await expect(group).toBeVisible();

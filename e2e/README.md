@@ -9,15 +9,42 @@ and record page, the real Lightning base components, focus, layout, timing and t
 
 ```bash
 npm ci
-npm run test:e2e                         # org alias from SF_TARGET_ORG, default "agent-probe"
-SF_TARGET_ORG=my-alias npm run test:e2e  # any other signed-in alias
+npm run test:e2e                         # the full suite: the release check, about 7 minutes
+npm run test:e2e:smoke                   # one test per surface, about 1.5 minutes: for a front-end change
+SF_TARGET_ORG=my-alias npm run test:e2e  # org alias from SF_TARGET_ORG, default "agent-probe"
 SF_E2E_ORG=my-alias npm run test:e2e     # same, and wins over SF_TARGET_ORG for e2e only
-npx playwright test -g "6. typing"       # one spec
+npx playwright test --project=mac -g "6\. typing"   # one spec
+npx playwright show-report               # open the HTML report of the last run (playwright-report/)
 ```
 
 Chromium only (Playwright's own build, `npx playwright install chromium` if it is missing),
-one worker, no parallelism. A full run takes about three minutes (3.3 minutes for 10 of 10 in
-`agent-probe` after FE-13).
+one worker, no parallelism. Two projects run in the one run, whatever machine it is on:
+`mac` runs every spec with the panel reading a Mac (Cmd-K), and `windows` runs only the specs
+tagged `@hotkey`, with the panel reading Windows (Ctrl-K). `support/panel.js` sets what the page's
+`navigator.platform` and `userAgentData.platform` say before any page script runs; the keys the
+tests press follow it. A full run is 26 tests (one skips on `windows`: the Mac-only Ctrl-K check), 6.8 minutes (FE-21, in
+`agent-probe`); the smoke run is 7 tests, 1.3 minutes.
+
+### Smoke subset
+
+`npm run test:e2e:smoke` runs the tests tagged `@smoke`, one per surface, for a builder checking a
+front-end change (the full suite stays the release check). They make no model call.
+
+| Surface | Smoke test |
+|---|---|
+| The window and the launcher | 1. Cmd/Ctrl-K opens the window in the corner, composer focused |
+| The composer | 6. Typing enables Send; Enter sends |
+| The conversation | FR2 2. the scope chip |
+| The accessible names | 12. the fallback names |
+| The hotkey, both branches | `hotkey-platforms.spec.js`, the platform key opens the window (runs on `mac` and `windows`) |
+
+### Reading the HTML report
+
+After a run, `npx playwright show-report` serves `playwright-report/` on localhost. The list shows
+each test with its project (`mac` or `windows`) and time. Open a failed test for the failing step,
+the screenshot taken at the failure and, attached to it, `console.log`: the page's console and
+uncaught errors (the last 200 lines). Axe results of specs 8 and 13 are attached as JSON.
+Tracing is off, so there is no trace to open. The report is local and gitignored.
 
 ## What it needs
 
@@ -44,7 +71,9 @@ go to `test-results/`, the HTML report to `playwright-report/`; both are gitigno
 A full run makes **at most about nine model calls** (briefs and questions), so
 it costs money and writes brief memory rows, as any use of the panel does:
 
-| Spec | Calls |
+The `windows` project runs only specs that make no model call, so it adds none.
+
+| Spec | What it proves, and its model calls |
 |---|---|
 | 1. Cmd/Ctrl-K before the window was ever opened: bottom right corner, composer focused | 0 |
 | 2. Esc returns focus from the Search button, a record field and the launcher, or falls back to the launcher; Tab can leave | 0 |
@@ -59,6 +88,10 @@ it costs money and writes brief memory rows, as any use of the panel does:
 | 11. Accessibility snapshot of the stage: closed, open, pending, answered, error; names, live region, focus after Esc (`a11y-snapshot.spec.js`, FE-16) | 0 |
 | 12. The fallback names are short-lived and outside the live region (FE-16) | 0 |
 | 13. axe `color-contrast` on the open window, light theme (FE-16) | 0 |
+| Hotkey 1. The platform key opens the window, the launcher names it (`@smoke`, `mac` and `windows`) | 0 |
+| Hotkey 2. The other platform's key does nothing | 0 |
+| Hotkey 3. Cmd/Ctrl-Shift-K and Alt do not open it | 0 |
+| Hotkey 4. On a Mac, Ctrl-K inside a text field is left alone: window shut, key not taken (`mac` only) | 0 |
 | FR2 1. History lists the account's conversations; New conversation starts clean; reopening the newest loads its turns (`conversation-fr2.spec.js`, FE-22) | 1 |
 | FR2 2. The scope chip reads About the account, switches to Whole org and back by keyboard (FE-22) | 0 |
 | FR2 3. A whole-org question is sent with no context record and its answer is drawn as cards (FE-22) | 1 |
