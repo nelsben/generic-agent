@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: teaches a practice to readers new to it, so it has to be plain, encouraging and exact about what each check proves
 status: blocked
-blocked_by: [OPS-38, OPS-46, FE-21, OPS-44]
+blocked_by: [OPS-38, OPS-46, OPS-44]
 fixes: []
 scope: [docs/patterns/08-test-and-release-lifecycle.md, tests/test_pattern_08.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
