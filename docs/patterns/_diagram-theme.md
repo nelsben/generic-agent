@@ -65,8 +65,11 @@ sequenceDiagram
 
 ## Render check
 
-The design rule asks for a check that a diagram renders on GitHub. In OPS-38 **no check could be made to fail, so the
-diagrams on the chapter pages have not been render-checked.** What was tried:
+The design rule asks for a check that a diagram renders on GitHub. **In OPS-44 the script below ran locally:**
+Mermaid 11.4.1 in the Chromium that the repo's Playwright installs printed `FAIL` for the broken sample's second block
+and `ok` for its first, then `ok` for every diagram on pages 01 and 06. That is a local parse and render, not a GitHub
+render: how the diagrams draw on GitHub, in its light and dark themes, is still unchecked. In OPS-38 no check could be
+made to fail. What was tried there:
 
 1. **The GitHub markdown API** (`gh api markdown`) returns a mermaid block as its source, without parsing it. A broken
    diagram passes, so it is not a check.
