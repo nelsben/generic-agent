@@ -4,8 +4,7 @@ title: FR2: build review — an architecture, frontend and security review of ev
 domain: ops
 tier: frontier
 tier_reason: independent cross-cutting review of the whole revision in a live org
-status: blocked
-blocked_by: [FE-19]
+status: queued
 fixes: []
 scope: [docs/reviews/fr2-build-review.md, docs/assets/fr2-review-*.png, e2e/review/**]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
