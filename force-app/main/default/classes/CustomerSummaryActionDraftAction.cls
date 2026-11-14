@@ -5,15 +5,28 @@
  *
  * Give either Text (the user's sentence, drafted through the model) or Action Type with Input JSON. The draft comes
  * back as JSON text to pass to commit_action unchanged, with its card (BE-39's actionDraft) as JSON next to it.
- * No MCP tool exposes this in FR2 without Ben's go; it is ready for one.
+ *
+ * OPS-59: this is the MCP door's draft_action tool. The door allows two actions only, create_task and log_call
+ * (DOOR_ACTIONS). Any other action, named or drafted from words, comes back REFUSED with DOOR_REFUSED_TEXT, no draft
+ * and no card. The panel does not come through here (it calls CustomerSummaryActions), so it keeps all six.
  */
 public with sharing class CustomerSummaryActionDraftAction {
+    /** The actions the door allows (Ben, OPS-59 Approvals row): create a task, log a call. */
+    public static final Set<String> DOOR_ACTIONS = new Set<String>{ 'create_task', 'log_call' };
+    /** The fixed refusal for any other action. */
+    public static final String DOOR_REFUSED_TEXT = 'Only two actions are allowed here: create a task (create_task) and log a call (log_call). Nothing was drafted or saved.';
+
+    /** @return true when the door allows the action */
+    public static Boolean allowed(String action) {
+        return action != null && DOOR_ACTIONS.contains(action);
+    }
+
     public class Request {
         @InvocableVariable(label='Account Id' description='The account the action is for: the account the user has open.' required=true)
         public Id accountId;
         @InvocableVariable(label='Text' description='The user\'s request in their own words, such as "create a follow-up with Maria for next Tuesday". Give this, or Action Type and Input JSON.')
         public String text;
-        @InvocableVariable(label='Action Type' description='One of create_task, create_event, log_call, update_contact, create_case, update_opportunity. Used when Text is empty.')
+        @InvocableVariable(label='Action Type' description='create_task or log_call, the only two actions allowed here. Used when Text is empty.')
         public String actionType;
         @InvocableVariable(label='Input JSON' description='The action\'s fields as a JSON object, such as {"subject":"Send pricing","dueDate":"tomorrow","contact":"Maria"}. For an update, put the fields to change under "changes". Used with Action Type.')
         public String inputJson;
@@ -36,7 +49,7 @@ public with sharing class CustomerSummaryActionDraftAction {
         public String errorMessage;
     }
 
-    @InvocableMethod(callout=true label='Draft Action' category='Customer Summary' description='Drafts one CRM write action for the open account (a task, an event, a logged call, a contact update, a case or an opportunity update) and writes nothing. Show the draft to the user; call Commit Action only after they confirm.')
+    @InvocableMethod(callout=true label='Draft Action' category='Customer Summary' description='Drafts one CRM write action for the open account, a task or a logged call, and writes nothing. Show the draft to the user; call Commit Action only after they confirm.')
     public static List<Response> draft(List<Request> requests) {
         List<Response> out = new List<Response>();
         for (Request req : requests == null ? new List<Request>() : requests) {
@@ -51,8 +64,14 @@ public with sharing class CustomerSummaryActionDraftAction {
             d = CustomerSummaryActions.draftJson(null, null, null);
         } else if (String.isNotBlank(req.text) && String.isBlank(req.actionType)) {
             d = CustomerSummaryActions.draftFromText(req.accountId, req.text);
+        } else if (String.isNotBlank(req.actionType) && !allowed(req.actionType.trim().toLowerCase())) {
+            return refused();
         } else {
             d = CustomerSummaryActions.draftJson(req.actionType, req.accountId, req.inputJson);
+        }
+        // Words can draft any action, so the drafted action is checked too, not only the one named.
+        if (d.action != null && d.status != CustomerSummaryActions.NOT_AN_ACTION && !allowed(d.action)) {
+            return refused();
         }
         Response res = new Response();
         res.status = d.status;
@@ -65,6 +84,18 @@ public with sharing class CustomerSummaryActionDraftAction {
         d.cards = new List<AnswerCard>();
         res.draftJson = JSON.serialize(d);
         d.cards = cards;
+        return res;
+    }
+
+    /** The door's fixed refusal: nothing drafted, no draft JSON, no card. */
+    private static Response refused() {
+        Response res = new Response();
+        res.status = CustomerSummaryActions.REFUSED;
+        res.message = DOOR_REFUSED_TEXT;
+        res.draftText = DOOR_REFUSED_TEXT;
+        res.cards = AnswerCard.toJson(new List<AnswerCard>());
+        res.isSuccess = false;
+        res.errorMessage = DOOR_REFUSED_TEXT;
         return res;
     }
 }
