@@ -6,7 +6,7 @@ tier: standard
 tier_reason: two-file docs and test edit with every wording decision named in the card
 effort: low
 effort_reason: mechanical docs edit against a merged source page
-status: queued
+status: merged
 fixes: [OPS-41]
 scope: [docs/patterns/00-why-custom.md, tests/test_pattern_00.py]
 forbid: [force-app/**, e2e/**, scripts/**, agents/**, docs/plans/**, docs/patterns/12-right-rail.md, docs/patterns/03-hotkey-panel.md, docs/patterns/_diagram-theme.md, docs/ARCHITECTURE.md, docs/assets/**, README.md, .chassis-delegation.json, reference/**]
@@ -30,3 +30,24 @@ OPS-41 wrote page 00 while the rail was still queued, so the page and tests/test
 - PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests passes, and bash scripts/check-docs.sh reports 0 broken links; the hand-back gives both counts.
 - Do not run the Mermaid CDN render check (the product owner has not said whether loading Mermaid from a CDN is allowed). No org, deploy or e2e run is needed or allowed.
 - No person's name, Id, username, email, hostname, local path or client name is added.
+
+## Review
+
+Brain review (2026-11-14). One attempt (04dd367, $0.20). The verifier found the report consistent and returned next=accept with no reviewer pass. The brain read the whole diff (26 added lines) and checked the new anchor.
+
+Findings:
+- docs/patterns/00-why-custom.md now names the right rail as built and links page 12: in the architecture steps (a full-height sheet that slides over the page, opened by Cmd/Ctrl-Shift-K, Expand, or the expand button beside the launcher), in the Ask step (the same conversation moves out of the window, so the thread is kept) and in the measured section.
+- The Say / Do not say table gains a rail row; its Do-not-say cell rules out "pushes the page", "sticky header" and "tested with a screen reader". "There is a rail" is gone from the earlier Do-not-say cell.
+- The Limits item that called the rail planned now points to page 12's Limits and open items (the heading exists). The Mermaid diagrams and the init line are unchanged.
+- tests/test_pattern_00.py replaces the two planned-rail tests with three: the page links 12-right-rail.md, the Say column names the rail (and no Say cell says push, sticky or screen reader), and no sentence names the rail with "planned" or "FE-15".
+
+Gate (worker at 04dd367, verifier consistent): 233 Python tests, 2 skipped; check-docs 69 pages, 0 broken.
+
+Disclosed and accepted:
+- No render check was run, on the brain's instruction; the diagrams did not change.
+- A tests/__pycache__ made by the gate runs was removed before merge.
+
+Still open:
+- OPS-48 still checks page 14's rail wording.
+
+Privacy grep over the diff (26 added lines): 0 hits.
