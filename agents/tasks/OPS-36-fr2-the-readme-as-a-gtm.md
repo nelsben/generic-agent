@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: the public face of the repo, written for a seller and an architect at once, with every claim tied to a tracked source
 status: blocked
-blocked_by: [OPS-35, OPS-39, OPS-40, OPS-41, OPS-42, OPS-43, OPS-45, OPS-47, OPS-48, OPS-49, OPS-52]
+blocked_by: [OPS-35, OPS-39, OPS-40, OPS-41, OPS-43, OPS-45, OPS-47, OPS-48, OPS-49, OPS-52]
 fixes: []
 scope: [README.md, tests/test_readme_fr2.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/patterns/**, docs/assets/**, docs/ARCHITECTURE.md, .chassis-delegation.json, reference/**, sfdx-project.json]
