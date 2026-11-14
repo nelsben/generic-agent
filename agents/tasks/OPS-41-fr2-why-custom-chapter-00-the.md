@@ -4,8 +4,7 @@ title: FR2: "why custom" as chapter 00 — the case for bringing our own surface
 domain: ops
 tier: frontier
 tier_reason: the argument the whole GTM story rests on, written for sellers and architects at once, and fair to the platform
-status: blocked
-blocked_by: [OPS-38]
+status: queued
 fixes: []
 scope: [docs/patterns/00-why-custom.md, tests/test_pattern_00.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
