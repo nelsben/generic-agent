@@ -5,7 +5,7 @@ domain: ops
 tier: frontier
 tier_reason: a chapter that argues a design choice to business readers and teaches builders a new way of working, from Ben's own notes
 status: blocked
-blocked_by: [OPS-38, BE-36]
+blocked_by: [OPS-38]
 fixes: []
 scope: [docs/patterns/04-model-provider-seam.md, docs/guides/models-api-prompts.md, tests/test_pattern_04.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
