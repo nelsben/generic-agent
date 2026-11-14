@@ -163,7 +163,7 @@ All optional. Do them after the README's quick start, which deploys the Apex the
    confirmed in an org, so check it in yours ([07](07-trust-access-and-failure.md)).
 5. **Run the checks.** One turn from Apex through `generateAiAgentResponse`, as in
    [agent-api.md](../research/agent-api.md), then the 16-case spec with `sf agent test create` and
-   `sf agent test run` ([08](08-test-and-release-lifecycle.md), step 7). The spec runs only on an active version,
+   `sf agent test run` ([08](08-test-and-release-lifecycle.md), step 17). The spec runs only on an active version,
    and both spend model calls.
 6. **To change it,** edit the six rules in `agent_router` and keep the org-wide rule first; point each subagent's
    actions at your own `apex://` classes, and keep each answer ready to relay, under about 6,000 characters. Every

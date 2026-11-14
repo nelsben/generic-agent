@@ -147,8 +147,10 @@ tests run in the org, on test records that are thrown away afterwards, so they n
 `sf apex run test --class-names CustomerSummaryTest --wait 10 -o <org-alias>`.
 
 **A first test to copy.** The model is the one thing a test must not call: it costs money, and it answers differently
-each time. So each test class puts in a stand-in, called a stub, that records each call and returns fixed text. From
-[CustomerSummaryTest.cls](../../force-app/main/default/classes/CustomerSummaryTest.cls), trimmed:
+each time. So each test class puts in a stand-in, called a stub, that records each call and returns fixed text.
+Simplified from the test class
+[CustomerSummaryTest](../../force-app/main/default/classes/CustomerSummaryTest.cls) (its stub and its
+`notFoundMakesNoModelCall` test):
 
 ```apex
 @IsTest
@@ -192,7 +194,8 @@ calls replaced by fakes, so it needs no org.
 
 **A first test to copy.** From
 [customerSummaryConversation.test.js](../../force-app/main/default/lwc/customerSummaryConversation/__tests__/customerSummaryConversation.test.js),
-trimmed (`mount`, `ask`, `flush`, `$` and `threeRows` are small helpers at the top of that file):
+trimmed (`mount`, `ask`, `flush` and `$` are helpers at the top of that file; `threeRows` is defined further down,
+inside its own `describe` block):
 
 ```js
 // The Apex method is replaced by a fake that the test controls.
@@ -272,9 +275,8 @@ active version, and a test definition is tied to the version it was created for,
 activation.
 
 **What a run costs.** Every case is a real conversation: the agent's own model call to pick a route, the model calls
-inside the actions (a summary makes up to four), and one more for the judge. Salesforce's testing docs (linked under
-[Adopt it](#adopt-it)) note that a run consumes requests and credits and can change data. So it is a named rung, not part of every change's check, and the planned
-suite is capped at 20 cases with no write actions.
+inside the actions (a summary makes up to four), and one more for the judge. So it is a named rung, not part of every
+change's check, and the planned suite is capped at 20 cases with no write actions.
 
 **Where to run it.** Salesforce advises running Testing Center in a sandbox. `agent-probe` has none.
 
@@ -415,7 +417,7 @@ Each open item from the last version of this page, rechecked.
   Until then the ladder skips the rung and says so.
 - **A test definition is tied to the agent version it was created for.** BE-38's script is to create it again for the
   active version on every run and print the version. Until it is built, create the definition again by hand after
-  each activation, as in step 9.
+  each activation, as in [Testing Center for the agent](#testing-center-for-the-agent).
 - **The local checks cannot see a defect that shows only at run time,** such as a model rewording a reply. Accepted:
   that is what the Testing Center rung (BE-38) and the browser suite are for.
 - **The code scan runs without its Apex rules.** The machine it runs on has no Java, so the scan runs the engines that
@@ -436,5 +438,7 @@ Each open item from the last version of this page, rechecked.
 - **The "Ask the agent" spec** is gone with its button (FE-20).
 - **The diagram on this page has not been render-checked** on GitHub or locally (see
   [Render check](_diagram-theme.md#render-check)). No card yet.
+- **The four public doc links under [Adopt it](#adopt-it) were taken from search results and not opened:** the
+  documentation site refused automated fetches. No card yet.
 
 [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
