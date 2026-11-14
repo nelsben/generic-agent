@@ -4,8 +4,7 @@ title: FR2: pattern 03 as a workbook chapter — the hotkey panel told as the wa
 domain: ops
 tier: frontier
 tier_reason: a chapter written for a business reader and an architect at once, from Ben's own notes
-status: blocked
-blocked_by: [FE-14]
+status: queued
 fixes: []
 scope: [docs/patterns/03-hotkey-panel.md, tests/test_pattern_03.py]
 forbid: [force-app/**, mcp-door/**, spikes/**, scripts/**, data/**, e2e/**, agents/**, docs/plans/**, docs/research/**, docs/reviews/**, docs/assets/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
