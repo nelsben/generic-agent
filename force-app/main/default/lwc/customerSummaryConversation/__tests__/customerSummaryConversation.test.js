@@ -267,6 +267,15 @@ describe('c-customer-summary-conversation', () => {
             expect(el.shadowRoot.textContent).not.toContain('Cannot read properties');
         });
 
+        it('speaks the fixed sentence in the live region and the error turn when the platform rejects with its own text', async () => {
+            explore.mockRejectedValueOnce({ body: { message: 'Disconnected or Canceled' } });
+            const el = await mount();
+            await ask(el, 'q');
+            expect($(el, '[data-testid="abp-live-region"]').textContent).toBe(FIXED_ERROR);
+            expect($(el, '.abp-reply [data-error="true"]').textContent).toBe(FIXED_ERROR);
+            expect(el.shadowRoot.textContent).not.toContain('Disconnected or Canceled');
+        });
+
         it('renders rich text by runs: strong, em and plain spans, never as HTML', async () => {
             explore.mockResolvedValue(exploreResult('**Acme** is *growing* <b>fast</b>'));
             const el = await mount();

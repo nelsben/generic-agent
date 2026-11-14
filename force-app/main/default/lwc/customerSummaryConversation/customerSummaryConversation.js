@@ -108,11 +108,13 @@ const BADGE_CLASS = {
     ERROR: 'slds-theme_error'
 };
 
-/** The AuraHandledException text from Apex, else the fixed line: never raw script or platform text. */
-function errorText(error) {
-    const body = error && error.body;
-    const message = body && (Array.isArray(body) ? body[0] && body[0].message : body.message);
-    return message || ERROR_TEXT;
+/**
+ * The panel's one fixed sentence for every failed request. Platform text ("Disconnected or Canceled") and
+ * Apex messages never reach the rep: the controllers already return ERROR_TEXT for anything unexpected, and
+ * the one deliberate message (a drill's ExploreException) is already replaced by the drill's own onError.
+ */
+function errorText() {
+    return ERROR_TEXT;
 }
 
 function cellText(value) {

@@ -74,6 +74,8 @@ The error line in the live region is the platform's own text. With the request c
 minute."): `errorText` in the conversation component returns `error.body.message` when there is one. That is a
 platform message from outside Apex. It is a change in `force-app` and not part of this card.
 
+Fixed by FE-25: `errorText` now always returns the panel's fixed sentence.
+
 ## VoiceOver script (about five minutes, macOS Safari or Chrome)
 
 Automated browsers cannot hear a screen reader, so this is by hand. Open the Customer Summary app on an account page
