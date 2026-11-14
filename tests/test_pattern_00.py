@@ -90,6 +90,20 @@ class PatternZeroShape(unittest.TestCase):
         for card in ("BE-31", "BE-28"):
             self.assertIn(card, limits)
 
+    def test_limits_name_the_rail_as_planned_under_fe_15(self):
+        limits = pattern_shape.part_body(self.text, "Limits and open items")
+        self.assertIn("FE-15", limits)
+
+    def test_never_presents_the_rail_as_built_in_the_steps_or_the_say_column(self):
+        steps = pattern_shape.part_body(self.text, "The architecture in a few steps")
+        self.assertNotIn("the rail", steps.lower())
+        measured = pattern_shape.part_body(self.text, "What was measured, and how to say it")
+        rows = [line for line in measured.splitlines() if line.startswith("| ") and not line.startswith("| ---")]
+        self.assertGreater(len(rows), 1, "the Say / Do not say table")
+        for row in rows[1:]:
+            say = row.split("|")[1]
+            self.assertNotIn("rail", say.lower(), "the Say column presents the rail: %r" % say)
+
     def test_claims_no_object_or_combination_beyond_pattern_02(self):
         for phrase in ("any object", "any combination"):
             self.assertNotIn(phrase, self.text.lower())
