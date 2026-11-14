@@ -1,0 +1,108 @@
+:host {
+    display: block;
+    --cs-hist-ink: var(--cs-color-ink, #181818);
+    --cs-hist-surface: var(--cs-color-surface, #ffffff);
+    --cs-hist-primary: var(--cs-color-primary, #0b5cab);
+    --cs-hist-muted: color-mix(in srgb, var(--cs-color-ink, #181818) 70%, var(--cs-color-surface, #ffffff));
+    --cs-hist-line: color-mix(in srgb, var(--cs-color-ink, #181818) 14%, var(--cs-color-surface, #ffffff));
+    --cs-hist-wash: color-mix(in srgb, var(--cs-color-ink, #181818) 6%, var(--cs-color-surface, #ffffff));
+    --cs-hist-radius: var(--cs-radius, 6px);
+    font-family: var(--cs-font-body, inherit);
+    color: var(--cs-hist-ink);
+}
+
+.cs-hist-note {
+    margin: 0;
+    color: var(--cs-hist-muted);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+.cs-hist-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.cs-hist-label {
+    font-size: 0.75rem;
+    color: var(--cs-hist-muted);
+}
+
+.cs-hist-select {
+    min-height: 1.75rem;
+    padding: 0 0.5rem;
+    color: var(--cs-hist-ink);
+    background: var(--cs-hist-surface);
+    border: 1px solid var(--cs-hist-muted);
+    border-radius: var(--cs-hist-radius);
+    font: inherit;
+    font-size: 0.8125rem;
+}
+
+.cs-hist-btn {
+    min-height: 1.75rem;
+    padding: 0 0.75rem;
+    margin: 0.5rem 0.5rem 0 0;
+    color: var(--cs-hist-primary);
+    background: var(--cs-hist-surface);
+    border: 1px solid var(--cs-hist-primary);
+    border-radius: var(--cs-hist-radius);
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.cs-hist-select:focus-visible,
+.cs-hist-btn:focus-visible {
+    outline: 2px solid var(--cs-hist-primary);
+    outline-offset: 2px;
+}
+
+.cs-hist-detail {
+    margin-top: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--cs-hist-wash);
+    border: 1px solid var(--cs-hist-line);
+    border-radius: var(--cs-hist-radius);
+}
+
+.cs-hist-title {
+    margin: 0;
+    font-family: var(--cs-font-display, inherit);
+    font-size: 0.9375rem;
+}
+
+.cs-hist-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    margin: 0.25rem 0 0.5rem;
+    color: var(--cs-hist-muted);
+    font-size: 0.75rem;
+}
+
+.cs-hist-headline {
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+}
+
+.cs-hist-body p {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.cs-hist-reason {
+    margin: 0;
+    color: var(--cs-hist-muted);
+    font-size: 0.75rem;
+}
+
+.cs-hist-reason-head {
+    font-weight: 600;
+}

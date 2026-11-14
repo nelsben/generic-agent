@@ -1,0 +1,69 @@
+<template>
+    <section class="cs-sent" aria-label="Customer sentiment over time">
+        <template lwc:if={isError}>
+            <div data-testid="error">
+                <p class="cs-sent-note">{errorText}</p>
+                <button class="cs-sent-btn" type="button" data-action="retry" onclick={handleRetry}>Try again</button>
+            </div>
+        </template>
+        <template lwc:elseif={isLoading}>
+            <p class="cs-sent-note" role="status">Loading sentiment</p>
+        </template>
+        <template lwc:elseif={showNote}>
+            <p class="cs-sent-note" data-testid="note">{noteText}</p>
+        </template>
+        <template lwc:else>
+            <p class="cs-sent-note" data-testid="labels-only">{labelsOnlyText}</p>
+            <svg class="cs-sent-svg" viewBox={viewBox} role="group" aria-label={chartLabel}>
+                <template for:each={bands} for:item="b">
+                    <g key={b.key}>
+                        <rect class="cs-band" x={plotLeft} y={b.boxY} width={plotWidth} height={b.boxH} data-odd={b.odd}></rect>
+                        <line class="cs-grid" x1={plotLeft} x2={plotRight} y1={b.lineY} y2={b.lineY}></line>
+                        <text class="cs-band-label" x={labelX} y={b.textY} text-anchor="end">{b.label}</text>
+                    </g>
+                </template>
+                <text class="cs-axis" x={plotLeft} y={axisY} text-anchor="start">{firstDate}</text>
+                <text class="cs-axis" x={plotRight} y={axisY} text-anchor="end">{lastDate}</text>
+                <template for:each={points} for:item="p">
+                    <g
+                        key={p.key}
+                        class={p.className}
+                        data-point
+                        data-index={p.index}
+                        data-x={p.x}
+                        tabindex="0"
+                        role="img"
+                        aria-label={p.ariaLabel}
+                        onfocus={handlePointOn}
+                        onblur={handlePointOff}
+                        onmouseenter={handlePointOn}
+                        onmouseleave={handlePointOff}
+                    >
+                        <circle class="cs-pt-ring" cx={p.x} cy={p.y} r="9"></circle>
+                        <circle class="cs-pt-dot" cx={p.x} cy={p.y} r="5"></circle>
+                    </g>
+                </template>
+            </svg>
+            <p class="cs-sent-focus" data-testid="focus" aria-live="polite">{focusText}</p>
+            <table class="cs-sr">
+                <caption>Sentiment label of each summary, newest first</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Sentiment label</th>
+                        <template lwc:if={hasReasonColumn}><th scope="col">Reason</th></template>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={tableRows} for:item="r">
+                        <tr key={r.key}>
+                            <td>{r.date}</td>
+                            <td>{r.label}</td>
+                            <template lwc:if={r.showReason}><td>{r.reason}</td></template>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </template>
+    </section>
+</template>

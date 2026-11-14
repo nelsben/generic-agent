@@ -586,6 +586,11 @@ export default class CustomerSummaryRail extends NavigationMixin(LightningElemen
         return Boolean(this._accountId);
     }
 
+    /** FE-19: the history timeline and the sentiment chart sit under the sections while the rail is open, so a closed rail makes no call. */
+    get showHistory() {
+        return this.hasAccount && this._state === 'open';
+    }
+
     get noAccountText() {
         return NO_ACCOUNT;
     }

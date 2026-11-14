@@ -568,4 +568,29 @@ describe('c-customer-summary-rail', () => {
             await expect(el).toBeAccessible();
         });
     });
+
+    describe('history and sentiment (FE-19)', () => {
+        const history = (el) => $(el, 'c-customer-summary-history-timeline');
+        const chart = (el) => $(el, 'c-customer-summary-sentiment-chart');
+
+        it('puts the timeline and the sentiment chart in the context column, on the rail\'s account, once it is open', async () => {
+            const el = await mount();
+            expect(history(el)).toBeNull();
+            expect(chart(el)).toBeNull();
+            hotkey();
+            await flush();
+            expect($(el, '[data-testid="ctx-history"]')).not.toBeNull();
+            expect(history(el).recordId).toBe(ACME);
+            expect(chart(el).recordId).toBe(ACME);
+            expect($(el, '.cs-rail-context, aside.cs-rail-context').contains(history(el))).toBe(true);
+        });
+
+        it('shows neither without an account', async () => {
+            const el = await mount({ recordId: null, objectApiName: 'Contact' });
+            hotkey();
+            await flush();
+            expect(history(el)).toBeNull();
+            expect(chart(el)).toBeNull();
+        });
+    });
 });

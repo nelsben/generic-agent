@@ -1,0 +1,120 @@
+:host {
+    display: block;
+    --cs-sent-ink: var(--cs-color-ink, #181818);
+    --cs-sent-surface: var(--cs-color-surface, #ffffff);
+    --cs-sent-primary: var(--cs-color-primary, #0b5cab);
+    --cs-sent-error: var(--slds-g-color-error-1, #b0281a);
+    --cs-sent-muted: color-mix(in srgb, var(--cs-color-ink, #181818) 70%, var(--cs-color-surface, #ffffff));
+    --cs-sent-line: color-mix(in srgb, var(--cs-color-ink, #181818) 14%, var(--cs-color-surface, #ffffff));
+    --cs-sent-wash: color-mix(in srgb, var(--cs-color-ink, #181818) 6%, var(--cs-color-surface, #ffffff));
+    font-family: var(--cs-font-body, inherit);
+    color: var(--cs-sent-ink);
+}
+
+.cs-sent-note,
+.cs-sent-focus {
+    margin: 0 0 0.5rem;
+    color: var(--cs-sent-muted);
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.cs-sent-focus {
+    min-height: 2.1em;
+    margin: 0.25rem 0 0;
+    color: var(--cs-sent-ink);
+}
+
+.cs-sent-btn {
+    min-height: 1.75rem;
+    padding: 0 0.75rem;
+    color: var(--cs-sent-primary);
+    background: var(--cs-sent-surface);
+    border: 1px solid var(--cs-sent-primary);
+    border-radius: var(--cs-radius, 6px);
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.cs-sent-btn:focus-visible {
+    outline: 2px solid var(--cs-sent-primary);
+    outline-offset: 2px;
+}
+
+.cs-sent-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 480px;
+}
+
+.cs-band {
+    fill: transparent;
+}
+
+.cs-band[data-odd='true'] {
+    fill: var(--cs-sent-wash);
+}
+
+.cs-grid {
+    stroke: var(--cs-sent-line);
+    stroke-width: 1;
+}
+
+.cs-band-label {
+    fill: var(--cs-sent-ink);
+    font-size: 10px;
+}
+
+.cs-axis {
+    fill: var(--cs-sent-muted);
+    font-size: 10px;
+}
+
+.cs-pt {
+    outline: none;
+    cursor: default;
+}
+
+.cs-pt-ring {
+    fill: transparent;
+    stroke: transparent;
+    stroke-width: 2;
+}
+
+.cs-pt-dot {
+    stroke: var(--cs-sent-surface);
+    stroke-width: 1.5;
+}
+
+.cs-pt_neg .cs-pt-dot {
+    fill: var(--cs-sent-error);
+}
+
+.cs-pt_mid .cs-pt-dot {
+    fill: var(--cs-sent-muted);
+}
+
+.cs-pt_pos .cs-pt-dot {
+    fill: var(--cs-sent-primary);
+}
+
+.cs-pt:focus .cs-pt-ring,
+.cs-pt:focus-visible .cs-pt-ring,
+.cs-pt_on .cs-pt-ring {
+    stroke: var(--cs-sent-ink);
+}
+
+/* The text table is for screen readers only. */
+.cs-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+    white-space: nowrap;
+}
