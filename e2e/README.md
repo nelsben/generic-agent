@@ -206,8 +206,8 @@ What it needs:
   one. The `test:e2e` run adds about ten. The rest make none: `14-resolver` (the not-found and
   several-matches stills), `16-hotkey` (the hotkey GIF; its line is answered by the resolver),
   `17-voice` (the mic stills), `09-compact`, `11-action-draft` and `12-history`. Nothing is written
-  to the org by the capture itself beyond the product's own session and outcome rows, which the two
-  model calls of `13-summary-memory` and the one of `15-explorer` write. `11-action-draft` never
+  to the org by the capture itself beyond the product's own session and outcome rows, which those
+  four model calls write: two from `13-summary-memory`, one from `15-explorer` and one from `10-rail`. `11-action-draft` never
   clicks Confirm and Cancels each draft after its still; there is no result still, since a result
   needs a saved record.
 
@@ -234,9 +234,10 @@ What it produces: stills of the whole 1440x900 viewport at CSS scale (1440x900 p
 the browser, so no address bar), except `fr2-rail-context.png` (the rail alone, 640x900) and
 `fr2-08-e2e-report.png` (800x900 at device scale 2); GIFs cut from the test's video of the same
 viewport, scaled to 900 px wide, 6 to 20 seconds, each starting on a settled frame. The summary GIFs
-cut most of the wait between Send and the answer. A still that names a turn frames that turn's
-question at the top of the conversation's own scroll box, and the run fails if it cannot. Only that
-box is scrolled: `scrollIntoView` would also scroll the rail's dialog and leave the page half off
+cut most of the wait between Send and the answer. `13-summary-memory` frames each turn's question at
+the top of the conversation's own scroll box and fails the run if it cannot; `11-action-draft`,
+`12-history` and `15-explorer` scroll to what they show and take the still without that check. Only
+the scroll box is scrolled: `scrollIntoView` would also scroll the rail's dialog and leave the page half off
 screen, and `11-action-draft` puts the rail's dialog back to the top after the draft's focus moves.
 Raw videos stay in `test-results/capture/raw/` (gitignored). One frame per second of each
 GIF, and its last frame, are written outside the repo for review (`$TMPDIR/abp-capture-frames/`,
