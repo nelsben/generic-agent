@@ -166,7 +166,7 @@ Ranked by severity. Each one gives the file and line, and a proposed card title.
   and the draft card at 1280x720 only; at 1440x900 the same scans are clean. The likely cause is the small icon
   buttons sitting next to something else at that size.
 - *Why it matters:* this is WCAG 2.2 AA (2.5.8). The suite does scan WCAG 2.2 AA: e2e/panel.spec.js:23 (`WCAG_TAGS`
-  includes `wcag22aa`), :77-90 (`axeScan`) and :360-372 (spec 8, the brief and drill states). But
+  includes `wcag22aa`), :77-96 (`axeScan`) and :360-373 (spec 8, the brief and drill states). But
   playwright.config.js sets a 1440x900 viewport only, so no axe scan runs at 1280x720, where this failure shows.
 - *Proposed card:* "Panel: header icon buttons meet the 24 px target size at 1280x720, and the suite's axe scan
   also runs at 1280x720".
