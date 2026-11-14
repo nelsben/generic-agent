@@ -87,7 +87,8 @@
 
 .cs-rail-controls {
     display: flex;
-    gap: 0.25rem;
+    /* Minimize and Close are 16 px icons: 12 px apart, each keeps a 24 px target (WCAG 2.2 target size). */
+    gap: 0.75rem;
     margin-left: auto;
 }
 
