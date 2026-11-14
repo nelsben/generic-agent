@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Lets a user open the app, run its Apex entry points and read their own brief memory and record customer outcomes. Holds only the data-access and outcome-access sets, no standard set and no agent access: reps reach the product through our surfaces, not the agent.</description>
+    <description>Lets a user open the app, run its Apex entry points, read their own brief memory and record customer outcomes. Holds the data-access and outcome-access sets, no standard set and no agent access: reps reach the product through our surfaces.</description>
     <label>Customer Summary User</label>
     <permissionSets>Customer_Summary_Data_Access</permissionSets>
     <permissionSets>Customer_Summary_Outcome_Access</permissionSets>
