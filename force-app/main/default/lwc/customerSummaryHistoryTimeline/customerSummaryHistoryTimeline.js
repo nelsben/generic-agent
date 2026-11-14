@@ -202,7 +202,7 @@ export default class CustomerSummaryHistoryTimeline extends NavigationMixin(Ligh
             });
             refs.push({ key, recordId: o.id, objectName: 'entry', label });
         });
-        const title = 'History';
+        const title = 'Newest first';
         return {
             type: 'timeline',
             version: 1,
