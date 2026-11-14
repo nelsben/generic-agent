@@ -269,7 +269,7 @@ Whether a run in a real org has passed is kept in one place, the README's [Statu
 - **Undo is shown for 15 seconds by a client timer.** The server's own 15-second check still decides.
 - **No email drafting, and no actions on other objects.** No card yet.
 - **The diagram on this page has not been render-checked:** the render check in
-  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
+  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. OPS-61 has it, and it is parked.
 
 ### Closed since the earlier version of this page
 

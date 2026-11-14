@@ -176,7 +176,7 @@ System context: none on this path.
 - The by-hand check (a real microphone in Chrome) is not recorded in the README's [Status table](../../README.md#status)
   yet. OPS-53 records it, and it is parked.
 - The diagram on this page has not been render-checked: the render check in
-  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
+  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. OPS-61 has it, and it is parked.
 
 ### Closed since the earlier version of this page
 

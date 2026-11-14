@@ -246,6 +246,6 @@ conversation in the rail uses the same doors as the compact window, named on [01
 - On a record page the two FE-19 components draw in neutral colours, not the brand's (see
   [10](10-brand-and-theming.md#limits-and-open-items)). No card yet.
 - The diagram on this page has not been render-checked: the render check in
-  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. No card yet.
+  [_diagram-theme.md](_diagram-theme.md#render-check) was not run for this page. OPS-61 has it, and it is parked.
 
 [Back to the pattern index](README.md) | [Back to the architecture page](../ARCHITECTURE.md) | [Back to the README](../../README.md)
