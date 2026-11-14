@@ -183,7 +183,7 @@ The screenshots and GIFs in `docs/assets/` (listed in `docs/assets/MANIFEST.md`)
 live org with one command:
 
 ```bash
-npm run test:e2e    # first: e2e-report.png is a screenshot of this run's HTML report
+npm run test:e2e    # first: fr2-08-e2e-report.png is a screenshot of this run's HTML report
 npm run capture     # writes every panel still and GIF into docs/assets/
 ```
 
@@ -198,29 +198,46 @@ What it needs:
 - Everything the e2e suite needs (above): the deployed panel, a signed-in sf CLI session for the
   alias, and the seeded sample account Edge Communications. Sign-in is the e2e global setup;
   capture never logs in itself.
-- `playwright-report/index.html` from a full `npm run test:e2e` run, for `e2e-report.png`.
+- `playwright-report/index.html` from a full `npm run test:e2e` run, for `fr2-08-e2e-report.png`.
 - `/opt/homebrew/bin/ffmpeg` and `ffprobe`, which turn the recorded video into GIFs (two-pass
   palette, 12 fps, at most 900 px wide).
-- Model calls per run: four, all in the custom panel (one brief, one follow-up question, one
-  explorer question and the rail's one question). The `test:e2e` run adds about seven. The resolver stills (`not-found.png`,
-  `ambiguous.png`), `hotkey-open.gif`, the whole-window `fr2-conversation-core.png`
-  (`08-conversation-core`, the open panel's empty state) and the whole-window
-  `fr2-compact-launcher.png` and `fr2-compact-open.png` (`09-compact`, the launcher and the open
-  window's empty state) make none. `10-rail` (FE-15: `fr2-rail.gif`, `fr2-rail-open.png` and
-  `fr2-rail-context.png`, the whole window and the rail alone) asks one question. `11-action-draft` (FE-14: the whole-window `fr2-action-draft.png`, a "Create a follow-up" draft with Subject filled and Due marked Needed) makes none and writes nothing: it never clicks Confirm and Cancels the draft after the still. There is no result still, since a result needs a saved record. The other capture scripts were written for the 340x480 utility
-  panel and have not been re-run since FE-13 moved the conversation into the window. Nothing is written to the org by the capture
-  itself beyond the panel's own memory rows.
+- Model calls per run: four, all in the custom panel: `13-summary-memory` makes two (a summary of
+  Edge Communications and one follow-up), `15-explorer` one (a whole-org question) and `10-rail`
+  one. The `test:e2e` run adds about ten. The rest make none: `14-resolver` (the not-found and
+  several-matches stills), `16-hotkey` (the hotkey GIF; its line is answered by the resolver),
+  `17-voice` (the mic stills), `09-compact`, `11-action-draft` and `12-history`. Nothing is written
+  to the org by the capture itself beyond the product's own session and outcome rows, which the two
+  model calls of `13-summary-memory` and the one of `15-explorer` write. `11-action-draft` never
+  clicks Confirm and Cancels each draft after its still; there is no result still, since a result
+  needs a saved record.
 
-What it produces: stills at viewport 1440x900 and deviceScaleFactor 2, cropped to the panel and
-the record header (at most 1600 px wide); GIFs cut from the test's video, 6 to 20 seconds, each
-starting on a settled frame. `brief-flow.gif` cuts most of the spinner wait between Send and the
-answer. `panel-brief.png` frames the brief's question at the top of the scroll box, and the run
-fails if the headline and the first two section headers are not all inside it. `explore-answer.png`
-frames the question the same way, and the run fails if the table's header row is not inside it.
-Its question is the plain "Which 5 open opportunities have the largest amounts?". Rule 9 of
-`AgentPrompt_Explore` keeps the answer to a short lead and leaves the rows to the table; before that
-rule (BE-17), the answer listed every row and the header row needed 470 px of a 273 px scroll box
-([explore-prompt-1.md](../docs/research/explore-prompt-1.md)).
+The scripts, one per pattern page or surface (OPS-52 replaced the utility-panel scripts `01-hotkey`,
+`02-resolver`, `03-brief`, `04-explore` and `08-conversation-core`; the images they wrote stay in
+`docs/assets/`, marked in the manifest):
+
+| Script | Writes | Pages |
+|---|---|---|
+| `05-report` | `fr2-08-e2e-report.png` | 08 |
+| `06-brand` | `brand-swap-before.png`, `brand-swap-after.png` (skipped by a plain run, see below) | 10 |
+| `07-surface-spike` | `fr2-spike-*.png` (skipped by a plain run, see its header) | research |
+| `09-compact` | `fr2-compact-launcher.png`, `fr2-compact-open.png` | 03 |
+| `10-rail` | `fr2-rail.gif`, `fr2-rail-open.png`, `fr2-rail-context.png` | 12 |
+| `11-action-draft` | `fr2-action-draft.png`, `fr2-action-draft-rail.png` | 13 |
+| `12-history` | `fr2-history-timeline.png`, `fr2-history-sentiment.png` | 12 |
+| `13-summary-memory` | `fr2-01-summary.gif`, `fr2-readme-hero.gif`, `fr2-01-summary-*.png`, `fr2-05-*.png` | 01, 05, README |
+| `14-resolver` | `fr2-01-not-found.png`, `fr2-01-several-matches.png` | 01 |
+| `15-explorer` | `fr2-02-explorer-compact.png`, `fr2-02-explorer-rail.png`, `fr2-02-drill.gif` | 02 |
+| `16-hotkey` | `fr2-03-hotkey.gif` | 03 |
+| `17-voice` | `fr2-11-mic-compact.png`, `fr2-11-mic-rail.png`; `fr2-11-mic-listening.png` only if "Listening" shows without a stub | 11 |
+
+What it produces: stills of the whole 1440x900 viewport at CSS scale (1440x900 pixels: the page, not
+the browser, so no address bar), except `fr2-rail-context.png` (the rail alone, 640x900) and
+`fr2-08-e2e-report.png` (800x900 at device scale 2); GIFs cut from the test's video of the same
+viewport, scaled to 900 px wide, 6 to 20 seconds, each starting on a settled frame. The summary GIFs
+cut most of the wait between Send and the answer. A still that names a turn frames that turn's
+question at the top of the conversation's own scroll box, and the run fails if it cannot. Only that
+box is scrolled: `scrollIntoView` would also scroll the rail's dialog and leave the page half off
+screen, and `11-action-draft` puts the rail's dialog back to the top after the draft's focus moves.
 Raw videos stay in `test-results/capture/raw/` (gitignored). One frame per second of each
 GIF, and its last frame, are written outside the repo for review (`$TMPDIR/abp-capture-frames/`,
 or `CAPTURE_FRAMES_DIR`).
