@@ -45,7 +45,8 @@ Pattern pages: [01 route, gather, reduce](patterns/01-route-gather-reduce.md),
 | `CustomerSummaryPanelController` | `@AuraEnabled` door for the panel: resolve, getBrief, explore, drill, history, sources, agentId. Catches everything |
 
 The panel is the LWC `customerSummaryPanel` in the `Customer_Summary_UtilityBar` utility bar
-([03 hotkey panel](patterns/03-hotkey-panel.md)).
+([03 hotkey panel](patterns/03-hotkey-panel.md)). Cmd/Ctrl-Shift-K or Expand opens it as the right rail
+([12 right rail](patterns/12-right-rail.md)).
 
 ## Add a source
 
