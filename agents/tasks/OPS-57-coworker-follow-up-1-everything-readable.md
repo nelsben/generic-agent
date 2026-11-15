@@ -3,7 +3,6 @@ id: OPS-57
 title: Coworker follow-up 1: everything readable without a live step — the rest of the developer guide, the Enterprise Search API, the Coworker MCP server and custom Lightning types for agent answers, plus Ben's answers and a read-only inventory, all on the spike page
 domain: ops
 tier: standard
-tier_reason: reading public docs in a browser and updating one research page; OPS-56 did the same on sonnet
 status: blocked
 blocked_by: [OPS-28]
 fixes: []

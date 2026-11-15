@@ -2,8 +2,7 @@
 id: BE-47
 title: Coworker follow-up 4: headless door probe — from Apex in an org with Coworker on, try each door the docs name (the agent invocable against the Search Agent, the Enterprise Search API, the Coworker MCP server) and record yes or no with the evidence
 domain: backend
-tier: frontier
-tier_reason: live Apex probes against undocumented platform doors, with strict auth and secret limits
+tier: standard
 status: blocked
 blocked_by: [OPS-58]
 fixes: []

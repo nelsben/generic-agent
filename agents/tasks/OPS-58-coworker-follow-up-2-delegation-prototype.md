@@ -2,8 +2,7 @@
 id: OPS-58
 title: Coworker follow-up 2: delegation prototype — in an org with Coworker on, live turns through Coworker reach Customer_Summary, and how faithfully and how fast the summary and explore answers come back is measured against BE-32
 domain: ops
-tier: frontier
-tier_reason: live org work across Setup, a browser and measurement, with approval gates and an undo list
+tier: standard
 status: blocked
 blocked_by: [OPS-57]
 fixes: []
