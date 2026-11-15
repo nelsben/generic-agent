@@ -29,6 +29,8 @@
   "maxWorkers": 2,
   "_maxWorkersByTier": "A lower limit on the briefed workers of one tier (economy, standard, frontier, premium), under maxWorkers; a tier not named takes maxWorkers alone. Example: {\"frontier\": 2}.",
   "maxWorkersByTier": {},
+  "_maxFrontierShare": "Warn when more than this share of open cards is frontier (0 to 1). Ben, 2026-11-14.",
+  "maxFrontierShare": 0.3,
   "_worktreeRoot": "Folder for the workers' worktrees; empty = sibling folders <repo>-<id>.",
   "worktreeRoot": "",
   "_cardDir": "The folder the task cards live in, relative to the repo root. In a repo that is itself a plugin keep it out of agents/: the engine reads agents/*.md as subagents.",
