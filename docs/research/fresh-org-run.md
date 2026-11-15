@@ -22,7 +22,7 @@
   agent" stay **not yet proven**.
 - **Runs without the agent: not testable here.** The org's agent stays published and active, and no agent was
   deactivated, deleted or unpublished.
-- **OPS-62 (2026-11-15, the connect-24h org): the clean install stopped at its first deploy step.** The org is not empty: it already held 200 Accounts, five other agents and about 70 Apex classes that this repo does not ship, so it is not a clean install either. The validate of the README's 13 source directories failed on compile errors in those org classes, so nothing was deployed. The seed (step 2) passed. See "Clean install in a new org (OPS-62, 2026-11-15)" below.
+- **OPS-62 (2026-11-15, the connect-24h org): the clean install did not get past its deploy step.** The org was not empty: it already held 200 Accounts, five other agents and about 70 org Apex classes from the orgfarm template, so even a full pass is a new org with no prior Customer Summary build, not an empty org. The deploy validate failed twice: with RunLocalTests on compile errors in the org's own classes, then with RunSpecifiedTests over the 31 test classes, where no test ran. Nothing was deployed. The seed (step 2) passed. See the OPS-62 sections at the end.
 - **One README fix:** the ladder line now says to set `SF_TARGET_ORG` (deviation 2).
 
 ## Steps, as typed
@@ -122,10 +122,31 @@ The install is not proven. The deploy validate failed, so no product component r
 the only org write. The failure is in the org's own Apex, not in this repo: the validate runs every local test, and the org's
 existing classes do not compile. This run did not change force-app, data, or scripts, and did not change the test level.
 
-Proposed fix (not applied; a human decision, outside this card): the org's pre-existing Apex must compile before a
-RunLocalTests validate can pass. That means repairing or removing the other build's classes in this org, which the card
-does not allow, or validating the product on its own tests with `--test-level RunSpecifiedTests`, which the card does not
-allow either. Either way, the next run needs the owner's call first.
+Attempt 2 (below) took the coordinator's option: validate with `--test-level RunSpecifiedTests` over the 31 test
+classes. It did not get through either. The other option, repairing or removing the other build's classes in this org,
+is outside this card.
+
+### Attempt 2 (2026-11-15, after the coordinator instruction)
+
+- Times (UTC): the validate ran 21:26:41 to 21:27:14. A diagnostic validate with one test class ran from 21:27:58, and its
+  client timed out at about 21:41 (`--wait 9`; no job result read). The seed re-run was 21:42:04 to 21:42:05.
+- Validate, as typed: `sf project deploy validate -o <org-alias>` with the same 13 `--source-dir` lines,
+  `--test-level RunSpecifiedTests --tests <the 31 names of the *Test.cls files under force-app>`. The test names are the
+  test classes the README's repo holds, found with `find force-app -name '*Test.cls'`. `--tests` takes one flag followed by
+  all the names; a repeated `--tests` flag is refused by the CLI.
+- Result: **Failed** (verified). 149 of 149 components validated with 0 component errors. 0 tests ran (the deploy report
+  shows 0 tests total). Every Apex class in the deploy got a coverage error: "Test coverage of selected Apex Class is 0%, at
+  least 75% test coverage is required". No test failure is listed, so the test run did not execute. Cause not determined.
+- Diagnostic: the same validate with one test class (`CustomerSummaryTest`) did not finish within `--wait 9`. The client
+  timed out. The job result was not read, so the test count for that run is unknown.
+- Seed, the README step 2 re-run as written: **stopped by its own guard**, exit 1: "already has an Account named Edge
+  Communications; nothing was imported" (verified). The records from attempt 1 are in.
+- Not run, because no validated job with test results exists: the quick deploy, the permission set group assignment, the
+  open, the agent publish and activation, the ladder and the e2e. The coordinator's rule says record the error class and
+  stop, which is what this run did.
+- Error class to record for the next run: a RunSpecifiedTests validate on this org runs 0 tests and reports coverage 0%
+  for every class, after 149 components validate cleanly. A RunLocalTests validate fails on compile errors in the org's own
+  classes.
 
 ### Deviations
 
@@ -134,7 +155,10 @@ allow either. Either way, the next run needs the owner's call first.
    in the OPS-28 and OPS-25 runs. It is unset after the run.
 2. Step order: the seed ran after the failed validate, not in the README's order. The seed does not depend on the deploy,
    so it went ahead.
-3. The validate failure is not a README step. Nothing was changed to get past it, and the test level stays `RunLocalTests`.
+3. The validate failure is not a README step. Nothing was changed to get past it.
+4. Attempt 2 validated with `--test-level RunSpecifiedTests` over the 31 test classes, not `RunLocalTests`, on the
+   coordinator's instruction. The README's deploy line stays as written: this run did not prove it wrong for a clean org.
+5. The project-local default org was set again for attempt 2 and unset after the seed re-run (same method as deviation 1).
 
 ### What the next cards need
 
