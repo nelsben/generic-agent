@@ -3,8 +3,7 @@ id: BE-53
 title: Coworker round 2, card 3: in connect-24h the Search Agent door and one ConnectApi.Search.findAndGroup call are tried and read in full, so answer 1 reads yes or no with evidence
 domain: backend
 tier: standard
-status: blocked
-blocked_by: [OPS-63]
+status: queued
 scope: [spikes/coworker/apex/**, spikes/coworker/results/headless.jsonl, docs/research/fr2-coworker-spike.md]
 forbid: [force-app/**, data/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, docs/assets/**, README.md, spikes/coworker/main/**, spikes/coworker/results/delegation.jsonl, spikes/coworker/results/cards.jsonl, spikes/cards/**, spikes/actions/**, e2e/**, mcp-door/**, reference/**, .chassis-delegation.json]
 red_test: none

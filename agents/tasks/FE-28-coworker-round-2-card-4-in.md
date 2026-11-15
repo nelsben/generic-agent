@@ -3,8 +3,7 @@ id: FE-28
 title: Coworker round 2, card 4: in connect-24h FE-24's spike card type and agent are deployed and live, and three Coworker turns plus one standard-panel turn record whether our card envelope is drawn
 domain: frontend
 tier: standard
-status: blocked
-blocked_by: [OPS-63]
+status: queued
 scope: [spikes/coworker/main/**, spikes/coworker/results/cards.jsonl, docs/research/fr2-coworker-spike.md, docs/assets/fr2-coworker-card-*.png, docs/assets/MANIFEST.md]
 forbid: [force-app/**, data/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, spikes/coworker/apex/**, spikes/coworker/results/delegation.jsonl, spikes/coworker/results/headless.jsonl, spikes/cards/**, spikes/actions/**, e2e/**, mcp-door/**, reference/**, .chassis-delegation.json]
 resources: [chrome-connect]
