@@ -3,8 +3,7 @@ id: OPS-57
 title: Coworker follow-up 1: everything readable without a live step — the rest of the developer guide, the Enterprise Search API, the Coworker MCP server and custom Lightning types for agent answers, plus Ben's answers and a read-only inventory, all on the spike page
 domain: ops
 tier: standard
-status: blocked
-blocked_by: [OPS-28]
+status: queued
 fixes: []
 scope: [docs/research/fr2-coworker-spike.md, spikes/coworker/**]
 forbid: [force-app/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, mcp-door/**, e2e/**, data/**]
