@@ -3,7 +3,7 @@ id: FE-28
 title: Coworker round 2, card 4: in connect-24h FE-24's spike card type and agent are deployed and live, and three Coworker turns plus one standard-panel turn record whether our card envelope is drawn
 domain: frontend
 tier: standard
-status: queued
+status: merged
 scope: [spikes/coworker/main/**, spikes/coworker/results/cards.jsonl, docs/research/fr2-coworker-spike.md, docs/assets/fr2-coworker-card-*.png, docs/assets/MANIFEST.md]
 forbid: [force-app/**, data/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, spikes/coworker/apex/**, spikes/coworker/results/delegation.jsonl, spikes/coworker/results/headless.jsonl, spikes/cards/**, spikes/actions/**, e2e/**, mcp-door/**, reference/**, .chassis-delegation.json]
 resources: [chrome-connect]
@@ -27,3 +27,28 @@ FE-24 built a custom Lightning type (coworkerSpikeSummaryCard) and a spike agent
 - **Undo and hand-over.** Leave the spike agent active and the type deployed: the org expires about 24 hours after it was made, and removing them is a destructive step. The section's Undo list names what was deployed, published, activated and granted. Close every tab you created
 - No org Ids, record Ids, job Ids, usernames, emails, hostnames or URLs with a query string in any file. Workers may read docs/plans/** and run scripts/check-docs.sh but edit neither
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests passes, `npx sfdx-lwc-jest -- --roots spikes/coworker` passes (paste its summary line in the hand-back), and bash scripts/check-docs.sh reports 0 broken. No tests/__pycache__, and git status --short is empty after the commit. End with the [[report]] line
+
+## Review
+
+Brain review (2026-11-15). One attempt (c2f6510), sonnet, standard tier, $0.83. The mod judged it consistent and accepted it without a reviewer pass; the brain read the diff itself. Partial result, merged as a record.
+
+Findings:
+- Deployed to connect-24h: the six spike Apex classes (CoworkerSpikeCardActionTest passed under RunSpecifiedTests), the renderer LWC, and the Lightning type coworkerSpikeSummaryCard with its schema.json only.
+- The type's renderer was rejected at deploy: every attribute in lightningDesktopGenAi/renderer.json failed with an unevaluatedProperties error. Deploying in a different order did not help. One fix, declaring the nine properties on the LWC's lightning__AgentforceOutput target, was refused (property types there must be Lightning types) and reverted.
+- The spike agent Customer_Summary_Coworker_Spike published (v1) and activated with c__coworkerSpikeSummaryCard accepted, so the type name resolves.
+- No Coworker or panel turn ran. The worker's grant of agent access (a new permission set for the spike agent) was refused by the session's permission classifier, and the worker did not work around it. No cards.jsonl rows, no captures.
+- docs/research/fr2-coworker-spike.md: the section is renamed "Cards in Coworker, built and measured (FE-24, FE-28)", with a new live-steps block (steps, error class, Undo), and answer 3, "What stays unproven", For Ben item 7 and follow-up item 3 are updated. Nothing claims the card renders.
+
+Gate (worker, gate-mac lane): Python 390 tests, 4 skipped; Jest 2 suites, 9 tests; check-docs 0 broken. Mod: green.
+
+Disclosed and accepted:
+- sfdx-project.json's default package folder was switched for the publish and restored with git checkout.
+- A project-local default org was set in the worktree (untracked).
+- The spike is left deployed and active in connect-24h until the org expires.
+
+Still open:
+- The agent access grant for the spike agent, which was refused in this session. Ben grants it, or says to retry.
+- The renderer: try one property typed as the whole Lightning type, or the HXL widget route.
+- The three Coworker turns and the standard-panel check.
+
+Privacy check over the full branch diff (23 added lines): 0 denylist hits, no pattern hits, no URL hosts.
