@@ -11,13 +11,12 @@ public with sharing class CustomerSummaryTestUsers {
         'Customer_Summary_Data_Access', 'Customer_Summary_Outcome_Access'
     };
 
-    // system-context: test setup builds a user and its permission set assignments, which no rep could do for itself
     /**
      * A System Administrator (sees every record, as the deploying admin does) who holds the product's permission sets.
      * Run the test body as it: System.runAs(CustomerSummaryTestUsers.productUser()) { ... }.
      */
     public static User productUser() {
-        Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' WITH SYSTEM_MODE LIMIT 1];
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' WITH USER_MODE LIMIT 1];
         String uniq = 'csu' + String.valueOf(Crypto.getRandomInteger()).replace('-', '');
         User u = new User(
             Alias = 'csuser',
@@ -32,13 +31,13 @@ public with sharing class CustomerSummaryTestUsers {
         );
         // Setup objects (User, PermissionSetAssignment) in their own context, apart from the test's data.
         System.runAs(new User(Id = UserInfo.getUserId())) {
-            insert as system u;
+            insert as user u;
             List<PermissionSetAssignment> assignments = new List<PermissionSetAssignment>();
-            for (PermissionSet ps : [SELECT Id FROM PermissionSet WHERE Name IN :PRODUCT_SETS WITH SYSTEM_MODE]) {
+            for (PermissionSet ps : [SELECT Id FROM PermissionSet WHERE Name IN :PRODUCT_SETS WITH USER_MODE]) {
                 assignments.add(new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id));
             }
             Assert.areEqual(PRODUCT_SETS.size(), assignments.size(), 'both product permission sets are in the org');
-            insert as system assignments;
+            insert as user assignments;
         }
         return u;
     }
