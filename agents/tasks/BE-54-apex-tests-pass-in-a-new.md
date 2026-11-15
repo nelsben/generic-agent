@@ -4,7 +4,7 @@ title: Apex tests pass in a new org whose deploying admin does not yet hold Cust
 domain: backend
 tier: standard
 status: blocked
-blocked_by: [OPS-62, BE-53, FE-28]
+blocked_by: [BE-53, FE-28]
 scope: [force-app/main/default/classes/*Test.cls, force-app/main/default/classes/*Test.cls-meta.xml, force-app/main/default/classes/CustomerSummaryTestUsers.cls, force-app/main/default/classes/CustomerSummaryTestUsers.cls-meta.xml, docs/research/fresh-org-run.md]
 forbid: [force-app/main/default/objects/**, force-app/main/default/permissionsets/**, force-app/main/default/permissionsetgroups/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, README.md, data/**, scripts/**, tests/**, agents/**, docs/plans/**, spikes/**, e2e/**, mcp-door/**, reference/**, .chassis-delegation.json]
 resources: [org-connect]
