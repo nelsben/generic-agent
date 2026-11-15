@@ -6,11 +6,13 @@ group, a permission set licence, a user licence, an agent (BotDefinition) or a m
 Uses SOQL queries and metadata lists only. Nothing is enabled, assigned, deployed, sent or changed.
 
 Usage:
-  python3 spikes/coworker/inventory.py      # writes spikes/coworker/results/inventory.jsonl (overwrites)
+  python3 spikes/coworker/inventory.py                  # agent-probe; writes results/inventory.jsonl (overwrites)
+  python3 spikes/coworker/inventory.py --org <alias>    # another connected alias; writes results/inventory-<alias>.jsonl
 
 Each line is one check: what was asked, a count, and names (API names and labels only). No Ids, usernames,
 emails, hostnames or tokens are written. Every sf call carries -o agent-probe.
 """
+import argparse
 import datetime
 import json
 import os
@@ -19,6 +21,7 @@ import subprocess
 HERE = os.path.dirname(os.path.abspath(__file__))
 ORG = "agent-probe"
 OUT = os.path.join(HERE, "results", "inventory.jsonl")
+DEFAULT_ORG = "agent-probe"
 TIMEOUT_S = 180
 
 # Words that would name Coworker or the AI Search feature it was built from (the setup docs' older names).
@@ -68,6 +71,12 @@ def has_word(s):
 
 
 def main():
+    global ORG, OUT
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--org", default=DEFAULT_ORG, help="connected org alias (default agent-probe)")
+    ORG = ap.parse_args().org
+    if ORG != DEFAULT_ORG:
+        OUT = os.path.join(HERE, "results", "inventory-%s.jsonl" % ORG)
     rows = []
     rows.append(query("org edition", "SELECT OrganizationType, IsSandbox FROM Organization",
                       ["OrganizationType", "IsSandbox"]))
@@ -103,6 +112,13 @@ def main():
                 if has_word(r.get("Name")) or has_word(r.get("Label"))]
         rows.append({"check": "tabs named Coworker or AI Search (TabDefinition)", "count": len(hits), "names": hits,
                      "tabsRead": len(recs)})
+    rows.append(query("Search Agent: BotDefinition rows with Search in the name or label",
+                      "SELECT DeveloperName, MasterLabel, Type, AgentType FROM BotDefinition "
+                      "WHERE DeveloperName LIKE '%Search%' OR MasterLabel LIKE '%Search%'",
+                      ["DeveloperName", "MasterLabel", "Type", "AgentType"]))
+    rows.append(query("permission set group Access_Ai_Search",
+                      "SELECT DeveloperName, MasterLabel, Status FROM PermissionSetGroup "
+                      "WHERE DeveloperName = 'Access_Ai_Search'", ["DeveloperName", "MasterLabel", "Status"]))
     rows.append(query("every agent (BotDefinition)",
                       "SELECT DeveloperName, MasterLabel, Type, AgentType, AgentTemplate, BotSource FROM BotDefinition "
                       "ORDER BY DeveloperName",
