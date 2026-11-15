@@ -22,7 +22,7 @@
   agent" stay **not yet proven**.
 - **Runs without the agent: not testable here.** The org's agent stays published and active, and no agent was
   deactivated, deleted or unpublished.
-- **OPS-62 (2026-11-15, the connect-24h org): the clean install did not get past its deploy step.** The org was not empty: it already held 200 Accounts, five other agents and about 70 org Apex classes from the orgfarm template, so even a full pass is a new org with no prior Customer Summary build, not an empty org. The deploy validate failed twice: with RunLocalTests on compile errors in the org's own classes, then with RunSpecifiedTests over the 31 test classes, where no test ran. Nothing was deployed. The seed (step 2) passed. See the OPS-62 sections at the end.
+- **OPS-62 (2026-11-15, the connect-24h org): the clean install did not get past its deploy step.** The org was not empty: it already held 200 Accounts, five other agents and about 70 org Apex classes from the orgfarm template, so even a full pass is a new org with no prior Customer Summary build, not an empty org. The deploy validate failed twice: with RunLocalTests on compile errors in the org's own classes; then with RunSpecifiedTests over the 31 test classes, where 413 of 425 tests passed and 12 failed on field access (the admin did not yet hold the permission set group, which the README gives as step 3). Nothing was deployed. The seed (step 2) passed. Attempt 3 found that the README order cannot be fixed by moving the group earlier, because the group needs an Apex-referencing permission set. See the OPS-62 sections at the end.
 - **One README fix:** the ladder line now says to set `SF_TARGET_ORG` (deviation 2).
 
 ## Steps, as typed
@@ -134,9 +134,12 @@ is outside this card.
   `--test-level RunSpecifiedTests --tests <the 31 names of the *Test.cls files under force-app>`. The test names are the
   test classes the README's repo holds, found with `find force-app -name '*Test.cls'`. `--tests` takes one flag followed by
   all the names; a repeated `--tests` flag is refused by the CLI.
-- Result: **Failed** (verified). 149 of 149 components validated with 0 component errors. 0 tests ran (the deploy report
-  shows 0 tests total). Every Apex class in the deploy got a coverage error: "Test coverage of selected Apex Class is 0%, at
-  least 75% test coverage is required". No test failure is listed, so the test run did not execute. Cause not determined.
+- Result: **Failed** (verified). 149 of 149 components validated with 0 component errors. Every Apex class in the deploy got a
+  coverage error: "Test coverage of selected Apex Class is 0%, at least 75% test coverage is required".
+- Correction (added in attempt 3): the "0 tests ran" statement above was wrong. The tests did run. The brain reran this
+  validate and read the deploy report: 413 of 425 tests passed and 12 failed, all on field access (see attempt 3). The
+  attempt-2 job's own report, read by this run, showed 0 tests total; that reading is not explained by anything in this
+  run's output, and it is recorded here rather than dropped.
 - Diagnostic: the same validate with one test class (`CustomerSummaryTest`) did not finish within `--wait 9`. The client
   timed out. The job result was not read, so the test count for that run is unknown.
 - Seed, the README step 2 re-run as written: **stopped by its own guard**, exit 1: "already has an Account named Edge
@@ -144,9 +147,37 @@ is outside this card.
 - Not run, because no validated job with test results exists: the quick deploy, the permission set group assignment, the
   open, the agent publish and activation, the ladder and the e2e. The coordinator's rule says record the error class and
   stop, which is what this run did.
-- Error class to record for the next run: a RunSpecifiedTests validate on this org runs 0 tests and reports coverage 0%
-  for every class, after 149 components validate cleanly. A RunLocalTests validate fails on compile errors in the org's own
-  classes.
+- Error classes to record: a RunLocalTests validate fails on compile errors in the org's own classes (attempt 1). A
+  RunSpecifiedTests validate over the 31 test classes reaches the tests and fails 12 of 425 on field access (the brain's
+  rerun; see attempt 3). The 0% coverage lines above came from this run's job report, which did not show the test results.
+
+### Attempt 3 (2026-11-15, after coordinator instruction 2)
+
+- Times (UTC): the NoTestRun validate was refused at 21:56:20. The RunSpecifiedTests validate ran 21:56:28 to 21:56:43.
+- Step 1 as the coordinator set it: validate and quick deploy of `objects`, the two permission set files and
+  `permissionsetgroups`, with no Apex. Result: **blocked** (verified).
+  - `sf project deploy validate --test-level NoTestRun` is refused by the CLI: the allowed levels are RunAllTestsInOrg,
+    RunLocalTests, RunSpecifiedTests and RunRelevantTests.
+  - With `--test-level RunSpecifiedTests --tests CustomerSummaryTest` (the fallback the coordinator named), the validate
+    failed: "Error in Customer_Summary_Data_Access - In field: apexClass - no ApexClass named BrandSettings found". 0
+    components deployed.
+  - Why: `Customer_Summary_Data_Access` grants 12 Apex classes, which the org does not have yet, and it is one of the two
+    permission sets in `Customer_Summary_User`. `Customer_Summary_Outcome_Access` grants no Apex classes; it grants
+    `Customer_Outcome__c.Related_Record_Id__c`. `Customer_Summary_Data_Access` grants `Customer_Summary_Session__c.Session_Key__c`.
+  - So the permission set group cannot deploy before the Apex, and the Apex cannot deploy without passing tests. The tests
+    need the group for field access. That is a loop, not a step order.
+- Steps 2 to 4 (group assignment, full validate with --async and report polling, quick deploy, the rest of the README)
+  were not run. The org was not changed in this attempt: nothing was deployed and no permission was assigned.
+- Main finding for the next card (the brain's rerun, recorded here as reported): the README's order fails in a new org.
+  The 12 failures are on field access: `No such column 'Related_Record_Id__c' on entity 'Customer_Outcome__c'` (5),
+  `No such column 'Session_Key__c' on entity 'Customer_Summary_Session__c'` (3), and 4 assertion or no-rows failures in
+  CustomerSummaryContextTest, CustomerSummaryActionsTest and CustomerSummaryActionUpdatesTest. The admin did not hold the group
+  when the tests ran.
+- Options for the brain (not applied; each changes force-app, the group, or the test level, which this card does not allow):
+  (a) assign `Customer_Summary_Outcome_Access` directly to the admin (it has no Apex, so it can deploy first) and see whether
+  that clears the field failures; this is a single permission set, not the group, so it is a deviation from the README;
+  (b) change `Customer_Summary_Data_Access` so it does not grant the Apex classes until they deploy, which is a force-app change;
+  (c) run the full validate with the test failures accepted, which Salesforce does not allow for an Apex deploy.
 
 ### Deviations
 
@@ -158,7 +189,9 @@ is outside this card.
 3. The validate failure is not a README step. Nothing was changed to get past it.
 4. Attempt 2 validated with `--test-level RunSpecifiedTests` over the 31 test classes, not `RunLocalTests`, on the
    coordinator's instruction. The README's deploy line stays as written: this run did not prove it wrong for a clean org.
-5. The project-local default org was set again for attempt 2 and unset after the seed re-run (same method as deviation 1).
+5. The project-local default org was set again for attempts 2 and 3 and unset after each run (same method as deviation 1).
+6. Attempt 3's NoTestRun validate was refused by the CLI, so the fallback RunSpecifiedTests with one test class was used, as the
+   coordinator allowed. That validate failed on the permission set's Apex references (attempt 3).
 
 ### What the next cards need
 
