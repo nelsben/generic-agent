@@ -65,7 +65,8 @@ module.exports = async function globalSetup() {
         const page = await context.newPage();
         try {
             await page.goto(frontdoorUrl(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
-            await page.waitForURL((u) => u.pathname.startsWith('/lightning/'), { timeout: 60_000 });
+            // A new org lands on exactly /lightning (title "Home | Salesforce"), not /lightning/...
+            await page.waitForURL((u) => u.pathname === '/lightning' || u.pathname.startsWith('/lightning/'), { timeout: 60_000 });
         } catch (e) {
             // Playwright's own message would quote the URL: replace it.
             throw loginHint();
