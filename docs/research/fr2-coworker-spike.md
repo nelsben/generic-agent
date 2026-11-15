@@ -227,7 +227,7 @@ answers (1 and 2). No queued card changes until Ben decides F83 and one of the F
 ## What stays unproven
 
 - Whether Coworker is GA or beta in Lightning: no guide page states GA, and the sources conflict. Of 30 pages read, only the Quick Page title says Beta.
-- Whether an ordinary Developer Edition such as `agent-probe` can turn Coworker on (it is not a listed edition).
+- Whether an ordinary Developer Edition can turn Coworker on: `agent-probe`'s Setup search shows no Coworker page (see [Delegation, measured](#delegation-measured)); a page under another name is not ruled out.
 - Any in-org programmatic call to Coworker's Ask (answer 1), and whether Apex can be a client of the Coworker MCP server (its docs were searched for and not found). The Connect REST and Apex search door is documented, so what remains unproven is whether it returns what Coworker's own search returns, and whether an LWC may call it directly (Apex can).
 - Any embed, hotkey, record context or branding for Coworker's UI (answer 2).
 - What Setup shows when turning on (the Turn On page lists a Confirm step and no terms).
@@ -262,22 +262,27 @@ Each step needs Ben's go. None was taken in this card.
 
 ## Delegation, measured
 
-**Not measured yet (OPS-58, attempt 1, 2026-11-14).** The Approvals row "FR2+: Agentforce Coworker live steps" is
-approved for `agent-probe` (Ben, 2026-11-14). Approving it does not reopen ledger F83. No live step was taken: a new
-Chrome tab opened on the org's Setup landed on the Salesforce login page, so no browser session was signed in to the
-org. The card forbids signing in, so it stopped there. No turn was sent, nothing was granted, enabled, deployed or
-changed in the org, and the tab was closed.
+**Not measured (OPS-58, attempts 1 and 2, 2026-11-14): Setup in `agent-probe` has no Coworker page.** The Approvals row
+"FR2+: Agentforce Coworker live steps" is approved for `agent-probe` (Ben, 2026-11-14). Approving it does not reopen
+ledger F83.
 
-Read-only facts gathered from the org before stopping (counts only):
+- **Attempt 1** stopped at the login page: no browser session was signed in.
+- **Attempt 2** used a Chrome session Ben had signed in to `agent-probe` as the org admin, the test user. In a tab the
+  run created, Setup's Quick Find showed "No matching items found" for "Coworker" and for "Get Started". Searching
+  "Agentforce" listed Agentforce pages (for example "Setup with Agentforce", which is a different feature), and none was
+  Get Started with Agentforce Coworker. Setup's home page offered only a prompt to set up Setup with an Agent. This
+  answers the open item "whether an ordinary Developer Edition can turn Coworker on": this one shows no way to,
+  through Setup's search. The page may live under a name the search does not match; this run did not look further.
+- Per the card, no other Setup step was taken. Nothing was turned on, granted, deployed or changed, no turn was sent,
+  and the run's tab was closed (Ben's signed-in tab was left open).
+- The admin already holds agent access to `Customer_Summary` through the product's own permission sets; no
+  Access_Ai_Search permission set group was found assigned to any user.
 
-- `agent-probe` has two active System Administrator users and two other non-person users. The test user would be the
-  admin the CLI's `agent-probe` login uses.
-- The administrator profile's users already hold agent access to `Customer_Summary` (permission sets for it and its
-  user group are assigned); none of the users reads as holding the Access_Ai_Search permission set group.
-- Whether Setup has the Get Started with Agentforce Coworker page is still unknown.
+The three questions times three turns are therefore unrun, and there are no timings to put beside BE-32's. To go on,
+Ben picks another org that shows the Coworker page (For Ben item 3, a Trailhead Coworker playground), names it in the
+Approvals row, and signs in there as the test user.
 
-To continue, Ben signs in to `agent-probe` as the test user in Chrome and says so; the card then runs the three
-questions three times each and fills this section with a table next to BE-32's numbers.
+**Undo.** Granted: nothing. Removed: nothing. Left in the org: nothing.
 
 ## Follow-up cards
 
