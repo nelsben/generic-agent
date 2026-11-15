@@ -260,6 +260,25 @@ Each step needs Ben's go. None was taken in this card.
 | 8 | A live headless try: the Agent API against the Search Agent, an MCP client against the Coworker MCP server (docs not found, so no documented way), or `ConnectApi.Search` from anonymous Apex | Answer 1, in practice. The Apex search call is documented and is the one that can be tried without guessing [S44] |
 | 9 | Ask the account executive: price under our agreements, Flex Credit draw for Agent Actions (the billing page covers queries and delegation, not record writes), Developer Edition and sandbox availability, chat retention and who can see a chat, and GA status in Lightning | The dated licence facts this page could only read from public pages |
 
+## Delegation, measured
+
+**Not measured yet (OPS-58, attempt 1, 2026-11-14).** The Approvals row "FR2+: Agentforce Coworker live steps" is
+approved for `agent-probe` (Ben, 2026-11-14). Approving it does not reopen ledger F83. No live step was taken: a new
+Chrome tab opened on the org's Setup landed on the Salesforce login page, so no browser session was signed in to the
+org. The card forbids signing in, so it stopped there. No turn was sent, nothing was granted, enabled, deployed or
+changed in the org, and the tab was closed.
+
+Read-only facts gathered from the org before stopping (counts only):
+
+- `agent-probe` has two active System Administrator users and two other non-person users. The test user would be the
+  admin the CLI's `agent-probe` login uses.
+- The administrator profile's users already hold agent access to `Customer_Summary` (permission sets for it and its
+  user group are assigned); none of the users reads as holding the Access_Ai_Search permission set group.
+- Whether Setup has the Get Started with Agentforce Coworker page is still unknown.
+
+To continue, Ben signs in to `agent-probe` as the test user in Chrome and says so; the card then runs the three
+questions three times each and fills this section with a table next to BE-32's numbers.
+
 ## Follow-up cards
 
 The brain cut these on 2026-11-13. Card 1 ran on 2026-11-14.
