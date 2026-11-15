@@ -22,7 +22,7 @@
   agent" stay **not yet proven**.
 - **Runs without the agent: not testable here.** The org's agent stays published and active, and no agent was
   deactivated, deleted or unpublished.
-- **OPS-62 (2026-11-15, the connect-24h org): the clean install did not get past its deploy step.** The org was not empty: it already held 200 Accounts, five other agents and about 70 org Apex classes from the orgfarm template, so even a full pass is a new org with no prior Customer Summary build, not an empty org. The deploy validate failed twice: with RunLocalTests on compile errors in the org's own classes; then with RunSpecifiedTests over the 31 test classes, where 413 of 425 tests passed and 12 failed on field access (the admin did not yet hold the permission set group, which the README gives as step 3). Nothing was deployed. The seed (step 2) passed. Attempt 3 found that the README order cannot be fixed by moving the group earlier, because the group needs an Apex-referencing permission set. See the OPS-62 sections at the end.
+- **OPS-62 (2026-11-15, the connect-24h org), attempt 4: the README as written deploys and publishes in a new Developer Edition org, but the e2e smoke rung fails.** The org was not empty: it already held 200 Accounts, five other agents and about 70 org Apex classes from the orgfarm template, so this is a new org with no prior Customer Summary build, not an empty org. `sf project deploy start` with the 13 source directories deployed 149 of 149 components with no tests required (the Developer Edition path). The group, the publish and activation, the agent access set and the ladder checks passed, except the e2e smoke rung, which fails in its frontdoor step (see the attempt 4 section). Earlier attempts found that the production validate path fails in a new org, because 12 tests need the group, which the README gives after the deploy. See the OPS-62 sections at the end.
 - **One README fix:** the ladder line now says to set `SF_TARGET_ORG` (deviation 2).
 
 ## Steps, as typed
@@ -116,7 +116,7 @@ platform and Einstein generative AI settings on.
 Counts: components 0 of 149 deployed; Apex tests not counted (the validate failed before a count was read); records
 seeded 107; ladder rungs 0 of 6 run. Total time for the steps run: about 1 minute, plus the guard and the classification.
 
-### Result
+### Attempt 1 result
 
 The install is not proven. The deploy validate failed, so no product component reached the org. The seed passed and was
 the only org write. The failure is in the org's own Apex, not in this repo: the validate runs every local test, and the org's
@@ -179,6 +179,47 @@ is outside this card.
   (b) change `Customer_Summary_Data_Access` so it does not grant the Apex classes until they deploy, which is a force-app change;
   (c) run the full validate with the test failures accepted, which Salesforce does not allow for an Apex deploy.
 
+### Attempt 4 (2026-11-15, after coordinator instruction 3)
+
+Instruction 3 uses the README's step 1 as written, `sf project deploy start`, because the org is classified as a
+non-production Developer Edition org (the orgfarm host, no trial date, not scratch, not a sandbox, not a Dev Hub). A
+Developer Edition deploy runs no Apex tests, so the 12 field-access tests from attempt 3 do not block it.
+
+| # | README step | Command as typed (with `<org-alias>`) | Result (UTC) | Minutes |
+|---|---|---|---|---|
+| 1a | 1. Deploy (dry run) | `sf project deploy start -o <org-alias>` with the README's 13 `--source-dir` lines, `--dry-run --wait 9 --json` | **Succeeded**, 149 of 149 components, 0 errors, no tests (21:59:23 to 21:59:45, verified) | 0.4 |
+| 1b | 1. Deploy | the same command without `--dry-run`, `--wait 9 --json` | **Succeeded**, 149 of 149 components, 0 errors (22:00:13 to 22:00:39, verified) | 0.5 |
+| 2 | 2. Load the sample data | not re-run in this attempt; it passed in attempt 1 and its guard stopped the re-run in attempt 2 | Done in attempt 1: 107 records | 0 |
+| 3 | 3. Grant access | `sf org assign permset -o <org-alias> -n Customer_Summary_User --json` | **Succeeded**: 1 success, 0 failures (22:00:46 to 22:00:49, verified) | 0.1 |
+| 4 | 4. Open it | `sf org open -o <org-alias>` | Not run as typed: it opens a browser. A one-off check of the frontdoor (the same call with `--url-only`, printing only the landing path and title) reached the Lightning Home page (verified) | 0 |
+| 5 | Agent: publish | `sf agent publish authoring-bundle --api-name Customer_Summary -o <org-alias> --skip-retrieve --json` | **Succeeded**: `success` true, `botDeveloperName` Customer_Summary (22:01:10 to 22:01:29, verified). Activation then reported version 1 (step 6) | 0.3 |
+| 6 | Agent: activate | `sf agent activate --api-name Customer_Summary --version 1 -o <org-alias> --json` | **Succeeded**: version 1 (22:01:55 to 22:01:58, verified) | 0.1 |
+| 7 | Agent: restore the bundle | `git checkout -- force-app/main/default/aiAuthoringBundles/Customer_Summary` | Done; the tree was clean after the publish | 0 |
+| 8 | Agent: access set | `sf project deploy start -o <org-alias> --source-dir .../Customer_Summary_Agent_Access.permissionset-meta.xml`, then `sf org assign permset -o <org-alias> -n Customer_Summary_Agent_Access` | **Succeeded**: deployed 1 of 1; assigned, 1 success, 0 failures (verified) | 0.2 |
+| 8b | Agent access set's optional standard set | `CopilotSalesforceUser` | Not checked in this attempt (the appendix says its name is unconfirmed) | 0 |
+| 9 | Then run the checks: ladder | `SF_TARGET_ORG=<org-alias> SF_E2E_ORG=<org-alias> npm run ladder` (22:02:24 to 22:08) | python passed (390 tests); jest passed (381 of 381); scan passed (415 violations reported; pmd, cpd and sfge skipped, they need Java); **org-check passed** in 237 s (150 components, 425 tests); **drift passed** (in sync); **e2e-smoke failed** in 66 s (see below); stopped at the first failure, so no rung after e2e-smoke ran | 7 |
+| 10 | e2e (smoke) rerun | `SF_TARGET_ORG=<org-alias> SF_E2E_ORG=<org-alias> npm run test:e2e:smoke` (22:08:43 to 22:09:48) | **Failed**: the same error as the ladder's e2e-smoke rung | 1 |
+
+Ladder counts: 6 rungs run, 5 passed, 1 failed (e2e-smoke). Components 149 of 149 deployed. Apex tests: the org-check ran
+425 tests and passed. Records seeded: 107 (attempt 1).
+
+**The e2e failure.** Global setup in `e2e/global-setup.js` calls `sf org open --url-only`, opens the URL in a fresh
+headless browser, and waits for the page path to start with `/lightning/`. The sf call and the Account lookup both work
+when run by hand (verified with a one-off check that prints only status and counts). A one-off browser check of the same
+frontdoor, printing only the landing path and the page title, reached `/lightning` with the title "Home | Salesforce"
+(verified). `/lightning` does not start with `/lightning/`, so the wait times out, and the setup throws the login hint.
+The likely cause is that this path check is too strict for a new org's landing page; a fix has not been made or tested. The
+card does not allow edits under `e2e/`, so nothing was changed. Proposed fix (for the next card): accept the path
+`/lightning` as well as `/lightning/...`.
+
+### Final result (attempt 4)
+
+- The deploy (step 1), the group (step 3), the agent publish and activation, and the agent access set all passed, with
+  the README order as written.
+- The ladder passed its python, jest, scan, org-check and drift rungs. The e2e smoke rung failed (above), so the run is
+  not proven and the README row stays "Not yet proven".
+- The org was not empty before the run, so the result is "a new org with no prior Customer Summary build", not an empty org.
+
 ### Deviations
 
 1. The deploy-gate hook refused the validate ("No target org is configured") until a project-local default was set. The
@@ -192,9 +233,12 @@ is outside this card.
 5. The project-local default org was set again for attempts 2 and 3 and unset after each run (same method as deviation 1).
 6. Attempt 3's NoTestRun validate was refused by the CLI, so the fallback RunSpecifiedTests with one test class was used, as the
    coordinator allowed. That validate failed on the permission set's Apex references (attempt 3).
+7. Attempt 4 used `sf project deploy start`, the README's step 1 as written, on the coordinator's instruction 3 (the Developer
+   Edition classification). No change to the README.
+8. The project-local default org was set again for attempt 4 and unset after the e2e rerun.
 
 ### What the next cards need
 
-Nothing is ready. The product is not deployed, `Customer_Summary` is not published, and the permission set group is not
-assigned. The seed data is in (107 records). The account the next cards should use, once the product is in, is Edge Communications: the README's hero
+Product, agent and permission sets are in (attempt 4). The e2e smoke rung fails on the frontdoor path check in
+`e2e/global-setup.js` (see attempt 4), so the next card needs that fixed before the e2e can be proven. The seed data is in (107 records). The account the next cards should use, once the product is in, is Edge Communications: the README's hero
 image and the seed guard both name it. No agent access check was run.
