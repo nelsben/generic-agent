@@ -3,8 +3,7 @@ id: BE-47
 title: Coworker follow-up 4: headless door probe — from Apex in an org with Coworker on, try each door the docs name (the agent invocable against the Search Agent, the Enterprise Search API, the Coworker MCP server) and record yes or no with the evidence
 domain: backend
 tier: standard
-status: blocked
-blocked_by: [OPS-58]
+status: queued
 fixes: []
 scope: [spikes/coworker/**, docs/research/fr2-coworker-spike.md]
 forbid: [force-app/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, mcp-door/**, e2e/**, data/**, spikes/cards/**, spikes/actions/**]

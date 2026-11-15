@@ -4,8 +4,7 @@ title: Coworker follow-up 3: cards inside Coworker — a spike-only custom Light
 domain: frontend
 tier: frontier
 tier_reason: new metadata type wired to an agent output, a spike agent publish, and a live check in another surface
-status: blocked
-blocked_by: [OPS-58]
+status: queued
 fixes: []
 scope: [spikes/coworker/**, docs/research/fr2-coworker-spike.md, docs/assets/fr2-coworker-*.png, docs/assets/MANIFEST.md]
 forbid: [force-app/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, mcp-door/**, e2e/**, data/**, spikes/cards/**, spikes/actions/**, sfdx-project.json]
