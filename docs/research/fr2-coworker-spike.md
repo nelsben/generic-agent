@@ -102,7 +102,7 @@ None of the ten pages read in a browser documents a Coworker component, a Lightn
 | Our Apex actions (the summary, the explorer, the BE-22 draft and commit pair) | **Yes, through an agent.** Coworker "routes requests to any enabled AI agents that can and surfaces their responses back in one place" (excerpt). Our actions already sit behind the `Customer_Summary` agent | The agent active, reps given agent access again (FE-20 removed it), and good agent and topic descriptions. Coworker routes on agent and topic descriptions only, not on topic instructions, to up to 50 agents. During delegation it streams the agent's thinking steps, and shows a confirmation and waits for approval when a delegated topic asks for one [S9]. The draft and commit pair is not in the agent: BE-28, parked under F83, would have to add it | read [S6]; read in a browser [S9] |
 | Our actions directly, without an agent | **Undocumented.** No source says Coworker calls a custom Apex invocable, a flow or a custom action of our own except through an agent | none | not found |
 | Our MCP door (Customer Summary's actions to outside clients) | **Undocumented.** The Coworker MCP server exposes Coworker outward. No source says Coworker consumes an MCP server we provide. Those are two directions, and only the outward one is documented | none | read [S1], [S4] |
-| Our cards | **Documented yes, through a delegated agent and a custom Lightning type.** When a delegated agent's response is configured to return a custom Lightning type or a Headless Experience Layer widget, Coworker shows that interactive card and its card links as they appear in Lightning Experience; without that configuration it shows a markdown summary. Coworker's own answers stay in markdown, and the guide says a team does not build a separate user interface for Coworker [S9]. **Unproven:** whether our own card envelope (FE-18, BE-39) can travel as a custom Lightning type drawn by our card component, in an org with Coworker on. It is still through an agent, so F83 still applies. Coworker's own answers also come as tables, bullet lists or "Rich Card" layouts [S15]. Where Lightning types render otherwise is in [fr2-standard-limits.md](fr2-standard-limits.md) | A prototype would need a Lightning type on one action and a new agent version (card FE-24); the mechanics are under [What a card in Coworker takes](#what-a-card-in-coworker-takes) | read in a browser [S9]; read [S15] |
+| Our cards | **Documented yes, through a delegated agent and a custom Lightning type.** When a delegated agent's response is configured to return a custom Lightning type or a Headless Experience Layer widget, Coworker shows that interactive card and its card links as they appear in Lightning Experience; without that configuration it shows a markdown summary. Coworker's own answers stay in markdown, and the guide says a team does not build a separate user interface for Coworker [S9]. **Built, not measured (FE-24, 2026-11-14):** a spike Lightning type that carries our card envelope (FE-18, BE-39), its renderer drawn by our card component, and a spike agent are built under `spikes/coworker/main` and pass Jest locally. Whether Coworker draws the card is not measured, because `agent-probe` shows no Coworker page, so nothing was deployed. It is still through an agent, so F83 still applies. Coworker's own answers also come as tables, bullet lists or "Rich Card" layouts [S15]. Where Lightning types render otherwise is in [fr2-standard-limits.md](fr2-standard-limits.md) | Built locally by FE-24 (see [Cards in Coworker, built (FE-24)](#cards-in-coworker-built-fe-24)). What waits: an org that shows Coworker, then deploy, publish, activate and the three turns; the mechanics are under [What a card in Coworker takes](#what-a-card-in-coworker-takes) | read in a browser [S9]; read [S15]; built and Jest-proven locally, not measured in Coworker |
 | Skills | **Undocumented as a developer extension.** Skills are reusable workflows that users save from a conversation and share. Trailhead says they "combine instructions, context, agents, and tools into shareable workflows for your org" (excerpt). Whether a team could ship a Skill as metadata is undocumented | none | read [S6], [S4] |
 
 ## What a card in Coworker takes
@@ -146,7 +146,7 @@ build; partly means it covers some of it.
 | Customer outcomes and sentiment (BE-35, BE-36, FE-19) | **Not covered.** No Coworker source describes storing what was done against the account. The Trailhead exercise gets a sentiment score by asking another agent | read [S6] | Nothing lost; the outcome store would still be ours to build |
 | Voice input (FE-11, merged) | **Undocumented.** No Coworker source names a microphone or dictation | not found | The shared mic in every surface |
 | Write actions with draft, Confirm and Undo (BE-22, BE-27, FE-14) | **Partly.** Create and update with Confirm, up to 15 records in one command, off until an admin turns on the Agent Actions toggle. The user can refine a proposal before confirming, which is documented now [S10]. Email is named in a blog [S15]. Undo is still undocumented. Salesforce's own log-a-call example creates a Task [S22], which bears on ledger F17 (Ben's decision; nothing else about F17 changes here) | read in a browser [S10], [S22]; read [S15] | Undo from stored previous values, the editable draft card, the fixed six-action set and the verb pre-check (BE-22) |
-| Rich cards (FE-18, BE-39, FE-22) | **Partly.** Tables, bullets and "Rich Card" layouts of Coworker's own, and documented yes for a delegated agent's custom Lightning type card. Whether our card envelope travels as a Lightning type is unproven; still through an agent, so F83 applies | read in a browser [S9]; read [S15] | One card contract read by every surface, including MCP |
+| Rich cards (FE-18, BE-39, FE-22) | **Partly.** Tables, bullets and "Rich Card" layouts of Coworker's own, and documented yes for a delegated agent's custom Lightning type card. Our card envelope as a spike Lightning type is built and Jest-proven locally (FE-24); whether Coworker draws it is not measured, because `agent-probe` shows no Coworker page. Still through an agent, so F83 applies | read in a browser [S9]; read [S15]; built locally (FE-24) | One card contract read by every surface, including MCP |
 | The Cmd/Ctrl-K compact window (FE-13, merged) | **Not covered.** Coworker opens from its Ask button; no keyboard shortcut is documented on any page read | read [S6]; read in a browser [S10] | The hotkey from any page, and the corner launcher OPS-29 placed |
 | The rail (Cmd/Ctrl-Shift-K, FE-15) | **Not covered.** Coworker answers open in a toolbar tab, not a side rail | read in a browser [S10]; secondary [S16] | The slide-over rail beside the record, and its prefetched context (BE-25) |
 | Brand theming (BE-24, merged) | **Undocumented.** Coworker is itself the product name; no name, logo or colour setting is documented | not found | The seller's brand swap (F05 to F09), the core of the demo story |
@@ -235,7 +235,7 @@ answers (1 and 2). No queued card changes until Ben decides F83 and one of the F
   A community thread doubts that Coworker's planner hands off to newer custom agents; it is not linked here because
   its URL carries an Id, and it is not evidence.
 - Coworker's turn latency, alone and when delegating (the guide's 90-second limit is documented [S9]; BE-32's turns fit inside it).
-- Whether our own card envelope (FE-18, BE-39) can travel as a custom Lightning type drawn by our card component, in an org with Coworker on. That a delegated agent's custom Lightning type card shows in Coworker is documented [S9]; it is still through an agent, so F83 applies.
+- Whether Coworker draws our own card envelope (FE-18, BE-39) as a custom Lightning type. FE-24 built the type, its renderer and a spike agent, and Jest proves them locally, but nothing was deployed: `agent-probe` shows no Coworker page, so there was nowhere to look. Also unproven until a deploy and a publish: that the Apex compiles in an org, that the agent publishes with the type named as written, and that the type renders at all on the new planner. That a delegated agent's custom Lightning type card shows in Coworker is documented [S9]; it is still through an agent, so F83 applies.
 - Field-level security in Coworker's own answers (secondary source only), and Undo for its writes (refining a proposal before Confirm is documented [S10]).
 - Whether Coworker's actions draw Flex Credits under a seat licence (search summary of the billing page, and a
   secondary source that advises getting it in writing).
@@ -256,7 +256,7 @@ Each step needs Ben's go. None was taken in this card.
 | 4 | Turn Coworker on in an org we hold. The Turn On page read in a browser lists a Confirm step and no terms [S7]; what Setup actually shows, and whether any terms appear, is unverified | Availability. Whether a Search Agent appears as a BotDefinition and what type it is (the guide says it appears in the agent list in Setup [S9]). What Setup offers |
 | 5 | Assign the Coworker licence and permission set group to one test user, and give that user agent access (part of FE-20 undone for one user) | The rep's experience, and what Coworker can reach under a rep's access |
 | 6 | Send Coworker a live message that should go to `Customer_Summary`, three or so times | Delegation, how faithfully the summary and an explore table are relayed, and the latency against BE-32's numbers |
-| 7 | A prototype deploy and agent version with a custom Lightning type on one action | A delegated agent's Lightning type card showing in Coworker is documented yes [S9]. This proves whether our own card envelope travels as a Lightning type and is drawn by our card component. Still through an agent, so F83 applies |
+| 7 | A prototype deploy and agent version with a custom Lightning type on one action. **Built locally by FE-24, not deployed** (see [Cards in Coworker, built (FE-24)](#cards-in-coworker-built-fe-24)). What waits: an org that shows Coworker (item 3 or 4), then a deploy of `spikes/coworker/main`, a publish and an activation of the spike agent, agent access for the test user, and the three turns | A delegated agent's Lightning type card showing in Coworker is documented yes [S9]. This proves whether our own card envelope travels as a Lightning type and is drawn by our card component. Still through an agent, so F83 applies |
 | 8 | A live headless try: the Agent API against the Search Agent, an MCP client against the Coworker MCP server, or `ConnectApi.Search` from anonymous Apex | Partly run by BE-47 (2026-11-14, see [Headless door probe](#headless-door-probe-be-47)): the Search Agent is absent in `agent-probe`, `ConnectApi.Search.find(String)` did not compile (not reached), and the MCP server was not tried. Still open: another `ConnectApi.Search` signature, and the MCP server's OAuth route, which needs Ben's go before any app is created |
 | 9 | Ask the account executive: price under our agreements, Flex Credit draw for Agent Actions (the billing page covers queries and delegation, not record writes), Developer Edition and sandbox availability, chat retention and who can see a chat, and GA status in Lightning | The dated licence facts this page could only read from public pages |
 
@@ -299,6 +299,56 @@ Run 2026-11-14 in `agent-probe` as the org's admin user, from anonymous Apex. Sc
 
 **Proposal for Ben, if a door works later.** None works yet, so there is nothing to build on. The next step for door 2 is to read the documented `ConnectApi.Search` signatures (the Apex reference page refused the automated read) and then run one call in a separate card. Any Coworker door from our code would make Coworker a way in, which is F83 and Ben's decision.
 
+## Cards in Coworker, built (FE-24)
+
+Built 2026-11-14 as files only. Nothing was deployed, validated, published, activated or granted, and no agent was
+contacted. The only org calls were read-only metadata lists in `agent-probe`. They showed that the org already holds
+our card component, and that it holds no Lightning type bundles yet, which means the type is supported. **Whether
+Coworker draws the card is not measured**, because `agent-probe` shows no Coworker page ([Delegation, measured](#delegation-measured)).
+
+| Part | Where, under `spikes/coworker/main/default` | What it does |
+|---|---|---|
+| Lightning type `coworkerSpikeSummaryCard` | `lightningTypes/coworkerSpikeSummaryCard/schema.json` | Points at the Apex class as an `@apexClassType` reference |
+| Renderer config | `lightningTypes/coworkerSpikeSummaryCard/lightningDesktopGenAi/renderer.json` | Names the renderer LWC and maps each type member to one of its `@api` properties |
+| Renderer LWC `coworkerSpikeCardRenderer` | `lwc/coworkerSpikeCardRenderer` | Target `lightning__AgentforceOutput`, one `sourceType`. It rebuilds the card and draws it with our card component (`c-customer-summary-card`) at density compact. A record link opens the record by Id through navigation; no Id goes in the markup |
+| Apex type `CoworkerSpikeSummaryCard` and its parts | `classes/CoworkerSpikeSummaryCard.cls`, `CoworkerSpikeCardBlock`, `CoworkerSpikeCardRun`, `CoworkerSpikeCardRef` | Top-level `global` classes with `@JsonAccess`, members exactly those of BE-39's summary card (type, version, key, title, meta, status, text, body, refs) |
+| Apex action `CoworkerSpikeCardAction` and its test | `classes/CoworkerSpikeCardAction.cls`, `CoworkerSpikeCardActionTest.cls` | Resolves the account name and returns the summary card. A name that does not resolve gets a fixed notice card, so the resolver's message (which can carry Ids) never reaches the card |
+| Spike agent `Customer_Summary_Coworker_Spike` | `aiAuthoringBundles/Customer_Summary_Coworker_Spike` | An Employee agent that answers only "card spike" requests with one action. Its `card` output names the type through `complex_data_type_name` and is displayable |
+
+The renderer uses the card component from `force-app` and does not copy it. The org has one namespace, so the
+component resolves once deployed beside it, and Jest resolves it across package folders. `force-app` and the
+`Customer_Summary` agent are unchanged.
+
+**What was checked locally.**
+
+- Jest: `npx sfdx-lwc-jest -- --roots spikes/coworker`, 2 suites, 9 tests passed. They show that the renderer draws BE-39's
+  published summary example, falls back to the card's text for an unknown type, puts no record Id in the markup, and
+  passes `toBeAccessible()`. A wiring test checks that the Apex members, `renderer.json`, the renderer's properties and
+  the agent's action agree with BE-39's keys.
+- The Lightning Web Security review of the renderer: no findings.
+- The spike agent compiled locally with no diagnostics (`@sf-agentscript/agentforce` 2.9.27).
+- `sf project convert source` over the spike folder succeeded, so the metadata is shaped correctly. It found one agent bundle, six Apex classes, one LWC and one Lightning type. The converted copy was deleted.
+- Not checked: the Apex is not compiled in an org, and its test class has not run.
+
+**What waits, in order.** Each step needs Ben's go (For Ben, item 7).
+
+1. An org that shows Coworker (For Ben, item 3 or 4).
+2. A validate with local tests and a quick deploy of `spikes/coworker/main`. It needs our card component, the resolver and
+   the summary action already in that org.
+3. A publish and an activation of `Customer_Summary_Coworker_Spike`, and agent access for the test user.
+4. Three turns through Coworker that ask for a "card spike" for the seed account, plus one in the standard panel as a
+   control. Each turn is recorded in a `cards.jsonl` with no Ids, with one capture.
+5. A deactivation of the spike agent, and an Undo list that says so.
+
+**Risks named before a deploy.**
+
+- The type name in the agent is written `c__coworkerSpikeSummaryCard`, which is inferred from the type pages and not
+  confirmed by a publish. A misnamed type falls back to plain text with no error.
+- A known issue in the Agent Script skill says custom Lightning types may not render on the new planner. If that
+  happens, the HXL widget route is next ([What a card in Coworker takes](#what-a-card-in-coworker-takes)).
+
+There are no `cards.jsonl` rows and no captures, because no turn ran.
+
 ## Follow-up cards
 
 The brain cut these on 2026-11-13. Card 1 ran on 2026-11-14.
@@ -318,6 +368,7 @@ The brain cut these on 2026-11-13. Card 1 ran on 2026-11-14.
    - Done when one action's output carries our card envelope as a custom Lightning type drawn by our card component, and the page records whether Coworker shows it. Delegated-agent Lightning type cards are documented yes [S9]; this tests our envelope (FE-18, BE-39), and it is still through an agent, so F83 applies.
    - Done when one capture or Ben's screenshot shows the result.
    - Done when the spike's agent version is deactivated, and an Undo list says so.
+   - Status (2026-11-14): built locally, not measured. See [Cards in Coworker, built (FE-24)](#cards-in-coworker-built-fe-24).
 4. **BE-47: headless door probe.** Scope: `spikes/coworker/**`. Needs For Ben item 8. The reading half is done by OPS-57
    (the search API docs are read, and the Coworker MCP server's docs were searched for and not found), so this card is
    the live half.
@@ -477,3 +528,5 @@ deployed, published, activated, created or changed, and no agent or session was 
 
 
 **BE-47 headless probe (2026-11-14).** Granted: nothing. Deployed: nothing. Created: no user, no connected app, no External Client App, no Named Credential, no auth provider. DML: none. Session left open: one, from the `Customer_Summary` control turn ([Headless door probe](#headless-door-probe-be-47)). The invocable has no end call, and the Agent API end call needs a token this card does not get, so the session was not ended and expires on the platform's own timer (the expiry time is not found in [agent-api.md](agent-api.md)).
+
+**FE-24 cards build (2026-11-14).** Nothing was left in any org. Only read-only metadata lists ran in `agent-probe`. Deployed, published, activated, granted, created: nothing.

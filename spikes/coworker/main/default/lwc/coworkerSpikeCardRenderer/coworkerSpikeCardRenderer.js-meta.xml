@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Coworker Spike Card Renderer</masterLabel>
+    <description>FE-24 spike only: draws the coworkerSpikeSummaryCard Lightning type with the shared Customer Summary card at density compact. Not used by the product.</description>
+    <targets>
+        <target>lightning__AgentforceOutput</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AgentforceOutput">
+            <sourceType name="c__coworkerSpikeSummaryCard"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

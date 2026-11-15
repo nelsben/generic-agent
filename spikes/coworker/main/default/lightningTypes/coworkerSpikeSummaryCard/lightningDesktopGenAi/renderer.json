@@ -1,0 +1,20 @@
+{
+  "renderer": {
+    "componentOverrides": {
+      "$": {
+        "definition": "c/coworkerSpikeCardRenderer",
+        "attributes": {
+          "cardType": "{!$attrs.type}",
+          "cardVersion": "{!$attrs.version}",
+          "cardKey": "{!$attrs.key}",
+          "cardTitle": "{!$attrs.title}",
+          "cardMeta": "{!$attrs.meta}",
+          "cardStatus": "{!$attrs.status}",
+          "cardText": "{!$attrs.text}",
+          "cardBody": "{!$attrs.body}",
+          "cardRefs": "{!$attrs.refs}"
+        }
+      }
+    }
+  }
+}

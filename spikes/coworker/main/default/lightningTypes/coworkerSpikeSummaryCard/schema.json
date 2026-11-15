@@ -1,0 +1,5 @@
+{
+  "title": "Customer Summary Card (Coworker spike)",
+  "description": "FE-24 spike only. The summary card of the FR2 card contract (FE-18, BE-39), drawn by the shared Customer Summary card. Its structure comes from the Apex class CoworkerSpikeSummaryCard.",
+  "lightning:type": "@apexClassType/c__CoworkerSpikeSummaryCard"
+}
