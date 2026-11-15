@@ -1,0 +1,70 @@
+# FE-24 spike only: a copy of Customer Summary cut down to one action, so Coworker can delegate a test turn
+# to it and show the summary as a custom Lightning type card (coworkerSpikeSummaryCard). It answers only
+# requests that contain the words "card spike", so nothing else routes here. The product bundle
+# (force-app/main/default/aiAuthoringBundles/Customer_Summary) is not changed.
+system:
+    instructions: "You are the Customer Summary card spike, a test agent. You answer only requests that contain the words \"card spike\" and name one account, and you answer them with that account's summary card from the get_summary_card action in the current turn. Any other request gets exactly this one line and no lookup:\"I answer only test requests that contain the words card spike.\" Never invent data."
+    messages:
+        welcome: "Test agent: ask for a card spike on one account, for example \"card spike Edge Communications\"."
+        error: "Something went wrong pulling that. Please try again in a moment."
+
+config:
+    developer_name: "Customer_Summary_Coworker_Spike"
+    agent_label: "Customer Summary Coworker Spike"
+    description: "Test agent for a card spike. Answers only requests that contain the words 'card spike' and name one account, with that account's summary as a card. Do not route any request without the words 'card spike' here."
+    agent_type: "AgentforceEmployeeAgent"
+
+language:
+    default_locale: "en_US"
+    additional_locales: ""
+    all_additional_locales: False
+
+start_agent agent_router:
+    label: "Router"
+    description: "Route a request that contains the words 'card spike' to the card spike topic; decline anything else."
+
+    reasoning:
+        instructions: ->
+            | You are the router. If the user's latest message contains the words "card spike" and names an account, hand off to card_spike. Otherwise reply with exactly this one line and nothing more: "I answer only test requests that contain the words card spike."
+
+        actions:
+            go_to_card_spike: @utils.transition to @subagent.card_spike
+                description: "A request that contains the words 'card spike' and names one account."
+
+subagent card_spike:
+    label: "Card Spike"
+    description: "Answers only requests that contain the words 'card spike' and name one account: returns that account's summary as a card. Not for any request without the words 'card spike'."
+
+    reasoning:
+        instructions: ->
+            | The user wants the summary card for one account. Call get_summary_card once, passing accountName verbatim as the user wrote the account name, without the words "card spike" or the rest of the request. For "card spike Edge Communications" pass "Edge Communications".
+              When get_summary_card returns, the card it returns is the answer and is shown to the user. Your whole reply is exactly this one line: "Here is the summary card." Do not repeat, reword or summarize the card's content. Never invent data.
+              If the latest message does not contain the words "card spike", use reclassify.
+
+        actions:
+            get_summary_card: @actions.get_summary_card
+                description: "Resolve the account the user named and return its summary card. Call it once per card spike request."
+                with accountName = ...
+            reclassify: @utils.transition to @subagent.agent_router
+                description: "Reclassify a message that does not contain the words 'card spike'."
+
+    actions:
+        get_summary_card:
+            target: "apex://CoworkerSpikeCardAction"
+            description: "Resolve one account by name and return its summary as a card of the coworkerSpikeSummaryCard Lightning type."
+            inputs:
+                accountName: string
+                    description: "The account name verbatim as the user wrote it, without the words card spike or the rest of the request."
+                    is_required: True
+            outputs:
+                status: string
+                    description: "OK, EMPTY, AMBIGUOUS, NOT_FOUND or ERROR."
+                answer: string
+                    description: "The summary as text, or the message for a non-OK status. Not relayed: the card shows it."
+                card: object
+                    description: "The account's summary card, drawn by the coworkerSpikeSummaryCard Lightning type."
+                    complex_data_type_name: "c__coworkerSpikeSummaryCard"
+                    is_displayable: True
+                cards: string
+                    description: "All of the summary's cards as JSON. Not for the user."
+                    is_displayable: False
