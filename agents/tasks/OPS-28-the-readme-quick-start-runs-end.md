@@ -4,7 +4,7 @@ title: The README quick-start runs end to end in a brand-new scratch org from my
 domain: ops
 tier: frontier
 tier_reason: a new org created and driven end to end through deploy, publish, activate, access and e2e with judgement on each deviati
-status: queued
+status: merged
 scope: [config/project-scratch-def.json, README.md, docs/research/fresh-org-run.md, docs/research/org-migration.md, e2e/README.md]
 forbid: [force-app/**, mcp-door/**, scripts/**, data/**, tests/**, e2e/panel.spec.js, e2e/support/**, e2e/capture/**, docs/assets/**, docs/patterns/**, docs/plans/**, agents/**, .chassis-delegation.json, reference/**, sfdx-project.json]
 resources: [org-live]
@@ -34,3 +34,43 @@ The README's clean-install row says "Not fully proven": main was stood up in age
 - Update docs/research/org-migration.md with one line pointing to fresh-org-run.md. Leave the scratch org in place (it expires in 7 days) and say so. No record Ids, org Ids, usernames, emails, tokens, instance hostnames or URLs with query strings in any file
 - **Org rules (this card only):** the scratch org `ga-scratch` only, with `-o ga-scratch` on every `sf` command and `--target-dev-hub my-devhub` on every command that names a hub. Never rely on the default org or the default Dev Hub. Never touch `agent-probe` or `experimental`, and never use `experimental` as a Dev Hub. Never create a user other than the scratch org's own admin. Never sign in or out, accept consent or enter credentials. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file or image. No security or red-team agent test. The agent proof is one preview turn; the Testing Center suite runs only if scripts/agent-test.sh exists
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests and bash scripts/check-docs.sh (0 broken). No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-14). Two attempts.
+- Attempt 1 (1db2ab9): $2.80, including one advisor call at $1.34. It added a scratch definition, but creating the scratch org failed with STORAGE_LIMIT_EXCEEDED because the Dev Hub had no data storage left. The work stopped there.
+- Ben then chose agent-probe for the run ("Use agent probe"). That org already holds the build, so the run shows the quick-start commands work in a real org. It does not prove a clean install.
+- Attempt 2 (caddf9d): $1.98. Its sonnet review returned 17 confirmed, 0 refuted and 6 unverifiable. The six unverifiable rows are live-org results and session events that no file in the repo records.
+
+Findings:
+- docs/research/fresh-org-run.md records the run with commands as typed (`<org-alias>`), a pass or fail for each step, and counts only:
+  - The validate (RunLocalTests) passed: 149 of 149 components and 518 of 518 tests. The quick deploy deployed 149 of 149.
+  - The seed script's own check found the sample data already there, so it imported nothing. A rerun cannot duplicate the 107 records.
+  - Assigning the group again exited with "Duplicate PermissionSetAssignment", which means it was already assigned.
+  - Every rung of the ladder passed.
+- The earlier scratch-org attempt is kept as a short section, and config/project-scratch-def.json stays for a rerun.
+- README.md: one line changed. The quick start now says to type `SF_TARGET_ORG=<org-alias> npm run ladder`, because without it the org rungs and the e2e run against the test org (scripts/ladder.sh:22).
+- docs/research/org-migration.md: its pointer line now says "run as written".
+- Status rows: "A clean install" and "Runs without the agent" stay "Not yet proven". No other row changed.
+
+Gate (verifier at caddf9d): Python 390 tests, 4 skipped. Reviewer: check-docs 75 pages, 0 broken.
+
+Org (agent-probe, under the standing validate + quick deploy approval):
+- One validate, then one quick deploy of the quick start's folders.
+- The seed script made one read-only check; no records were created.
+- No agent was deactivated, deleted or unpublished.
+- The deploy hook needed a target org, so the worker set one in the worktree only and unset it afterwards.
+
+Disclosed and accepted:
+- The README's plain `deploy start` was not run. The standing approval is validate, then quick deploy, which is the README's own path for an org the CLI classes as production.
+- `sf org open` was not run by hand, because it signs a browser in. The ladder's e2e smoke run (11 passed) opens the app.
+- The card's "Have a Dev Hub? Use a scratch org" README path is not added. The scratch org could not be created, so the path is unproven, and the README does not offer it.
+- Testing Center was not run, because scripts/agent-test.sh does not exist (BE-38 is parked).
+- A tests/__pycache__ made by the gate runs was removed before review and before merge.
+
+Still open:
+- A true clean install in a new org, and "Runs without the agent". Both need a new org: the Dev Hub's storage freed, another Dev Hub, or the DE `ga-fresh`.
+- The ladder's org-check includes the agent's own permission set (150 components, against 149 in the quick start). In an org where the agent was never published, that set would probably fail to validate, as org-migration.md row 8 saw. This is unproven.
+- The README scratch-org path, once a scratch org can be created.
+
+Privacy check over the full branch diff (104 added lines): 0 denylist hits; no URLs, Ids, hostnames, org alias, emails or local paths.
