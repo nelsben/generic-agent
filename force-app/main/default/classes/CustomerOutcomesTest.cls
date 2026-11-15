@@ -188,40 +188,48 @@ private class CustomerOutcomesTest {
 
     @IsTest
     static void anUnknownTypeOrAMissingAccountIsRejected() {
-        shippedTypes();
-        Account a = account('Outcome Unknown Type');
-        try {
-            CustomerOutcomes.record(new CustomerOutcomes.Input(a.Id, 'Diary'));
-            Assert.fail('an unknown type is rejected');
-        } catch (CustomerOutcomes.OutcomeException e) {
-            Assert.isTrue(e.getMessage().contains('Diary'), e.getMessage());
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            shippedTypes();
+            Account a = account('Outcome Unknown Type');
+            try {
+                CustomerOutcomes.record(new CustomerOutcomes.Input(a.Id, 'Diary'));
+                Assert.fail('an unknown type is rejected');
+            } catch (CustomerOutcomes.OutcomeException e) {
+                Assert.isTrue(e.getMessage().contains('Diary'), e.getMessage());
+            }
+            try {
+                CustomerOutcomes.record(new CustomerOutcomes.Input(null, CustomerOutcomes.SUMMARY));
+                Assert.fail('an outcome needs an account');
+            } catch (CustomerOutcomes.OutcomeException e) {
+                Assert.isTrue(e.getMessage().contains('account'), e.getMessage());
+            }
+            Assert.areEqual(0, [SELECT COUNT() FROM Customer_Outcome__c WITH SYSTEM_MODE]);
+
         }
-        try {
-            CustomerOutcomes.record(new CustomerOutcomes.Input(null, CustomerOutcomes.SUMMARY));
-            Assert.fail('an outcome needs an account');
-        } catch (CustomerOutcomes.OutcomeException e) {
-            Assert.isTrue(e.getMessage().contains('account'), e.getMessage());
-        }
-        Assert.areEqual(0, [SELECT COUNT() FROM Customer_Outcome__c WITH SYSTEM_MODE]);
     }
 
     @IsTest
     static void theBatchDeletesOnlyExpiredOutcomes() {
-        Account a = account('Outcome Purge');
-        List<Customer_Outcome__c> rows = new List<Customer_Outcome__c>{
-            new Customer_Outcome__c(Account__c = a.Id, Outcome_Type__c = 'Action', Expires__c = Date.today().addDays(-1)),
-            new Customer_Outcome__c(Account__c = a.Id, Outcome_Type__c = 'Action', Expires__c = Date.today()),
-            new Customer_Outcome__c(Account__c = a.Id, Outcome_Type__c = 'Summary', Expires__c = null)
-        };
-        insert as system rows;
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Account a = account('Outcome Purge');
+            List<Customer_Outcome__c> rows = new List<Customer_Outcome__c>{
+                new Customer_Outcome__c(Account__c = a.Id, Outcome_Type__c = 'Action', Expires__c = Date.today().addDays(-1)),
+                new Customer_Outcome__c(Account__c = a.Id, Outcome_Type__c = 'Action', Expires__c = Date.today()),
+                new Customer_Outcome__c(Account__c = a.Id, Outcome_Type__c = 'Summary', Expires__c = null)
+            };
+            insert as system rows;
 
-        Test.startTest();
-        Database.executeBatch(new CustomerOutcomeRetentionBatch(), 200);
-        Test.stopTest();
+            Test.startTest();
+            Database.executeBatch(new CustomerOutcomeRetentionBatch(), 200);
+            Test.stopTest();
 
-        List<Customer_Outcome__c> left = [SELECT Id FROM Customer_Outcome__c WITH SYSTEM_MODE ORDER BY Expires__c NULLS LAST];
-        Assert.areEqual(2, left.size(), 'only the outcome past its expiry date is deleted');
-        Assert.isFalse(new Map<Id, Customer_Outcome__c>(left).containsKey(rows[0].Id));
+            List<Customer_Outcome__c> left = [SELECT Id FROM Customer_Outcome__c WITH SYSTEM_MODE ORDER BY Expires__c NULLS LAST];
+            Assert.areEqual(2, left.size(), 'only the outcome past its expiry date is deleted');
+            Assert.isFalse(new Map<Id, Customer_Outcome__c>(left).containsKey(rows[0].Id));
+
+        }
     }
 
     @IsTest

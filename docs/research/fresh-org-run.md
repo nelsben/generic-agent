@@ -275,3 +275,25 @@ is needed before the e2e can be called proven.
 
 Verdict: the README's "A clean install" row stays Not yet proven. The e2e-smoke rung failed (the hotkey spec above).
 The org was not empty: it carries the orgfarm template data, as in the OPS-62 run.
+
+### Fixed by BE-54 (2026-11-15)
+
+Cause: the Apex tests ran as the deploying admin, and in a new org that admin does not yet hold `Customer_Summary_User`
+(README step 3 comes after the deploy). The product reads and writes in user mode, so the new fields
+(`Related_Record_Id__c`, `Session_Key__c`) were invisible to the tests and 12 of 425 failed. Fix, in the tests only (no
+product class, object or permission set changed): a new `@IsTest` helper, `CustomerSummaryTestUsers`, makes a System
+Administrator user inside the test (rolled back) who holds `Customer_Summary_Data_Access` and
+`Customer_Summary_Outcome_Access`; every test method that reads or writes Customer Summary's own objects now runs as that
+user. Classes changed: `CustomerSummaryContextTest`, `CustomerSummaryActionsTest`, `CustomerSummaryActionUpdatesTest`
+(all their methods that did not already run as a test user), plus the methods that touch the product's objects in
+`CustomerSummaryMemoryTest`, `CustomerSummaryPanelControllerTest`, `CustomerOutcomesTest`,
+`CustomerSummaryActionDoorTest` and `CustomerSummaryTest`; new: `CustomerSummaryTestUsers`.
+
+Proof, in connect-24h with the running admin's `Customer_Summary_User` assignment removed (it was assigned again after,
+and checked): a check-only validate of the README's 13 `--source-dir` list, `RunSpecifiedTests` over the 31 `*Test`
+classes. From main's tests: 425 run, 12 failed (red). From this branch: 425 run, 0 failed (green). No quick deploy.
+
+The README's quick start can now run in its written order for the validate path: the tests no longer need the group
+that step 3 assigns. The README is unchanged. Still blocking a full clean install, outside this card: the org's own
+orgfarm classes do not compile, so `RunLocalTests` is not usable in that org (attempt 1), and the e2e frontdoor check
+(attempt 4).
