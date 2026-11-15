@@ -376,7 +376,7 @@ one Account with some contacts, deals and cases (or step 2's sample data).
 
 The registered Agentforce agent is optional, and none of the steps above need it. To add it to an Agentforce channel, see the appendix, [06](docs/patterns/06-agent-routing-and-verbatim-relay.md#adopt-it).
 
-Then run the checks: npm run ladder
+Then run the checks: npm run ladder, typed as `SF_TARGET_ORG=<org-alias> npm run ladder`: without the variable its org rungs and e2e run against the test org.
 
 ## The pattern workbook
 
