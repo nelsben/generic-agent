@@ -3,7 +3,7 @@ id: OPS-58
 title: Coworker follow-up 2: delegation prototype — in an org with Coworker on, live turns through Coworker reach Customer_Summary, and how faithfully and how fast the summary and explore answers come back is measured against BE-32
 domain: ops
 tier: standard
-status: queued
+status: merged
 fixes: []
 scope: [spikes/coworker/**, docs/research/fr2-coworker-spike.md, docs/assets/fr2-coworker-*.png, docs/assets/MANIFEST.md]
 forbid: [force-app/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, mcp-door/**, e2e/**, data/**, spikes/cards/**, spikes/actions/**]
@@ -28,3 +28,28 @@ The one documented way our work reaches Coworker is delegation to an agent the u
 - **Captures.** At most three screenshots of a delegated answer in Coworker, saved as docs/assets/fr2-coworker-*.png and listed in docs/assets/MANIFEST.md. Crop or blur anything that shows an Id, a username, an email, a person's name other than the seed data's or an org hostname. If you cannot remove them, take no capture and say so
 - **Undo.** Remove every grant this card made (the test user's agent access, and the Coworker access unless the row says to keep it). Leave Coworker on unless the row says to turn it off. Deactivate nothing that was active before. The page's Undo section lists what was granted, what was removed, and what is left in the org (for example a deployed product in a new org); removing what is left is a destructive step and Ben's call
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests passes and bash scripts/check-docs.sh reports 0 broken. No tests/__pycache__, and git status --short is empty after the commit. The hand-back names the org alias used, the steps taken under the row, every grant and its undo, and the turn table
+
+## Review
+
+Brain review (2026-11-14). Two attempts, sonnet, standard tier. The mod judged both consistent and accepted them without a reviewer pass. The brain read the diff itself.
+- Attempt 1 (51fd4f7): $0.46. Ben approved the Approvals row for agent-probe that day ("Go, use agent probe org"). A new Chrome tab landed on the login page because no session was signed in, so the worker stopped. Its read-only queries found that the admin already holds Customer_Summary agent access and that no user holds Access_Ai_Search.
+- Ben then signed in to agent-probe in the Claude Chrome tab group.
+- Attempt 2 (c9ed60e): about $0.00. Setup's Quick Find showed nothing for "Coworker" or "Get Started", and the Agentforce pages it listed did not include Get Started with Agentforce Coworker. Per the card, the worker took no other Setup step and handed back.
+
+Findings:
+- docs/research/fr2-coworker-spike.md has a new section, "Delegation, measured". It says the delegation is not measured, and why. It records what Setup in agent-probe shows, that approving the row does not reopen F83, and the Undo list (nothing granted, removed or left in the org). The "What stays unproven" Developer Edition item now points to it.
+
+Gate (worker): Python 390 tests, 4 skipped; check-docs 0 broken.
+
+Org: read-only queries and Setup's search in agent-probe. Coworker was not turned on. No grant, deploy, record or turn was made. Ben's signed-in tab was left open.
+
+Disclosed and accepted:
+- The card's measurement (3 questions × 3 turns, timings, labels and rows kept) is not done. It needs an org that shows the Coworker page. This merge records only the negative result for agent-probe.
+- The worker looked only through Quick Find. A Coworker page under another name is not ruled out.
+- No reviewer pass ran: on a standard-tier card the mod accepted a consistent verdict directly.
+
+Still open:
+- Ben: an org that shows Get Started with Agentforce Coworker (for example a Trailhead Coworker playground), named in the Approvals row, with a session he signs in to. Then a re-cut of this measurement card.
+- BE-47's in-org search door (`ConnectApi.Search`) and FE-24's local build do not need Coworker, and can run in agent-probe under the approved row.
+
+Privacy check over the full branch diff (26 added lines): 0 denylist hits; no URLs, Ids, hostnames, emails or local paths.
