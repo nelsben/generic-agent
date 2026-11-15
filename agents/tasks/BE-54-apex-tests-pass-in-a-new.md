@@ -3,7 +3,7 @@ id: BE-54
 title: Apex tests pass in a new org whose deploying admin does not yet hold Customer_Summary_User: the 12 field-access failures OPS-62 found are gone, proven by a validate in connect-24h with the group unassigned
 domain: backend
 tier: standard
-status: blocked
+status: merged
 blocked_by: [BE-53, FE-28]
 scope: [force-app/main/default/classes/*Test.cls, force-app/main/default/classes/*Test.cls-meta.xml, force-app/main/default/classes/CustomerSummaryTestUsers.cls, force-app/main/default/classes/CustomerSummaryTestUsers.cls-meta.xml, docs/research/fresh-org-run.md]
 forbid: [force-app/main/default/objects/**, force-app/main/default/permissionsets/**, force-app/main/default/permissionsetgroups/**, force-app/main/default/lwc/**, force-app/main/default/aiAuthoringBundles/**, README.md, data/**, scripts/**, tests/**, agents/**, docs/plans/**, spikes/**, e2e/**, mcp-door/**, reference/**, .chassis-delegation.json]
@@ -26,3 +26,26 @@ OPS-62's clean install in connect-24h found that the README's order fails in a n
 - Record in docs/research/fresh-org-run.md, under the OPS-62 section, a short 'Fixed by BE-54' paragraph: the cause, the classes changed, and the red and green test counts. If the README's quick start can now run in its written order, say so there and keep the README unchanged; otherwise say what still blocks it
 - No org Ids, record Ids, job Ids, usernames, emails or hostnames in any file or in the hand-back. Workers may read docs/plans/** and run scripts/check-docs.sh but edit neither
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests passes and bash scripts/check-docs.sh reports 0 broken. No tests/__pycache__, and git status --short is empty after the commit. End with the [[report]] line
+
+## Review
+
+Brain review (2026-11-15). One attempt (632a7c1, f137ce7), sonnet, standard tier, $1.19. The mod judged it consistent and accepted it without a reviewer pass; the brain read the diff and checked the org.
+
+Findings:
+- New @IsTest helper CustomerSummaryTestUsers.productUser(): a System Administrator user, inserted inside the test (rolled back), that holds Customer_Summary_Data_Access and Customer_Summary_Outcome_Access. It is with sharing, reads WITH USER_MODE and inserts as user, so it needs no system-context exception under the repo's trust rule.
+- Every test method that touches the product's objects now runs inside System.runAs of that user, across 8 test classes. Methods that already used runAs are unchanged. No product class, object, permission set or group changed. Most of the diff is re-indentation inside the runAs blocks.
+- Red/green in connect-24h, with the admin's Customer_Summary_User assignment removed for each run: main's tests failed 12 of 425 (the OPS-62 set); the branch passed 425 of 425 (150 components), three times, the last on f137ce7. Check-only validates with RunSpecifiedTests over the 31 test classes; no quick deploy.
+- docs/research/fresh-org-run.md: a "Fixed by BE-54" paragraph with the cause, the classes and the counts.
+
+Gate (worker, gate-mac lane): Python 390 tests, 4 skipped; check-docs 0 broken. Mod: green.
+
+Org: the admin's group assignment was removed and given back three times. The brain confirmed by query after the hand-back that the admin holds Customer_Summary_User (count 1). No real user was created.
+
+Disclosed and accepted:
+- A second round changed the helper to user mode after test_trust_rule flagged a system-context marker.
+- The page's line that the e2e frontdoor check still blocks predates FE-29's merge; FE-29 fixed the landing check, and what is left is the intermittent hotkey spec.
+
+Still open:
+- The README's production two-step (validate RunLocalTests) still cannot pass in connect-24h, because the orgfarm template's own classes do not compile. In an org whose classes compile, the validate path should now pass in the README's order. That is not yet shown in such an org.
+
+Privacy check over the full branch diff (1,629 added lines, mostly re-indented tests): 0 denylist hits. The pattern hits are an @IsTest annotation and the example.com test addresses; the only URL host is the standard soap.sforce.com metadata namespace.
