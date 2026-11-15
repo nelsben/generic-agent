@@ -386,6 +386,16 @@ The brain cut these on 2026-11-13. Card 1 ran on 2026-11-14.
    - Status (2026-11-14): run. Answer 1 is not proven; no door answered. See [Headless door probe](#headless-door-probe-be-47).
 5. **OPS-41 edit, not a new card.** Chapter 00 ("Why custom") gains a short "Why not Coworker" paragraph that links
    this page and states F83 as Ben's decision.
+6. **Second round, in `connect-24h` (cut 2026-11-15).** The brain cut four cards for the new orgfarm org Ben made
+   for Coworker (Approvals row "FR2+: Agentforce Coworker live steps", recorded for `connect-24h`). Each card first
+   checks that `connect-24h` is a different org from `agent-probe`, and stops if it is not. Priority, in run order:
+   1. **OPS-62: clean install.** The README's "See it in 5 minutes", run as written in a new org. It also gives the
+      README's clean-install row its first real run.
+   2. **OPS-63: Coworker on, and delegation measured.** OPS-58's measurement, re-cut for `connect-24h`. Waits on OPS-62.
+   3. **BE-53: headless doors, second try.** The Search Agent once Coworker is on, and one `ConnectApi.Search` call
+      read in full. Waits on OPS-63. Runs beside FE-28.
+   4. **FE-28: FE-24's live steps.** Deploy the spike card type and agent, three Coworker turns and one turn in the
+      standard panel. Waits on OPS-63. Runs beside BE-53.
 
 ## Sources
 
