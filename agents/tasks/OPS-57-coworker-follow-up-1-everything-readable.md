@@ -3,7 +3,7 @@ id: OPS-57
 title: Coworker follow-up 1: everything readable without a live step — the rest of the developer guide, the Enterprise Search API, the Coworker MCP server and custom Lightning types for agent answers, plus Ben's answers and a read-only inventory, all on the spike page
 domain: ops
 tier: standard
-status: queued
+status: merged
 fixes: []
 scope: [docs/research/fr2-coworker-spike.md, spikes/coworker/**]
 forbid: [force-app/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, mcp-door/**, e2e/**, data/**]
@@ -29,3 +29,39 @@ Ben asked on 2026-11-13 for the Coworker follow-ups to be cut and run after the 
 - **Point the page at the cut cards.** The page's 'Proposed follow-up cards' becomes 'Follow-up cards': item 1 is this card (OPS-57), item 2 is OPS-58 (delegation prototype), item 3 is FE-24 (cards inside Coworker), item 4 is BE-47 (headless door probe), item 5 is the OPS-41 edit. Update 'What stays unproven' and 'For Ben' for what this card settled. Keep the recommendation unless a fact read here contradicts its reasons; if it does, say what and why in the hand-back and leave the recommendation for Ben
 - No Ids, usernames, emails, org hostnames or query-string URLs in any file. Paraphrase; quote at most a few words where the exact words matter. Every changed claim carries a source tag, and each new source gets its own line in Sources with its title, URL and date read
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests passes and bash scripts/check-docs.sh reports 0 broken. No tests/__pycache__, and git status --short is empty after the commit. The hand-back lists each page read, each one that refused or needed sign-in, and every row changed
+
+## Review
+
+Brain review (2026-11-14). One attempt (6fff34a, $1.44, sonnet, standard tier). The mod judged it consistent and accepted it without a reviewer pass.
+
+Findings:
+- docs/research/fr2-coworker-spike.md: every page read is marked "read in a browser", and the new sources are S27 to S52 (S39 and S41 unused).
+  - Pages read: billing, geo routing, data use, user access, user mapping, the companion-org setup, chats, the monitoring pages, the search-data pages, the Connect REST Search resources and `ConnectApi.Search`, Lightning types, HXL output and widgets (Beta), and the Agentforce output target.
+  - History: the guide does not say who else sees a chat, how long chats are kept, or whether history is per record. Deleting a chat only hides it from Recents.
+  - Search: there is a documented in-org door, Connect REST Search and the Apex class `ConnectApi.Search` (API 63.0 and later). Apex can call it as the running user. It returns an answer or keyword results. No page ties it to Coworker's Ask, so answer 1 stays "undocumented". Calling it the "Enterprise Search API" is the worker's inference and is labelled as one.
+  - The Coworker MCP server: no docs were found, so its tools, auth and callers stay undocumented. The searches run are listed.
+  - A new section, "What a card in Coworker takes", for FE-24:
+    - A `LightningTypeBundle` with `schema.json` and a channel `renderer.json`, and our own LWC is allowed as the renderer.
+    - The action output is tied to the type through `complex_data_type_name` and `is_displayable`.
+    - The HXL widget route is a fallback.
+    - Whether a publish is needed, and which channel Coworker reads, are not stated.
+  - A new section, "What Ben has answered": nothing yet. The Approvals row is still pending with no org named.
+  - "Proposed follow-up cards" is now "Follow-up cards" (OPS-57, OPS-58, FE-24, BE-47 and the OPS-41 edit). The recommendation is kept.
+- spikes/coworker/inventory.py: a new `--org` argument (default `agent-probe`, unused), plus a Search Agent check and an Access_Ai_Search check.
+- Inventory rerun against agent-probe only: every count matches the old run, and both new checks return 0.
+
+Gate (worker): Python 390 tests, 4 skipped; check-docs 75 pages, 0 broken.
+
+Org: read-only queries and lists against agent-probe. No other org was used.
+
+Browser: one tab the worker created, closed at the end. No sign-in and no pre-existing tab.
+
+Disclosed and accepted:
+- manage-conversation-history is a 404, a page name OPS-56 listed that does not exist. The Help FAQ article showed only a blank modal. "Configure User Permissions for Unmetered Licenses" was not opened, and the Admins blog stays unverified.
+- Query Assist docs were not found.
+- No reviewer pass ran: on a standard-tier card the mod accepted a consistent verdict directly. The brain read the diff stat and ran the privacy check itself.
+
+Still open:
+- Ben: the org he sees Coworker in, whether Setup in agent-probe offers Get Started, and F83. OPS-58's live steps wait on the Approvals row.
+
+Privacy check over the full branch diff (194 added lines): 0 denylist hits. The only URLs are 23 links to public developer.salesforce.com pages, with no query strings. No Ids, hostnames, emails or local paths.
