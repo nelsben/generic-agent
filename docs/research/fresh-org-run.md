@@ -242,3 +242,36 @@ card does not allow edits under `e2e/`, so nothing was changed. Proposed fix (fo
 Product, agent and permission sets are in (attempt 4). The e2e smoke rung fails on the frontdoor path check in
 `e2e/global-setup.js` (see attempt 4), so the next card needs that fixed before the e2e can be proven. The seed data is in (107 records). The account the next cards should use, once the product is in, is Edge Communications: the README's hero
 image and the seed guard both name it. No agent access check was run.
+
+## e2e smoke after the landing fix (FE-29, 2026-11-15)
+
+The landing fix: `e2e/global-setup.js` now accepts a landing path of exactly `/lightning` as well as any path starting with
+`/lightning/`. No wait time changed.
+
+Red first (`.delegation/FE-29/red-1.txt`, before the change): `SF_TARGET_ORG=connect-24h SF_E2E_ORG=connect-24h npm run test:e2e:smoke`
+ended in global setup with the one-line sign-in hint. The `try` around the frontdoor `goto` and the `/lightning/` wait rethrows every
+error as that hint, so the timeout was hidden behind it. The sf CLI session itself was fine (the org open and the account query both
+succeeded when run directly).
+
+Results, in order:
+
+- `npm run test:e2e:smoke` after the fix: 11 passed, 0 failed (exit 0). Sign-in reached Lightning in the new org.
+- The unit gate (`python3 -m unittest discover -s tests`, run under the `gate-mac` lease): 390 tests, OK (skipped=4).
+- `SF_TARGET_ORG=connect-24h SF_E2E_ORG=connect-24h npm run ladder`:
+  - python: passed (390 tests)
+  - jest: passed (381 of 381)
+  - scan: passed (415 violations reported; the PMD, CPD and SFGE Apex engines were skipped because they need Java)
+  - org-check: passed (check-only validate, 150 components, 425 tests)
+  - drift: passed (in sync with main for the types checked)
+  - e2e-smoke: **failed**, 1 failed and 10 passed (3.4 minutes). The failing spec is
+    `e2e/panel.spec.js:98`, "Cmd/Ctrl-K before the window was ever opened opens it in the bottom right corner and focuses the composer".
+    It timed out after 60 seconds waiting for the Edge Communications "Summarize" button inside the panel stage to attach.
+    Likely cause, not confirmed: the panel did not show the account record when the hotkey spec ran, so its precondition never
+    held. The sign-in itself passed. This card does not fix the spec.
+  - The ladder stopped at the first failure, so the rungs after e2e-smoke did not run.
+
+The smoke was green once (11 of 11) and red once in the ladder (10 of 11), so the hotkey spec is intermittent in this org. A rerun
+is needed before the e2e can be called proven.
+
+Verdict: the README's "A clean install" row stays Not yet proven. The e2e-smoke rung failed (the hotkey spec above).
+The org was not empty: it carries the orgfarm template data, as in the OPS-62 run.
