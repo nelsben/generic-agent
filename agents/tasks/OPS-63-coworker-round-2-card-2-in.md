@@ -3,8 +3,7 @@ id: OPS-63
 title: Coworker round 2, card 2: in connect-24h Coworker is on, and three questions times three turns through Coworker are measured against BE-32 (OPS-58 re-cut)
 domain: ops
 tier: standard
-status: blocked
-blocked_by: [OPS-62]
+status: queued
 scope: [spikes/coworker/results/delegation.jsonl, spikes/coworker/delegation-notes.md, docs/research/fr2-coworker-spike.md, docs/assets/fr2-coworker-delegation-*.png, docs/assets/MANIFEST.md]
 forbid: [force-app/**, data/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, spikes/coworker/main/**, spikes/coworker/apex/**, spikes/cards/**, spikes/actions/**, e2e/**, mcp-door/**, reference/**, .chassis-delegation.json]
 resources: [org-connect, chrome-connect]
