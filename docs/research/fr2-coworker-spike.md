@@ -29,7 +29,7 @@ own line in [Sources](#sources).
 
 ## The answer to Ben's two questions
 
-1. **Can our components call Coworker's Ask? Undocumented. Can they call a search door? Yes, but it is not Coworker's.** None of the guide pages read in a browser (30 pages now, every one the guide's own pages list that the card could open) names an API, Connect class, Apex class, invocable or LWC module that sends Coworker's Ask a message from inside the org, and the guide's index, as far as it was followed, shows no API or developer-extension page [S8], [S20], [S21], [S42]. The one programmatic door Salesforce names is the Coworker MCP server, which serves outside AI clients such as Claude and ChatGPT (GA November 2026 per [S4]); its own docs were searched for on 2026-11-14 and not found. What is documented in the org is the Connect REST Search resources and the Apex class `ConnectApi.Search` (API 63.0 and later), which Apex can call as the running user and which return keyword results or a natural-language answer. That is the likely meaning of the limits page's "Enterprise Search API (search results)" (inference); no page ties it to Coworker's data sources or its Ask answer [S23], [S43], [S44].
+1. **Can our components call Coworker's Ask? No, not from `agent-probe`.** Undocumented, and the BE-47 headless probe (2026-11-14, [table below](#headless-door-probe-be-47)) reached no Coworker door. The Search Agent is absent there, the Apex class `ConnectApi.Search` resolves but its `find(String)` method did not compile, and the Coworker MCP server was not tried. None of the guide pages read in a browser (30 pages now) names an API, Connect class, Apex class, invocable or LWC module that sends Coworker's Ask a message from inside the org [S8], [S20], [S21], [S42]. The one programmatic door Salesforce names is the Coworker MCP server, which serves outside AI clients such as Claude and ChatGPT (GA November 2026 per [S4]); its own docs were searched for on 2026-11-14 and not found. The documented in-org search door is the Connect REST Search resources and the Apex class `ConnectApi.Search` (API 63.0 and later), which Apex can call as the running user; that is the likely meaning of the limits page's "Enterprise Search API (search results)" (inference), and no page ties it to Coworker's data sources or its Ask answer [S23], [S43], [S44]. **Can they call a search door? Not reached.** The probe did not get a working call to any search door.
 2. **Can we build our own UI around it? Undocumented.** None of the guide pages read in a browser documents a Coworker component, a Lightning page placement, a programmatic open, passing a record, a keyboard shortcut or branding; this rests on the browser reading of those pages and the guide's index [S10], [S9], [S42]. The guide describes an Ask page, toolbar tabs and a Quick Pages tab [S10], [S25]. Ben said he sees Coworker as a standalone app and tab; `agent-probe` has no such app or tab (see the check below). **The extension model the guide documents is our agent and its Lightning type cards shown inside Coworker's UI, not Coworker's UI inside ours** [S9].
 3. **What can run inside Coworker is other agents, and their cards.** Coworker hands a request it cannot complete to any Agentforce agent the user can access, custom agents included, and routes on agent and topic descriptions only [S9]. So our Apex reaches Coworker's UI only through the `Customer_Summary` agent. When a delegated agent's response is configured to return a custom Lightning type or a Headless Experience Layer widget, Coworker shows that interactive card; otherwise it shows a markdown summary [S9]. **Cards from a delegated agent are documented.** Whether our own card envelope travels as a custom Lightning type is the open part; what it takes is under [What a card in Coworker takes](#what-a-card-in-coworker-takes).
 4. **Either way in is an agent.** That is what ledger row F83 ruled out, and BE-32 measured an agent turn at 13 to 33 seconds for an explore question against 5 to 9 seconds direct. Reopening F83 for Coworker is Ben's decision.
@@ -228,7 +228,7 @@ answers (1 and 2). No queued card changes until Ben decides F83 and one of the F
 
 - Whether Coworker is GA or beta in Lightning: no guide page states GA, and the sources conflict. Of 30 pages read, only the Quick Page title says Beta.
 - Whether an ordinary Developer Edition can turn Coworker on: `agent-probe`'s Setup search shows no Coworker page (see [Delegation, measured](#delegation-measured)); a page under another name is not ruled out.
-- Any in-org programmatic call to Coworker's Ask (answer 1), and whether Apex can be a client of the Coworker MCP server (its docs were searched for and not found). The Connect REST and Apex search door is documented, so what remains unproven is whether it returns what Coworker's own search returns, and whether an LWC may call it directly (Apex can).
+- Any in-org programmatic call to Coworker's Ask (answer 1): still unproven after the BE-47 probe, which reached no Coworker door. The Connect search class did not compile with `find(String)` in `agent-probe`, so whether another `ConnectApi.Search` signature works is unproven, and so is whether it returns what Coworker's own search returns. Whether Apex can be a client of the Coworker MCP server is unproven (docs not found; not tried).
 - Any embed, hotkey, record context or branding for Coworker's UI (answer 2).
 - What Setup shows when turning on (the Turn On page lists a Confirm step and no terms).
 - Whether Coworker delegates to a custom Employee agent built in Agent Script, and how faithfully it relays the reply.
@@ -257,7 +257,7 @@ Each step needs Ben's go. None was taken in this card.
 | 5 | Assign the Coworker licence and permission set group to one test user, and give that user agent access (part of FE-20 undone for one user) | The rep's experience, and what Coworker can reach under a rep's access |
 | 6 | Send Coworker a live message that should go to `Customer_Summary`, three or so times | Delegation, how faithfully the summary and an explore table are relayed, and the latency against BE-32's numbers |
 | 7 | A prototype deploy and agent version with a custom Lightning type on one action | A delegated agent's Lightning type card showing in Coworker is documented yes [S9]. This proves whether our own card envelope travels as a Lightning type and is drawn by our card component. Still through an agent, so F83 applies |
-| 8 | A live headless try: the Agent API against the Search Agent, an MCP client against the Coworker MCP server (docs not found, so no documented way), or `ConnectApi.Search` from anonymous Apex | Answer 1, in practice. The Apex search call is documented and is the one that can be tried without guessing [S44] |
+| 8 | A live headless try: the Agent API against the Search Agent, an MCP client against the Coworker MCP server, or `ConnectApi.Search` from anonymous Apex | Partly run by BE-47 (2026-11-14, see [Headless door probe](#headless-door-probe-be-47)): the Search Agent is absent in `agent-probe`, `ConnectApi.Search.find(String)` did not compile, and the MCP server was not tried. Still open: another `ConnectApi.Search` signature, and the MCP server's OAuth route, which needs Ben's go before any app is created |
 | 9 | Ask the account executive: price under our agreements, Flex Credit draw for Agent Actions (the billing page covers queries and delegation, not record writes), Developer Edition and sandbox availability, chat retention and who can see a chat, and GA status in Lightning | The dated licence facts this page could only read from public pages |
 
 ## Delegation, measured
@@ -283,6 +283,21 @@ Ben picks another org that shows the Coworker page (For Ben item 3, a Trailhead 
 Approvals row, and signs in there as the test user.
 
 **Undo.** Granted: nothing. Removed: nothing. Left in the org: nothing.
+
+## Headless door probe (BE-47)
+
+Run 2026-11-14 in `agent-probe` as the org's admin user, from anonymous Apex. Scripts are in [spikes/coworker/apex](../../spikes/coworker/apex/) and results are in [headless.jsonl](../../spikes/coworker/results/headless.jsonl). Approved by the Approvals row "FR2+: Agentforce Coworker live steps" (Ben, 2026-11-14), which names the agent invocable and the search API from anonymous Apex. Nothing was deployed, granted, created or signed in to; no DML was run. Ids, names and session Ids are left out.
+
+| Door | Target | Result | Evidence and reason |
+|---|---|---|---|
+| 1. Search Agent through `generateAiAgentResponse` | the platform Search Agent | **not tried: no Search Agent in this org** | A read-only `BotDefinition` query for Search in the developer name or label returned 0 rows. Turning Coworker on is what would create it, and Setup shows no Coworker page here ([Delegation, measured](#delegation-measured)). |
+| 1 control. The same invocable against our own agent | `Customer_Summary` | **yes, the control works** | One turn, status ok, reply of 3,087 characters, which names the seed account, 36 seconds. A session came back and was not ended (see Undo). This shows the invocable path works for our agent, not for Coworker. |
+| 2. Enterprise Search through the Apex class `ConnectApi.Search` | `find(String)`, one call, the seed account name as the term | **no** | Two compile attempts and no run reached data. Round 1: `Invalid type: ConnectApi.SearchResults`. Round 2: `Method does not exist or incorrect signature: find(String) from the type ConnectApi.Search`. The class resolves in this org at API 68.0, but the one-argument `find` does not. Other signatures were not guessed. The answer resource (the summary) was not called, so "a summary came back" is not tried. |
+| 3. Coworker MCP server | tools-list | **not tried: needs an OAuth client for an outside MCP client** | OPS-57 found no in-org route. The server is for outside clients, and reaching it needs a connected app or External Client App, which this card may not create. Its docs were not found, so the scopes and user context are unknown. Never signed in. |
+
+**Answer 1 from this probe: no.** No Coworker door was reached from Apex. The control only proves that our own agent answers from Apex, as it did for `Account_Brief`.
+
+**Proposal for Ben, if a door works later.** None works yet, so there is nothing to build on. The next step for door 2 is to find the right `ConnectApi.Search` signature in the Apex reference in a separate card. Any Coworker door from our code would make Coworker a way in, which is F83 and Ben's decision.
 
 ## Follow-up cards
 
@@ -311,6 +326,7 @@ The brain cut these on 2026-11-13. Card 1 ran on 2026-11-14.
    - Done when `ConnectApi.Search` is called from anonymous Apex in the org Ben names, and whether its answer or results
      match what Coworker's own search returns is recorded [S44].
    - Done when answer 1 on this page reads yes or no, with the evidence.
+   - Status (2026-11-14): run. Answer 1 reads no; see [Headless door probe](#headless-door-probe-be-47).
 5. **OPS-41 edit, not a new card.** Chapter 00 ("Why custom") gains a short "Why not Coworker" paragraph that links
    this page and states F83 as Ben's decision.
 
@@ -458,3 +474,6 @@ the pages that hang under them; each title is the page's own). Page names that w
 
 Nothing to undo. The org checks (2026-11-13 and the 2026-11-14 re-run) ran queries, describes and metadata lists only. Nothing was enabled, assigned,
 deployed, published, activated, created or changed, and no agent or session was contacted.
+
+
+**BE-47 headless probe (2026-11-14).** Granted: nothing. Deployed: nothing. Created: no user, no connected app, no External Client App, no Named Credential, no auth provider. DML: none. Session left open: one, from the `Customer_Summary` control turn ([Headless door probe](#headless-door-probe-be-47)). The invocable has no end call, and the Agent API end call needs a token this card does not get, so the session was not ended and expires on the platform's own timer (the expiry time is not found in [agent-api.md](agent-api.md)).
