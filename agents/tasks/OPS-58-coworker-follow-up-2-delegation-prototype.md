@@ -3,8 +3,7 @@ id: OPS-58
 title: Coworker follow-up 2: delegation prototype — in an org with Coworker on, live turns through Coworker reach Customer_Summary, and how faithfully and how fast the summary and explore answers come back is measured against BE-32
 domain: ops
 tier: standard
-status: blocked
-blocked_by: [OPS-57]
+status: queued
 fixes: []
 scope: [spikes/coworker/**, docs/research/fr2-coworker-spike.md, docs/assets/fr2-coworker-*.png, docs/assets/MANIFEST.md]
 forbid: [force-app/**, scripts/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, mcp-door/**, e2e/**, data/**, spikes/cards/**, spikes/actions/**]
