@@ -70,253 +70,305 @@ private class CustomerSummaryActionsTest {
 
     @IsTest
     static void aTaskDraftMakesNoDmlAndConfirmWritesIt() {
-        Id accountId = acme();
-        Id mariaId = maria().Id;
-        Test.startTest();
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_task', accountId,
-            new Map<String, Object>{ 'subject' => 'Send pricing', 'dueDate' => 'tomorrow', 'contact' => 'Maria' });
-        Assert.areEqual(0, Limits.getDmlStatements(), 'a draft writes nothing');
-        CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
-        Test.stopTest();
-        Assert.areEqual(CustomerSummaryActions.READY, d.status, JSON.serialize(d.fields));
-        Assert.areEqual('2026-11-14', field(d, 'ActivityDate').value);
-        Assert.areEqual('Maria Lopez', field(d, 'WhoId').display, 'a person shows by name');
-        Assert.areEqual('Actions Acme', field(d, 'WhatId').display);
-        Assert.areEqual('actionDraft', d.cards[0].type);
-        Assert.isFalse(d.cards[0].text.contains(String.valueOf(mariaId)), 'no Id in the card text');
-        Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
-        Task t = [SELECT Subject, ActivityDate, WhoId, WhatId FROM Task WHERE Id = :r.recordId];
-        Assert.areEqual('Send pricing', t.Subject);
-        Assert.areEqual(Date.newInstance(2026, 11, 14), t.ActivityDate);
-        Assert.areEqual(mariaId, t.WhoId);
-        Assert.areEqual(accountId, t.WhatId);
-        Assert.areEqual('Task created', r.title);
-        Assert.areEqual('Send pricing', r.label);
-        Assert.areEqual('/lightning/r/Task/' + r.recordId + '/view', r.linkPath);
-        Assert.areEqual(CustomerSummaryActions.SAVED_TEXT, r.message);
-        Assert.isNull(r.undoToken, 'a created record has no undo');
-        Assert.areEqual('actionResult', r.cards[0].type);
-        String related = String.valueOf(r.recordId);
-        Customer_Outcome__c o = [SELECT Account__c, Skill__c, Title__c, Outcome_Type__c FROM Customer_Outcome__c
-                                 WHERE Related_Record_Id__c = :related WITH SYSTEM_MODE];
-        Assert.areEqual(accountId, o.Account__c);
-        Assert.areEqual(CustomerOutcomes.ACTION, o.Outcome_Type__c);
-        Assert.areEqual('create_task', o.Skill__c);
-        Assert.areEqual('Task created: Send pricing', o.Title__c);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            Test.startTest();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_task', accountId,
+                new Map<String, Object>{ 'subject' => 'Send pricing', 'dueDate' => 'tomorrow', 'contact' => 'Maria' });
+            Assert.areEqual(0, Limits.getDmlStatements(), 'a draft writes nothing');
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
+            Test.stopTest();
+            Assert.areEqual(CustomerSummaryActions.READY, d.status, JSON.serialize(d.fields));
+            Assert.areEqual('2026-11-14', field(d, 'ActivityDate').value);
+            Assert.areEqual('Maria Lopez', field(d, 'WhoId').display, 'a person shows by name');
+            Assert.areEqual('Actions Acme', field(d, 'WhatId').display);
+            Assert.areEqual('actionDraft', d.cards[0].type);
+            Assert.isFalse(d.cards[0].text.contains(String.valueOf(mariaId)), 'no Id in the card text');
+            Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
+            Task t = [SELECT Subject, ActivityDate, WhoId, WhatId FROM Task WHERE Id = :r.recordId];
+            Assert.areEqual('Send pricing', t.Subject);
+            Assert.areEqual(Date.newInstance(2026, 11, 14), t.ActivityDate);
+            Assert.areEqual(mariaId, t.WhoId);
+            Assert.areEqual(accountId, t.WhatId);
+            Assert.areEqual('Task created', r.title);
+            Assert.areEqual('Send pricing', r.label);
+            Assert.areEqual('/lightning/r/Task/' + r.recordId + '/view', r.linkPath);
+            Assert.areEqual(CustomerSummaryActions.SAVED_TEXT, r.message);
+            Assert.isNull(r.undoToken, 'a created record has no undo');
+            Assert.areEqual('actionResult', r.cards[0].type);
+            String related = String.valueOf(r.recordId);
+            Customer_Outcome__c o = [SELECT Account__c, Skill__c, Title__c, Outcome_Type__c FROM Customer_Outcome__c
+                                     WHERE Related_Record_Id__c = :related WITH SYSTEM_MODE];
+            Assert.areEqual(accountId, o.Account__c);
+            Assert.areEqual(CustomerOutcomes.ACTION, o.Outcome_Type__c);
+            Assert.areEqual('create_task', o.Skill__c);
+            Assert.areEqual('Task created: Send pricing', o.Title__c);
+
+        }
     }
 
     @IsTest
     static void aTaskWithNoDueDateOrAnUnreadableOneNeedsInput() {
-        Id accountId = acme();
-        Test.startTest();
-        CustomerSummaryActions.Draft none = CustomerSummaryActions.draft('create_task', accountId,
-            new Map<String, Object>{ 'subject' => 'Send pricing' });
-        CustomerSummaryActions.Draft bad = CustomerSummaryActions.draft('create_task', accountId,
-            new Map<String, Object>{ 'subject' => 'Send pricing', 'dueDate' => 'next blursday' });
-        Assert.areEqual(0, Limits.getDmlStatements());
-        Test.stopTest();
-        Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, none.status);
-        Assert.areEqual(new List<String>{ 'ActivityDate' }, none.missing);
-        Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, bad.status);
-        Assert.areEqual('I couldn\'t read "next blursday" as a date.', field(bad, 'ActivityDate').error);
-        Assert.areEqual('missing', bad.cards[0].fields[1].state);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Test.startTest();
+            CustomerSummaryActions.Draft none = CustomerSummaryActions.draft('create_task', accountId,
+                new Map<String, Object>{ 'subject' => 'Send pricing' });
+            CustomerSummaryActions.Draft bad = CustomerSummaryActions.draft('create_task', accountId,
+                new Map<String, Object>{ 'subject' => 'Send pricing', 'dueDate' => 'next blursday' });
+            Assert.areEqual(0, Limits.getDmlStatements());
+            Test.stopTest();
+            Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, none.status);
+            Assert.areEqual(new List<String>{ 'ActivityDate' }, none.missing);
+            Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, bad.status);
+            Assert.areEqual('I couldn\'t read "next blursday" as a date.', field(bad, 'ActivityDate').error);
+            Assert.areEqual('missing', bad.cards[0].fields[1].state);
+
+        }
     }
 
     @IsTest
     static void twoMatchingContactsAreAChoiceAndAPickedOneIsReady() {
-        Id accountId = acme();
-        Map<String, Object> input = new Map<String, Object>{ 'subject' => 'Intro', 'dueDate' => 'Monday', 'contact' => 'Jordan' };
-        Test.startTest();
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_task', accountId, input);
-        CustomerSummaryActions.Result refused = CustomerSummaryActions.commitDraft(d);
-        CustomerSummaryActions.Field who = field(d, 'WhoId');
-        input.put('contactId', who.choices[1].id);
-        CustomerSummaryActions.Draft picked = CustomerSummaryActions.draft('create_task', accountId, input);
-        Test.stopTest();
-        Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
-        Assert.areEqual(2, who.choices.size(), 'two matches are a choice, never a guess');
-        Assert.areEqual('2 contacts match "Jordan"; choose one or clear the field.', d.warnings[0]);
-        Assert.areEqual('choose', d.cards[0].fields[2].state);
-        Assert.areEqual(CustomerSummaryActions.REFUSED, refused.status);
-        Assert.areEqual('Nothing was saved. This draft still needs: Contact.', refused.message);
-        Assert.areEqual(CustomerSummaryActions.READY, picked.status);
-        Assert.areEqual(who.choices[1].label, field(picked, 'WhoId').display);
-        Assert.areEqual(0, [SELECT COUNT() FROM Task], 'nothing was written');
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Map<String, Object> input = new Map<String, Object>{ 'subject' => 'Intro', 'dueDate' => 'Monday', 'contact' => 'Jordan' };
+            Test.startTest();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_task', accountId, input);
+            CustomerSummaryActions.Result refused = CustomerSummaryActions.commitDraft(d);
+            CustomerSummaryActions.Field who = field(d, 'WhoId');
+            input.put('contactId', who.choices[1].id);
+            CustomerSummaryActions.Draft picked = CustomerSummaryActions.draft('create_task', accountId, input);
+            Test.stopTest();
+            Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
+            Assert.areEqual(2, who.choices.size(), 'two matches are a choice, never a guess');
+            Assert.areEqual('2 contacts match "Jordan"; choose one or clear the field.', d.warnings[0]);
+            Assert.areEqual('choose', d.cards[0].fields[2].state);
+            Assert.areEqual(CustomerSummaryActions.REFUSED, refused.status);
+            Assert.areEqual('Nothing was saved. This draft still needs: Contact.', refused.message);
+            Assert.areEqual(CustomerSummaryActions.READY, picked.status);
+            Assert.areEqual(who.choices[1].label, field(picked, 'WhoId').display);
+            Assert.areEqual(0, [SELECT COUNT() FROM Task], 'nothing was written');
+
+        }
     }
 
     @IsTest
     static void aContactNotOnTheAccountNeverResolves() {
-        Id accountId = acme();
-        Contact sam = [SELECT Id FROM Contact WHERE LastName = 'Stone' LIMIT 1];
-        Test.startTest();
-        CustomerSummaryActions.Draft byName = CustomerSummaryActions.draft('create_task', accountId,
-            new Map<String, Object>{ 'subject' => 'Intro', 'dueDate' => 'today', 'contact' => 'Sam Stone' });
-        CustomerSummaryActions.Draft ready = CustomerSummaryActions.draft('create_task', accountId,
-            new Map<String, Object>{ 'subject' => 'Intro', 'dueDate' => 'today', 'contact' => 'Maria' });
-        Map<String, Object> changed = (Map<String, Object>) JSON.deserializeUntyped(ready.inputJson);
-        changed.put('contactId', sam.Id);
-        ready.inputJson = JSON.serialize(changed);
-        CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(ready);
-        Test.stopTest();
-        Assert.areEqual('No contact matches "Sam Stone" on this account. Pick one or clear the field.', field(byName, 'WhoId').error);
-        Assert.areEqual(CustomerSummaryActions.REFUSED, r.status, 'commit checks the draft again');
-        Assert.areEqual('Nothing was saved. This draft still needs: Contact.', r.message);
-        Assert.areEqual(0, [SELECT COUNT() FROM Task]);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Contact sam = [SELECT Id FROM Contact WHERE LastName = 'Stone' LIMIT 1];
+            Test.startTest();
+            CustomerSummaryActions.Draft byName = CustomerSummaryActions.draft('create_task', accountId,
+                new Map<String, Object>{ 'subject' => 'Intro', 'dueDate' => 'today', 'contact' => 'Sam Stone' });
+            CustomerSummaryActions.Draft ready = CustomerSummaryActions.draft('create_task', accountId,
+                new Map<String, Object>{ 'subject' => 'Intro', 'dueDate' => 'today', 'contact' => 'Maria' });
+            Map<String, Object> changed = (Map<String, Object>) JSON.deserializeUntyped(ready.inputJson);
+            changed.put('contactId', sam.Id);
+            ready.inputJson = JSON.serialize(changed);
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(ready);
+            Test.stopTest();
+            Assert.areEqual('No contact matches "Sam Stone" on this account. Pick one or clear the field.', field(byName, 'WhoId').error);
+            Assert.areEqual(CustomerSummaryActions.REFUSED, r.status, 'commit checks the draft again');
+            Assert.areEqual('Nothing was saved. This draft still needs: Contact.', r.message);
+            Assert.areEqual(0, [SELECT COUNT() FROM Task]);
+
+        }
     }
 
     @IsTest
     static void aFailedOutcomeNeverUndoesTheAction() {
-        Id accountId = acme();
-        CustomerOutcomes.failWritesForTest = true;
-        Test.startTest();
-        CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(CustomerSummaryActions.draft('create_task', accountId,
-            new Map<String, Object>{ 'subject' => 'Send pricing', 'dueDate' => 'today' }));
-        Test.stopTest();
-        Assert.areEqual(CustomerSummaryActions.OK, r.status);
-        Assert.areEqual(1, [SELECT COUNT() FROM Task WHERE Id = :r.recordId], 'the task stands');
-        Assert.areEqual(0, outcomesFor(r.recordId));
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            CustomerOutcomes.failWritesForTest = true;
+            Test.startTest();
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(CustomerSummaryActions.draft('create_task', accountId,
+                new Map<String, Object>{ 'subject' => 'Send pricing', 'dueDate' => 'today' }));
+            Test.stopTest();
+            Assert.areEqual(CustomerSummaryActions.OK, r.status);
+            Assert.areEqual(1, [SELECT COUNT() FROM Task WHERE Id = :r.recordId], 'the task stands');
+            Assert.areEqual(0, outcomesFor(r.recordId));
+
+        }
     }
 
     // ------------------------------------------------------------------ create_event and log_call
 
     @IsTest
     static void anEventReadsItsStartAndLength() {
-        Id accountId = acme();
-        Id mariaId = maria().Id;
-        Test.startTest();
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_event', accountId, new Map<String, Object>{
-            'subject' => 'Demo', 'startDateTime' => 'next Tuesday at 2pm', 'durationMinutes' => '45 minutes', 'contact' => 'Maria'
-        });
-        CustomerSummaryActions.Draft plain = CustomerSummaryActions.draft('create_event', accountId,
-            new Map<String, Object>{ 'subject' => 'Sync', 'startDateTime' => 'tomorrow at 9am' });
-        Assert.areEqual(0, Limits.getDmlStatements());
-        CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
-        Test.stopTest();
-        Assert.areEqual(CustomerSummaryActions.READY, plain.status);
-        Assert.areEqual('2026-11-14T09:30', field(plain, 'EndDateTime').value, 'no length said is 30 minutes');
-        Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
-        Event e = [SELECT StartDateTime, EndDateTime, WhoId, WhatId FROM Event WHERE Id = :r.recordId];
-        Assert.areEqual(Datetime.newInstance(2026, 11, 17, 14, 0, 0), e.StartDateTime);
-        Assert.areEqual(Datetime.newInstance(2026, 11, 17, 14, 45, 0), e.EndDateTime);
-        Assert.areEqual(mariaId, e.WhoId);
-        Assert.areEqual(accountId, e.WhatId);
-        Assert.areEqual(1, outcomesFor(r.recordId));
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            Test.startTest();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_event', accountId, new Map<String, Object>{
+                'subject' => 'Demo', 'startDateTime' => 'next Tuesday at 2pm', 'durationMinutes' => '45 minutes', 'contact' => 'Maria'
+            });
+            CustomerSummaryActions.Draft plain = CustomerSummaryActions.draft('create_event', accountId,
+                new Map<String, Object>{ 'subject' => 'Sync', 'startDateTime' => 'tomorrow at 9am' });
+            Assert.areEqual(0, Limits.getDmlStatements());
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
+            Test.stopTest();
+            Assert.areEqual(CustomerSummaryActions.READY, plain.status);
+            Assert.areEqual('2026-11-14T09:30', field(plain, 'EndDateTime').value, 'no length said is 30 minutes');
+            Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
+            Event e = [SELECT StartDateTime, EndDateTime, WhoId, WhatId FROM Event WHERE Id = :r.recordId];
+            Assert.areEqual(Datetime.newInstance(2026, 11, 17, 14, 0, 0), e.StartDateTime);
+            Assert.areEqual(Datetime.newInstance(2026, 11, 17, 14, 45, 0), e.EndDateTime);
+            Assert.areEqual(mariaId, e.WhoId);
+            Assert.areEqual(accountId, e.WhatId);
+            Assert.areEqual(1, outcomesFor(r.recordId));
+
+        }
     }
 
     @IsTest
     static void anEventThatEndsBeforeItStartsNeedsInput() {
-        Id accountId = acme();
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_event', accountId, new Map<String, Object>{
-            'subject' => 'Demo', 'startDateTime' => 'tomorrow at 3pm', 'endDateTime' => 'tomorrow at 2pm'
-        });
-        Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
-        Assert.areEqual('The end must be after the start.', field(d, 'EndDateTime').error);
-        CustomerSummaryActions.Draft noTime = CustomerSummaryActions.draft('create_event', accountId,
-            new Map<String, Object>{ 'subject' => 'Demo', 'startDateTime' => 'tomorrow' });
-        Assert.areEqual('I couldn\'t read "tomorrow" as a day and a time.', field(noTime, 'StartDateTime').error);
-        CustomerSummaryActions.Draft badLength = CustomerSummaryActions.draft('create_event', accountId,
-            new Map<String, Object>{ 'subject' => 'Demo', 'startDateTime' => 'tomorrow at 3pm', 'durationMinutes' => 'a while' });
-        Assert.areEqual('I couldn\'t read "a while" as a length of time.', field(badLength, 'EndDateTime').error);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_event', accountId, new Map<String, Object>{
+                'subject' => 'Demo', 'startDateTime' => 'tomorrow at 3pm', 'endDateTime' => 'tomorrow at 2pm'
+            });
+            Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
+            Assert.areEqual('The end must be after the start.', field(d, 'EndDateTime').error);
+            CustomerSummaryActions.Draft noTime = CustomerSummaryActions.draft('create_event', accountId,
+                new Map<String, Object>{ 'subject' => 'Demo', 'startDateTime' => 'tomorrow' });
+            Assert.areEqual('I couldn\'t read "tomorrow" as a day and a time.', field(noTime, 'StartDateTime').error);
+            CustomerSummaryActions.Draft badLength = CustomerSummaryActions.draft('create_event', accountId,
+                new Map<String, Object>{ 'subject' => 'Demo', 'startDateTime' => 'tomorrow at 3pm', 'durationMinutes' => 'a while' });
+            Assert.areEqual('I couldn\'t read "a while" as a length of time.', field(badLength, 'EndDateTime').error);
+
+        }
     }
 
     @IsTest
     static void aLoggedCallIsAFifteenMinuteEventEndingNow() {
-        Id accountId = acme();
-        Id mariaId = maria().Id;
-        Test.startTest();
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('log_call', accountId,
-            new Map<String, Object>{ 'contact' => 'Maria', 'description' => 'Wants a quote' });
-        Assert.areEqual(0, Limits.getDmlStatements());
-        CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
-        Test.stopTest();
-        Assert.areEqual('Event', d.objectName, 'F17');
-        Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
-        Assert.areEqual('Call logged', r.title);
-        Event e = [SELECT Subject, Description, StartDateTime, EndDateTime, WhoId FROM Event WHERE Id = :r.recordId];
-        Assert.areEqual('Call', e.Subject);
-        Assert.areEqual('Wants a quote', e.Description);
-        Assert.areEqual(NOW.addMinutes(-CustomerSummaryActions.CALL_MINUTES), e.StartDateTime);
-        Assert.areEqual(NOW, e.EndDateTime);
-        Assert.areEqual(mariaId, e.WhoId);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            Test.startTest();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('log_call', accountId,
+                new Map<String, Object>{ 'contact' => 'Maria', 'description' => 'Wants a quote' });
+            Assert.areEqual(0, Limits.getDmlStatements());
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
+            Test.stopTest();
+            Assert.areEqual('Event', d.objectName, 'F17');
+            Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
+            Assert.areEqual('Call logged', r.title);
+            Event e = [SELECT Subject, Description, StartDateTime, EndDateTime, WhoId FROM Event WHERE Id = :r.recordId];
+            Assert.areEqual('Call', e.Subject);
+            Assert.areEqual('Wants a quote', e.Description);
+            Assert.areEqual(NOW.addMinutes(-CustomerSummaryActions.CALL_MINUTES), e.StartDateTime);
+            Assert.areEqual(NOW, e.EndDateTime);
+            Assert.areEqual(mariaId, e.WhoId);
+
+        }
     }
 
     @IsTest
     static void aLoggedCallCanBeACompletedTask() {
-        Id accountId = acme();
-        Id mariaId = maria().Id;
-        CustomerSummaryActions.logCallAs = 'Task';
-        Test.startTest();
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('log_call', accountId,
-            new Map<String, Object>{ 'contact' => 'Maria', 'subject' => 'Pricing call' });
-        CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
-        Test.stopTest();
-        Assert.areEqual('Task', d.objectName);
-        Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
-        Task t = [SELECT Subject, Status, TaskSubtype, ActivityDate, WhoId FROM Task WHERE Id = :r.recordId];
-        Assert.areEqual('Pricing call', t.Subject);
-        Assert.areEqual('Completed', t.Status);
-        Assert.areEqual('Call', t.TaskSubtype);
-        Assert.areEqual(NOW.date(), t.ActivityDate);
-        Assert.areEqual(mariaId, t.WhoId);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            CustomerSummaryActions.logCallAs = 'Task';
+            Test.startTest();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('log_call', accountId,
+                new Map<String, Object>{ 'contact' => 'Maria', 'subject' => 'Pricing call' });
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
+            Test.stopTest();
+            Assert.areEqual('Task', d.objectName);
+            Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
+            Task t = [SELECT Subject, Status, TaskSubtype, ActivityDate, WhoId FROM Task WHERE Id = :r.recordId];
+            Assert.areEqual('Pricing call', t.Subject);
+            Assert.areEqual('Completed', t.Status);
+            Assert.areEqual('Call', t.TaskSubtype);
+            Assert.areEqual(NOW.date(), t.ActivityDate);
+            Assert.areEqual(mariaId, t.WhoId);
+
+        }
     }
 
     @IsTest
     static void aLoggedCallNeedsAContact() {
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('log_call', acme(), new Map<String, Object>());
-        Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
-        Assert.areEqual(new List<String>{ 'WhoId' }, d.missing);
-        Assert.areEqual('Call', field(d, 'Subject').value, 'the subject defaults to Call');
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('log_call', acme(), new Map<String, Object>());
+            Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
+            Assert.areEqual(new List<String>{ 'WhoId' }, d.missing);
+            Assert.areEqual('Call', field(d, 'Subject').value, 'the subject defaults to Call');
+
+        }
     }
 
     // ------------------------------------------------------------------ create_case
 
     @IsTest
     static void aCaseGoesOnTheAccountWithItsContactAndPriority() {
-        Id accountId = acme();
-        Id mariaId = maria().Id;
-        Test.startTest();
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_case', accountId, new Map<String, Object>{
-            'subject' => 'Portal is down', 'priority' => 'high', 'contact' => 'Maria', 'description' => 'Since 9am'
-        });
-        Assert.areEqual(0, Limits.getDmlStatements());
-        CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
-        Test.stopTest();
-        Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
-        Case c = [SELECT Subject, Priority, AccountId, ContactId, Description FROM Case WHERE Id = :r.recordId];
-        Assert.areEqual('Portal is down', c.Subject);
-        Assert.areEqual('High', c.Priority, 'a picklist matches its value in any case');
-        Assert.areEqual(accountId, c.AccountId);
-        Assert.areEqual(mariaId, c.ContactId);
-        Assert.areEqual('Since 9am', c.Description);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            Test.startTest();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_case', accountId, new Map<String, Object>{
+                'subject' => 'Portal is down', 'priority' => 'high', 'contact' => 'Maria', 'description' => 'Since 9am'
+            });
+            Assert.areEqual(0, Limits.getDmlStatements());
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
+            Test.stopTest();
+            Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
+            Case c = [SELECT Subject, Priority, AccountId, ContactId, Description FROM Case WHERE Id = :r.recordId];
+            Assert.areEqual('Portal is down', c.Subject);
+            Assert.areEqual('High', c.Priority, 'a picklist matches its value in any case');
+            Assert.areEqual(accountId, c.AccountId);
+            Assert.areEqual(mariaId, c.ContactId);
+            Assert.areEqual('Since 9am', c.Description);
+
+        }
     }
 
     @IsTest
     static void aPriorityThatIsNotAValueNeedsInput() {
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_case', acme(),
-            new Map<String, Object>{ 'subject' => 'Portal is down', 'priority' => 'Urgentest' });
-        Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
-        Assert.areEqual('"Urgentest" can\'t be used as the priority.', field(d, 'Priority').error);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('create_case', acme(),
+                new Map<String, Object>{ 'subject' => 'Portal is down', 'priority' => 'Urgentest' });
+            Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
+            Assert.areEqual('"Urgentest" can\'t be used as the priority.', field(d, 'Priority').error);
+
+        }
     }
 
     // ------------------------------------------------------------------ refusals
 
     @IsTest
     static void anUnknownActionOrAnUnseenAccountIsRefused() {
-        Id accountId = acme();
-        Id mariaId = maria().Id;
-        CustomerSummaryActions.Draft unknown = CustomerSummaryActions.draft('send_email', accountId, new Map<String, Object>());
-        Assert.areEqual(CustomerSummaryActions.REFUSED, unknown.status);
-        Assert.areEqual(CustomerSummaryActions.UNKNOWN_ACTION_TEXT, unknown.message);
-        Assert.areEqual(1, unknown.cards[0].controls.size(), 'a refused draft offers only Cancel');
-        Assert.areEqual('cancel', unknown.cards[0].controls[0].key);
-        CustomerSummaryActions.Draft noAccount = CustomerSummaryActions.draft('create_task', null, new Map<String, Object>());
-        Assert.areEqual(CustomerSummaryActions.NO_ACCOUNT_TEXT, noAccount.message);
-        CustomerSummaryActions.Draft notAccount = CustomerSummaryActions.draft('create_task', mariaId, new Map<String, Object>());
-        Assert.areEqual(CustomerSummaryActions.NO_ACCOUNT_TEXT, notAccount.message);
-        CustomerSummaryActions.Draft badJson = CustomerSummaryActions.draftJson('create_task', accountId, '[1, 2]');
-        Assert.areEqual(CustomerSummaryActions.BAD_INPUT_TEXT, badJson.message);
-        Assert.areEqual(CustomerSummaryActions.REFUSED, CustomerSummaryActions.commitDraft(null).status);
-        Assert.areEqual(CustomerSummaryActions.REFUSED, CustomerSummaryActions.commitJson('not a draft').status);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            CustomerSummaryActions.Draft unknown = CustomerSummaryActions.draft('send_email', accountId, new Map<String, Object>());
+            Assert.areEqual(CustomerSummaryActions.REFUSED, unknown.status);
+            Assert.areEqual(CustomerSummaryActions.UNKNOWN_ACTION_TEXT, unknown.message);
+            Assert.areEqual(1, unknown.cards[0].controls.size(), 'a refused draft offers only Cancel');
+            Assert.areEqual('cancel', unknown.cards[0].controls[0].key);
+            CustomerSummaryActions.Draft noAccount = CustomerSummaryActions.draft('create_task', null, new Map<String, Object>());
+            Assert.areEqual(CustomerSummaryActions.NO_ACCOUNT_TEXT, noAccount.message);
+            CustomerSummaryActions.Draft notAccount = CustomerSummaryActions.draft('create_task', mariaId, new Map<String, Object>());
+            Assert.areEqual(CustomerSummaryActions.NO_ACCOUNT_TEXT, notAccount.message);
+            CustomerSummaryActions.Draft badJson = CustomerSummaryActions.draftJson('create_task', accountId, '[1, 2]');
+            Assert.areEqual(CustomerSummaryActions.BAD_INPUT_TEXT, badJson.message);
+            Assert.areEqual(CustomerSummaryActions.REFUSED, CustomerSummaryActions.commitDraft(null).status);
+            Assert.areEqual(CustomerSummaryActions.REFUSED, CustomerSummaryActions.commitJson('not a draft').status);
+
+        }
     }
 
     /** A user who can read accounts and contacts (and see all of them) but edit nothing. */
@@ -371,121 +423,149 @@ private class CustomerSummaryActionsTest {
 
     @IsTest
     static void aSentenceBecomesADraftThroughTheModelSeam() {
-        Id accountId = acme();
-        Id mariaId = maria().Id;
-        Stub s = stub(new List<String>{
-            'Here it is: {"action":"create_task","fields":{"subject":"Send Maria the pricing","dueDate":"next Tuesday","contact":"Maria"},"missing":[]}'
-        });
-        Test.startTest();
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(accountId, 'Create a task to send Maria the pricing next Tuesday');
-        Assert.areEqual(0, Limits.getDmlStatements());
-        Test.stopTest();
-        Assert.areEqual(CustomerSummaryActions.READY, d.status, JSON.serialize(d.fields));
-        Assert.areEqual('create_task', d.action);
-        Assert.areEqual('2026-11-17', field(d, 'ActivityDate').value);
-        Assert.areEqual(String.valueOf(mariaId), field(d, 'WhoId').value);
-        Assert.areEqual(1, s.prompts.size());
-        Assert.isTrue(s.prompts[0].contains('Today is 2026-11-13'), s.prompts[0]);
-        Assert.isTrue(s.prompts[0].contains('The open account is Actions Acme.'), s.prompts[0]);
-        Assert.isTrue(s.prompts[0].contains('Request: Create a task to send Maria the pricing next Tuesday'), s.prompts[0]);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            Stub s = stub(new List<String>{
+                'Here it is: {"action":"create_task","fields":{"subject":"Send Maria the pricing","dueDate":"next Tuesday","contact":"Maria"},"missing":[]}'
+            });
+            Test.startTest();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(accountId, 'Create a task to send Maria the pricing next Tuesday');
+            Assert.areEqual(0, Limits.getDmlStatements());
+            Test.stopTest();
+            Assert.areEqual(CustomerSummaryActions.READY, d.status, JSON.serialize(d.fields));
+            Assert.areEqual('create_task', d.action);
+            Assert.areEqual('2026-11-17', field(d, 'ActivityDate').value);
+            Assert.areEqual(String.valueOf(mariaId), field(d, 'WhoId').value);
+            Assert.areEqual(1, s.prompts.size());
+            Assert.isTrue(s.prompts[0].contains('Today is 2026-11-13'), s.prompts[0]);
+            Assert.isTrue(s.prompts[0].contains('The open account is Actions Acme.'), s.prompts[0]);
+            Assert.isTrue(s.prompts[0].contains('Request: Create a task to send Maria the pricing next Tuesday'), s.prompts[0]);
+
+        }
     }
 
     @IsTest
     static void aSentenceMissingARequiredFieldNeedsInput() {
-        stub(new List<String>{ '{"action":"create_task","fields":{"subject":"Call Maria back"},"missing":["dueDate"]}' });
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(acme(), 'Add a task to call Maria back');
-        Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
-        Assert.areEqual(new List<String>{ 'ActivityDate' }, d.missing);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            stub(new List<String>{ '{"action":"create_task","fields":{"subject":"Call Maria back"},"missing":["dueDate"]}' });
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(acme(), 'Add a task to call Maria back');
+            Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
+            Assert.areEqual(new List<String>{ 'ActivityDate' }, d.missing);
+
+        }
     }
 
     @IsTest
     static void aPersonTheRequestNeverNamedIsDropped() {
-        stub(new List<String>{ '{"action":"log_call","fields":{"subject":"Renewal pricing","contact":"Maria Lopez"}}' });
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(acme(), 'Log a call about the renewal pricing');
-        Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
-        Assert.areEqual(new List<String>{ 'WhoId' }, d.missing, 'BE-22: the model added a contact the request never named');
-        Assert.isFalse(JSON.serialize(d).contains('Maria'), JSON.serialize(d));
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            stub(new List<String>{ '{"action":"log_call","fields":{"subject":"Renewal pricing","contact":"Maria Lopez"}}' });
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(acme(), 'Log a call about the renewal pricing');
+            Assert.areEqual(CustomerSummaryActions.NEEDS_INPUT, d.status);
+            Assert.areEqual(new List<String>{ 'WhoId' }, d.missing, 'BE-22: the model added a contact the request never named');
+            Assert.isFalse(JSON.serialize(d).contains('Maria'), JSON.serialize(d));
+
+        }
     }
 
     @IsTest
     static void aModelThatSaysNoneOrNamesNoActionIsNotAnAction() {
-        stub(new List<String>{ '{"action":"none"}', '{"action":"send_email","fields":{}}' });
-        Id accountId = acme();
-        Assert.areEqual(CustomerSummaryActions.NOT_AN_ACTION, CustomerSummaryActions.draftFromText(accountId, 'Update on the router deal?').status);
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(accountId, 'Make an email to Maria');
-        Assert.areEqual(CustomerSummaryActions.NOT_AN_ACTION, d.status);
-        Assert.areEqual(CustomerSummaryActions.NOT_AN_ACTION_TEXT, d.message);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            stub(new List<String>{ '{"action":"none"}', '{"action":"send_email","fields":{}}' });
+            Id accountId = acme();
+            Assert.areEqual(CustomerSummaryActions.NOT_AN_ACTION, CustomerSummaryActions.draftFromText(accountId, 'Update on the router deal?').status);
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(accountId, 'Make an email to Maria');
+            Assert.areEqual(CustomerSummaryActions.NOT_AN_ACTION, d.status);
+            Assert.areEqual(CustomerSummaryActions.NOT_AN_ACTION_TEXT, d.message);
+
+        }
     }
 
     @IsTest
     static void aModelFailureIsAnErrorWithTheFixedText() {
-        stub(new List<String>{ 'THROW', 'Sure! I can help with that.' });
-        Id accountId = acme();
-        for (Integer n = 0; n < 2; n++) {
-            CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(accountId, 'Create a task for tomorrow');
-            Assert.areEqual(CustomerSummaryActions.ERROR, d.status);
-            Assert.areEqual(CustomerSummaryActions.MODEL_TEXT, d.message);
-            Assert.areEqual('error', d.cards[0].type);
-            Assert.isFalse(JSON.serialize(d).contains('raw platform text'));
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            stub(new List<String>{ 'THROW', 'Sure! I can help with that.' });
+            Id accountId = acme();
+            for (Integer n = 0; n < 2; n++) {
+                CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(accountId, 'Create a task for tomorrow');
+                Assert.areEqual(CustomerSummaryActions.ERROR, d.status);
+                Assert.areEqual(CustomerSummaryActions.MODEL_TEXT, d.message);
+                Assert.areEqual('error', d.cards[0].type);
+                Assert.isFalse(JSON.serialize(d).contains('raw platform text'));
+            }
+
         }
     }
 
     @IsTest
     static void aSentenceForAnUnseenAccountIsRefusedWithNoModelCall() {
-        Stub s = stub(new List<String>());
-        CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(maria().Id, 'Create a task for tomorrow');
-        Assert.areEqual(CustomerSummaryActions.REFUSED, d.status);
-        Assert.areEqual(0, s.prompts.size());
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Stub s = stub(new List<String>());
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draftFromText(maria().Id, 'Create a task for tomorrow');
+            Assert.areEqual(CustomerSummaryActions.REFUSED, d.status);
+            Assert.areEqual(0, s.prompts.size());
+
+        }
     }
 
     // ------------------------------------------------------------------ the invocables
 
     @IsTest
     static void theDraftAndCommitInvocablesWriteOnlyAConfirmedDraft() {
-        Id accountId = acme();
-        Id mariaId = maria().Id;
-        stub(new List<String>{ '{"action":"create_task","fields":{"subject":"Send pricing","dueDate":"tomorrow","contact":"Maria"}}' });
-        CustomerSummaryActionDraftAction.Request byText = new CustomerSummaryActionDraftAction.Request();
-        byText.accountId = accountId;
-        byText.text = 'Create a task to send Maria pricing tomorrow';
-        CustomerSummaryActionDraftAction.Request byType = new CustomerSummaryActionDraftAction.Request();
-        byType.accountId = accountId;
-        byType.actionType = 'create_case';
-        byType.inputJson = '{"subject":"Portal is down"}';
-        CustomerSummaryActionDraftAction.Request bad = new CustomerSummaryActionDraftAction.Request();
-        bad.accountId = accountId;
-        bad.actionType = 'create_task';
-        bad.inputJson = 'not json';
-        Test.startTest();
-        List<CustomerSummaryActionDraftAction.Response> drafts = CustomerSummaryActionDraftAction.draft(
-            new List<CustomerSummaryActionDraftAction.Request>{ byText, byType, bad });
-        Integer draftDml = Limits.getDmlStatements();
-        CustomerSummaryActionCommitAction.Request confirm = new CustomerSummaryActionCommitAction.Request();
-        confirm.draftJson = drafts[0].draftJson;
-        CustomerSummaryActionCommitAction.Request junk = new CustomerSummaryActionCommitAction.Request();
-        junk.draftJson = '{"action":"create_task"}';
-        List<CustomerSummaryActionCommitAction.Response> results = CustomerSummaryActionCommitAction.commitDrafts(
-            new List<CustomerSummaryActionCommitAction.Request>{ confirm, junk });
-        Test.stopTest();
-        Assert.areEqual(0, draftDml, 'drafting writes nothing');
-        Assert.areEqual(CustomerSummaryActions.READY, drafts[0].status, drafts[0].draftText);
-        Assert.isTrue(drafts[0].isSuccess);
-        Assert.isTrue(drafts[0].draftText.contains('Contact: Maria Lopez'), drafts[0].draftText);
-        Assert.isFalse(drafts[0].draftText.contains(String.valueOf(mariaId)), 'no Id in the text a user sees');
-        Assert.isTrue(drafts[0].cards.contains('"actionDraft"'), drafts[0].cards);
-        // OPS-59: the invocables are the MCP door, which allows create_task and log_call only.
-        Assert.areEqual(CustomerSummaryActions.REFUSED, drafts[1].status, drafts[1].draftText);
-        Assert.areEqual(CustomerSummaryActionDraftAction.DOOR_REFUSED_TEXT, drafts[1].message);
-        Assert.isNull(drafts[1].draftJson, 'a refused action has no draft to commit');
-        Assert.isFalse(drafts[2].isSuccess);
-        Assert.areEqual(CustomerSummaryActions.BAD_INPUT_TEXT, drafts[2].errorMessage);
-        Assert.areEqual(CustomerSummaryActions.OK, results[0].status, results[0].message);
-        Assert.isTrue(results[0].isSuccess);
-        Assert.areEqual('Send pricing', [SELECT Subject FROM Task WHERE Id = :results[0].recordId].Subject);
-        Assert.areEqual(CustomerSummaryActions.REFUSED, results[1].status);
-        Assert.isFalse(results[1].isSuccess);
-        Assert.isNull(results[1].recordId);
-        Assert.areEqual(1, [SELECT COUNT() FROM Task], 'only the confirmed draft was written');
-        Assert.areEqual(0, [SELECT COUNT() FROM Case], 'a draft alone writes nothing');
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            stub(new List<String>{ '{"action":"create_task","fields":{"subject":"Send pricing","dueDate":"tomorrow","contact":"Maria"}}' });
+            CustomerSummaryActionDraftAction.Request byText = new CustomerSummaryActionDraftAction.Request();
+            byText.accountId = accountId;
+            byText.text = 'Create a task to send Maria pricing tomorrow';
+            CustomerSummaryActionDraftAction.Request byType = new CustomerSummaryActionDraftAction.Request();
+            byType.accountId = accountId;
+            byType.actionType = 'create_case';
+            byType.inputJson = '{"subject":"Portal is down"}';
+            CustomerSummaryActionDraftAction.Request bad = new CustomerSummaryActionDraftAction.Request();
+            bad.accountId = accountId;
+            bad.actionType = 'create_task';
+            bad.inputJson = 'not json';
+            Test.startTest();
+            List<CustomerSummaryActionDraftAction.Response> drafts = CustomerSummaryActionDraftAction.draft(
+                new List<CustomerSummaryActionDraftAction.Request>{ byText, byType, bad });
+            Integer draftDml = Limits.getDmlStatements();
+            CustomerSummaryActionCommitAction.Request confirm = new CustomerSummaryActionCommitAction.Request();
+            confirm.draftJson = drafts[0].draftJson;
+            CustomerSummaryActionCommitAction.Request junk = new CustomerSummaryActionCommitAction.Request();
+            junk.draftJson = '{"action":"create_task"}';
+            List<CustomerSummaryActionCommitAction.Response> results = CustomerSummaryActionCommitAction.commitDrafts(
+                new List<CustomerSummaryActionCommitAction.Request>{ confirm, junk });
+            Test.stopTest();
+            Assert.areEqual(0, draftDml, 'drafting writes nothing');
+            Assert.areEqual(CustomerSummaryActions.READY, drafts[0].status, drafts[0].draftText);
+            Assert.isTrue(drafts[0].isSuccess);
+            Assert.isTrue(drafts[0].draftText.contains('Contact: Maria Lopez'), drafts[0].draftText);
+            Assert.isFalse(drafts[0].draftText.contains(String.valueOf(mariaId)), 'no Id in the text a user sees');
+            Assert.isTrue(drafts[0].cards.contains('"actionDraft"'), drafts[0].cards);
+            // OPS-59: the invocables are the MCP door, which allows create_task and log_call only.
+            Assert.areEqual(CustomerSummaryActions.REFUSED, drafts[1].status, drafts[1].draftText);
+            Assert.areEqual(CustomerSummaryActionDraftAction.DOOR_REFUSED_TEXT, drafts[1].message);
+            Assert.isNull(drafts[1].draftJson, 'a refused action has no draft to commit');
+            Assert.isFalse(drafts[2].isSuccess);
+            Assert.areEqual(CustomerSummaryActions.BAD_INPUT_TEXT, drafts[2].errorMessage);
+            Assert.areEqual(CustomerSummaryActions.OK, results[0].status, results[0].message);
+            Assert.isTrue(results[0].isSuccess);
+            Assert.areEqual('Send pricing', [SELECT Subject FROM Task WHERE Id = :results[0].recordId].Subject);
+            Assert.areEqual(CustomerSummaryActions.REFUSED, results[1].status);
+            Assert.isFalse(results[1].isSuccess);
+            Assert.isNull(results[1].recordId);
+            Assert.areEqual(1, [SELECT COUNT() FROM Task], 'only the confirmed draft was written');
+            Assert.areEqual(0, [SELECT COUNT() FROM Case], 'a draft alone writes nothing');
+
+        }
     }
 }

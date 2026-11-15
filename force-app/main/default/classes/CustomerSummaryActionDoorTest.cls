@@ -128,25 +128,29 @@ private class CustomerSummaryActionDoorTest {
 
     @IsTest
     static void thePanelKeepsAllSix() {
-        Id accountId = acme();
-        Test.startTest();
-        List<String> names = new List<String>();
-        for (CustomerSummaryActionCatalog.Spec spec : CustomerSummaryActionCatalog.all()) {
-            names.add(spec.name);
-            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft(spec.name, accountId, new Map<String, Object>());
-            Assert.areEqual(spec.name, d.action);
-            Assert.areNotEqual(CustomerSummaryActionDraftAction.DOOR_REFUSED_TEXT, d.message, spec.name);
-            Assert.areNotEqual(CustomerSummaryActions.UNKNOWN_ACTION_TEXT, d.message, spec.name);
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Test.startTest();
+            List<String> names = new List<String>();
+            for (CustomerSummaryActionCatalog.Spec spec : CustomerSummaryActionCatalog.all()) {
+                names.add(spec.name);
+                CustomerSummaryActions.Draft d = CustomerSummaryActions.draft(spec.name, accountId, new Map<String, Object>());
+                Assert.areEqual(spec.name, d.action);
+                Assert.areNotEqual(CustomerSummaryActionDraftAction.DOOR_REFUSED_TEXT, d.message, spec.name);
+                Assert.areNotEqual(CustomerSummaryActions.UNKNOWN_ACTION_TEXT, d.message, spec.name);
+            }
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitJson(asJson(CustomerSummaryActions.draft(
+                'create_case', accountId, new Map<String, Object>{ 'subject' => 'Portal is down' })));
+            Test.stopTest();
+            Assert.areEqual(new List<String>{ 'create_task', 'create_event', 'log_call', 'update_contact', 'create_case',
+                'update_opportunity' }, names);
+            Assert.areEqual(CustomerSummaryActions.OK, r.status, 'the panel still writes a case: ' + r.message);
+            Assert.areEqual(1, [SELECT COUNT() FROM Case]);
+            Assert.isTrue(CustomerSummaryActionDraftAction.allowed('log_call'));
+            Assert.isFalse(CustomerSummaryActionDraftAction.allowed('create_case'));
+            Assert.isFalse(CustomerSummaryActionDraftAction.allowed(null));
+
         }
-        CustomerSummaryActions.Result r = CustomerSummaryActions.commitJson(asJson(CustomerSummaryActions.draft(
-            'create_case', accountId, new Map<String, Object>{ 'subject' => 'Portal is down' })));
-        Test.stopTest();
-        Assert.areEqual(new List<String>{ 'create_task', 'create_event', 'log_call', 'update_contact', 'create_case',
-            'update_opportunity' }, names);
-        Assert.areEqual(CustomerSummaryActions.OK, r.status, 'the panel still writes a case: ' + r.message);
-        Assert.areEqual(1, [SELECT COUNT() FROM Case]);
-        Assert.isTrue(CustomerSummaryActionDraftAction.allowed('log_call'));
-        Assert.isFalse(CustomerSummaryActionDraftAction.allowed('create_case'));
-        Assert.isFalse(CustomerSummaryActionDraftAction.allowed(null));
     }
 }
