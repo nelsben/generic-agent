@@ -22,6 +22,7 @@
   agent" stay **not yet proven**.
 - **Runs without the agent: not testable here.** The org's agent stays published and active, and no agent was
   deactivated, deleted or unpublished.
+- **OPS-62 (2026-11-15, the connect-24h org): the clean install stopped at its first deploy step.** The org is not empty: it already held 200 Accounts, five other agents and about 70 Apex classes that this repo does not ship, so it is not a clean install either. The validate of the README's 13 source directories failed on compile errors in those org classes, so nothing was deployed. The seed (step 2) passed. See "Clean install in a new org (OPS-62, 2026-11-15)" below.
 - **One README fix:** the ladder line now says to set `SF_TARGET_ORG` (deviation 2).
 
 ## Steps, as typed
@@ -80,3 +81,63 @@ limit exceeded" (verified). The Dev Hub's `DataStorageMB` was 0 of 5 remaining, 
 [config/project-scratch-def.json](../../config/project-scratch-def.json), is kept for a rerun once the hub has room:
 edition Developer, features `EnableSetPasswordInApi` and `Einstein1AIPlatform`, and the Lightning desktop, agent
 platform and Einstein generative AI settings on.
+
+## Clean install in a new org (OPS-62, 2026-11-15)
+
+- Date and times (UTC): 2026-11-15. The org guard ran at about 21:17. The validate ran 21:19:51 to 21:20:33. The seed ran
+  21:20:59 to 21:21:07. The run stopped at about 21:22, after the failed validate.
+- CLI: `@salesforce/cli` 2.158.7. Node 26.13.0 (`npm ci` installed the worktree's dependencies first, exit 0).
+- Org guard: the two `sf org display` results differ (SAME or DIFFERENT only; values not written here). Take no org step
+  on SAME; the run went ahead on DIFFERENT (verified).
+- Org state before the run (read-only counts, verified): 200 Accounts, 5 agent definitions (`BotDefinition`), and about
+  70 non-namespaced Apex classes. The org is a Developer Edition org with no Customer Summary product, no `Customer_Summary`
+  agent, and no "Edge Communications" account. It is not empty, which the card assumed it was. This is a finding, not
+  something this run changed.
+- Classification: the host carries the orgfarm and Developer Edition markers, with no future trial date. The card treats the
+  org as production, so deploys go validate, then quick deploy. Same as the OPS-28 run.
+- Scope of the run: the org guard, the classification, the README's deploy validate, the seed and this record. The other
+  README steps were blocked by the validate failure.
+
+### Steps, as typed
+
+| # | README step | Command as typed | Result | Minutes |
+|---|---|---|---|---|
+| 0 | Org guard | `sf org display -o <org-alias> --json` for the org and for `agent-probe`, compared in a shell expression | DIFFERENT (verified) | under 0.1 |
+| 1 | Classify | `sf org list --skip-connection-status --json`; `SELECT OrganizationType, IsSandbox FROM Organization` | Developer Edition, not sandbox, not scratch, not a Dev Hub; treated as production (verified) | under 0.1 |
+| 2 | Starting state | `SELECT COUNT() FROM Account`; `SELECT DeveloperName FROM BotDefinition`; `SELECT COUNT() FROM ApexClass WHERE NamespacePrefix = null` | 200, 5, 70: not empty (verified) | under 0.1 |
+| 3 | 1. Deploy the metadata (validate) | `sf project deploy validate -o <org-alias>` with the README's 13 `--source-dir` lines, `--test-level RunLocalTests --wait 9 --json` | **Failed** (21:19:51 to 21:20:33, 0.7 min). Compile errors in org classes, "Variable does not exist", with the dependent classes marked invalid and needing recompilation. The repo's classes do not include the failing names (checked for AgentActionsTest, AgentCaseActions and the others). 0 components deployed (verified) | 0.7 |
+| 4 | 1. (quick deploy) | not run | Blocked: nothing validated | 0 |
+| 5 | 2. Load the sample data | `SF_TARGET_ORG=<org-alias> bash scripts/seed-sample-data.sh` | **Passed** (21:20:59 to 21:21:07): "107 records imported" (verified) | 0.1 |
+| 6 | 3. Grant access | `sf org assign permset -o <org-alias> -n Customer_Summary_User` | Not run: the permission set group is not in the org | 0 |
+| 7 | 4. Open it | `sf org open -o <org-alias>` | Not run: needs the deployed app and a browser sign-in | 0 |
+| 8 | Agent (publish, activate) | `sf agent publish` and `sf agent activate` for `Customer_Summary` | Not run: the agent comes from the deploy | 0 |
+| 9 | Then run the checks | `SF_TARGET_ORG=<org-alias> SF_E2E_ORG=<org-alias> npm run ladder` | Not run: the org rungs need the deployed product | 0 |
+
+Counts: components 0 of 149 deployed; Apex tests not counted (the validate failed before a count was read); records
+seeded 107; ladder rungs 0 of 6 run. Total time for the steps run: about 1 minute, plus the guard and the classification.
+
+### Result
+
+The install is not proven. The deploy validate failed, so no product component reached the org. The seed passed and was
+the only org write. The failure is in the org's own Apex, not in this repo: the validate runs every local test, and the org's
+existing classes do not compile. This run did not change force-app, data, or scripts, and did not change the test level.
+
+Proposed fix (not applied; a human decision, outside this card): the org's pre-existing Apex must compile before a
+RunLocalTests validate can pass. That means repairing or removing the other build's classes in this org, which the card
+does not allow, or validating the product on its own tests with `--test-level RunSpecifiedTests`, which the card does not
+allow either. Either way, the next run needs the owner's call first.
+
+### Deviations
+
+1. The deploy-gate hook refused the validate ("No target org is configured") until a project-local default was set. The
+   worktree was given `sf config set target-org <org-alias>` (project-local, in the git-ignored `.sf/`, not `--global`), as
+   in the OPS-28 and OPS-25 runs. It is unset after the run.
+2. Step order: the seed ran after the failed validate, not in the README's order. The seed does not depend on the deploy,
+   so it went ahead.
+3. The validate failure is not a README step. Nothing was changed to get past it, and the test level stays `RunLocalTests`.
+
+### What the next cards need
+
+Nothing is ready. The product is not deployed, `Customer_Summary` is not published, and the permission set group is not
+assigned. The seed data is in (107 records). The account the next cards should use, once the product is in, is Edge Communications: the README's hero
+image and the seed guard both name it. No agent access check was run.
