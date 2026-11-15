@@ -11,9 +11,9 @@ Integer resultCount = 0;
 String keys = '';
 try {
     // BE-52: documented signature findAndGroup(String q) returns ConnectApi.SearchResultGroups (Apex reference, API 63.0). Output is read from its JSON form, counts only.
-    String json = JSON.serialize(ConnectApi.Search.findAndGroup(term));
-    Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(json);
-    Object groups = parsed.get('searchResultGroups');
+    String body = JSON.serialize(ConnectApi.Search.findAndGroup(term));
+    Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(body);
+    Object groups = parsed.get('resultGroups');
     resultCount = groups instanceof List<Object> ? ((List<Object>) groups).size() : 0;
     keys = String.join(new List<String>(parsed.keySet()), ',');
 } catch (Exception e) {
@@ -22,4 +22,4 @@ try {
     errMsg = e.getMessage();
 }
 Integer secs = Integer.valueOf((System.now().getTime() - t0) / 1000);
-System.debug('BE47|door=2|target=ConnectApi.Search.findAndGroup(String)|status=' + status + '|errType=' + errType + '|errMsg=' + errMsg + '|resultCount=' + resultCount + '|topKeys=' + keys + '|summary=none|seconds=' + secs);
+System.debug('BE47|door=2|target=ConnectApi.Search.findAndGroup(String)|status=' + status + '|errType=' + errType + '|errMsg=' + (errMsg == null ? '' : errMsg) + '|resultCount=' + resultCount + '|topKeys=' + keys + '|summary=none|seconds=' + secs);
