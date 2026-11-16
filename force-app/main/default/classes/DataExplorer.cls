@@ -13,6 +13,9 @@
  * set has rows) and the answer is TURN_CAP_TEXT, so the caller still shows the last result, or
  * TURN_CAP_NO_ROWS_TEXT when that last result has no rows (callers table only the last set). Turns
  * that run out with nothing read, and any model failure, are ERROR.
+ * Status (BE-58): OK when any result set has a row, or when no query ran and the answer text is not
+ * blank. EMPTY means the queries found nothing: at least one ran and none returned a row. The blank
+ * question is EMPTY too (NO_QUESTION_TEXT).
  *
  * Follow-ups to a summary (BE-30). When the last history item is the user's newest summary of the open
  * Account (its answer matches CustomerSummaryMemory.lastBrief), the history the model sees ends with a
@@ -247,7 +250,10 @@ public with sharing class DataExplorer {
         for (ExploreQuery.ResultSet rs : r.resultSets) {
             anyRows = anyRows || rs.shown > 0;
         }
-        r.status = anyRows ? OK : EMPTY;
+        // EMPTY means the queries found nothing: at least one ran and none returned a row. An answer
+        // with text and no query run (a follow-up answered from history) is OK (BE-58).
+        Boolean noQueryRan = r.resultSets.isEmpty();
+        r.status = anyRows || (noQueryRan && String.isNotBlank(text)) ? OK : EMPTY;
         r.answer = text;
         if (rawFollowups instanceof List<Object>) {
             for (Object o : (List<Object>) rawFollowups) {

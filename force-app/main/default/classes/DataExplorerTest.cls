@@ -200,7 +200,7 @@ private class DataExplorerTest {
 
         DataExplorer.Result r = DataExplorer.explore('Total pipeline?', null, null);
 
-        Assert.areEqual(DataExplorer.EMPTY, r.status);
+        Assert.areEqual(DataExplorer.OK, r.status, 'no result set came back and the model answered in text');
         Assert.isTrue(r.resultSets.isEmpty());
         Assert.isTrue(s.prompts[1].contains('[1] INVALID: That would read more than 2 rows.'), s.prompts[1]);
         Assert.isTrue(s.prompts[1].contains('Queries left: 3'), 'a refused aggregate still counts');
@@ -215,7 +215,7 @@ private class DataExplorerTest {
 
         DataExplorer.Result r = DataExplorer.explore('Show login history', null, null);
 
-        Assert.areEqual(DataExplorer.EMPTY, r.status);
+        Assert.areEqual(DataExplorer.OK, r.status, 'no result set came back and the model answered in text');
         Assert.isTrue(r.resultSets.isEmpty());
         Assert.isTrue(s.prompts[1].contains('INVALID: Unknown object "LoginHistory". Use one of: Account, Contact, Opportunity'), s.prompts[1]);
     }
@@ -279,7 +279,7 @@ private class DataExplorerTest {
 
         DataExplorer.Result r = DataExplorer.explore('Accounts described as x', null, null);
 
-        Assert.areEqual(DataExplorer.EMPTY, r.status);
+        Assert.areEqual(DataExplorer.OK, r.status, 'no result set came back and the model answered in text');
         Assert.isTrue(r.resultSets.isEmpty());
         Assert.isTrue(s.prompts[1].contains('[1] INVALID: '), s.prompts[1]);
         Assert.isTrue(s.prompts[1].contains('Queries left: 3'), 'a query the database rejected still counts');
@@ -299,6 +299,21 @@ private class DataExplorerTest {
     }
 
     @IsTest
+    static void aQueryThatReturnsNoRowsThenAnAnswerIsEmpty() {
+        Script s = script(new List<String>{
+            query('{"object":"Opportunity","fields":["Name","Amount"],"filters":[{"field":"Account.Name","op":"=","value":"Explore Beta"}]}'),
+            answer('Explore Beta has no deals.')
+        });
+
+        DataExplorer.Result r = DataExplorer.explore('What deals does Beta have?', null, null);
+
+        Assert.areEqual(DataExplorer.EMPTY, r.status, 'a query ran and returned no rows');
+        Assert.areEqual(1, r.resultSets.size());
+        Assert.areEqual(0, r.resultSets[0].shown);
+        Assert.areEqual('Explore Beta has no deals.', r.answer);
+    }
+
+    @IsTest
     static void blankQuestionIsEmpty() {
         Script s = script(new List<String>());
         DataExplorer.Result r = DataExplorer.explore('  ', null, null);
@@ -315,7 +330,7 @@ private class DataExplorerTest {
 
         DataExplorer.Result r = DataExplorer.explore('How is this account?', a.Id, history);
 
-        Assert.areEqual(DataExplorer.EMPTY, r.status, 'answered without rows');
+        Assert.areEqual(DataExplorer.OK, r.status, 'no query ran and the model answered in text');
         Assert.isTrue(s.prompts[0].contains('object=Account id=' + a.Id + ' name=Explore Acme'), s.prompts[0]);
         Assert.isTrue(s.prompts[0].contains('Q: Earlier question?\nA: Earlier answer.\nQ: Second?'));
         Assert.isTrue(s.prompts[1].contains('INVALID: an answer needs "text".'));
@@ -643,7 +658,7 @@ private class DataExplorerTest {
         Assert.isTrue(s.systems[0].contains('When it is unclear which records the question means'), 'the pronoun rule is in the prompt');
         Assert.isTrue(s.prompts[0].contains(DataExplorer.SUMMARY_CONTEXT_HEADER), 'the context is there to choose from');
         Assert.areEqual(1, s.prompts.size(), 'one model call, no query');
-        Assert.areEqual(DataExplorer.EMPTY, r.status);
+        Assert.areEqual(DataExplorer.OK, r.status, 'no result set came back and the model answered in text');
         Assert.isTrue(r.resultSets.isEmpty());
         Assert.isTrue(r.answer.endsWith('?'), 'the answer asks: ' + r.answer);
         Assert.areEqual(2, r.followups.size(), 'the choices come back as follow-ups');
