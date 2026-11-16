@@ -125,3 +125,7 @@
   a failed explorer answer, and an answer about a non-account record, start no session.
 - `tests/test_permission_sets.py`: the new class is granted, and every field the history door reads is readable
   and not editable.
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

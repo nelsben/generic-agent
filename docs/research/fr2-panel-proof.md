@@ -103,3 +103,7 @@ in `agent-probe`. Turn VoiceOver on with Cmd-F5. Write down anything that differ
 - Contrast of the 2 elements axe left "incomplete".
 - A slow connection, for how long the fallback names show.
 - The two hotkey branches (FE-21) and the non-admin run (FE-5).
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

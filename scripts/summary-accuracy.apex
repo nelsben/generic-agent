@@ -2,11 +2,11 @@
 //
 // Runs CustomerSummary.run() for ONE sample account per execution: SAMPLE picks it from SAMPLE_NAMES (0 to 4),
 // existing accounts from the seed data in data/sample/accounts.json. One account per run keeps each transaction to
-// one brief (about 30 queries and up to 3 model calls) instead of five. Run it once per sample, for example:
+// one brief (about 30 queries and up to 4 model calls (two pre-reduces, the sentiment call and the synthesis)) instead of five. Run it once per sample, for example:
 //   for i in 0 1 2 3 4; do sed "s/^Integer SAMPLE = 0;/Integer SAMPLE = $i;/" scripts/summary-accuracy.apex > "$TMP/s$i.apex"; \
 //     sf apex run --file "$TMP/s$i.apex" --target-org agent-probe --json > "$TMP/s$i.json"; done
 // Not wrapped in a savepoint: the model calls must run, and a savepoint before a callout fails it. The run writes
-// the product's own memory row for (this user, this account), as any summary does. It spends up to 3 model calls.
+// the product's own memory row for (this user, this account), as any summary does. It spends up to 4 model calls (two pre-reduces, the sentiment call and the synthesis).
 //
 // It prints only counts and true/false checks, plus each unmatched value with the answer section it sits in.
 // It never prints an account name, an Id or answer text. Every line starts with 'ACC|' so it can be read out of

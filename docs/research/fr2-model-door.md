@@ -50,7 +50,7 @@ help article "Einstein Trust Layer", help article "Set Up Einstein Generative AI
   - Batch, scheduled and Automated Process runs are always metered.
 - Unconfirmed: whether a template call and a Models API call count the same way. Treat each `AgentLlm.complete` as one
   request either way.
-- One summary is up to 3 requests (two pre-reduces and the synthesis). One `prompt-try.apex` run is 1 request (3 for
+- One summary is up to 4 requests (two pre-reduces, the synthesis and the sentiment call). One `prompt-try.apex` run is 1 request (3 for
   SummarySynthesis).
 
 ### Time and rate limits
@@ -186,3 +186,7 @@ for this card.
 
 For this product, the first shape keeps the Trust Layer and needs no code. Prefer it unless a model is
 needed that Einstein Studio cannot register.
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

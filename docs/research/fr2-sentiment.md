@@ -123,3 +123,7 @@ Counts in `agent-probe` before the first run and after the last:
 - Do the Apex arithmetic from the recommendation, then repeat this check with more accounts.
 - A summary now makes 4 model calls, not 3. The per-run model-call counts in the e2e README predate this card. They
   were not edited here, because that file is outside this card's scope.
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

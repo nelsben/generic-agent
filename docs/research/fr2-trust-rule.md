@@ -32,13 +32,20 @@ A marker above a class covers the whole class, above a method the whole method, 
 
 ## Every marker today
 
+Checked against `grep -rn 'system-context' force-app/main/default/classes` on 2026-11-15 (OPS-66). The grep also finds one marker in a test class (`CustomerSummaryContextTest`), which is test setup and not product code.
+
 | Class | Member | Reason in the code |
 | --- | --- | --- |
 | `AgentLlm` | `querySettings`, the `Agent_Prompt_Setting__mdt` query (BE-33) | the product's own prompt configuration, the same for every user; reps hold no read access to the type |
 | `CustomerSummaryMemory` | `write` (two inserts, the update, the racing-rows insert) | the product's own session rows, written for the running user; reps have no write access to the object |
 | `CustomerSummaryMemory` | `purgeOverflow` (the query and the delete) | deletes the running user's own old session rows; reps have no delete access to the object |
-| `CustomerSummaryMemory` | `findRows` | reads the running user's own session rows; reps have no access to the object |
-| `CustomerSummaryMemory` | `findRowsForUpdate` | locks the running user's own session rows for a write; reps have no access to the object |
+| `CustomerSummaryMemory` | `recentRows` | reads the running user's own session rows; history() re-checks the account in user mode first |
+| `CustomerSummaryMemory` | `findRows` | reads the running user's own session rows; Customer_Summary_Data_Access grants reps read, and system context scopes the rows to the running user's own sessions |
+| `CustomerSummaryMemory` | `findRowsForUpdate` | locks the running user's own session rows for a write; reps have no write access to the object, so the lock runs in system context |
+| `CustomerOutcomes` | `writeText` | reps hold no field access to outcome text (F79); set only on rows just inserted as this user |
+| `CustomerOutcomes` | `deleteOwn` | reps hold no delete on outcomes; the caller has already checked the user is the author |
+| `CustomerOutcomes` | `readText` | reps hold no field access to outcome text (F79); read only for rows view() shows in full |
+| `CustomerOutcomeRetentionBatch` | the whole class | the purge deletes every expired outcome, whoever wrote it, and no rep can see them all |
 
 Every memory read is filtered to the running user's session key, so a user only reads and writes their own rows
 (unchanged from before; see N-notes on memory in apex-review-2.md).
@@ -90,3 +97,7 @@ A `without sharing` or `inherited sharing` top-level class is the same: the mark
 - `CONFIRM_PROD=1 sf project deploy quick --job-id <that validate> -o agent-probe`: **succeeded**, 62 of 62
   components. No agent was published or activated. `experimental` was not touched.
 - `bash scripts/validate-org.sh`: pass (61 components, 158 of our own tests).
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

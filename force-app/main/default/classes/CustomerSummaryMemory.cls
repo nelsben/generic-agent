@@ -311,7 +311,7 @@ public with sharing class CustomerSummaryMemory {
     }
 
     /** The rows for the keys, read without a lock: for lastBrief. */
-    // system-context: reads the running user's own session rows; reps have no access to the object
+    // system-context: reads the running user's own session rows; Customer_Summary_Data_Access grants reps read, and system context scopes the rows to the running user's own sessions
     private static Map<String, Customer_Summary_Session__c> findRows(Set<String> keys) {
         return toMap([
             SELECT Id, Session_Key__c, Turns_JSON__c, Last_Brief__c, Brief_Count__c
@@ -322,7 +322,7 @@ public with sharing class CustomerSummaryMemory {
     }
 
     /** The rows for the keys, locked until the transaction ends: for read-modify-write. */
-    // system-context: locks the running user's own session rows for a write; reps have no access to the object
+    // system-context: locks the running user's own session rows for a write; reps have no write access to the object, so the lock runs in system context
     private static Map<String, Customer_Summary_Session__c> findRowsForUpdate(Set<String> keys) {
         return toMap([
             SELECT Id, Session_Key__c, Turns_JSON__c, Last_Brief__c, Last_Brief_At__c, Last_Question__c, Last_Status__c, Brief_Count__c,

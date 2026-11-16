@@ -82,10 +82,9 @@ made to fail. What was tried there:
 What `tests/pattern_shape.py` does check is structure only: the theme line, `autonumber`, the H1 and the H2 parts. It
 does not parse Mermaid.
 
-**For the next card that tries (OPS-36 or a later chapter):** save the script as a file outside the repo, run it from
-the repo root on the broken sample below, and trust it only if it prints `FAIL` for the broken block and `ok` for the
-good one. Then run it on the chapter pages and record what it caught here, replacing this section's first paragraph.
-If it cannot be run either, say so here again.
+**The Mermaid CDN render check is held until Ben answers (OPS-61).** Do not run it before then. Once he does,
+save the script below as a file outside the repo, run it from the repo root on the broken sample, and trust it only
+if it prints `FAIL` for the broken block and `ok` for the good one.
 
 ```js
 // mermaid-check.cjs: parse and render every mermaid block in the Markdown files given.

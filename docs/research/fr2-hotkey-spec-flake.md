@@ -43,3 +43,7 @@ missing sf session. Still no URL, host or username in the message.
 After the fix, `npx playwright test --grep @smoke` against agent-probe: 10 runs in a row, 10 passed, 0 failed (11 of 11 tests each,
 both hotkey projects). The session did not end in any of them, so these 10 runs show the suite is green when the session holds, not
 that the session-ended case is cured. A rerun in a fresh org is still needed before the README's "A clean install" row can flip.
+
+## Undo
+
+Nothing changed in an org: smoke runs only, nothing deployed and no record written.

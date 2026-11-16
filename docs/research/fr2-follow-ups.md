@@ -188,3 +188,7 @@
   stayed at 5 after every step.
 - Outcome rows: 0. The org has no object with "Outcome" in its name (checked on 2026-11-13), so nothing records
   outcomes yet.
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

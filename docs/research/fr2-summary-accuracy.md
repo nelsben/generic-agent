@@ -94,3 +94,7 @@ done
 - The `ACC|` lines are in the USER_DEBUG lines of each JSON log. The log escapes `|` as `&#124;`.
 - Anonymous Apex does not allow `WITH SYSTEM_MODE`, so the script's row counts use plain queries. Those run with
   the signed-in admin's access.
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

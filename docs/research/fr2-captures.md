@@ -144,7 +144,7 @@ window's edge; History opens by default when the rail opens; the mic in the rail
 ### Old, still linked
 
 Kept for OPS-36, which removes them once nothing links them; the full list is in
-[MANIFEST.md](../assets/MANIFEST.md#old-still-linked). `README.md` links `brief-flow.gif` and `e2e-report.png`;
+[MANIFEST.md](../assets/MANIFEST.md#old-still-linked). `README.md` no longer links `brief-flow.gif` or `e2e-report.png` (checked 2026-11-15);
 `docs/research/` links `agent-brief.png`, `panel-ask-agent.png`, the `fr2-cards-*` and the `fr2-spike-*` frames;
 `docs/reviews/fr2-plan-review.md` links the FE-15 rail frames, retaken in place. Pages 01, 02 and 03 still link
 old frames because their tests name them: page 01 links `not-found.png` and `ambiguous.png` outside `See it`, page

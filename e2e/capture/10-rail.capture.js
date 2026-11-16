@@ -5,7 +5,7 @@
  *     moves the same thread into the rail beside the account's context. The wait for the answer is cut.
  *   fr2-rail-open.png: the rail after Expand, the thread in the main column and the context beside it.
  *   fr2-rail-context.png: the rail alone (640 px), the context column filled.
- * Model calls: 1. Nothing is written to the org.
+ * Model calls: 1. The question writes the product's own session row (OPS-52).
  */
 const { test, expect, still, watch, at, settle, savedVideo, gif } = require('./kit');
 
