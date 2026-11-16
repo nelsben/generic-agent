@@ -144,8 +144,7 @@ One run, 2026-11-16, about four minutes (19:07 to 19:11 UTC), `bash scripts/agen
 
 No case ended in ERROR. Which case's outcome failed is not known: the script at that point printed counts only, and
 the run's results are not queryable afterwards (`AiEvaluation` is not exposed to SOQL in agent-probe). The script now
-prints a `failed: case <n> <check>` line per failure, by spec position only, so the next run names it. The suite was
-not run a second time in this card.
+prints a `failed: case <n> <check>` line per failure, by spec position only, so the next run names it.
 
 What the run wrote, counted read-only before and after:
 
@@ -158,14 +157,38 @@ Six outcomes for the six summary cases (1, 2, 6, 14, 15, 16), one session row fo
 summary path always writes. The explorer cases wrote nothing. The `sf agent test create` step also created or updated
 the `Customer_Summary_Test` definition in the org, under the card's Approvals row. `git status` did not change.
 
+### Second run (brain, before merge)
+
+The brain ran the committed script once more, 2026-11-16, `bash scripts/agent-test.sh --org agent-probe`, to check
+the per-case failure lines and the overwrite of an existing definition against the org:
+
+| Check | Passed | Failed |
+| --- | --- | --- |
+| subagent | 15 | 0 (the off-topic case left out) |
+| actions | 16 | 0 |
+| outcome | 16 | 0 |
+| Total | 47 of 47 on `Customer_Summary` v2, 16 cases | exit 0 |
+
+The definition from the first run was overwritten without error, and `git status` did not change. No check failed, so
+no `failed:` line printed; those lines are proven only against the fake `sf`. The first run's one outcome miss did not
+repeat, which points to judge noise; a repeat on a named case would say otherwise.
+
+| Object | Gallowglass Textiles before | after | Org total before | after |
+| --- | --- | --- | --- | --- |
+| `Customer_Outcome__c` | 6 | 12 | 123 | 129 |
+| `Customer_Summary_Session__c` | 1 | 1 | 20 | 20 |
+
+Each run adds six outcomes on the account. The session row was reused, not added: the summary keeps one session row
+per user and account.
+
 ## Findings for Ben
 
 - The agent's script lags the Apex on one status. `resolve_account` returns `ERROR` when the account search
   fails (BE-29), and the agent's instructions handle it, but the action's output descriptions in the `.agent` still
   list only `RESOLVED`, `AMBIGUOUS` and `NOT_FOUND`. The agent is not republished in this card; it is a one-line fix to
   the descriptions at the next publish.
-- One outcome check failed in the run and is not yet named (see above). The next run of the script names it by case
-  number; a repeat failure on the same case is the one to look at, since a single LLM-judged miss can be judge noise.
+- One outcome check failed in the first run and was not named; the second run passed all 47 (see above). A single
+  LLM-judged miss can be judge noise; a repeat failure on the same named case is the one to look at.
 - The two BE-29 error cases test the agent's answer after an error, given as history, not the error itself: neither
   error can be caused by an admin through the agent (the resolver's search does not fail for an admin, and the agent
   never asks for more than three summaries in one call). The Apex tests cover the errors themselves.
