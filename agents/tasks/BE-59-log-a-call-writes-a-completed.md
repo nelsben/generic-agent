@@ -3,7 +3,7 @@ id: BE-59
 title: Log a call writes a completed Task with subtype Call (F17): LOG_CALL_AS set to Task, tests and docs follow, deployed to agent-probe
 domain: backend
 tier: standard
-status: queued
+status: merged
 fixes: []
 scope: [force-app/main/default/classes/CustomerSummaryActions.cls, force-app/main/default/classes/CustomerSummaryActionsTest.cls, force-app/main/default/classes/CustomerSummaryActionCatalog.cls, force-app/main/default/classes/CustomerSummaryActionCatalogTest.cls, force-app/main/default/classes/CustomerSummaryActionDoorTest.cls, force-app/main/default/classes/CustomerOutcomes.cls, force-app/main/default/lwc/customerSummaryConversation/customerSummaryConversation.js, force-app/main/default/lwc/customerSummaryConversation/__tests__/customerSummaryConversationActions.test.js, tests/test_mcp_door.py, docs/patterns/13-write-actions.md, docs/patterns/09-outside-door-mcp.md, README.md, docs/research/fr2-log-call-task.md]
 forbid: [docs/plans/**, agents/**, .chassis-delegation.json, reference/**, mcp-door/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, data/**, sfdx-project.json]
@@ -28,3 +28,21 @@ Ben answered F17 on 2026-11-16: "yes, switch it to task". Salesforce's own Log a
 - One live check in agent-probe (approved under the standing row for tests that create their own records): through anonymous Apex, draft and commit one log_call on Gallowglass Textiles with one of its contacts, read back the record (object, Status, TaskSubtype, ActivityDate, WhatId set), then delete that Task and the Customer_Outcome__c row the commit wrote, and confirm both are gone. Record only counts and field values, no Ids.
 - Org rules: agent-probe only, -o agent-probe on every sf command; never touch experimental; no destructive deploy; no user, no sign-in, no credential; no NoTestRun deploy. Unset any worktree-local target-org before handing back. No Ids, usernames, hostnames or URLs in any file.
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npx jest (all suites), and bash scripts/check-docs.sh (0 broken). No tests/__pycache__; git status --short empty after the commit.
+
+## Review
+
+Brain review (2026-11-16). One worker attempt (sonnet, standard tier, $0.62). The mod verified the hand-back as consistent and returned next=accept. The brain read the whole diff.
+
+Findings:
+- `LOG_CALL_AS` is `'Task'`; `logCallObject()` returns Event only for the exact value `'Event'`. `buildCall` is unchanged: its Task branch (Status Completed, TaskSubtype Call, ActivityDate today by default) was already built and tested in BE-27.
+- The default-path test asserts the completed call Task, including WhatId. The Event shape keeps its own test through the `logCallAs` seam, so switching back stays proven. The catalog test expects Task.
+- Docs: pattern 13's table row and LOG_CALL_AS section, pattern 09's write-actions line, and a research note with an Undo section.
+- Red: the new default-path test and the catalog test failed against the org code before the change (expected Task, got Event).
+
+Org (agent-probe only, under the standing deploy row and the F17 approval row): validate with RunLocalTests (565 tests, 0 failures), then quick deploy (68 components). One live log_call on Gallowglass Textiles read back as a completed call Task, then the Task and the one outcome row it wrote were deleted and counted at 0 (standing row for tests that create their own records).
+
+Small loss, accepted: the old Task test checked a custom subject; the new tests check the default subject only. The subject path is shared with create_task and covered there.
+
+Gate (worker): Python 409 tests, 4 skipped; Jest 397 in 11 suites; check-docs 0 broken.
+
+Privacy check over the branch's own diff: 0 denylist hits. The one pattern hit is an Apex doc comment.
