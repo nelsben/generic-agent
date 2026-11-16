@@ -4,7 +4,7 @@ title: FR2+: explorer baseline — the 30 BE-31 questions run three times on the
 domain: backend
 tier: standard
 tier_reason: reruns an existing harness with fixed questions and grading; no design choices
-status: parked
+status: queued
 fixes: []
 scope: [spikes/explorer-scale/results/**, docs/research/fr2-explorer-baseline.md]
 forbid: [force-app/**, mcp-door/**, data/**, tests/**, e2e/**, agents/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json, spikes/explorer-scale/questions.json, spikes/explorer-scale/harness.apex]
@@ -16,11 +16,11 @@ spend: 8
 ---
 ## Why
 
-Parked for Ben's go (the explorer build line BE-41 to BE-45). BE-31 ran each of its 30 questions once per engine, and the metered replay and the deployed explorer disagreed on 5 of 30, so its 27 against 23 or 20 cannot separate engines. Before the explorer build (BE-42 to BE-44) changes anything, the deployed explorer needs a baseline of three runs. Covers ledger rows F55, F58 and F59 in docs/plans/feature-revision-2.md.
+Ben gave the go for the explorer build line (BE-41 to BE-45) on 2026-11-15; it is recorded in the Approvals table. BE-31 ran each of its 30 questions once per engine, and the metered replay and the deployed explorer disagreed on 5 of 30, so its 27 against 23 or 20 cannot separate engines. Before the explorer build (BE-42 to BE-44) changes anything, the deployed explorer needs a baseline of three runs. Covers ledger rows F55, F58 and F59 in docs/plans/feature-revision-2.md.
 
 ## Done when
 
-- **Parked for Ben's go:** this card and BE-42 to BE-45 are the explorer build line BE-31 proposed (docs/research/fr2-explorer-scale.md, 'Proposed build cards'). Do not start until Ben's go is recorded in the Approvals table of docs/plans/gtm-burn-plan.md
+- **Ben's go (2026-11-15):** this card and BE-42 to BE-45 are the explorer build line BE-31 proposed (docs/research/fr2-explorer-scale.md, 'Proposed build cards'). Do not start until Ben's go is recorded in the Approvals table of docs/plans/gtm-burn-plan.md
 - Read first: docs/research/fr2-explorer-scale.md whole, spikes/explorer-scale/ (run.py, harness.apex, engine-real.apex, engine-current.apex, questions.json) and docs/patterns/02-ask-anything-explorer.md. Load the skills salesforce-development:platform-soql-query and salesforce-development:platform-apex-anonymous-run first
 - Reuse BE-31's harness, questions and grading unchanged: no question, reference or grading rule changes. Run all 30 questions three times on the deployed DataExplorer.explore (engine real) and three times on the metered replay (engine current), one anonymous Apex transaction per question, read-only
 - Results go to spikes/explorer-scale/results/baseline-<engine>-<run>.jsonl in BE-31's record format (counts, statuses and limits only: no names, no Ids, no answer text)
