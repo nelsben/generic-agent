@@ -10,7 +10,7 @@ Fixes for M2, M5, L5, L7, L8 and OPS-52's new frames. Line numbers are in the fi
 | L5 chips | The quick-action row wraps (`abp-quick-row_wrap`, `flex-wrap: wrap`, no `overflow-x`) | customerSummaryConversation.css `.abp-quick-row`; customerSummaryConversation.html footer |
 | Table last column | The table's box is always a Tab stop (`tabindex=0`, was off when rows linked), `role=region`, named by the card title or its type | customerSummaryCard.js `wrapTabindex`; customerSummaryCard.html `.cs-table-wrap` |
 | Mic focus ring | 2 px ink outline drawn inside the button (`outline-offset: -4px`) so no ancestor's overflow clips it; surface-coloured while recording | customerSummaryVoiceInput.css `button:focus-visible` |
-| M5 header targets | Expand and Minimize are `lightning-button-icon` variant `container`, size `x-small` (a 24 px square) instead of bare 16 px; `.cs-expand` and `.cs-minimize` also have a 1.5 rem minimum | customerSummaryPanel.html header buttons; customerSummaryPanel.css `.cs-expand, .cs-minimize` |
+| M5 header targets | Expand and Minimize are `lightning-button-icon` variant `container`, size `small` (a 28 px square) instead of bare 16 px; `.cs-expand` and `.cs-minimize` also have a 1.5 rem minimum | customerSummaryPanel.html header buttons; customerSummaryPanel.css `.cs-expand, .cs-minimize` |
 | L7 palette | The voice component's fallbacks are the conversation's `#0176d3` family | customerSummaryVoiceInput.css |
 | L8 agent name | `agentName` defaults to empty; the permission message reads "Microphone permission is needed to listen." with no name and "<name> needs microphone permission to listen." with one; the conversation still passes its name | customerSummaryVoiceInput.js `handleError` |
 
