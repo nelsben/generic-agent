@@ -256,7 +256,7 @@ public with sharing class ExploreCatalog {
         for (Entry e : entries()) {
             List<String> parts = new List<String>();
             for (Field f : shownFields(e, words, allListed)) {
-                parts.add(fieldText(f, asked, valuesShown));
+                parts.add(fieldText(f, words, asked, valuesShown));
             }
             lines.add(e.name + ': ' + String.join(parts, ', '));
         }
@@ -339,13 +339,13 @@ public with sharing class ExploreCatalog {
         return false;
     }
 
-    private static String fieldText(Field f, String asked, Integer valuesShown) {
+    private static String fieldText(Field f, Set<String> words, String asked, Integer valuesShown) {
         List<String> notes = new List<String>{ f.type };
         if (!f.picklistValues.isEmpty() && valuesShown > 0) {
             List<String> first = new List<String>();
             List<String> rest = new List<String>();
             for (String v : f.picklistValues) {
-                if (namesValue(asked, v)) {
+                if (namesValue(asked, v) || mentions(words, '', v)) {
                     first.add(v);
                 } else {
                     rest.add(v);
