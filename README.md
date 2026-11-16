@@ -419,7 +419,7 @@ claim has run in a real org is in the [Status table](#status).
 | Rail context filled, under 1.5 s | median 304 ms (`mac`) and 323 ms (`windows`) | 2026-11-14 | [fr2-build-review.md](docs/reviews/fr2-build-review.md#speed-budgets) |
 | The e2e run in the capture below | 30 passed, 12 not run: the run was cut by a 560 s limit | 2026-11-14 | [fr2-captures.md](docs/research/fr2-captures.md), page [08](docs/patterns/08-test-and-release-lifecycle.md#see-it) |
 | The ladder, `npm run ladder -- --continue` | One line per rung, below | 2026-11-14 | [fr2-ladder.md](docs/research/fr2-ladder.md) |
-| Testing Center suite for the optional agent | not run in this build: BE-38 waits on its own approval | | |
+| Testing Center suite for the optional agent, `bash scripts/agent-test.sh` | 47 of 47 assertions on 16 cases, `Customer_Summary` version 2 (the run before it: 46 of 47, one outcome check missed) | 2026-11-16 | [fr2-testing-center.md](docs/research/fr2-testing-center.md) |
 
 The ladder's run, as its page recorded it (the sub-lines under each failed rung are left out):
 
@@ -454,7 +454,7 @@ run. Every run below was as an admin user unless the row says otherwise.
 | Deploy of the renamed product to the test org | Proven: validated, then quick-deployed, 62 of 62 components and 251 of 251 Apex tests; the group `Customer_Summary_User` assigned to the admin (2026-11-13) | [fr2-rename-org.md](docs/research/fr2-rename-org.md) |
 | Code review of the FR2 build | Ready with fixes: five medium findings (see [Limits](#limits-and-open-items)) | [fr2-build-review.md](docs/reviews/fr2-build-review.md) |
 | The optional agent published and active | Proven in the test org: `Customer_Summary` version 2 published and activated, and one turn from Apex answered with a full summary (2026-11-13) | [fr2-agent-publish.md](docs/research/fr2-agent-publish.md) |
-| The optional agent's test spec and Testing Center suite | Not run in this build: BE-38 waits on its own approval. The earlier spec runs were on the agent before the rename | [agent-iteration-1.md](docs/research/agent-iteration-1.md), [org-migration.md](docs/research/org-migration.md) |
+| The optional agent's test spec and Testing Center suite | Proven in the test org: 47 of 47 assertions on 16 cases on version 2; the run before it missed one outcome check (2026-11-16) | [fr2-testing-center.md](docs/research/fr2-testing-center.md) |
 | A version 2 published over an active version | Proven in the test org, before the rename: version 2 was published while version 1 was active, then activated in its place | [agent-iteration-1.md](docs/research/agent-iteration-1.md) |
 | An MCP server lists the actions as tools | Proven by a probe, on the first door | [salesforce-mcp.md](docs/research/salesforce-mcp.md) |
 | The panel's button that called the registered agent | Retired (FR2): the button, its Apex client and its spec are removed | [fr2-retire-ask-agent.md](docs/research/fr2-retire-ask-agent.md) |
