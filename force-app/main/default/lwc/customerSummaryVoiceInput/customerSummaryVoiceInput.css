@@ -2,6 +2,14 @@
     display: inline-block;
 }
 
+/* No speech API: the note is a full-width line below the composer row, never a column beside the textarea. */
+:host(.cs-voice-unsupported) {
+    display: block;
+    flex: 1 0 100%;
+    flex-basis: 100%;
+    order: 3;
+}
+
 .voice {
     display: flex;
     align-items: center;
@@ -18,20 +26,25 @@ button {
     width: 2.5rem;
     height: 2.5rem;
     padding: 0;
-    border: 1px solid var(--cs-color-primary, #0b5cab);
+    border: 1px solid var(--cs-color-primary, #0176d3);
     border-radius: var(--cs-radius, 50%);
     background: var(--cs-color-surface, #ffffff);
-    color: var(--cs-color-primary, #0b5cab);
+    color: var(--cs-color-primary, #0176d3);
     cursor: pointer;
 }
 
 button:focus-visible {
-    outline: 2px solid var(--cs-color-accent, #0b5cab);
-    outline-offset: 2px;
+    /* Inside the button's own box, so no ancestor's overflow can clip it (the rail, the composer row). */
+    outline: 2px solid var(--cs-color-ink, #181818);
+    outline-offset: -4px;
+}
+
+button.recording:focus-visible {
+    outline-color: var(--cs-color-surface, #ffffff);
 }
 
 button.recording {
-    background: var(--cs-color-primary, #0b5cab);
+    background: var(--cs-color-primary, #0176d3);
     color: var(--cs-color-surface, #ffffff);
     animation: pulse 1.4s ease-in-out infinite;
 }

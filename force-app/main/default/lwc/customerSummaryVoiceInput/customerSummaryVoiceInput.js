@@ -9,8 +9,8 @@ const IGNORED_ERRORS = ['no-speech', 'aborted'];
  * events and never sends anything itself.
  */
 export default class CustomerSummaryVoiceInput extends LightningElement {
-    /** Name used in the microphone permission message. */
-    @api agentName = 'Customer Summary';
+    /** Name used in the microphone permission message; empty reads as a plain sentence. */
+    @api agentName = '';
 
     recording = false;
     errorMessage = '';
@@ -79,6 +79,11 @@ export default class CustomerSummaryVoiceInput extends LightningElement {
         this.setRecording(false);
     }
 
+    connectedCallback() {
+        // With no speech API the note takes the whole composer row, below the textarea (see :host in the CSS).
+        this.classList.toggle('cs-voice-unsupported', !this.isSupported);
+    }
+
     disconnectedCallback() {
         this.stop();
     }
@@ -116,9 +121,10 @@ export default class CustomerSummaryVoiceInput extends LightningElement {
         if (IGNORED_ERRORS.includes(code)) {
             return;
         }
+        const needs = this.agentName ? this.agentName + ' needs microphone permission to listen.' : 'Microphone permission is needed to listen.';
         this.errorMessage =
             code === 'not-allowed'
-                ? this.agentName + ' needs microphone permission to listen.'
+                ? needs
                 : 'Voice input had an issue. Try again or type instead.';
         this.dispatchEvent(new CustomEvent('voiceerror', { detail: { error: code } }));
         this.stop();

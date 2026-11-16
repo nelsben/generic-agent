@@ -191,6 +191,16 @@
     padding: 0.25rem 0.5rem 0;
 }
 
+/* FE-31: each header icon button is a 24 by 24 px target at least, whatever the icon size (WCAG 2.5.8). */
+.cs-expand,
+.cs-minimize {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+}
+
 .cs-conversation {
     display: block;
     flex: 1 1 auto;

@@ -1,6 +1,12 @@
 import { createElement } from 'lwc';
 import CustomerSummaryVoiceInput from 'c/customerSummaryVoiceInput';
 
+const fs = require('fs');
+const path = require('path');
+
+const CSS = fs.readFileSync(path.join(__dirname, '..', 'customerSummaryVoiceInput.css'), 'utf8');
+const JS = fs.readFileSync(path.join(__dirname, '..', 'customerSummaryVoiceInput.js'), 'utf8');
+
 let recognizers;
 
 class MockRecognizer {
@@ -158,13 +164,13 @@ describe('c-customer-summary-voice-input', () => {
         expect(button(el).getAttribute('aria-pressed')).toBe('false');
     });
 
-    it('defaults the agent name to Customer Summary', async () => {
+    it('defaults the agent name to empty, so the message has no name', async () => {
         const el = build();
         button(el).click();
         await flush();
         recognizers[0].onerror({ error: 'not-allowed' });
         await flush();
-        expect(text(el, '[role="alert"]')).toBe('Customer Summary needs microphone permission to listen.');
+        expect(text(el, '[role="alert"]')).toBe('Microphone permission is needed to listen.');
     });
 
     it('shows a generic message for other errors', async () => {
@@ -219,5 +225,60 @@ describe('c-customer-summary-voice-input', () => {
         delete window.SpeechRecognition;
         const el2 = build();
         await expect(el2).toBeAccessible();
+    });
+});
+
+describe('c-customer-summary-voice-input FE-31', () => {
+    beforeEach(() => {
+        recognizers = [];
+        jest.useFakeTimers();
+        window.SpeechRecognition = MockRecognizer;
+        delete window.webkitSpeechRecognition;
+    });
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+        window.SpeechRecognition = MockRecognizer;
+    });
+
+    it('with no speech API the note is on its own full-width line and the host says so', async () => {
+        delete window.SpeechRecognition;
+        delete window.webkitSpeechRecognition;
+        const el = build();
+        await flush();
+        expect(el.shadowRoot.querySelector('button')).toBeNull();
+        expect(text(el, '.unsupported')).toMatch(/not available in this browser/i);
+        expect(el.classList.contains('cs-voice-unsupported')).toBe(true);
+        expect(CSS).toMatch(/:host\(\.cs-voice-unsupported\)\s*\{[^}]*flex-basis:\s*100%/);
+    });
+
+    it('with a speech API the host does not claim the whole row', async () => {
+        const el = build();
+        await flush();
+        expect(el.classList.contains('cs-voice-unsupported')).toBe(false);
+    });
+
+    it('the mic has a focus ring that stays inside its own box', () => {
+        expect(CSS).toMatch(/button:focus-visible\s*\{[^}]*outline:\s*2px solid[^}]*outline-offset:\s*-/);
+    });
+
+    it('uses the conversation fallback palette, not its own blue', () => {
+        expect(CSS).not.toMatch(/#0b5cab/i);
+        expect(CSS).toMatch(/var\(--cs-color-primary, #0176d3\)/);
+    });
+
+    it('an empty agent name still reads well in the permission message', async () => {
+        expect(JS).toMatch(/agentName = ''/);
+        const el = build();
+        button(el).click();
+        await flush();
+        recognizers[0].onerror({ error: 'not-allowed' });
+        await flush();
+        expect(text(el, '.error')).toBe('Microphone permission is needed to listen.');
+        const named = build({ agentName: 'Northwind Assist' });
+        button(named).click();
+        await flush();
+        recognizers[1].onerror({ error: 'not-allowed' });
+        await flush();
+        expect(text(named, '.error')).toBe('Northwind Assist needs microphone permission to listen.');
     });
 });

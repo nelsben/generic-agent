@@ -716,4 +716,22 @@ describe('c-customer-summary-conversation FE-22', () => {
             await expect(el).toBeAccessible();
         });
     });
+
+    describe('FE-31 rendering', () => {
+        const HTML = fs.readFileSync(path.join(__dirname, '..', 'customerSummaryConversation.html'), 'utf8');
+        const CSS = fs.readFileSync(path.join(__dirname, '..', 'customerSummaryConversation.css'), 'utf8');
+
+        it('the quick-action row wraps so every chip fits the 420 px window', async () => {
+            const el = await mount({ brand: BRAND });
+            expect(el.shadowRoot.querySelector('.abp-quick-row').classList.contains('abp-quick-row_wrap')).toBe(true);
+            const rule = CSS.match(/\.abp-quick-row\s*\{[^}]*\}/)[0];
+            expect(rule).toMatch(/flex-wrap:\s*wrap/);
+            expect(rule).not.toMatch(/overflow-x:\s*auto/);
+            expect(HTML).toContain('abp-quick-row_wrap');
+        });
+
+        it('the composer row wraps so a full-width note drops below the textarea', () => {
+            expect(CSS.match(/\.abp-composer-row\s*\{[^}]*\}/)[0]).toMatch(/flex-wrap:\s*wrap/);
+        });
+    });
 });
