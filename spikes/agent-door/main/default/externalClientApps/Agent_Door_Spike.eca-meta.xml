@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalClientApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>__AGENT_DOOR_CONTACT_EMAIL__</contactEmail>
+    <description>BE-56 spike: OAuth client for trying the Agent API against Customer_Summary. Authorization code with PKCE, user-bound token, no secret kept.</description>
+    <distributionState>Local</distributionState>
+    <isProtected>false</isProtected>
+    <label>Agent Door Spike</label>
+</ExternalClientApplication>
