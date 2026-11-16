@@ -1,30 +1,36 @@
-# Coworker calls our agent: what the docs say, and why no way was tried yet (OPS-64)
+# Coworker calls our agent: naming it works, and how Coworker picks it (OPS-64)
 
-Researched 2026-11-15 for `connect-24h`. **Status: the reading half is done; the four ways were not tried.** At the
-first org step in the browser, the Chrome session for `connect-24h` showed the Salesforce login page, not the org.
-The card forbids signing in for Ben, so no Coworker chat ran, no description was changed and nothing was published.
-Every answer below is from Salesforce pages read in a Chrome tab on 2026-11-15, or from read-only CLI queries.
-Ids, usernames and hostnames are left out. Read with [fr2-coworker-spike.md](fr2-coworker-spike.md#delegation-measured),
-which holds OPS-63's 0 of 9 baseline.
+Researched and measured 2026-11-15 in `connect-24h`. **Status: Coworker called `Customer_Summary` in 12 of 13
+turns, with nothing changed in the org.** It delegated in every turn that named the agent (way a, 9 of 9), and in 3 of 3
+plain turns of a question worded around what only our agent does. It did not delegate the plain summary question
+"Summarize Edge Communications" (1 of 1 control turn, matching OPS-63's 0 of 9). Way (c) is not offered without
+deactivating Coworker's own agent; way (d) has no setting to try; way (b) was not run (see [Ways tried](#ways-tried)).
+The turns are in [delegation-2.jsonl](../../spikes/coworker/results/delegation-2.jsonl). The docs answers are from
+Salesforce pages read in a Chrome tab on 2026-11-15. Ids, usernames and hostnames are left out. Read with
+[fr2-coworker-spike.md](fr2-coworker-spike.md#delegation-measured), which holds OPS-63's 0 of 9 baseline.
+
+![Coworker relays Customer Summary's 30-row table after "Heard back from Customer Summary"](../assets/coworker-delegated-explore.png)
 
 ## Plain answer
 
-- **Coworker picks another agent only for a request it cannot complete itself.** Then it reads the agent and topic
-  descriptions of the Agentforce agents the user can access, and routes on those descriptions only, not on topic
-  instructions [C1], [C2].
-- **To be callable, an agent needs the user's agent access and descriptions that match the request.** No Coworker page
-  names a Setup list of callable agents, a Coworker switch for delegation, or a step to add an agent to Coworker [C1],
-  [C4], [C5], [C6]. Employee agent access is granted on the agent's Agent Access page or a permission set's Enabled
-  Agent Access [C3]. The admin in `connect-24h` already holds `Customer_Summary_Agent_Access` (OPS-63).
-- **"Add our agent to Coworker as a connected agent" is not a documented step.** Connected subagents are added inside
-  an orchestrator agent you edit in Agentforce Builder [C7], and Coworker's Search Agent is platform-managed and cannot be
-  modified [C1]. No page read ties connected subagents to Coworker.
-- **The documented user lever is to ask.** The delegation page tells users who hit its timeout to "ask Agentforce
-  Coworker to delegate" to an accessible agent [C1]. That is way (a), and it is the first thing to try once the browser
-  is signed in.
-- **Measured: nothing new.** OPS-63's 0 of 9 stands. Why it did not delegate fits the "cannot complete" rule: Coworker
-  answered each question from its own CRM search. That is an inference from [C1] and OPS-63's thinking steps, not a
-  measurement.
+- **Name the agent and Coworker calls it.** "Use the Customer Summary agent to ..." delegated 9 of 9: three summary
+  turns, three brief turns and three explore turns (two e2, one e4). Each showed "Let me delegate this to the Customer
+  Summary agent", an Agent Delegation step, and "Heard back from Customer Summary" (the e4 turn said "Heard back from
+  Agent", and its reply said the Customer Summary agent pulled the rows). That is the lever the docs give users [C1].
+- **A question only our agent can do also delegates unnamed.** "Run the resolve-then-brief gate for Edge Communications
+  and give me its account brief" delegated 3 of 3 with no agent named. "Summarize Edge Communications" did not: Coworker
+  ran its own Case, Opportunity and Account searches and answered in 13.7 s. This fits the docs: Coworker delegates only
+  what it cannot complete itself, and routes on agent and topic descriptions [C1]. A plain account summary is something
+  its own search can do; "resolve-then-brief gate" matches only our agent's description.
+- **To be callable, an agent needs the user's agent access and a description that matches.** No Coworker page names a
+  Setup list of callable agents, a delegation switch, or a step to add an agent to Coworker [C1], [C4], [C5], [C6].
+  Employee agent access is granted on the agent's Agent Access page or a permission set's Enabled Agent Access [C3]. The
+  admin in `connect-24h` already held `Customer_Summary_Agent_Access` (OPS-63), and nothing was granted.
+- **"Add our agent to Coworker as a connected agent" is not offered.** In Builder, Coworker's agent (`SearchAgent`) shows
+  0 subagents and "To make changes, your agent must be deactivated"; the docs say changing it breaks Coworker [C1].
+- **Cost: about three times slower, and the reply is Coworker's retelling.** A delegated summary finished in 41.4 to 46.9 s
+  against 13.7 s for Coworker alone. Our six section labels came through as bold lead-ins to paragraphs (5 or 6 of 6),
+  never as headings on their own line. Explore tables came through whole: 30 of 30 rows and 47 of 47 rows.
 
 ## Org guard and read-only state
 
@@ -35,10 +41,11 @@ which holds OPS-63's 0 of 9 baseline.
   description unchanged. `Customer_Summary_Coworker_Spike` (FE-28) has v1 active and was left alone. The other four are
   sample agents that came with the org.
 - **Session rows are not readable by SOQL.** `AiAgentSession`, `AiAgentSessionParticipant`, `BotSession` and
-  `AiAgentInteraction` each returned `INVALID_TYPE`. So whether a turn delegated has to be read from the thinking steps
+  `AiAgentInteraction` each returned `INVALID_TYPE`. So whether a turn delegated was read from the thinking steps
   Coworker streams, as OPS-63 did, not from `Customer_Summary` session rows.
-- **Browser.** One new Chrome tab. The Salesforce docs read fine. The org's record page redirected to the Salesforce
-  login page. The tab was closed; nothing was typed into it.
+- **Browser.** On the first try the org's record page redirected to the login page, and the run stopped without typing
+  anything. The coordinator then opened the org in Chrome; every turn ran in one Chrome tab of this run, from the Ask
+  button on the Edge Communications record, each in a new chat.
 
 ## How Coworker chooses another agent
 
@@ -75,38 +82,61 @@ which holds OPS-63's 0 of 9 baseline.
 
 ## Ways tried
 
-None ran. The order the card set, and where each stands:
+Two questions, each asked in a new chat on Edge Communications. Q1 is OPS-63's summary question. Q2 asks for something
+only `Customer_Summary` does, its resolve-then-brief gate. A plain control turn ran first, with the agent not named.
+"Delegated" is read from Coworker's thinking steps: "Let me delegate this to the Customer Summary agent", an Agent
+Delegation step, then "Heard back from Customer Summary". Seconds run from pressing Enter to the feedback buttons
+appearing under the answer. Labels are our six section labels (Account, Open deals, People & engagement, Service health,
+Deal history, Watch next), counted twice: alone on their own line, and as the first words of a line.
 
-| Way | Status | What it needs |
-|---|---|---|
-| (a) The OPS-63 summary question with the agent named | **Not tried: browser signed out.** The docs support it as the user lever [C1] | A Chrome session signed in to `connect-24h` |
-| (b) Changed agent and topic descriptions on `Customer_Summary`, edited in Builder, republished and reactivated | **Not tried: browser signed out.** Nothing was changed | The same. A new active version also changes a second thing besides the descriptions [C7], so a result would not credit the descriptions alone |
-| (c) `Customer_Summary` as a connected or callable agent of the Coworker Agent | **Not tried, and not documented for Coworker.** The Search Agent cannot be modified [C1]; whether Builder offers Connect Agent as Subagent on it was not seen | A look in Builder at `SearchAgent`; any step that edits, re-versions or deactivates it needs Ben's go |
-| (d) A Setup setting the docs name | **None found.** The only Coworker toggle near agents is Agent Actions, which the docs tie to creating and updating records, not to delegation [C11] | Nothing to try |
+| Way and question | Delegated | Seconds to finished answer | Labels on their own line | Labels leading a line | Table rows kept |
+|---|---|---|---|---|---|
+| Control, Q1 plain: "Summarize Edge Communications" | 0 of 1 (Coworker's own Case, Opportunity and Account searches) | 13.7 | 0 of 6 | 1 of 6 | not a table |
+| Control, Q2 plain: "Run the resolve-then-brief gate for Edge Communications and give me its account brief" | 3 of 3 | 42.5 to 45.3 | 1 of 6 | 5, 5 and 6 of 6 | not a table |
+| (a) Q1 named: "Use the Customer Summary agent to summarize Edge Communications" | 3 of 3 | 41.4 to 44.9 | 0 of 6 | 5, 6 and 6 of 6 | not a table |
+| (a) Q2 named: "Use the Customer Summary agent to run the resolve-then-brief gate ..." | 3 of 3 | 43.9 to 46.9 | 0 of 6 | 6, 6 and 5 of 6 | not a table |
+| (a) BE-32's e2 named: 30 earliest-closing opportunities with name, stage and amount | 2 of 2 | 27.4 and 27.6 | not a summary | not a summary | 30 of 30 both times |
+| (a) BE-32's e4 named: all opportunities with five columns, by close date | 1 of 1 | 42.6 | not a summary | not a summary | 47 of 47, five columns |
 
-No rows were written to a results file, because no turn ran. No capture was taken.
+Where 5 of 6 labels led a line, the missing one was Watch next in three turns and Deal history in one. In the delegated
+summaries the labels open bold paragraphs and the open deals come as Opportunity record cards; Coworker adds its own
+"Watch out" line and "Top priorities right now" list around them. There were no timeouts. With e2 run twice and e4 once,
+the explore questions make the three extra turns the card asks for once a way delegates.
+
+![A delegated summary in Coworker: our labels as bold lead-ins](../assets/coworker-delegated-summary.png)
+
+| Way | Result |
+|---|---|
+| (a) Name the agent in the question | **Works: 9 of 9 delegated.** Nothing in the org was changed |
+| (b) Changed agent and topic descriptions on `Customer_Summary`, edited in Builder, republished and reactivated | **Not run, by choice.** Way (a) worked, and the plain Q2 control already showed that a request matching our description is delegated unnamed. So (b) would only test whether new descriptions move "Summarize Edge Communications", which Coworker can complete itself and so, per [C1], should not hand off. It would cost a publish and activation now and another to undo. The coordinator cleared it, so it can run on request |
+| (c) `Customer_Summary` as a connected or callable agent of the Coworker Agent | **Not offered.** Setup's page for `SearchAgent` has tabs Details, System Messages, Language Settings, Connections and Agent Access (one permission set, Search Agent Access). Open in Builder shows a Subagents panel with 0 items, "To make changes, your agent must be deactivated", and Batch Test and Deactivate buttons; no add-agent control shows while it is active. Deactivating Coworker's agent is outside Ben's go, and the docs say changing it breaks Coworker [C1], so nothing was clicked |
+| (d) A Setup setting the docs name | **None found.** The only Coworker toggle near agents is Agent Actions, which the docs tie to creating and updating records, not to delegation [C11] |
 
 ## Undo
 
-Nothing to undo. Changed in `connect-24h`: nothing. No description edited, no version published or activated, no
-connected-agent link, no setting, no grant, no chat. Read-only SOQL only (agent definitions, versions, one account
-lookup, four session-object probes that failed as `INVALID_TYPE`). One Chrome tab was opened for the docs and the org's
-record page, and closed.
+Changed in `connect-24h`: no setting, description, version, grant, connection or user. The run left 13 Coworker chats
+(one per turn) in the admin's Recents, named for their questions; they can be deleted from Recents or left. `SearchAgent`
+was opened in Setup and in Builder and left active and unchanged. Read-only SOQL only (agent definitions, versions, one
+account lookup, four session-object probes that failed as `INVALID_TYPE`). The run's Chrome tab was closed.
 
 ## For Ben
 
-- **Which way works: unknown.** None ran, because the Chrome session for `connect-24h` was signed out and this run may
-  not sign in. To rerun, sign Chrome in to `connect-24h` (or say whether a CLI frontdoor login counts as signing in),
-  then re-dispatch OPS-64. The org was made for about 24 hours, so it may expire first.
-- **What the docs predict.** Coworker delegates only what it cannot do itself [C1]. A summary of a named account is
-  something its CRM search can do, which matches OPS-63's 0 of 9. Naming the agent (way a) is the documented lever.
-  Sharper descriptions (way b) are the only routing input, but they may not move a question Coworker can already
-  answer; that is untested.
-- **Cost in latency and fidelity: not measured.** The documented ceiling is a 90-second handoff timeout [C1]. OPS-63
-  measured Coworker alone at 13.5 to 16.3 seconds for the summary, with 0 of 6 of our section labels.
-- **FE-28's re-cut and F83.** Nothing changes yet. A card in Coworker still needs a delegation first, and none has been
-  seen. Adding our agent "to Coworker" as a connected agent is not a documented step, so if way (a) also fails, the
-  docs leave no further lever short of Salesforce changing the Search Agent.
+- **Which way works: (a), naming the agent.** 9 of 9. A request worded around what only our agent does also works
+  without the name (3 of 3); a plain summary does not (OPS-63's 0 of 9, plus 1 control turn here). So in Coworker a rep
+  must either name Customer Summary or ask for something Coworker's own search cannot do.
+- **Latency.** A delegated summary took 41 to 47 s to finish, against about 14 s for Coworker alone (13.5 to 16.3 s in
+  OPS-63). e2 took about 27 s and e4 about 43 s. All are inside the 90-second handoff timeout [C1], but a summary is
+  roughly three times slower than Coworker answering itself.
+- **Fidelity.** Coworker retells our answer. The six labels survive as bold lead-ins (5 or 6 of 6), not as headings on
+  their own line, with Coworker's own opening and closing lines around them. Tables are relayed whole (30 of 30, 47 of
+  47) as Coworker tables with record links.
+- **FE-28's re-cut.** A card in Coworker needs a delegation first, and now there is a reliable one: name the agent.
+  FE-28's turns can name `Customer_Summary_Coworker_Spike` the same way once its renderer deploys.
+- **F83.** Coworker can be a way in to our agent, but only through the agent, only when asked by name or for something
+  Coworker cannot do, and at about three times Coworker's own latency. Whether that is an acceptable door is still
+  Ben's call.
+- **Choices this run made.** Q2's wording ("resolve-then-brief gate"), counting labels both on their own line and
+  leading a line, and skipping way (b). Anything that deactivates `SearchAgent` needs Ben's go.
 
 ## Sources
 
