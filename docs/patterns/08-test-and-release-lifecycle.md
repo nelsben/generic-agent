@@ -38,8 +38,8 @@ The ladder runs from the cheapest check to the dearest. Each rung catches someth
 The agent rungs are an optional track, for a team that uses the registered agent
 ([06](06-agent-routing-and-verbatim-relay.md)): **compile** the agent's script (seconds, no model calls), **preview**
 the draft in Agentforce Studio (model calls on every case), **publish** a new inactive version, **activate** it, and
-run **Testing Center** against the active version (model calls on every case, plus a judge). Testing Center is not run
-in this build.
+run **Testing Center** against the active version (model calls on every case, plus a judge). This build runs Testing
+Center: 47 of 47 assertions on 16 cases on the last run.
 
 ## How it works
 
@@ -128,8 +128,7 @@ sequenceDiagram
    ```
 
 9. **Testing Center (steps 17 to 19).** The ladder's `agent-suite` rung runs `scripts/agent-test.sh` when that script
-   exists and its approval is recorded. Neither is true in this build, so the rung prints
-   `skipped: agent suite not built`. What the suite would check is under
+   exists and its approval is recorded. Both are true in this build. What the suite checks is under
    [Testing Center for the agent](#testing-center-for-the-agent).
 
 ## Each kind of test, with a first test to copy
@@ -280,9 +279,10 @@ change's check, and the planned suite is capped at 20 cases with no write action
 
 **Where to run it.** Salesforce advises running Testing Center in a sandbox. `agent-probe` has none.
 
-**In this build.** The suite and its script (`scripts/agent-test.sh`) wait on their own approval, so Testing Center is
-not run in this build, and the ladder's `agent-suite` rung prints `skipped: agent suite not built`. Whether an agent
-test run has passed in an org is recorded only in the README's [Status table](../../README.md#status).
+**In this build.** The suite (`tests/agent/Customer_Summary-testSpec.yaml`, 16 cases on one sample account) and its
+script (`scripts/agent-test.sh`) ran twice in `agent-probe` on 2026-11-16: 46 of 47 assertions, then 47 of 47, on version
+2 ([fr2-testing-center.md](../research/fr2-testing-center.md)). Whether an agent test run has passed in an org is
+recorded only in the README's [Status table](../../README.md#status).
 
 ## Turn a bad answer into a test
 
@@ -420,11 +420,10 @@ calls per spec are listed in [e2e/README.md](../../e2e/README.md#model-calls).
 
 Each open item from the last version of this page, rechecked.
 
-- **Testing Center is not run in this build.** The capped suite and its script wait on their own approval (BE-38).
-  Until then the ladder skips the rung and says so.
-- **A test definition is tied to the agent version it was created for.** BE-38's script is to create it again for the
-  active version on every run and print the version. Until it is built, create the definition again by hand after
-  each activation, as in [Testing Center for the agent](#testing-center-for-the-agent).
+- **One model-judged outcome check missed on the first run and passed on the second.** That run printed counts only,
+  so the case is not known. The script now names each failed check by its case number.
+- **A test definition is tied to the agent version it was created for.** Closed: `scripts/agent-test.sh` creates it
+  again for the active version on every run and prints the version.
 - **The local checks cannot see a defect that shows only at run time,** such as a model rewording a reply. Accepted:
   that is what the Testing Center rung (BE-38) and the browser suite are for.
 - **The code scan runs without its Apex rules.** The machine it runs on has no Java, so the scan runs the engines that
