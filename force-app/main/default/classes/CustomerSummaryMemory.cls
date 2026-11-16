@@ -311,7 +311,7 @@ public with sharing class CustomerSummaryMemory {
     }
 
     /** The rows for the keys, read without a lock: for lastBrief. */
-    // system-context: reads the running user's own session rows; Customer_Summary_Data_Access grants reps read, and system context scopes the rows to the running user's own sessions
+    // system-context: reads the running user's own session rows, filtered to their session keys; reps hold read on the object (Customer_Summary_Data_Access), so the read shows them nothing they could not already see
     private static Map<String, Customer_Summary_Session__c> findRows(Set<String> keys) {
         return toMap([
             SELECT Id, Session_Key__c, Turns_JSON__c, Last_Brief__c, Brief_Count__c

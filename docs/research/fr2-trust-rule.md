@@ -40,7 +40,7 @@ Checked against `grep -rn 'system-context' force-app/main/default/classes` on 20
 | `CustomerSummaryMemory` | `write` (two inserts, the update, the racing-rows insert) | the product's own session rows, written for the running user; reps have no write access to the object |
 | `CustomerSummaryMemory` | `purgeOverflow` (the query and the delete) | deletes the running user's own old session rows; reps have no delete access to the object |
 | `CustomerSummaryMemory` | `recentRows` | reads the running user's own session rows; history() re-checks the account in user mode first |
-| `CustomerSummaryMemory` | `findRows` | reads the running user's own session rows; Customer_Summary_Data_Access grants reps read, and system context scopes the rows to the running user's own sessions |
+| `CustomerSummaryMemory` | `findRows` | reads the running user's own session rows, filtered to their session keys; reps hold read on the object (Customer_Summary_Data_Access), so the read shows them nothing they could not already see |
 | `CustomerSummaryMemory` | `findRowsForUpdate` | locks the running user's own session rows for a write; reps have no write access to the object, so the lock runs in system context |
 | `CustomerOutcomes` | `writeText` | reps hold no field access to outcome text (F79); set only on rows just inserted as this user |
 | `CustomerOutcomes` | `deleteOwn` | reps hold no delete on outcomes; the caller has already checked the user is the author |
