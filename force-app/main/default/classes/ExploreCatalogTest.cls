@@ -375,4 +375,27 @@ private class ExploreCatalogTest {
         String shown = account.substringAfter('Industry(picklist: ').substringBefore(')');
         Assert.isTrue(new Set<String>(shown.split('\\|')).contains(last), 'the named value is shown: ' + last + ' in ' + shown);
     }
+
+    @IsTest
+    static void closedDealsStillNamesTheClosedStages() {
+        List<String> closed = new List<String>();
+        for (Schema.PicklistEntry p : Schema.SObjectType.Opportunity.fields.getMap().get('StageName').getDescribe().getPicklistValues()) {
+            if (p.isActive() && p.getValue().contains('Closed')) {
+                closed.add(p.getValue());
+            }
+        }
+        Assert.isFalse(closed.isEmpty(), 'Opportunity has an active Closed stage');
+        String text = ExploreCatalog.describeForPrompt('closed deals');
+        String opp = '';
+        for (String line : text.split('\n')) {
+            if (line.startsWith('Opportunity: ')) {
+                opp = line;
+            }
+        }
+        String shown = opp.substringAfter('StageName(picklist: ').substringBefore(')');
+        Set<String> values = new Set<String>(shown.split('\\|'));
+        for (String v : closed) {
+            Assert.isTrue(values.contains(v), 'a named stage is shown: ' + v + ' in ' + shown);
+        }
+    }
 }
