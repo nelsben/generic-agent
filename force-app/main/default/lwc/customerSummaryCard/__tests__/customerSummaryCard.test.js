@@ -389,12 +389,14 @@ describe('keyboard: one Tab stop per list', () => {
         expect(links().map((b) => b.getAttribute('tabindex'))).toEqual(['0', '-1', '-1']);
     });
 
-    test('a table whose rows link is one Tab stop through its row heads; its scroll area adds none', async () => {
+    test('a table whose rows link is one Tab stop through its row heads; its scroll area is a focusable named region', async () => {
         const el = mount(fixture('table'));
         await flush();
         const heads = qa(el, 'tbody th button.cs-link');
         expect(heads.map((b) => b.getAttribute('tabindex'))).toEqual(['0', '-1', '-1', '-1', '-1', '-1']);
-        expect(q(el, '.cs-table-wrap').hasAttribute('tabindex')).toBe(false);
+        expect(q(el, '.cs-table-wrap').getAttribute('tabindex')).toBe('0');
+        expect(q(el, '.cs-table-wrap').getAttribute('role')).toBe('region');
+        expect(q(el, '.cs-table-wrap').hasAttribute('aria-label') || q(el, '.cs-table-wrap').hasAttribute('aria-labelledby')).toBe(true);
     });
 
     test('a table with no row links keeps a focusable scroll area so a keyboard can scroll it', () => {

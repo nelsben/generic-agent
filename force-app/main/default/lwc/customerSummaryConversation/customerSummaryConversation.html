@@ -410,7 +410,7 @@
 
         <!-- Footer, pinned: the quick actions, then the composer with the mic on its row. -->
         <div class="abp-footer">
-            <div class="abp-quick-row" role="group" aria-label="Quick actions">
+            <div class="abp-quick-row abp-quick-row_wrap" role="group" aria-label="Quick actions">
                 <template for:each={quickChips} for:item="chip">
                     <button key={chip.key} class="slds-button abp-quick" data-key={chip.key} onclick={handleQuick}>{chip.label}</button>
                 </template>

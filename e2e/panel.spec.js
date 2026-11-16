@@ -450,3 +450,38 @@ test('10. @hotkey opening takes under 300 ms from the key to the first frame pai
         expect(ms, line).toBeLessThan(FIRST_PAINT_BUDGET_MS);
     }
 });
+
+test('11. FE-31 at 420 px all five quick-action chips sit inside their row, and the row has no sideways scroll', async ({ panel }) => {
+    await panel.open();
+    const row = panel.host.getByRole('group', { name: 'Quick actions', exact: true });
+    const chips = row.getByRole('button');
+    await expect(chips).toHaveCount(5);
+    const rowBox = await row.boundingBox();
+    expect(rowBox, 'the chip row is rendered').not.toBeNull();
+    for (let i = 0; i < 5; i++) {
+        const box = await chips.nth(i).boundingBox();
+        expect(box, 'chip ' + i + ' is rendered').not.toBeNull();
+        if (!box || !rowBox) continue;
+        expect(box.x, 'chip ' + i + ' starts inside the row').toBeGreaterThanOrEqual(rowBox.x - 1);
+        expect(box.x + box.width, 'chip ' + i + ' ends inside the row').toBeLessThanOrEqual(rowBox.x + rowBox.width + 1);
+    }
+    const scrolls = await row.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+    expect(scrolls, 'the row scrolls sideways').toBe(false);
+});
+
+test('12. FE-31 axe finds no WCAG violations at 1280x720 in the compact window and with the draft card open', async ({ page, panel }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await panel.open();
+    const windowViolations = await axeScan(panel, testInfo, 'window-1280x720');
+
+    const chip = panel.host.getByRole('group', { name: 'Quick actions', exact: true }).getByRole('button', { name: 'Create a follow-up', exact: true });
+    const drafted = panel.apexResponse('draftAction', ANSWER_TIMEOUT);
+    await chip.click();
+    await drafted;
+    await panel.settle();
+    await expect(panel.turns.last().locator('c-customer-summary-card article[data-type="actionDraft"]')).toHaveCount(1, { timeout: ANSWER_TIMEOUT });
+    const draftViolations = await axeScan(panel, testInfo, 'draft-1280x720');
+
+    expect.soft(windowViolations, 'axe violations in the compact window at 1280x720').toEqual([]);
+    expect.soft(draftViolations, 'axe violations with the draft card at 1280x720').toEqual([]);
+});

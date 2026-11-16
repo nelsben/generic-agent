@@ -257,9 +257,9 @@ export default class CustomerSummaryCard extends LightningElement {
     get gridTable() {
         return this.isGrid && !this.view.stacked;
     }
-    /** A table whose rows link is reached through its row heads; one without is a focusable scroll area. */
+    /** The scroll area is always a Tab stop, so a keyboard user can scroll to the last column (FE-31). */
     get wrapTabindex() {
-        return (this.view.rows || []).some((r) => r.ref) ? null : '0';
+        return '0';
     }
     get hasControls() {
         return (this.view.controls || []).length > 0 && this._mode !== 'closed';

@@ -529,13 +529,11 @@ h2,
     border-top: 1px solid color-mix(in srgb, var(--cs-color-ink, #181818) 12%, transparent);
 }
 
-/* The quick actions: one row that scrolls sideways rather than wrapping. */
+/* The quick actions: a row that wraps, so every chip shows at 420 px with no sideways scroll. */
 .abp-quick-row {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 0.25rem;
-    overflow-x: auto;
-    scrollbar-width: thin;
     padding-bottom: 0.25rem;
 }
 
@@ -593,6 +591,7 @@ h2,
 
 .abp-composer-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
     gap: 0.375rem;
     min-width: 0;
