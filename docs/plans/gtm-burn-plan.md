@@ -263,3 +263,33 @@ Pattern pages: `01-route-gather-reduce`, `02-ask-anything-explorer`, `03-hotkey-
 - Review notes left open from BE-12: a query timeout in the resolver reads as NOT_FOUND; a user
   without access to contact roles or event names loses the whole section; a lock timeout drops
   one memory turn. The re-reviews will rank them.
+
+## Coworker tabled (2026-11-15)
+
+This section is added at the end of the file because the plan has no section for later decisions.
+
+Ben tabled Agentforce Coworker on 2026-11-15. The stance, what was tried and what would reopen it are on one page:
+[coworker-stance.md](../research/coworker-stance.md). No new Coworker cards are cut. Ledger item F83 is recorded as
+tabled, not decided; the Approvals row "FR2+: Agentforce Coworker live steps" is unchanged and approves nothing new.
+
+## Next, back on the generic agent
+
+Work returns to the `agent-probe` org. The `connect-24h` org expires about 2026-11-16, so nothing in it is relied on.
+This list adds no work. It points at items the plan and `agents/tasks/` already hold, grouped by the generic agent's own
+experience and connectivity, and each still waits on whatever its task file says.
+
+Experience (the hotkey panel and the explorer):
+
+1. BE-41, BE-42, BE-43, BE-44 and BE-45: the parked explorer baseline, catalog, plan grammar, long-text search and
+   after-evaluation cards, in that order.
+2. BE-38: the parked Testing Center suite for Customer Summary (Approvals row pending Ben's go).
+3. FE-5: the panel suite as a non-admin user (waits on the user Ben creates).
+4. FE-23: the parked "Keep" control (waits on Ben picking it from FE-17's list).
+5. OPS-33: the parked embedded call-centre spike (needs Ben's go).
+
+Connectivity (the agent reached from our own surfaces and from outside):
+
+1. BE-56's finding stands: our panel reaches the agent through the Apex invocable (door 1). BE-15 and BE-19 stay parked.
+2. OPS-31 and OPS-59 are merged (the MCP door and its write tools). OPS-53 flips the README status rows once Ben has
+   done the MCP sign-in and one call per tool.
+3. OPS-54: the parked removal of the old Account Brief leftovers from `agent-probe` (needs its own approval).
