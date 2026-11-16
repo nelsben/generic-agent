@@ -138,6 +138,18 @@ class TestCustomerSummaryBundle(unittest.TestCase):
     def test_no_character_for_character_wording(self):
         self.assertNotIn("character for character", AGENT.read_text(encoding="utf-8"))
 
+    def test_resolve_account_status_lists_name_all_four_statuses(self):
+        # BE-60: the resolver returns ERROR when the account search fails (BE-29); every description that lists
+        # its status values must name it, so the script does not lag the Apex.
+        text = AGENT.read_text(encoding="utf-8")
+        start = text.index("        resolve_account:\n            target:")
+        block = text[start:text.index("        get_brief:\n            target:", start)]
+        lists = [l for l in block.splitlines() if "description:" in l and "RESOLVED, AMBIGUOUS" in l]
+        self.assertEqual(len(lists), 2, "the action description and the status output description")
+        for line in lists:
+            for status in ("RESOLVED", "AMBIGUOUS", "NOT_FOUND", "ERROR"):
+                self.assertIn(status, line)
+
 
 class TestAgentStructure(unittest.TestCase):
     def setUp(self):
