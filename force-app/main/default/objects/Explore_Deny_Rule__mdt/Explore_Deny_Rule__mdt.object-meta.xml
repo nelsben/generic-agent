@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>What the data explorer may never read, on top of the rep's own access (user mode still applies to every query). Each row is one rule: an object name, an object-name suffix family, a field-name pattern, a field type, the only fields of one object, or a custom object an admin allows. Custom objects are denied until an Allow Object row names them, and a deny always beats an allow. An empty or unreadable list refuses every object (docs/research/fr2-explorer-catalog.md).</description>
+    <label>Explore Deny Rule</label>
+    <pluralLabel>Explore Deny Rules</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>

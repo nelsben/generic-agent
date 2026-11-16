@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Rule_Type__c</fullName>
+    <description>Object: deny the object named in Value. Suffix: deny every object whose name ends with Value. Field pattern: deny every field whose name or label matches the regular expression in Value (lower case). Field type: deny fields of the type in Value (encrypted, encryptedstring, base64, address, location). Only fields: the object in Object shows only the comma-separated fields in Value. Allow object: allow the custom object named in Value.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>A deny always beats an allow. Custom objects stay denied until an Allow object row names them.</inlineHelpText>
+    <label>Rule Type</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Object</fullName>
+                <default>false</default>
+                <label>Object</label>
+            </value>
+            <value>
+                <fullName>Suffix</fullName>
+                <default>false</default>
+                <label>Suffix</label>
+            </value>
+            <value>
+                <fullName>FieldPattern</fullName>
+                <default>false</default>
+                <label>Field pattern</label>
+            </value>
+            <value>
+                <fullName>FieldType</fullName>
+                <default>false</default>
+                <label>Field type</label>
+            </value>
+            <value>
+                <fullName>OnlyFields</fullName>
+                <default>false</default>
+                <label>Only fields</label>
+            </value>
+            <value>
+                <fullName>AllowObject</fullName>
+                <default>false</default>
+                <label>Allow object</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

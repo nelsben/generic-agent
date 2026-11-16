@@ -209,15 +209,63 @@ private class DataExplorerTest {
     @IsTest
     static void objectOutsideCatalogIsRejected() {
         Script s = script(new List<String>{
-            query('{"object":"Lead","fields":["Name"]}'),
+            query('{"object":"LoginHistory","fields":["Id"]}'),
             '{"action":"answer","text":"I can only read the catalog objects.","followups":[]}'
         });
 
-        DataExplorer.Result r = DataExplorer.explore('Show leads', null, null);
+        DataExplorer.Result r = DataExplorer.explore('Show login history', null, null);
 
         Assert.areEqual(DataExplorer.EMPTY, r.status);
         Assert.isTrue(r.resultSets.isEmpty());
-        Assert.isTrue(s.prompts[1].contains('INVALID: Unknown object "Lead". Use one of: Account, Contact, Opportunity'), s.prompts[1]);
+        Assert.isTrue(s.prompts[1].contains('INVALID: Unknown object "LoginHistory". Use one of: Account, Contact, Opportunity'), s.prompts[1]);
+    }
+
+    @IsTest
+    static void anObjectNotYetDescribedCostsATurnAndArrivesInTheNextCatalog() {
+        Script s = script(new List<String>{
+            query('{"object":"Lead","fields":["Name","Status"]}'),
+            query('{"object":"Lead","fields":["Name","Status"]}'),
+            answer('No leads yet.')
+        });
+
+        Test.startTest();
+        DataExplorer.Result r = DataExplorer.explore('Show leads', null, null);
+        Test.stopTest();
+
+        Assert.isFalse(s.prompts[0].contains('Lead: Id(id)'), 'not described on the first call');
+        Assert.isTrue(s.prompts[0].contains('Lead'), 'but named in the index');
+        Assert.isTrue(s.prompts[1].contains('[1] INVALID: Lead was not in the catalog yet.'), s.prompts[1]);
+        Assert.isTrue(s.prompts[1].contains('Lead: Id(id)'), 'its fields arrive on the next turn');
+        Assert.isTrue(s.prompts[1].contains('Queries left: 4'), 'the describe costs a turn, not a query');
+        Assert.areEqual(1, r.trail.size(), 'the second plan ran');
+        Assert.areEqual('Lead', r.resultSets[0].objectName);
+        Assert.areEqual(3, DataExplorer.lastRun.modelCalls);
+        for (Integer chars : DataExplorer.lastRun.catalogChars) {
+            Assert.isTrue(chars <= ExploreCatalog.MAX_PROMPT_CHARS, String.valueOf(chars));
+        }
+    }
+
+    @IsTest
+    static void deniedNamesNeverReachSoqlInAnyPosition() {
+        Script s = script(new List<String>{
+            query('{"object":"SetupAuditTrail","fields":["Id"]}'),
+            query('{"object":"Opportunity","fields":["Name","Owner.Email"]}'),
+            query('{"object":"Account","fields":["Name"],"filters":[{"field":"Id","op":"IN","value":{"object":"LoginHistory","fields":["UserId"]}}]}'),
+            query('{"object":"Account","fields":["Name"],"filters":[{"field":"BillingAddress","op":"=","value":"x"}]}'),
+            answer('Nothing I may read.')
+        });
+
+        Test.startTest();
+        DataExplorer.Result r = DataExplorer.explore('Who changed setup?', null, null);
+        Test.stopTest();
+
+        Assert.isTrue(r.trail.isEmpty(), 'no plan reached the database: ' + r.trail);
+        Assert.isTrue(r.resultSets.isEmpty());
+        Assert.isTrue(s.prompts[1].contains('[1] INVALID: Unknown object "SetupAuditTrail"'), 'top level');
+        Assert.isTrue(s.prompts[2].contains('[2] INVALID: Unknown field "Owner.Email"'), 'parent path');
+        Assert.isTrue(s.prompts[3].contains('[3] INVALID: '), 'semi-join');
+        Assert.isTrue(s.prompts[4].contains('[4] INVALID: Unknown field "BillingAddress"'), 'denied field type');
+        Assert.isTrue(s.prompts[4].contains('Queries left: 4'));
     }
 
     @IsTest
@@ -733,7 +781,7 @@ private class DataExplorerTest {
         Contact c = [SELECT Id FROM Contact WHERE LastName = 'Rivera' LIMIT 1];
         Map<String, String> expected = new Map<String, String>{
             'null' => 'Pick a record',
-            'lead' => 'Lead is not in the explore catalog.',
+            'lead' => 'AccountHistory is not in the explore catalog.',
             'org' => 'Organization is not in the explore catalog.',
             'nolookup' => 'Account has no lookup to Contact.'
         };
@@ -743,7 +791,7 @@ private class DataExplorerTest {
                 if (k == 'null') {
                     DataExplorer.drill(null, null);
                 } else if (k == 'lead') {
-                    DataExplorer.drill(a.Id, 'Lead');
+                    DataExplorer.drill(a.Id, 'AccountHistory');
                 } else if (k == 'org') {
                     DataExplorer.drill(UserInfo.getOrganizationId(), null);
                 } else {

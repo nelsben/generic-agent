@@ -79,6 +79,27 @@ public with sharing class DataExplorer {
     }
 
     /** Loop state for one question. */
+    /**
+     * Counts from the last explore in this transaction, for measurement (spikes/explorer-scale): model calls,
+     * the catalog's characters per call, and the characters of every prompt variable sent. No question text.
+     */
+    public class RunStats {
+        public Integer modelCalls = 0;
+        public List<Integer> catalogChars = new List<Integer>();
+        public Integer varChars = 0;
+
+        void count(Map<String, String> vars) {
+            modelCalls++;
+            catalogChars.add(vars.get('catalog').length());
+            for (String v : vars.values()) {
+                varChars += v == null ? 0 : v.length();
+            }
+        }
+    }
+
+    /** The last run's counts; null before the first explore. */
+    public static RunStats lastRun;
+
     private class ExploreRun {
         Result result = new Result();
         List<String> turns = new List<String>();
@@ -119,7 +140,6 @@ public with sharing class DataExplorer {
         }
         try {
             Map<String, String> vars = new Map<String, String>{
-                'catalog' => ExploreCatalog.describeForPrompt(),
                 'date_literals' => String.join(ExplorePlan.DATE_LITERALS, ', ') + ', '
                     + String.join(ExplorePlan.DATE_LITERALS_N, ':n, ') + ':n',
                 'context' => contextText(contextRecordId) + outcomeContext(contextRecordId),
@@ -128,9 +148,13 @@ public with sharing class DataExplorer {
             };
             // The brand's company and tone lines go after the explorer prompt's own system text (BE-24).
             String brandLines = BrandSettings.promptLines();
+            lastRun = new RunStats();
             for (Integer turn = 1; turn <= MAX_TURNS; turn++) {
+                // The catalog is rebuilt each turn: an object a plan named last turn now lists its fields (BE-42).
+                vars.put('catalog', ExploreCatalog.describeForPrompt(question));
                 vars.put('turns', run.turns.isEmpty() ? NONE : String.join(run.turns, '\n\n'));
                 vars.put('queries_left', String.valueOf(MAX_QUERIES - run.queries));
+                lastRun.count(vars);
                 String reply = AgentLlm.complete(PROMPT, vars, MAX_TOKENS, brandLines);
                 String outcome = step(run, reply);
                 if (outcome == null) {
@@ -153,6 +177,19 @@ public with sharing class DataExplorer {
         run.result.answer = ERROR_TEXT;
         run.result.followups.clear();
         return run.result;
+    }
+
+    /**
+     * An allowed object the catalog has not described yet: describe it now and send the model back to plan
+     * again with its fields, which the next turn's catalog lists. Costs a turn, not a query. Null otherwise.
+     */
+    private static String describeOnDemand(ExplorePlan plan) {
+        if (String.isBlank(plan.objectName) || ExploreCatalog.find(plan.objectName) != null) {
+            return null;
+        }
+        ExploreCatalog.Entry e = ExploreCatalog.describe(plan.objectName);
+        return e == null ? null
+            : 'INVALID: ' + e.name + ' was not in the catalog yet. Its fields are listed there now; plan again with them.';
     }
 
     /** Handles one model reply. Returns null when the question is answered, else the line the model sees next. */
@@ -180,6 +217,10 @@ public with sharing class DataExplorer {
             return 'INVALID: a query needs a "plan" object.';
         }
         ExplorePlan plan = ExplorePlan.fromObject(msg.get('plan'));
+        String described = describeOnDemand(plan);
+        if (described != null) {
+            return described;
+        }
         List<String> errors = ExplorePlan.validate(plan);
         if (!errors.isEmpty()) {
             return 'INVALID: ' + String.join(errors, ' ');
@@ -400,7 +441,7 @@ public with sharing class DataExplorer {
         ExplorePlan plan = new ExplorePlan();
 
         if (String.isBlank(relatedObject)) {
-            ExploreCatalog.Entry entry = ExploreCatalog.find(parentName);
+            ExploreCatalog.Entry entry = ExploreCatalog.describe(parentName);
             if (entry == null) {
                 throw new ExploreException(parentName + ' is not in the explore catalog.');
             }
@@ -411,6 +452,8 @@ public with sharing class DataExplorer {
             return forDisplay(ExploreQuery.run(plan));
         }
 
+        // Related rows come from the described catalog only (the core objects), as before BE-42; the record
+        // itself may be any allowed object, so a row from an object described on demand can still be opened.
         ExploreCatalog.Entry child = ExploreCatalog.find(relatedObject);
         if (child == null) {
             throw new ExploreException(relatedObject.trim() + ' is not in the explore catalog.');
