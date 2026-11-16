@@ -183,3 +183,7 @@ adds the explorer's context and its MCP proof. The session memory tests are unch
 
 agent-probe's account sharing is Public Read/Write, so no sharing rule can hide an account there. A rep who
 "cannot see the account" in these tests is one without Account Read, which is the only way to hide one in this org.
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

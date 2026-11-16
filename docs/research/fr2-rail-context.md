@@ -88,3 +88,7 @@ a second open of the same account can be served from the client cache.
   running user's name when they wrote it, and is empty otherwise. Whether a live org returns the author was not
   checked: `agent-probe` has no case comments.
 - The sample data has no emails or case comments, so the live call shows emails only as logged tasks.
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

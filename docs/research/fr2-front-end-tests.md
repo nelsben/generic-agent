@@ -81,3 +81,7 @@ Counted on the seed account (read-only queries) before the first e2e run and aft
 | Customer_Summary_Session__c | 4 | 5 |
 
 The suite writes outcome rows for every summary; they were not deleted (that is Ben's call).
+
+## Undo
+
+The suite wrote outcome rows (21 to 31 on the seed accounts) and one session row (4 to 5); the page says they were not deleted and that is Ben's call. Not recorded on this page: which rows to remove.

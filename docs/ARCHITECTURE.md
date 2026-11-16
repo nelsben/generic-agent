@@ -230,11 +230,14 @@ with no marker, or a marker with no system-context use. The uses, from the trust
 | `AgentLlm` | `querySettings`, the prompt settings query | The product's own prompt configuration, the same for every user; reps hold no read access to the type |
 | `CustomerSummaryMemory` | `write` | The product's own session rows, written for the running user; reps have no write access to the object |
 | `CustomerSummaryMemory` | `purgeOverflow` | Deletes the running user's own old session rows; reps have no delete access to the object |
-| `CustomerSummaryMemory` | `findRows` | Reads the running user's own session rows; reps have no access to the object |
-| `CustomerSummaryMemory` | `findRowsForUpdate` | Locks the running user's own session rows for a write; reps have no access to the object |
+| `CustomerSummaryMemory` | `recentRows` | Reads the running user's own session rows; history() re-checks the account in user mode first |
+| `CustomerSummaryMemory` | `findRows` | Reads the running user's own session rows; Customer_Summary_Data_Access grants reps read, and system context scopes the rows to the running user's own sessions |
+| `CustomerSummaryMemory` | `findRowsForUpdate` | Locks the running user's own session rows for a write; reps have no write access to the object, so the lock runs in system context |
+| `CustomerOutcomes` | `writeText`, `readText` | Reps hold no field access to outcome text (F79); set only on rows just inserted as this user, read only for rows view() shows in full |
+| `CustomerOutcomes` | `deleteOwn` | Reps hold no delete on outcomes; the caller has already checked the user is the author |
+| `CustomerOutcomeRetentionBatch` | the whole class | The purge deletes every expired outcome, whoever wrote it, and no rep can see them all |
 
-Later cards added markers for customer outcome text and the expiry purge; each is listed with its guard and its test on
-the principles page, pattern 07.
+Each use has its guard and its test on the principles page, pattern 07.
 
 Access is granted in one step: assign the permission set group `Customer_Summary_User`. It holds the data-access set
 and the outcome-access set and no agent access, because reps reach the product through the surfaces. The agent-access

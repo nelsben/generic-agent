@@ -7,6 +7,9 @@ is an optional add-on documented in the appendix,
 org; it is a text change only. Whether a run without the agent has passed belongs in the README's
 [Status table](../../README.md#status) (OPS-28's run), not in the quick start.
 
+The README's quick-start folder list (step 1, "Deploy the metadata") is the current one; this page keeps no folder
+list of its own, so follow the README where the two ever differ.
+
 ## What moves out of the README
 
 Everything below is in the appendix's [Adopt it](../patterns/06-agent-routing-and-verbatim-relay.md#adopt-it) now.
@@ -44,3 +47,7 @@ The registered Agentforce agent is optional, and none of the steps above need it
   quick-start steps, so this page does not rewrite them. They stay the one place that says whether a run passed.
 - The README's lead and system map should no longer show the built-in panel as a way in (F82); that is OPS-36's own
   part of the ledger row.
+
+## Undo
+
+Nothing changed in an org: this page is advice for OPS-36 and edits no file in an org.

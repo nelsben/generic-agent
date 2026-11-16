@@ -100,3 +100,7 @@ The drift line and the smoke failure of spec 1 are expected, and they come from 
 card: `agent-probe` already carries FE-15's unmerged rail work (the panel bundle and the utility bar page
 with the expand button), and the worktree is cut from main, which does not have it yet. They are not
 ladder defects, and they go away when FE-15 merges and the org and main agree. The other rungs passed.
+
+## Undo
+
+Not recorded on this page. The work deployed to `agent-probe` or ran there, but the page lists nothing to remove.

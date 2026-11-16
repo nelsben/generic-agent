@@ -65,3 +65,7 @@ group. To undo, tick the agents again in the same place.
 What the admin sees: in `agent-probe` the admin still holds `Account_Brief_Agent_Access` directly
 (one assignment), so the admin can still reach the agent in the built-in panel. The Playwright run
 does not inspect the header icon. The non-admin check is left to FE-5.
+
+## Undo
+
+Not recorded on this page. It does say `AccountBriefAgentClient` and its test stay in `agent-probe`, unused; deleting them is a destructive deploy that waits for Ben's go.
