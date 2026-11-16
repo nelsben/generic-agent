@@ -108,6 +108,58 @@ describe('customerSummarySentimentChart', () => {
         await expect(el).toBeAccessible();
     });
 
+    // L6: at most one point per 8 px of plot width. The plot is 126 px in the 216 px rail (the svg is drawn 1:1 there).
+    const RAIL_MAX_POINTS = 15;
+
+    function daysApart(n, labelOf) {
+        return Array.from({ length: n }, (_, i) =>
+            summary(1, labelOf(i), { createdDate: new Date(Date.UTC(2026, 0, 1, 12) + i * 86400000).toISOString() })
+        );
+    }
+
+    test('L6: 60 summaries on 60 days draw at most one point per 8 px of plot width, each with a count and a mean label', async () => {
+        const el = await mount(daysApart(60, (i) => LABELS[i % 5]));
+        const pts = points(el);
+        expect(pts.length).toBeGreaterThanOrEqual(2);
+        expect(pts.length).toBeLessThanOrEqual(RAIL_MAX_POINTS);
+        const grouped = pts.filter((p) => p.getAttribute('aria-label').match(/\d+ summaries/));
+        expect(grouped.length).toBeGreaterThan(0);
+        expect(el.shadowRoot.querySelector('[data-testid="focus"]')).not.toBeNull();
+        await expect(el).toBeAccessible();
+    });
+
+    test('L6: summaries on fewer days than the cap are bucketed by day, one point per day with its count', async () => {
+        const rows = Array.from({ length: 60 }, (_, i) =>
+            summary(1, LABELS[i % 5], { createdDate: new Date(Date.UTC(2026, 0, 1, 12) + Math.floor(i / 6) * 86400000).toISOString() })
+        );
+        const el = await mount(rows);
+        const pts = points(el);
+        expect(pts).toHaveLength(10);
+        expect(pts[0].getAttribute('aria-label')).toMatch(/2026-01-01, .*, 6 summaries/);
+    });
+
+    test('L6: the table still lists every summary the chart was given', async () => {
+        const rows = daysApart(60, (i) => LABELS[i % 5]);
+        const el = await mount(rows);
+        expect(el.shadowRoot.querySelectorAll('table tbody tr')).toHaveLength(60);
+    });
+
+    test('L6: axis text is at least 11 px, and two ticks never read the same date', async () => {
+        const css = fs.readFileSync(path.join(BUNDLE, 'customerSummarySentimentChart.css'), 'utf8');
+        const size = (sel) => {
+            const m = css.match(new RegExp(sel.replace('.', '\\.') + ' \\{[^}]*font-size: (\\d+)px'));
+            return m ? Number(m[1]) : 0;
+        };
+        expect(size('.cs-axis')).toBeGreaterThanOrEqual(11);
+        expect(size('.cs-band-label')).toBeGreaterThanOrEqual(11);
+
+        const el = await mount([summary(12, 'Neutral'), summary(12, 'Concerned')]);
+        const ticks = Array.from(el.shadowRoot.querySelectorAll('svg text.cs-axis'))
+            .map((t) => t.textContent)
+            .filter(Boolean);
+        expect(ticks).toEqual(['2026-10-12']);
+    });
+
     test('says the chart shows labels only because the score is not steady enough', async () => {
         const el = await mount([summary(12, 'Neutral'), summary(10, 'Concerned')]);
         expect(el.shadowRoot.querySelector('[data-testid="labels-only"]').textContent).toMatch(/labels only/i);

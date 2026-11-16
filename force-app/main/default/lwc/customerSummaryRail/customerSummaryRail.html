@@ -130,12 +130,35 @@
                         </template>
                         <template lwc:if={showHistory}>
                             <div class="cs-ctx-extra" data-testid="ctx-history">
-                                <h4 class="cs-ctx-title cs-ctx-title-plain">History</h4>
-                                <c-customer-summary-history-timeline record-id={accountId} density="compact"></c-customer-summary-history-timeline>
-                            </div>
-                            <div class="cs-ctx-extra" data-testid="ctx-sentiment">
-                                <h4 class="cs-ctx-title cs-ctx-title-plain">Sentiment over time</h4>
-                                <c-customer-summary-sentiment-chart record-id={accountId}></c-customer-summary-sentiment-chart>
+                                <h4 class="cs-ctx-title">
+                                    <button
+                                        class="cs-ctx-toggle"
+                                        type="button"
+                                        data-section="history"
+                                        aria-expanded={historyAriaExpanded}
+                                        aria-controls={historyBodyId}
+                                        onclick={handleHistoryToggle}
+                                    >
+                                        <lightning-icon icon-name={historyIcon} size="xx-small" class="cs-ctx-chevron"></lightning-icon>
+                                        <span class="cs-ctx-title-text">History</span>
+                                        <template lwc:if={hasHistoryCount}>
+                                            <span class="cs-ctx-count" data-count="history">{historyCount}</span>
+                                        </template>
+                                    </button>
+                                </h4>
+                                <div id={historyBodyId} class={historyBodyClass} data-section-body="history">
+                                    <template lwc:if={historyExpanded}>
+                                        <c-customer-summary-history-timeline
+                                            record-id={accountId}
+                                            density="compact"
+                                            onhistorycount={handleHistoryCount}
+                                        ></c-customer-summary-history-timeline>
+                                        <div class="cs-ctx-extra" data-testid="ctx-sentiment">
+                                            <h4 class="cs-ctx-title cs-ctx-title-plain">Sentiment over time</h4>
+                                            <c-customer-summary-sentiment-chart record-id={accountId}></c-customer-summary-sentiment-chart>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </template>
                     </template>

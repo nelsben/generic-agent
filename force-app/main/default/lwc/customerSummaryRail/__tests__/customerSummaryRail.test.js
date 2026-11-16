@@ -3,6 +3,7 @@ import CustomerSummaryRail from 'c/customerSummaryRail';
 import { subscribe, MessageContext } from 'lightning/messageService';
 import { getRecord } from 'lightning/uiRecordApi';
 import getContext from '@salesforce/apex/CustomerSummaryContext.getContext';
+import listOutcomes from '@salesforce/apex/CustomerOutcomes.listOutcomes';
 
 const mockNavigate = jest.fn();
 
@@ -18,6 +19,7 @@ jest.mock('lightning/navigation', () => {
     return { NavigationMixin };
 });
 jest.mock('@salesforce/apex/CustomerSummaryContext.getContext', () => ({ default: jest.fn() }), { virtual: true });
+jest.mock('@salesforce/apex/CustomerOutcomes.listOutcomes', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/messageChannel/CustomerSummaryExpand__c', () => ({ default: 'CustomerSummaryExpand__c' }), { virtual: true });
 
 const ACME = '001000000000001AAA';
@@ -573,16 +575,57 @@ describe('c-customer-summary-rail', () => {
         const history = (el) => $(el, 'c-customer-summary-history-timeline');
         const chart = (el) => $(el, 'c-customer-summary-sentiment-chart');
 
-        it('puts the timeline and the sentiment chart in the context column, on the rail\'s account, once it is open', async () => {
+        const toggle = (el) => $(el, '[data-testid="ctx-history"] button.cs-ctx-toggle');
+
+        it('History is closed by default: a header button with aria-expanded=false, and no timeline, chart or outcomes call', async () => {
             const el = await mount();
-            expect(history(el)).toBeNull();
-            expect(chart(el)).toBeNull();
+            listOutcomes.mockClear();
             hotkey();
             await flush();
-            expect($(el, '[data-testid="ctx-history"]')).not.toBeNull();
+            const btn = toggle(el);
+            expect(btn).not.toBeNull();
+            expect(btn.getAttribute('aria-expanded')).toBe('false');
+            expect(btn.getAttribute('aria-controls')).toBeTruthy();
+            expect(section(el, 'history').id).toBe(btn.getAttribute('aria-controls'));
+            expect(section(el, 'history').className).toContain('slds-hide');
+            expect(history(el)).toBeNull();
+            expect(chart(el)).toBeNull();
+            expect(listOutcomes).not.toHaveBeenCalled();
+        });
+
+        it('opening History loads the timeline and the chart on the rail\'s account, inside the context column; closing it removes them', async () => {
+            listOutcomes.mockResolvedValue([]);
+            const el = await mount();
+            hotkey();
+            await flush();
+            const btn = toggle(el);
+            btn.click();
+            await flush();
+            expect(btn.getAttribute('aria-expanded')).toBe('true');
             expect(history(el).recordId).toBe(ACME);
             expect(chart(el).recordId).toBe(ACME);
             expect($(el, '.cs-rail-context, aside.cs-rail-context').contains(history(el))).toBe(true);
+            expect(listOutcomes).toHaveBeenCalled();
+            toggle(el).click();
+            await flush();
+            expect(toggle(el).getAttribute('aria-expanded')).toBe('false');
+            expect(history(el)).toBeNull();
+            expect(chart(el)).toBeNull();
+        });
+
+        it('shows the entry count on the History header once the timeline has loaded it', async () => {
+            listOutcomes.mockResolvedValue([
+                { id: 'a0C000000000001AAA', type: 'Summary', createdDate: '2026-11-01T15:00:00.000Z', textShown: true, title: 'One' },
+                { id: 'a0C000000000002AAA', type: 'Summary', createdDate: '2026-11-02T15:00:00.000Z', textShown: true, title: 'Two' },
+                { id: 'a0C000000000003AAA', type: 'Summary', createdDate: '2026-11-03T15:00:00.000Z', textShown: true, title: 'Three' }
+            ]);
+            const el = await mount();
+            hotkey();
+            await flush();
+            expect($(el, '[data-count="history"]')).toBeNull();
+            toggle(el).click();
+            await flush();
+            expect($(el, '[data-count="history"]').textContent).toBe('3');
         });
 
         it('shows neither without an account', async () => {

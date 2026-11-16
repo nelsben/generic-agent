@@ -64,12 +64,12 @@
 
 .cs-band-label {
     fill: var(--cs-sent-ink);
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .cs-axis {
     fill: var(--cs-sent-muted);
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .cs-pt {
