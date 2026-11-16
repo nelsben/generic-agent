@@ -1,0 +1,32 @@
+# BE-44 sosl-proof.apex, run once in agent-probe after the BE-44 deploy (2026-11-16). Counts only.
+PROOF :: Account :: rows visible=14
+PROOF :: Account "renewal" :: hand=1 age_hours=95
+PROOF :: Account "renewal" :: user rows=1 holding=1
+PROOF :: Account "renewal" :: system rows=1 holding=1
+PROOF :: Account "telecom" :: hand=1 age_hours=95
+PROOF :: Account "telecom" :: user rows=1 holding=1
+PROOF :: Account "telecom" :: system rows=1 holding=1
+PROOF :: Account "support" :: hand=1 age_hours=95
+PROOF :: Account "support" :: user rows=1 holding=1
+PROOF :: Account "support" :: system rows=1 holding=1
+PROOF :: Event :: rows visible=6
+PROOF :: Event "pricing" :: hand=1 age_hours=95
+PROOF :: Event "pricing" :: user rows=2 holding=1
+PROOF :: Event "pricing" :: system rows=2 holding=1
+PROOF :: Event "router" :: hand=1 age_hours=95
+PROOF :: Event "router" :: user rows=1 holding=1
+PROOF :: Event "router" :: system rows=1 holding=1
+PROOF :: Event "renewal" :: hand=0 age_hours=null
+PROOF :: Event "renewal" :: user rows=1 holding=0
+PROOF :: Event "renewal" :: system rows=1 holding=0
+PROOF :: Account name "Edge" :: hand=1
+PROOF :: Account name "Edge" :: user rows=1
+PROOF :: Account name "Edge" :: System.SecurityException: Cannot use SYSTEM_MODE access level in anonymous execution of Apex.
+PROOF :: Account "renew" :: user rows=0 holding=0
+PROOF :: Account "renew*" :: user rows=1 holding=1
+PROOF :: path Account renewal :: search hits=1 path=1 hand=1
+PROOF :: path Event pricing :: search hits=2 path=1 hand=1
+PROOF :: path Account support plan :: search hits=1 path=1 hand=1
+PROOF :: path Event router :: search hits=1 path=1 hand=1
+PROOF :: path Event renewal :: search hits=1 path=0 hand=0
+PROOF :: limits :: soql=13 sosl=20/20 dml=0
