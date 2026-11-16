@@ -4,7 +4,7 @@ title: FR2+: describe-driven explorer catalog with an admin deny list in custom 
 domain: backend
 tier: frontier
 tier_reason: changes what data the live explorer can reach; security rules and prompt cost in a production-classified org
-status: parked
+status: blocked
 blocked_by: [BE-41]
 fixes: []
 scope: [force-app/main/default/classes/ExploreCatalog*, force-app/main/default/classes/DataExplorer*, force-app/main/default/objects/Explore_Deny_Rule__mdt/**, force-app/main/default/customMetadata/Explore_Deny_Rule.*, force-app/main/default/staticresources/AgentPrompt_Explore*, spikes/explorer-scale/results/**, docs/research/fr2-explorer-catalog.md]
@@ -17,11 +17,11 @@ spend: 15
 ---
 ## Why
 
-Parked for Ben's go (the explorer build line BE-41 to BE-45). BE-31 showed the curated 8-object catalog cannot reach a custom object or any object outside the eight, and that a describe-driven catalog with a deny list can, under the same user-mode guards. Sent whole, the describe catalog tripled each call's size, so field pruning and on-demand describe are part of this card, not later. Covers ledger rows F55 and F59 in docs/plans/feature-revision-2.md.
+Ben gave the go for the explorer build line (BE-41 to BE-45) on 2026-11-15; it is recorded in the Approvals table. BE-31 showed the curated 8-object catalog cannot reach a custom object or any object outside the eight, and that a describe-driven catalog with a deny list can, under the same user-mode guards. Sent whole, the describe catalog tripled each call's size, so field pruning and on-demand describe are part of this card, not later. Covers ledger rows F55 and F59 in docs/plans/feature-revision-2.md.
 
 ## Done when
 
-- **Parked for Ben's go:** part of the explorer build line BE-31 proposed (BE-41 to BE-45). Do not start until Ben's go is recorded in the Approvals table of docs/plans/gtm-burn-plan.md
+- **Ben's go (2026-11-15):** part of the explorer build line BE-31 proposed (BE-41 to BE-45). Do not start until Ben's go is recorded in the Approvals table of docs/plans/gtm-burn-plan.md
 - Read first: docs/research/fr2-explorer-scale.md ('Catalog', 'Limits', 'Risks'), docs/research/fr2-explorer-baseline.md (BE-41), spikes/explorer-scale/prototype.apex (its catalog and deny list), the Explore* and DataExplorer classes, and docs/patterns/02-ask-anything-explorer.md. Load the skills salesforce-development:platform-apex-generate, salesforce-development:platform-custom-metadata-type-generate, salesforce-development:platform-apex-test-generate and salesforce-development:platform-metadata-deploy first
 - ExploreCatalog builds the catalog from describe for the running user. A new custom metadata type holds the deny rows (object names, suffix families and field-name patterns). Its default records deny: the product's own objects (Customer_Summary_Session__c, any later product object such as Customer_Outcome__c), setup and audit objects (at least SetupAuditTrail, LoginHistory, AuthSession, PermissionSet, Profile, ApexClass, StaticResource), the suffixes __Share, History, Feed, ChangeEvent, __mdt, __e, __x, __b, __kav and __chn, and encrypted, base64, address or location compound and secret-named fields. A new custom object is denied until an admin allows it. Apex tests prove each rule, including the field rules BE-31 left without a check
 - A denied object or field never reaches SOQL, whether a plan names it at the top level, in a parent path or in a semi-join; tests cover each position. User mode still applies to every query; the deny list is extra, never instead
