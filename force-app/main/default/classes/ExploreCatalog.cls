@@ -60,8 +60,11 @@ public with sharing class ExploreCatalog {
 
     /** The per-call catalog never exceeds this many characters. */
     public static final Integer MAX_PROMPT_CHARS = 6000;
-    /** Picklist values kept per field. */
-    private static final Integer PICKLIST_VALUES_KEPT = 12;
+    /**
+     * Picklist values kept per field: every active value in describe order, capped at 500 per field to bound
+     * heap (a field with more keeps its first 500). The prompt still shows only 6, 3 or 0 of them per field.
+     */
+    private static final Integer PICKLIST_VALUES_KEPT = 500;
     /** Other objects shown as name and label in the prompt, at most. */
     private static final Integer INDEX_NAMES = 16;
     /** Fields an on-demand object lists, at most (the name and Id always among them). */
@@ -228,9 +231,10 @@ public with sharing class ExploreCatalog {
             new Integer[]{ 6, INDEX_NAMES, 1 }, new Integer[]{ 3, INDEX_NAMES, 1 },
             new Integer[]{ 0, 8, 1 }, new Integer[]{ 0, 4, 0 }
         };
+        String asked = askedText(question);
         String text = '';
         for (Integer[] level : levels) {
-            text = render(words, level[0], level[1], level[2] == 1);
+            text = render(words, asked, level[0], level[1], level[2] == 1);
             if (text.length() <= MAX_PROMPT_CHARS) {
                 return text;
             }
@@ -247,12 +251,12 @@ public with sharing class ExploreCatalog {
 
     // ---------------------------------------------------------------- prompt text
 
-    private static String render(Set<String> words, Integer valuesShown, Integer indexNames, Boolean allListed) {
+    private static String render(Set<String> words, String asked, Integer valuesShown, Integer indexNames, Boolean allListed) {
         List<String> lines = new List<String>();
         for (Entry e : entries()) {
             List<String> parts = new List<String>();
             for (Field f : shownFields(e, words, allListed)) {
-                parts.add(fieldText(f, words, valuesShown));
+                parts.add(fieldText(f, asked, valuesShown));
             }
             lines.add(e.name + ': ' + String.join(parts, ', '));
         }
@@ -335,13 +339,13 @@ public with sharing class ExploreCatalog {
         return false;
     }
 
-    private static String fieldText(Field f, Set<String> words, Integer valuesShown) {
+    private static String fieldText(Field f, String asked, Integer valuesShown) {
         List<String> notes = new List<String>{ f.type };
         if (!f.picklistValues.isEmpty() && valuesShown > 0) {
             List<String> first = new List<String>();
             List<String> rest = new List<String>();
             for (String v : f.picklistValues) {
-                if (mentions(words, '', v)) {
+                if (namesValue(asked, v)) {
                     first.add(v);
                 } else {
                     rest.add(v);
@@ -357,6 +361,24 @@ public with sharing class ExploreCatalog {
             notes.add('no filter');
         }
         return f.path + '(' + String.join(notes, ': ') + ')';
+    }
+
+    /**
+     * The question lower-cased, with each run of characters other than a-z and 0-9 as one space, and a space at
+     * each end. A picklist value is named when its own askedText is inside it, so the match is case-insensitive
+     * and whole-word ('Technology' is named by 'the Technology industries', not by 'Technologyx').
+     */
+    @TestVisible
+    private static String askedText(String text) {
+        String norm = String.isBlank(text) ? '' : text.toLowerCase().replaceAll('[^a-z0-9]+', ' ').trim();
+        return ' ' + norm + ' ';
+    }
+
+    /** True when the picklist value appears in the question as whole words (see askedText). */
+    @TestVisible
+    private static Boolean namesValue(String asked, String value) {
+        String key = askedText(value);
+        return key.trim().length() > 0 && asked.contains(key);
     }
 
     /** Lower-case words of four letters or more that are not stop words, singular too. */

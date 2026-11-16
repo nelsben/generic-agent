@@ -128,3 +128,12 @@ Its rule 1 ("use only names that appear in the catalog") still holds, because th
 
 - Org: deploy the previous `ExploreCatalog` and `DataExplorer` from main with validate and quick deploy. The `Explore_Deny_Rule__mdt` type and records can stay, since nothing else reads them; removing them needs a destructive deploy, which is a separate decision.
 - Repo: revert the BE-42 commit.
+
+## q18 fix (BE-57)
+
+- **Cause (found in BE-43).** Describe kept only the first 12 active picklist values of each field, before the values the question names were ranked first. Account.Industry has 32, so 'Technology' never reached the prompt, and q18 counted 3 accounts, not 4.
+- **Change.** Describe keeps every active picklist value, capped at 500 per field to bound heap. The 6, 3 and 0 values-shown levels and the 6,000-character cap are unchanged. A named value still goes first, so it is shown whenever any value of its field is shown.
+- **Matching.** A picklist value is named when the question holds the whole value, case-insensitively and as whole words ('Technology' in 'the Technology industries', not in 'Technologies'). Field matching by name or label is unchanged.
+- **Test.** `ExploreCatalogTest.aNamedPicklistValuePastTheFirstTwelveIsShown` takes the last active Account.Industry value in describe order, asks 'Industry <value>', and asserts that the value is in the Account line's Industry values. It fails on main, where the value is past the first 12, and passes after. The question is short on purpose: longer questions pull in extra fields, push the prompt over the cap, and drop every picklist value at the 0 level.
+- **Live run.** q18 alone through the harness, `current` engine, agent-probe: PASS, count 4 (main gave 3), 2 model calls, 19,488 prompt characters. Recorded in `spikes/explorer-scale/results/be57-q18.jsonl`. This is one run; the full 30-question rerun is BE-45's.
+- **Undo.** Redeploy `ExploreCatalog` from the previous main commit (c5c4643), with validate and quick deploy.
