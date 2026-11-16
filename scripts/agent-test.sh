@@ -15,7 +15,8 @@
 # status does not change. A run spends model calls (the agent, its actions and a judge per case) and each summary
 # case writes the rows a summary always writes; see docs/research/fr2-testing-center.md.
 #
-# Output: one line per assertion type with pass and fail counts, then a last summary line naming the version. The
+# Output: one line per assertion type with pass and fail counts, one line per failed check by case number (the order
+# of the spec), then a last summary line naming the version. The
 # subagent check on a case that sets no subagent always reports a failure (an empty expectation); it is left out.
 # Nothing from the sf output is echoed: no record Ids, job Ids, usernames or hostnames.
 # Exit: 0 every assertion passed, 1 an assertion failed, 2 bad arguments, 3 the org step failed or did not finish.
@@ -150,7 +151,8 @@ ORDER = ["subagent", "actions", "outcome"]
 counts = {}
 skipped = 0
 errored_cases = 0
-for case in cases:
+misses = []
+for number, case in enumerate(cases, 1):
     if case.get("status") == "ERROR":
         errored_cases += 1
     for r in case.get("testResults") or []:
@@ -164,8 +166,10 @@ for case in cases:
             c["passed"] += 1
         elif verdict == "ERROR":
             c["errors"] += 1
+            misses.append("errored: case %d %s" % (number, label))
         else:
             c["failed"] += 1
+            misses.append("failed: case %d %s" % (number, label))
 for label in ORDER + sorted(k for k in counts if k not in ORDER):
     if label not in counts:
         continue
@@ -176,6 +180,8 @@ for label in ORDER + sorted(k for k in counts if k not in ORDER):
     if label == "subagent" and skipped:
         line += " (%d cases set no subagent; not counted)" % skipped
     print(line)
+for miss in misses:
+    print(miss)
 if errored_cases:
     print("cases that ended in ERROR: %d" % errored_cases)
 passed = sum(c["passed"] for c in counts.values())
