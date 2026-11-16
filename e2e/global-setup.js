@@ -10,7 +10,8 @@
  * 3. Looks up the account Edge Communications by name and saves its Id and the Lightning origin
  *    (no secrets) to e2e/.auth/run.json for the specs.
  *
- * A missing or expired CLI session fails with one line telling the developer to log in.
+ * A missing or expired CLI session fails with one line telling the developer to log in; a timeout
+ * waiting for Lightning fails with one line that says it was a timeout.
  */
 const fs = require('fs');
 const { chromium } = require('@playwright/test');
@@ -25,6 +26,11 @@ function oneLine(message) {
 
 function loginHint() {
     return oneLine(`No usable sf CLI session for org alias "${ORG}". Run: sf org login web -a ${ORG}`);
+}
+
+/** The page did not reach Lightning in time: the sf session was fine (it gave a URL), so do not say it is missing. */
+function timeoutHint() {
+    return oneLine(`Timed out waiting for Lightning to load for org alias "${ORG}" (the sf session itself worked). Run the suite again; check the org is reachable.`);
 }
 
 /** The frontdoor URL, or a thrown one-line hint. The URL never leaves this function's caller. */
@@ -68,8 +74,8 @@ module.exports = async function globalSetup() {
             // A new org lands on exactly /lightning (title "Home | Salesforce"), not /lightning/...
             await page.waitForURL((u) => u.pathname === '/lightning' || u.pathname.startsWith('/lightning/'), { timeout: 60_000 });
         } catch (e) {
-            // Playwright's own message would quote the URL: replace it.
-            throw loginHint();
+            // Playwright's own message would quote the URL: replace it, but say which kind of failure it was.
+            throw e && e.name === 'TimeoutError' ? timeoutHint() : loginHint();
         }
         // The Lightning origin (no secrets). Each test then opens the Customer Summary app itself.
         const origin = new URL(page.url()).origin;

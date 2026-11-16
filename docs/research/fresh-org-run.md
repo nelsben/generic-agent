@@ -297,3 +297,5 @@ The README's quick start can now run in its written order for the validate path:
 that step 3 assigns. The README is unchanged. Still blocking a full clean install, outside this card: the org's own
 orgfarm classes do not compile, so `RunLocalTests` is not usable in that org (attempt 1), and the e2e frontdoor check
 (attempt 4).
+
+Follow-up: the hotkey spec's intermittent failure is investigated in [fr2-hotkey-spec-flake.md](fr2-hotkey-spec-flake.md) (FE-30).

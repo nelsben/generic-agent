@@ -119,10 +119,10 @@ class Panel {
             await popUp.getByRole('button', { name: 'Close', exact: true }).first().click();
         });
         await this.page.goto(this.run.origin + APP_PATH);
-        await expect(this.host).toBeAttached({ timeout: 90_000 });
+        await this.orSessionEnded(expect(this.host).toBeAttached({ timeout: 90_000 }));
         await this.page.goto(this.recordUrl);
-        await expect(this.utilityButton).toBeVisible({ timeout: 90_000 });
-        await expect(this.launcher).toBeVisible({ timeout: 90_000 });
+        await this.orSessionEnded(expect(this.utilityButton).toBeVisible({ timeout: 90_000 }));
+        await this.orSessionEnded(expect(this.launcher).toBeVisible({ timeout: 90_000 }));
         // Ready: the panel is connected (its key listener is up) and has resolved the page's account.
         await expect(this.host.getByRole('button', { name: 'Summarize ' + ACCOUNT_NAME, exact: true, includeHidden: true })).toBeAttached({
             timeout: 60_000
@@ -134,6 +134,24 @@ class Panel {
         // it, which is what failed spec 2 now and then. So no test starts before the page is
         // PAGE_SETTLE_MS old.
         await this.page.waitForFunction((ms) => performance.now() > ms, PAGE_SETTLE_MS);
+    }
+
+    /**
+     * Awaits a page-ready expectation, but stops at once, with its own name, when the page under test is
+     * Lightning's "Your session has ended" dialog (FE-30: the saved session was ended server side partway
+     * through a run, and the page then holds no panel at all). That is the environment, not the hotkey,
+     * and not something a longer wait or a second key press can cure. Not a retry: it only names the page.
+     * @param {Promise<unknown>} ready
+     */
+    async orSessionEnded(ready) {
+        const ended = this.page.getByRole('dialog', { name: 'Your session has ended' });
+        const watch = ended.waitFor({ state: 'visible', timeout: 90_000 }).then(
+            () => {
+                throw new Error('The page under test is "Your session has ended", not the Customer Summary app: the saved sf session was ended by the org. Not a hotkey defect; run the suite again to sign in afresh.');
+            },
+            () => new Promise(() => {})
+        );
+        await Promise.race([ready, watch]);
     }
 
     /** Cmd-K on a Mac, Ctrl-K elsewhere: what the panel's isMac() will see in this browser. */
