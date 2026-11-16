@@ -1,5 +1,7 @@
 # FR2: Agentforce Coworker against what Customer Summary builds (OPS-55)
 
+> **Summary:** Coworker is tabled as of 2026-11-15. The one-page stance, with what we tried and when to come back, is [coworker-stance.md](coworker-stance.md).
+
 Researched 2026-11-13 (OPS-55, corrected by OPS-56) and extended on 2026-11-14 (OPS-57: the rest of the guide, the search
 API, the Coworker MCP server, custom Lightning types, Ben's answers and a re-run of the org check). The org check ran in
 `agent-probe`, read-only: queries, describes and metadata lists only. Nothing was enabled, assigned, sent, deployed, published or changed. Ids, usernames and hostnames are
