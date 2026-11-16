@@ -30,7 +30,7 @@ Salesforce pages read in a Chrome tab on 2026-11-15. Ids, usernames and hostname
   0 subagents and "To make changes, your agent must be deactivated"; the docs say changing it breaks Coworker [C1].
 - **Cost: about three times slower, and the reply is Coworker's retelling.** A delegated summary finished in 41.4 to 46.9 s
   against 13.7 s for Coworker alone. Our six section labels came through as bold lead-ins to paragraphs (5 or 6 of 6),
-  never as headings on their own line. Explore tables came through whole: 30 of 30 rows and 47 of 47 rows.
+  and at most 1 of 6 as a heading on its own line (0 of 6 in the nine named turns, 1 of 6 in the three plain Q2 turns). Explore tables came through whole: 30 of 30 rows and 47 of 47 rows.
 
 ## Org guard and read-only state
 
@@ -127,8 +127,8 @@ account lookup, four session-object probes that failed as `INVALID_TYPE`). The r
 - **Latency.** A delegated summary took 41 to 47 s to finish, against about 14 s for Coworker alone (13.5 to 16.3 s in
   OPS-63). e2 took about 27 s and e4 about 43 s. All are inside the 90-second handoff timeout [C1], but a summary is
   roughly three times slower than Coworker answering itself.
-- **Fidelity.** Coworker retells our answer. The six labels survive as bold lead-ins (5 or 6 of 6), not as headings on
-  their own line, with Coworker's own opening and closing lines around them. Tables are relayed whole (30 of 30, 47 of
+- **Fidelity.** Coworker retells our answer. The six labels survive as bold lead-ins (5 or 6 of 6), with at most 1 of 6 as a heading on
+  its own line, and with Coworker's own opening and closing lines around them. Tables are relayed whole (30 of 30, 47 of
   47) as Coworker tables with record links.
 - **FE-28's re-cut.** A card in Coworker needs a delegation first, and now there is a reliable one: name the agent.
   FE-28's turns can name `Customer_Summary_Coworker_Spike` the same way once its renderer deploys.
