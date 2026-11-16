@@ -33,7 +33,7 @@
 
 Changed against BE-41 run 1:
 - Four failures became passes: q09, q11, q16 and q29.
-- Two passes became failures: q18 and q20. q20 already changed between BE-41's runs. q18 passed in all six BE-41 runs; it is a count of accounts in two industries, and its verdict was a wrong number. Why it failed is not established (unverified). The catalog now shows 6 picklist values per field, with the ones the question names first; BE-41's catalog showed 12.
+- Two passes became failures: q18 and q20. q20 already changed between BE-41's runs. q18 passed in all six BE-41 runs; it is a count of accounts in two industries, and its verdict was a wrong number. Why it failed is not established (unverified). The catalog now shows at most 6 picklist values per field (3 or none when the text would pass the size cap), with the ones the question names first; BE-41's catalog showed 12.
 
 Per question:
 - BE-41: real runs 1 to 3.
