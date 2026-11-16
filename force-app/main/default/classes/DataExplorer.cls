@@ -52,7 +52,7 @@ public with sharing class DataExplorer {
     private static final Integer FOLLOWUP_CHARS = 150;
     private static final Integer HISTORY_ITEMS = 5;
     private static final Integer HISTORY_CHARS = 600;
-    private static final String PROMPT = 'Explore';
+    private static final String PROMPT = 'Explore_v2';
     private static final Integer MAX_TOKENS = 2000;
     private static final String NONE = '(none)';
     @TestVisible private static final Integer SUMMARY_ITEMS_PER_SECTION = 10;
@@ -221,14 +221,14 @@ public with sharing class DataExplorer {
         if (described != null) {
             return described;
         }
-        List<String> errors = ExplorePlan.validate(plan);
+        List<String> errors = ExplorePlan.validate(plan, run.result.resultSets);
         if (!errors.isEmpty()) {
             return 'INVALID: ' + String.join(errors, ' ');
         }
         ExploreQuery.ResultSet rs;
         try {
             run.queries++;
-            rs = ExploreQuery.run(plan);
+            rs = ExploreQuery.run(plan, run.result.resultSets);
         } catch (QueryException e) {
             return 'INVALID: ' + e.getMessage();
         } catch (NoAccessException e) {
@@ -238,7 +238,8 @@ public with sharing class DataExplorer {
         }
         run.result.resultSets.add(rs);
         run.result.trail.add(rs.objectName + ' | ' + withoutIds(rs.filters) + ' | ' + rowCount(rs));
-        return 'RESULT ' + rs.objectName + ' rows=' + rs.shown + ' total=' + rs.total + '\n' + preview(rs);
+        return 'RESULT ' + rs.objectName + ' rows=' + rs.shown + ' total=' + rs.total
+            + ' step=' + run.result.resultSets.size() + '\n' + preview(rs);
     }
 
     private static void answer(Result r, String text, Object rawFollowups) {
@@ -378,7 +379,7 @@ public with sharing class DataExplorer {
         }
         Matcher m = label == null ? null : AGGREGATE_LABEL.matcher(label);
         String fieldLabel = m != null && m.matches() ? m.group(2) : label;
-        ExploreCatalog.Field f = entry == null ? null : entry.field(column);
+        ExploreCatalog.Field f = entry == null ? null : ExplorePlan.fieldAt(entry, column);
         for (ExploreCatalog.Field candidate : entry == null || f != null ? new List<ExploreCatalog.Field>() : entry.fields) {
             if (candidate.label == fieldLabel) {
                 f = candidate;
@@ -622,7 +623,7 @@ public with sharing class DataExplorer {
         if (last.equalsIgnoreCase('Id') || last.endsWith('Id')) {
             return true;
         }
-        ExploreCatalog.Field f = entry == null ? null : entry.field(path);
+        ExploreCatalog.Field f = entry == null ? null : ExplorePlan.fieldAt(entry, path);
         return f != null && f.kind == ExploreCatalog.KIND_ID;
     }
 

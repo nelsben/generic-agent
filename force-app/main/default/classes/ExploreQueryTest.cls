@@ -280,4 +280,146 @@ private class ExploreQueryTest {
         Assert.areEqual(new List<String>{ 'Owner', 'owner 2', 'Owner 3', 'Name' },
             ExploreQuery.uniqueLabels(new List<String>{ 'Owner', 'owner', 'Owner', 'Name' }));
     }
+
+    // ---------------------------------------------------------------- BE-43: plan grammar v2
+
+    @IsTest
+    static void aHostileValueInAnOrGroupIsBoundAndChangesNoSoqlText() {
+        // Quotes, a closing parenthesis and a second clause: as text they would rewrite the query.
+        String evil = 'x\') OR (Name != \'\') OR Name LIKE (\'%';
+        insert new Account(Name = evil);
+        String plan = '{"object":"Account","fields":["Name"],"where":{"or":[{"field":"Name","op":"=","value":'
+            + JSON.serialize(evil) + '},{"field":"Name","op":"=","value":"Nobody Here"}]}}';
+
+        ExploreQuery.ResultSet rs = run(plan);
+
+        Assert.areEqual('SELECT Name, Id FROM Account WHERE (Name = :b0 OR Name = :b1) LIMIT 50', rs.soql);
+        Assert.areEqual(1, rs.shown, 'the hostile value matched as data, so it reached the query as a bind');
+        Assert.areEqual(evil, rs.rows[0].get('Name'));
+    }
+
+    @IsTest
+    static void aTwoLevelParentPathReadsThroughBothLookups() {
+        ExploreQuery.ResultSet rs = run('{"object":"Opportunity","fields":["Name","Account.Owner.Name"],'
+            + '"where":{"field":"Account.Name","op":"=","value":"Query Acme"}}');
+
+        Assert.areEqual('SELECT Name, Account.Owner.Name, Id FROM Opportunity WHERE Account.Name = :b0 LIMIT 50', rs.soql);
+        Assert.areEqual(3, rs.shown);
+        Assert.areEqual(UserInfo.getName(), rs.rows[0].get('Account.Owner.Name'));
+    }
+
+    @IsTest
+    static void aSemiJoinRunsAsOneQuery() {
+        insert new Account(Name = 'Query Empty');
+        ExploreQuery.ResultSet rs = run('{"object":"Account","fields":["Name"],"where":{"field":"Id","op":"IN",'
+            + '"sub":{"object":"Opportunity","field":"AccountId","where":{"field":"StageName","op":"=","value":"Closed Won"}}}}');
+
+        Assert.areEqual('SELECT Name, Id FROM Account WHERE Id IN (SELECT AccountId FROM Opportunity WHERE StageName = :b0) LIMIT 50', rs.soql);
+        Assert.areEqual(1, rs.shown);
+        Assert.areEqual('Query Acme', rs.rows[0].get('Name'));
+    }
+
+
+    @IsTest
+    static void aChainedStepFiltersOnEarlierIdsAndItsPlanReplaysWithoutSteps() {
+        ExploreQuery.ResultSet first = run('{"object":"Opportunity","fields":["Name","AccountId"],'
+            + '"where":{"field":"StageName","op":"=","value":"Closed Won"}}');
+        Assert.areEqual(2, first.shown);
+        List<ExploreQuery.ResultSet> steps = new List<ExploreQuery.ResultSet>{ first };
+
+        ExplorePlan plan = ExplorePlan.fromJson('{"object":"Account","fields":["Name"],'
+            + '"where":{"field":"Id","op":"IN","value":{"step":1,"field":"AccountId"}}}');
+        Assert.areEqual(0, ExplorePlan.validate(plan, steps).size());
+        ExploreQuery.ResultSet second = ExploreQuery.run(plan, steps);
+
+        Assert.areEqual('SELECT Name, Id FROM Account WHERE Id IN :b0 LIMIT 50', second.soql);
+        Assert.areEqual(1, second.shown, 'two closed-won opportunities, one account');
+        Assert.areEqual('Query Acme', second.rows[0].get('Name'));
+        Assert.isFalse(second.planJson.contains('"step"'), 'the ids are written into the plan');
+        Assert.areEqual(1, run(second.planJson).shown, 'planJson replays without the steps');
+    }
+
+    @IsTest
+    static void aTruncatedStepIsRefusedUnlessItWasSorted() {
+        ExploreQuery.ResultSet partial = run('{"object":"Opportunity","fields":["Name","AccountId"],"limit":2}');
+        Assert.areEqual(4, partial.total);
+        String chained = '{"object":"Account","fields":["Name"],"where":{"field":"Id","op":"IN","value":{"step":1,"field":"AccountId"}}}';
+        List<String> errors = ExplorePlan.validate(ExplorePlan.fromJson(chained), new List<ExploreQuery.ResultSet>{ partial });
+        Assert.isTrue(String.join(errors, ' ').contains('Step 1 showed 2 of 4 rows'), String.join(errors, ' '));
+
+        ExploreQuery.ResultSet top = run('{"object":"Opportunity","fields":["Name","AccountId"],"limit":2,'
+            + '"orderBy":{"field":"Amount","dir":"DESC"}}');
+        Assert.areEqual(0, ExplorePlan.validate(ExplorePlan.fromJson(chained), new List<ExploreQuery.ResultSet>{ top }).size(),
+            'a sorted top-N is a deliberate set of ids');
+    }
+
+    @IsTest
+    static void aChildListCellIsItsRowCount() {
+        ExploreQuery.ResultSet rs = run('{"object":"Account","fields":["Name"],"where":{"field":"Name","op":"=","value":"Query Acme"},'
+            + '"children":[{"rel":"Opportunities","fields":["Name"],"where":{"field":"StageName","op":"=","value":"Closed Won"}}]}');
+
+        Assert.areEqual('SELECT Name, Id, (SELECT Id, Name FROM Opportunities WHERE StageName = :b0 LIMIT 5) FROM Account WHERE Name = :b1 LIMIT 50', rs.soql);
+        Assert.areEqual(1, rs.shown);
+        Assert.areEqual(2, rs.rows[0].get('Opportunities'));
+    }
+
+    @IsTest
+    static void havingFiltersGroups() {
+        ExploreQuery.ResultSet rs = run('{"object":"Opportunity","groupBy":["StageName"],"aggregates":[{"fn":"COUNT"}],'
+            + '"having":[{"fn":"COUNT","op":">=","value":2}]}');
+
+        Assert.areEqual('SELECT StageName g0, COUNT(Id) a0 FROM Opportunity GROUP BY StageName HAVING COUNT(Id) >= :b0 LIMIT 50', rs.soql);
+        Assert.areEqual(2, rs.shown, 'Closed Won (2) and Prospecting (2)');
+        List<String> errors = ExplorePlan.validate(ExplorePlan.fromJson('{"object":"Opportunity","aggregates":[{"fn":"COUNT"}],'
+            + '"having":[{"fn":"COUNT","op":">","value":1}]}'));
+        Assert.isTrue(String.join(errors, ' ').contains('"having" needs groupBy.'), String.join(errors, ' '));
+    }
+
+    @IsTest
+    static void containsOnTextIsLikeWithTheValuesOwnWildcardsEscaped() {
+        insert new Account(Name = 'Percent 100% Co');
+        ExploreQuery.ResultSet rs = run('{"object":"Account","fields":["Name"],"where":{"field":"Name","op":"CONTAINS","value":"0% C"}}');
+
+        Assert.areEqual('SELECT Name, Id FROM Account WHERE Name LIKE :b0 LIMIT 50', rs.soql);
+        Assert.areEqual(1, rs.shown);
+        Assert.areEqual(1, run('{"object":"Account","fields":["Name"],"where":{"field":"Name","op":"CONTAINS","value":"%"}}').shown,
+            'a bare % is a literal, matched only by names that hold one');
+        Assert.areEqual(0, run('{"object":"Account","fields":["Name"],"where":{"field":"Name","op":"CONTAINS","value":"Q_ery"}}').shown,
+            '_ is a literal, not one character');
+    }
+
+    @IsTest
+    static void containsOnLongTextIsMatchedAfterTheQueryAndCapped() {
+        insert new List<Account>{
+            new Account(Name = 'Text One', Description = 'Renewal due in March'),
+            new Account(Name = 'Text Two', Description = 'Nothing yet')
+        };
+        String plan = '{"object":"Account","fields":["Name"],"where":{"and":[{"field":"Description","op":"CONTAINS","value":"renewal"},'
+            + '{"field":"Name","op":"LIKE","value":"Text%"}]}}';
+
+        ExploreQuery.ResultSet rs = run(plan);
+        Assert.areEqual('SELECT Name, Id, Description FROM Account WHERE Name LIKE :b0 LIMIT 2001', rs.soql);
+        Assert.areEqual(1, rs.shown, 'case-insensitive match on one of two');
+        Assert.areEqual(1, rs.total);
+        Assert.areEqual('Text One', rs.rows[0].get('Name'));
+
+        ExploreQuery.textScan = 1;
+        try {
+            run(plan);
+            Assert.fail('two rows to scan with a cap of one');
+        } catch (ExploreQuery.RowCapException e) {
+            Assert.isTrue(e.getMessage().contains('reads at most 1 rows'), e.getMessage());
+        }
+    }
+
+    @IsTest
+    static void notAndNotInRender() {
+        ExploreQuery.ResultSet rs = run('{"object":"Opportunity","fields":["Name"],"where":{"and":['
+            + '{"not":{"or":[{"field":"StageName","op":"=","value":"Closed Won"},{"field":"Amount","op":">","value":1500}]}},'
+            + '{"field":"Name","op":"NOT IN","value":["Q Two"]}]}}');
+
+        Assert.areEqual('SELECT Name, Id FROM Opportunity WHERE (NOT (StageName = :b0 OR Amount > :b1)) AND Name NOT IN :b2 LIMIT 50', rs.soql);
+        Assert.areEqual(1, rs.shown);
+        Assert.areEqual('Q Orphan', rs.rows[0].get('Name'));
+    }
 }
