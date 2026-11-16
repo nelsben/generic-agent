@@ -261,7 +261,7 @@ private class ExploreActionTest {
 
         Assert.areEqual('', res.cards);
         Assert.areEqual('There are 36 open opportunities.', res.answer);
-        Assert.areEqual('EMPTY', res.status);
+        Assert.areEqual('OK', res.status, 'no result set came back and the model answered in text');
     }
 
     @IsTest
