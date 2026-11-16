@@ -101,14 +101,14 @@ subagent account_summary:
     actions:
         resolve_account:
             target: "apex://CustomerSummaryResolver"
-            description: "Resolve the user's words, or an Id from a candidate list, to one account: RESOLVED, AMBIGUOUS or NOT_FOUND."
+            description: "Resolve the user's words, or an Id from a candidate list, to one account: RESOLVED, AMBIGUOUS, NOT_FOUND or ERROR (the account search failed)."
             inputs:
                 accountName: string
                     description: "The account name or Id, verbatim as the user wrote it, without the rest of the request. May be an Id from a candidate list."
                     is_required: True
             outputs:
                 status: string
-                    description: "RESOLVED, AMBIGUOUS or NOT_FOUND."
+                    description: "RESOLVED, AMBIGUOUS, NOT_FOUND or ERROR. ERROR means the account search failed: say so, never claim nothing was found."
                 accountId: string
                     description: "Id of the resolved account; blank unless RESOLVED."
                 accountName: string
