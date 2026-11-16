@@ -1,33 +1,38 @@
-# The account name "Edge Communications" (used in eight cases) must exist in the target org and have
-# opportunities, and "Brindlewick Hydroponics" (the second-account case) must exist too. Load them with
-# `bash scripts/seed-sample-data.sh`, which also creates the three United Oil accounts.
+# Testing Center suite for the optional agent (BE-38). At most 20 cases, no write actions, and no security cases.
+# scripts/agent-test.sh adds subjectVersion for the agent's active version at run time and builds the definition
+# outside force-app, so this file never pins a version. Research: docs/research/fr2-testing-center.md.
+# Every case that reaches a summary briefs one sample account, "Gallowglass Textiles", which must exist in the target org
+# (bash scripts/seed-sample-data.sh loads it). It is not the account the demos use. A summary still records its
+# session row and a customer outcome, so a run writes rows against that account only; it creates no other record.
+# "Tamsin Ridge Logistics" and the other names in conversation history are text only: nothing runs for them.
 # The AMBIGUOUS case uses "United Oil", which must match more than one account by name and none exactly:
 # "United Oil & Gas Corp." (New York), "United Oil & Gas, Singapore" (Singapore) and "United Oil & Gas, UK"
 # (no billing city). The case's outcome describes the resolver's candidate lines and does not quote account
-# Ids, which differ in every org. The list-pick case replays that candidate list without its Ids for the same reason.
+# Ids, which differ in every org.
 # expectedActions uses superset matching: an extra action never fails it, so cases that must call nothing
 # else say so in expectedOutcome, which the LLM judge checks.
-# conversationHistory replays text only and does not set agent variables, so the two-turn case starts with no
-# resolved account; it may resolve the account again before get_brief. A live two-turn preview checks the
-# stored-Id path. For the same reason the explore follow-up cases run with an empty history input: they check
-# routing and that the explorer is called, and the live two-turn explore check covers the history binding.
+# conversationHistory replays text only and does not set agent variables, so a follow-up case starts with no
+# resolved account; it may resolve the account again before get_brief. For the same reason the explore follow-up
+# cases run with an empty history input: they check routing and that the explorer is called.
+# The two error cases (the resolver's access error and the over-cap line, both from BE-29) cannot be produced by
+# the admin who runs the suite, so each starts after that reply and checks the agent does not repeat it.
 name: Customer_Summary
 description: Customer Summary agent. Resolve-then-brief gate, verbatim relay, open data exploration and an off-topic refusal.
 subjectType: AGENT
 subjectName: Customer_Summary
 testCases:
-  - utterance: "Give me a brief on Edge Communications"
+  - utterance: "Give me a summary of Gallowglass Textiles"
     expectedTopic: account_summary
     expectedActions:
       - resolve_account
       - get_brief
-    expectedOutcome: "The agent resolves the account first, then returns the account summary for it in the same reply. The reply is not just \"Resolved: Edge Communications\"."
-  - utterance: "What is going on with Edge Communications, and which deals are slipping?"
+    expectedOutcome: "The agent resolves the account first, then returns the account summary for Gallowglass Textiles in the same reply. The reply is not just \"Resolved: Gallowglass Textiles\"."
+  - utterance: "What is going on with Gallowglass Textiles, and which deals are slipping?"
     expectedTopic: account_summary
     expectedActions:
       - resolve_account
       - get_brief
-    expectedOutcome: "The agent resolves the account, then returns a brief that speaks to the follow-up question about its deals."
+    expectedOutcome: "The agent resolves the account, then returns a summary of Gallowglass Textiles that speaks to the follow-up question about its deals."
   - utterance: "Brief me on Zzqxv Nonexistent Holdings"
     expectedTopic: account_summary
     expectedActions:
@@ -43,34 +48,28 @@ testCases:
     expectedActions:
       - resolve_account
     expectedOutcome: "The agent replies with the resolver's candidate list, verbatim. First the line: Several accounts match \"United Oil\". Which one? Then exactly three candidate lines, each as account name, city, then an 18-character Salesforce Id, separated by spaced em dashes. The city is the billing city, or the literal words no city where the account has none. The three lines are for United Oil & Gas Corp. (city New York), United Oil & Gas, Singapore (city Singapore) and United Oil & Gas, UK (no city). It does not produce a brief and calls no action other than resolve_account."
-  - utterance: "Just the open deals for Edge Communications"
-    expectedTopic: account_summary
-    expectedActions:
-      - resolve_account
-      - get_brief
-    expectedOutcome: "The agent resolves the account, then returns a brief limited to open deals."
-  - utterance: "What about their open cases?"
+  - utterance: "What about their open deals?"
     expectedTopic: account_summary
     expectedActions:
       - get_brief
-    expectedOutcome: "The agent answers about the open cases of Edge Communications, the account briefed in the previous turn, from a get_brief call in this turn. It does not ask which account, does not run the data explorer, and does not answer from the earlier reply."
+    expectedOutcome: "The agent answers about the open deals of Gallowglass Textiles, the account summarized in the previous turn, from a get_brief call in this turn. It does not ask which account, does not run the data explorer, and does not answer from the earlier reply."
     conversationHistory:
       - role: user
-        message: "Give me a brief on Edge Communications"
+        message: "Give me a summary of Gallowglass Textiles"
       - role: agent
         topic: account_summary
-        message: "Edge Communications (Austin)\nOpen deals, cases, contacts and recent activity for Edge Communications follow."
+        message: "Gallowglass Textiles (Greenville)\nOpen deals, contacts and recent activity for Gallowglass Textiles follow."
   - utterance: "Show me their open cases"
     expectedTopic: account_summary
     expectedActions:
       - resolve_account
-    expectedOutcome: "The account named most recently, Zzqxv Nonexistent Holdings, matched no account, so the agent does not fall back to Edge Communications, the account briefed before it. It does not call get_brief and gives no brief or open cases for Edge Communications. Its reply is the resolver's message that no account matches, verbatim."
+    expectedOutcome: "The account named most recently, Zzqxv Nonexistent Holdings, matched no account, so the agent does not fall back to Gallowglass Textiles, the account summarized before it. It does not call get_brief and gives no summary or open cases for Gallowglass Textiles. Its reply is the resolver's message that no account matches, verbatim."
     conversationHistory:
       - role: user
-        message: "Give me a brief on Edge Communications"
+        message: "Give me a summary of Gallowglass Textiles"
       - role: agent
         topic: account_summary
-        message: "Edge Communications (Austin)\nOpen deals, cases, contacts and recent activity for Edge Communications follow."
+        message: "Gallowglass Textiles (Greenville)\nOpen deals, contacts and recent activity for Gallowglass Textiles follow."
       - role: user
         message: "Brief me on Zzqxv Nonexistent Holdings"
       - role: agent
@@ -80,13 +79,13 @@ testCases:
     expectedTopic: explore
     expectedActions:
       - explore_data
-    expectedOutcome: "The agent relays an org-wide count of open opportunities from the data explorer, verbatim. The count is not limited to Edge Communications, the account briefed in the previous turn, and the agent does not call resolve_account or get_brief."
+    expectedOutcome: "The agent relays an org-wide count of open opportunities from the data explorer, verbatim. The count is not limited to Gallowglass Textiles, the account summarized in the previous turn, and the agent does not call resolve_account or get_brief."
     conversationHistory:
       - role: user
-        message: "Give me a brief on Edge Communications"
+        message: "Give me a summary of Gallowglass Textiles"
       - role: agent
         topic: account_summary
-        message: "Edge Communications (Austin)\nOpen deals, cases, contacts and recent activity for Edge Communications follow."
+        message: "Gallowglass Textiles (Greenville)\nOpen deals, contacts and recent activity for Gallowglass Textiles follow."
   - utterance: "How many open opportunities are there?"
     expectedTopic: explore
     expectedActions:
@@ -114,39 +113,51 @@ testCases:
     expectedTopic: explore
     expectedActions:
       - explore_data
-    expectedOutcome: "\"Them\" refers to the open opportunities counted in the previous explore answer, not to Edge Communications, the account briefed before it. The agent relays the data explorer's answer about opportunities that close this quarter. It does not call get_brief or resolve_account and gives no brief for Edge Communications."
+    expectedOutcome: "\"Them\" refers to the open opportunities counted in the previous explore answer, not to Gallowglass Textiles, the account summarized before it. The agent relays the data explorer's answer about opportunities that close this quarter. It does not call get_brief or resolve_account and gives no summary of Gallowglass Textiles."
     conversationHistory:
       - role: user
-        message: "Give me a brief on Edge Communications"
+        message: "Give me a summary of Gallowglass Textiles"
       - role: agent
         topic: account_summary
-        message: "Edge Communications (Austin)\nOpen deals, cases, contacts and recent activity for Edge Communications follow."
+        message: "Gallowglass Textiles (Greenville)\nOpen deals, contacts and recent activity for Gallowglass Textiles follow."
       - role: user
         message: "How many open opportunities are there?"
       - role: agent
         topic: explore
         message: "There are 36 open opportunities."
-  - utterance: "The Singapore one"
+  - utterance: "Now brief me on Gallowglass Textiles"
     expectedTopic: account_summary
     expectedActions:
       - resolve_account
       - get_brief
-    expectedOutcome: "The user picks an account from the candidate list in the previous reply. The agent resolves United Oil & Gas, Singapore and returns the account summary for it in the same reply. The brief is not about United Oil & Gas Corp. or United Oil & Gas, UK, and the agent does not show the candidate list again."
+    expectedOutcome: "The agent resolves Gallowglass Textiles and returns the account summary for it. The summary is about Gallowglass Textiles and not about Tamsin Ridge Logistics, the account summarized in the previous turn."
     conversationHistory:
       - role: user
-        message: "Brief me on United Oil"
+        message: "Give me a summary of Tamsin Ridge Logistics"
       - role: agent
         topic: account_summary
-        message: "Several accounts match \"United Oil\". Which one?\nUnited Oil & Gas Corp. — New York\nUnited Oil & Gas, Singapore — Singapore\nUnited Oil & Gas, UK — no city"
-  - utterance: "Now brief me on Brindlewick Hydroponics"
+        message: "Tamsin Ridge Logistics (Reno)\nOpen deals, contacts and recent activity for Tamsin Ridge Logistics follow."
+  - utterance: "Try Gallowglass Textiles again"
     expectedTopic: account_summary
     expectedActions:
       - resolve_account
       - get_brief
-    expectedOutcome: "The agent resolves Brindlewick Hydroponics and returns the account summary for it. The brief is about Brindlewick Hydroponics and not about Edge Communications, the account briefed in the previous turn."
+    expectedOutcome: "The previous reply was the resolver's ERROR message about account access. The agent does not repeat that message: it calls resolve_account again in this turn and, once the account resolves, returns the account summary for Gallowglass Textiles from get_brief."
     conversationHistory:
       - role: user
-        message: "Give me a brief on Edge Communications"
+        message: "Brief me on Gallowglass Textiles"
       - role: agent
         topic: account_summary
-        message: "Edge Communications (Austin)\nOpen deals, cases, contacts and recent activity for Edge Communications follow."
+        message: "I couldn't search accounts. You may not have access to them: ask your Salesforce admin to check your access."
+  - utterance: "Then just Gallowglass Textiles on its own"
+    expectedTopic: account_summary
+    expectedActions:
+      - resolve_account
+      - get_brief
+    expectedOutcome: "The previous reply said the summary could not be built because too many were asked for at once. The agent does not repeat that message: it resolves Gallowglass Textiles and returns the account summary for that one account only."
+    conversationHistory:
+      - role: user
+        message: "Brief me on Gallowglass Textiles, Tamsin Ridge Logistics, Oddfellow Marine Supply and Pimble Quarry Works"
+      - role: agent
+        topic: account_summary
+        message: "I can build up to 3 summaries in one request. Ask for this account again on its own."

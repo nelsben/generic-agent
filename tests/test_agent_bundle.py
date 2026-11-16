@@ -29,6 +29,8 @@ BUNDLE_META = (
 ID_GATE = '@variables.briefed_account_id is not None and @variables.briefed_account_id != ""'
 OFF_TOPIC_LINE = "I can brief you on an account or answer questions about your CRM data."
 NOT_FOUND_TAIL = "Try a fuller or different account name."
+# BE-38: every case that reaches a summary briefs this one sample account, not the demo account.
+SUMMARY_ACCOUNT = "Gallowglass Textiles"
 
 
 class Node:
@@ -357,6 +359,7 @@ class TestAgentStructure(unittest.TestCase):
 
 class TestCustomerSummarySpec(unittest.TestCase):
     def test_spec_has_sixteen_utterances(self):
+        # BE-38: sixteen cases, under the suite's cap of 20 (tests/test_agent_test_script.py checks the cap).
         text = SPEC.read_text(encoding="utf-8")
         self.assertEqual(len(re.findall(r"^\s*-?\s*utterance:", text, re.M)), 16)
         self.assertIn("subjectType: AGENT", text)
@@ -415,18 +418,18 @@ class TestCustomerSummarySpec(unittest.TestCase):
         self.assertNotIn("experimental", text)
 
     def test_two_turn_follow_up_case(self):
-        case = self.case("What about their open cases?")
+        case = self.case("What about their open deals?")
         history = case.split("conversationHistory:", 1)[1]
         roles = re.findall(r"- role: (\w+)", history)
         self.assertEqual(roles, ["user", "agent"])
-        self.assertIn("Edge Communications", history)
+        self.assertIn(SUMMARY_ACCOUNT, history)
         self.assertRegex(case, r"expectedActions:\s*\n\s*- get_brief\s*\n")
 
     def test_org_wide_count_after_a_brief_case(self):
         case = self.case("How many open opportunities are there in the whole org?")
         history = case.split("conversationHistory:", 1)[1]
         self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent"])
-        self.assertIn("Edge Communications", history)
+        self.assertIn(SUMMARY_ACCOUNT, history)
         self.assertRegex(case, r"expectedTopic:\s*explore\s*\n")
         self.assertRegex(case, r"expectedActions:\s*\n\s*- explore_data\s*\n")
 
@@ -434,12 +437,12 @@ class TestCustomerSummarySpec(unittest.TestCase):
         case = self.case("Show me their open cases")
         history = case.split("conversationHistory:", 1)[1]
         self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent", "user", "agent"])
-        self.assertIn("Edge Communications", history)
+        self.assertIn(SUMMARY_ACCOUNT, history)
         self.assertIn("Zzqxv Nonexistent Holdings", history)
         self.assertRegex(case, r"expectedTopic:\s*account_summary\s*\n")
         outcome = case.split("expectedOutcome:", 1)[1].split("conversationHistory:", 1)[0]
         self.assertIn("does not call get_brief", outcome)
-        self.assertIn("Edge Communications", outcome)
+        self.assertIn(SUMMARY_ACCOUNT, outcome)
 
 
     def test_not_found_history_quotes_the_current_resolver_text(self):
@@ -466,33 +469,23 @@ class TestCustomerSummarySpec(unittest.TestCase):
         case = self.case("Which of them close this quarter?")
         history = case.split("conversationHistory:", 1)[1]
         self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent", "user", "agent"])
-        self.assertIn("Edge Communications", history)
+        self.assertIn(SUMMARY_ACCOUNT, history)
         self.assertIn('message: "How many open opportunities are there?"', history)
         self.assertRegex(case, r"expectedTopic:\s*explore\s*\n")
         self.assertRegex(case, r"expectedActions:\s*\n\s*- explore_data\s*\n")
         outcome = case.split("expectedOutcome:", 1)[1].split("conversationHistory:", 1)[0]
         self.assertIn("does not call get_brief", outcome)
 
-    def test_list_pick_after_ambiguous_case(self):
-        case = self.case("The Singapore one")
-        history = case.split("conversationHistory:", 1)[1]
-        self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent"])
-        self.assertIn('Several accounts match \\"United Oil\\". Which one?', history)
-        self.assertRegex(case, r"expectedTopic:\s*account_summary\s*\n")
-        self.assertRegex(case, r"expectedActions:\s*\n\s*- resolve_account\s*\n\s*- get_brief\s*\n")
-        outcome = case.split("expectedOutcome:", 1)[1].split("conversationHistory:", 1)[0]
-        self.assertIn("United Oil & Gas, Singapore", outcome)
-
     def test_second_account_after_a_brief_case(self):
-        case = self.case("Now brief me on Brindlewick Hydroponics")
+        case = self.case("Now brief me on %s" % SUMMARY_ACCOUNT)
         history = case.split("conversationHistory:", 1)[1]
         self.assertEqual(re.findall(r"- role: (\w+)", history), ["user", "agent"])
-        self.assertIn("Edge Communications", history)
+        self.assertIn("Tamsin Ridge Logistics", history)
         self.assertRegex(case, r"expectedTopic:\s*account_summary\s*\n")
         self.assertRegex(case, r"expectedActions:\s*\n\s*- resolve_account\s*\n\s*- get_brief\s*\n")
         outcome = case.split("expectedOutcome:", 1)[1].split("conversationHistory:", 1)[0]
-        self.assertIn("Brindlewick Hydroponics", outcome)
-        self.assertIn("not about Edge Communications", outcome)
+        self.assertIn(SUMMARY_ACCOUNT, outcome)
+        self.assertIn("not about Tamsin Ridge Logistics", outcome)
 
 
 class TestResolverWording(unittest.TestCase):
