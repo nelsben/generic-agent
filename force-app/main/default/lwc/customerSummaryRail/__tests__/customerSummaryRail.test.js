@@ -586,8 +586,13 @@ describe('c-customer-summary-rail', () => {
             expect(btn).not.toBeNull();
             expect(btn.getAttribute('aria-expanded')).toBe('false');
             expect(btn.getAttribute('aria-controls')).toBeTruthy();
-            expect(section(el, 'history').id).toBe(btn.getAttribute('aria-controls'));
-            expect(section(el, 'history').className).toContain('slds-hide');
+            const body = $(el, '[data-history-body]');
+            expect(body.id).toBe(btn.getAttribute('aria-controls'));
+            expect(body.className).toContain('slds-hide');
+            // The four context sections keep their own marker: History's body is not one of them.
+            const bodies = $$(el, '[data-section-body]');
+            expect(bodies.map((b) => b.getAttribute('data-section-body')).sort()).toEqual(['activity', 'cases', 'deals', 'summary']);
+            expect(bodies.every((b) => b.hasAttribute('aria-busy'))).toBe(true);
             expect(history(el)).toBeNull();
             expect(chart(el)).toBeNull();
             expect(listOutcomes).not.toHaveBeenCalled();
