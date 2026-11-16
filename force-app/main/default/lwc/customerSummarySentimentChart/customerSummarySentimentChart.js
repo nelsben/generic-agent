@@ -212,6 +212,8 @@ export default class CustomerSummarySentimentChart extends LightningElement {
                 x: Math.round(x * 10) / 10,
                 y: Math.round(y * 10) / 10,
                 date,
+                firstDay: first,
+                lastDay: last,
                 label,
                 count,
                 className: 'cs-pt cs-pt_' + BANDS[band].tone + (i === this.focusedIndex ? ' cs-pt_on' : ''),
@@ -252,18 +254,21 @@ export default class CustomerSummarySentimentChart extends LightningElement {
     get axisY() {
         return TOP + BAND * BANDS.length + 15;
     }
+    /** L6: the axis reads the first row's day at the start and the last row's day at the end, never a range. */
     get firstDate() {
         const p = this.points;
-        return p.length ? p[0].date : '';
+        return p.length ? p[0].firstDay : '';
     }
     /** L6: the end tick is left blank when it would read the same date as the start tick. */
     get lastDate() {
         const p = this.points;
-        const last = p.length ? p[p.length - 1].date : '';
+        const last = p.length ? p[p.length - 1].lastDay : '';
         return last === this.firstDate ? '' : last;
     }
     get chartLabel() {
-        return 'Sentiment label, ' + this.points.length + ' points, from ' + this.firstDate + ' to ' + this.points[this.points.length - 1].date;
+        const p = this.points;
+        const end = p.length ? p[p.length - 1].lastDay : '';
+        return 'Sentiment label, ' + p.length + ' points, from ' + this.firstDate + ' to ' + end;
     }
 
     /** The table for screen readers: every summary, newest first, even one with no label. */
