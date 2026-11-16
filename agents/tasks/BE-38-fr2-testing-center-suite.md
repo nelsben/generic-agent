@@ -4,7 +4,7 @@ title: FR2: an Agentforce Testing Center suite for Customer Summary — a capped
 domain: backend
 tier: frontier
 tier_reason: creates and runs a Testing Center definition in a production-classified org, where each run spends model calls and runs real actions
-status: parked
+status: queued
 blocked_by: [BE-29, BE-30]
 fixes: []
 scope: [tests/agent/**, tests/test_agent_bundle.py, scripts/agent-test.sh, tests/test_agent_test_script.py, docs/research/fr2-testing-center.md]
