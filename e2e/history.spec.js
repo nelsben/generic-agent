@@ -13,9 +13,18 @@ const CHART = 'c-customer-summary-sentiment-chart';
 const EMPTY_HISTORY = /Nothing recorded for this account yet/;
 const EMPTY_CHART = /Not enough to chart yet/;
 
+/** FE-32: History is closed by default in the rail; its timeline and chart mount when its header is opened. */
+async function openHistory(panel) {
+    const toggle = panel.rail.locator('[data-testid="ctx-history"] button.cs-ctx-toggle');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+}
+
 test.describe('customer history and sentiment in the rail', () => {
     test('1. @smoke the history timeline opens in the rail: newest entries first as a timeline card, or the empty line', async ({ panel }) => {
         await panel.openRail();
+        await openHistory(panel);
         const history = panel.rail.locator(HISTORY);
         await expect(history).toBeVisible({ timeout: 20_000 });
         // Loading ends in the card or the plain empty line.
@@ -40,6 +49,7 @@ test.describe('customer history and sentiment in the rail', () => {
         panel
     }) => {
         await panel.openRail();
+        await openHistory(panel);
         const chart = panel.rail.locator(CHART);
         await expect(chart).toBeVisible({ timeout: 20_000 });
         const svg = chart.locator('svg');

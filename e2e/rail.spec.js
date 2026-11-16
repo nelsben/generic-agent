@@ -95,7 +95,7 @@ test.describe('right rail', () => {
         expect((await panel.turns.first().innerText()).trim(), 'the same turn, word for word').toBe(answer);
         await panel.expectFocused(panel.composer, 'the composer has focus in the rail');
         // The sessions list (FE-22's control) is shown open in the rail.
-        await expect(panel.host.getByRole('button', { name: 'History', exact: true })).toHaveAttribute('aria-expanded', 'true');
+        await expect(panel.host.getByRole('button', { name: 'History', exact: true, expanded: true })).toHaveAttribute('aria-expanded', 'true');
 
         // Back to the window with the rail's close: the thread comes home too.
         await panel.railClose.click();
