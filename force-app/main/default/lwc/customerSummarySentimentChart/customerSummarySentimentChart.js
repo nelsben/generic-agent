@@ -38,13 +38,50 @@ const LABELS_ONLY =
 const FAILED = "Couldn't load this account's summaries. Try again in a minute.";
 const LABEL_ONLY_NOTE = "Label only: the reason for this label stays with the summary's author.";
 
-const WIDTH = 320;
+// The chart is drawn 1:1 in the 215 px context column of the rail, so these units are CSS px there (FE-32).
+const WIDTH = 215;
 const LEFT = 78;
 const RIGHT = 12;
 const TOP = 10;
 const BAND = 26;
 const AXIS = 22;
 const HEIGHT = TOP + BAND * BANDS.length + AXIS;
+const PLOT_WIDTH = WIDTH - LEFT - RIGHT;
+// L6: at most one point per 8 px of plot width: 125 px of plot in the rail gives 15 points.
+const PX_PER_POINT = 8;
+const MAX_POINTS = Math.floor(PLOT_WIDTH / PX_PER_POINT);
+
+/**
+ * L6: groups the plotted summaries (oldest first) into at most MAX_POINTS buckets. Each summary stands alone
+ * when they fit; otherwise by day when the days fit; otherwise into equal spans of time from the first summary
+ * to the last. Empty spans are dropped.
+ */
+function bucketsOf(rows) {
+    if (rows.length <= MAX_POINTS) {
+        return rows.map((s) => [s]);
+    }
+    const days = [];
+    const byDay = new Map();
+    rows.forEach((s) => {
+        const day = dayOf(s.createdDate);
+        if (!byDay.has(day)) {
+            byDay.set(day, []);
+            days.push(day);
+        }
+        byDay.get(day).push(s);
+    });
+    if (days.length <= MAX_POINTS) {
+        return days.map((day) => byDay.get(day));
+    }
+    const t0 = stamp(rows[0]);
+    const span = (stamp(rows[rows.length - 1]) - t0) / MAX_POINTS;
+    const out = Array.from({ length: MAX_POINTS }, () => []);
+    rows.forEach((s) => {
+        const i = span > 0 ? Math.min(MAX_POINTS - 1, Math.floor((stamp(s) - t0) / span)) : 0;
+        out[i].push(s);
+    });
+    return out.filter((b) => b.length);
+}
 
 function dayOf(value) {
     const d = value ? new Date(value) : null;
@@ -148,28 +185,39 @@ export default class CustomerSummarySentimentChart extends LightningElement {
         return this._accountId ? NOTE : NO_ACCOUNT;
     }
 
-    /** The points: a summary whose label is one of the five bands, in order, oldest first. */
+    /**
+     * The points: the plotted summaries (a summary whose label is one of the five bands), oldest first, grouped
+     * into at most MAX_POINTS buckets (L6). A bucket of one is a summary; a bucket of more sits at the mean of its
+     * labels, named by the band nearest that mean, and its count is in its accessible text.
+     */
     get points() {
         const bandOf = new Map(BANDS.map((b, n) => [b.label, n]));
         const plotted = this.summaries.filter((s) => bandOf.has(s.sentimentLabel));
-        const n = plotted.length;
-        const span = WIDTH - LEFT - RIGHT;
-        return plotted.map((s, i) => {
-            const band = bandOf.get(s.sentimentLabel);
-            const x = n === 1 ? LEFT + span / 2 : LEFT + (span * i) / (n - 1);
-            const y = TOP + BAND * (BANDS.length - 1 - band) + BAND / 2;
-            const date = dayOf(s.createdDate);
+        const buckets = bucketsOf(plotted);
+        const n = buckets.length;
+        return buckets.map((rows, i) => {
+            const mean = rows.reduce((sum, s) => sum + bandOf.get(s.sentimentLabel), 0) / rows.length;
+            const band = Math.round(mean);
+            const x = n === 1 ? LEFT + PLOT_WIDTH / 2 : LEFT + (PLOT_WIDTH * i) / (n - 1);
+            const y = TOP + BAND * (BANDS.length - 1 - mean) + BAND / 2;
+            const first = dayOf(rows[0].createdDate);
+            const last = dayOf(rows[rows.length - 1].createdDate);
+            const count = rows.length;
+            const single = count === 1 ? rows[0] : null;
+            const date = first === last ? first : first + ' to ' + last;
+            const label = BANDS[band].label;
             return {
                 key: 'p' + i,
                 index: i,
                 x: Math.round(x * 10) / 10,
-                y,
+                y: Math.round(y * 10) / 10,
                 date,
-                label: s.sentimentLabel,
+                label,
+                count,
                 className: 'cs-pt cs-pt_' + BANDS[band].tone + (i === this.focusedIndex ? ' cs-pt_on' : ''),
-                ariaLabel: date + ', ' + s.sentimentLabel,
-                reason: s.textShown && s.sentimentReason ? s.sentimentReason : '',
-                textShown: Boolean(s.textShown)
+                ariaLabel: single ? date + ', ' + label : date + ', mean ' + label + ', ' + count + ' summaries',
+                reason: single && single.textShown && single.sentimentReason ? single.sentimentReason : '',
+                textShown: single ? Boolean(single.textShown) : true
             };
         });
     }
@@ -208,12 +256,14 @@ export default class CustomerSummarySentimentChart extends LightningElement {
         const p = this.points;
         return p.length ? p[0].date : '';
     }
+    /** L6: the end tick is left blank when it would read the same date as the start tick. */
     get lastDate() {
         const p = this.points;
-        return p.length ? p[p.length - 1].date : '';
+        const last = p.length ? p[p.length - 1].date : '';
+        return last === this.firstDate ? '' : last;
     }
     get chartLabel() {
-        return 'Sentiment label of ' + this.points.length + ' summaries, from ' + this.firstDate + ' to ' + this.lastDate;
+        return 'Sentiment label, ' + this.points.length + ' points, from ' + this.firstDate + ' to ' + this.points[this.points.length - 1].date;
     }
 
     /** The table for screen readers: every summary, newest first, even one with no label. */
@@ -240,6 +290,9 @@ export default class CustomerSummarySentimentChart extends LightningElement {
         const p = this.points[this.focusedIndex];
         if (!p) {
             return '';
+        }
+        if (p.count > 1) {
+            return p.date + ', mean ' + p.label + ' across ' + p.count + ' summaries. Each summary is listed in the table below.';
         }
         return p.date + ', ' + p.label + (p.reason ? '. ' + p.reason : p.textShown ? '' : '. ' + LABEL_ONLY_NOTE);
     }

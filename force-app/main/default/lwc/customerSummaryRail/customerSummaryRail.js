@@ -143,6 +143,9 @@ export default class CustomerSummaryRail extends NavigationMixin(LightningElemen
     accountName = '';
     liveMessage = '';
     collapsed = {};
+    // FE-32: History is closed by default. Its timeline and chart mount, and so load, only when it is opened.
+    historyOpen = false;
+    historyCount = null;
 
     _recordId = null;
     _accountId = null;
@@ -589,6 +592,36 @@ export default class CustomerSummaryRail extends NavigationMixin(LightningElemen
     /** FE-19: the history timeline and the sentiment chart sit under the sections while the rail is open, so a closed rail makes no call. */
     get showHistory() {
         return this.hasAccount && this._state === 'open';
+    }
+
+    /** FE-32: the History body (timeline and chart) is mounted only while History is open. */
+    get historyExpanded() {
+        return this.showHistory && this.historyOpen;
+    }
+    get historyBodyId() {
+        return 'cs-ctx-body-history';
+    }
+    get historyAriaExpanded() {
+        return String(this.historyExpanded);
+    }
+    get historyIcon() {
+        return this.historyExpanded ? 'utility:chevrondown' : 'utility:chevronright';
+    }
+    get historyBodyClass() {
+        return 'cs-ctx-body' + (this.historyExpanded ? '' : ' slds-hide');
+    }
+    /** The count comes from the timeline once it has loaded, so it is absent until History has been opened. */
+    get hasHistoryCount() {
+        return this.historyCount !== null;
+    }
+
+    handleHistoryToggle() {
+        this.historyOpen = !this.historyOpen;
+    }
+
+    handleHistoryCount(event) {
+        const count = Number(event.detail && event.detail.count);
+        this.historyCount = Number.isNaN(count) ? null : String(count);
     }
 
     get noAccountText() {
