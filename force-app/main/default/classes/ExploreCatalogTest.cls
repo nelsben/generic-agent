@@ -354,4 +354,25 @@ private class ExploreCatalogTest {
             Assert.isTrue(sizes[i] > 0, 'call ' + i);
         }
     }
+
+    @IsTest
+    static void aNamedPicklistValuePastTheFirstTwelveIsShown() {
+        List<String> active = new List<String>();
+        for (Schema.PicklistEntry p : Schema.SObjectType.Account.fields.getMap().get('Industry').getDescribe().getPicklistValues()) {
+            if (p.isActive()) {
+                active.add(p.getValue());
+            }
+        }
+        Assert.isTrue(active.size() > 12, 'Account.Industry has more than 12 active values: ' + active.size());
+        String last = active[active.size() - 1];
+        String text = ExploreCatalog.describeForPrompt('Industry ' + last);
+        String account = '';
+        for (String line : text.split('\n')) {
+            if (line.startsWith('Account: ')) {
+                account = line;
+            }
+        }
+        String shown = account.substringAfter('Industry(picklist: ').substringBefore(')');
+        Assert.isTrue(new Set<String>(shown.split('\\|')).contains(last), 'the named value is shown: ' + last + ' in ' + shown);
+    }
 }
