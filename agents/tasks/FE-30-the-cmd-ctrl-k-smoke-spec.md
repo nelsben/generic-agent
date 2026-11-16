@@ -3,7 +3,7 @@ id: FE-30
 title: The Cmd/Ctrl-K smoke spec (e2e/panel.spec.js test 1) passes 10 of 10 smoke runs in agent-probe, with its intermittent failure reproduced and its cause named first
 domain: frontend
 tier: standard
-status: queued
+status: merged
 scope: [e2e/panel.spec.js, e2e/support/**, e2e/global-setup.js, force-app/main/default/lwc/customerSummaryPanel/**, docs/research/fresh-org-run.md, docs/research/fr2-hotkey-spec-flake.md]
 forbid: [force-app/main/default/classes/**, force-app/main/default/aiAuthoringBundles/**, force-app/main/default/objects/**, mcp-door/**, data/**, tests/**, agents/**, docs/plans/**, docs/patterns/**, README.md, reference/**, .chassis-delegation.json, sfdx-project.json, spikes/**, e2e/.auth/**]
 resources: [org-live]
@@ -27,3 +27,32 @@ The e2e smoke rung failed 1 of 11 in the clean-install ladder on the Cmd/Ctrl-K 
 - docs/research/fr2-hotkey-spec-flake.md records: the reproduction counts, the cause with its evidence, the fix, and the 10-run result. docs/research/fresh-org-run.md gains one line pointing at it. The README's clean-install row is not touched (README.md is forbidden); say in the hand-back that a ladder rerun in a fresh org is still needed to flip it
 - Org rules: agent-probe only, with -o agent-probe on every sf command; first compare sf org display result.id for agent-probe and experimental and stop on SAME (print SAME or DIFFERENT only). Never touch experimental. Never create a user, sign in or out, enter credentials or accept consent. The e2e signs in through the existing sf session only. No test that creates or deletes a record. No Ids, usernames, emails, tokens, hostnames or query-string URLs in a file, image or the hand-back; e2e/.auth and test-results are never committed or printed
 - Gates: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests, npm run test:unit and bash scripts/check-docs.sh (0 broken). Say in the hand-back how many model calls the runs spent. No tests/__pycache__, and git status --short is empty after the commit
+
+## Review
+
+Brain review (2026-11-15). One attempt (73ebcb4), sonnet, standard tier, $0.69. The mod judged it consistent and accepted it without a reviewer pass; the brain read the whole diff and the new page.
+
+Findings:
+- Reproduced in agent-probe: 8 smoke runs before the fix. Panel test 1 and rail test 1 failed once (run 5, the windows project), each after a 90 s wait. Run 1 failed on a different test (the launcher's fallback name in the a11y snapshot spec).
+- Cause, from the failure screenshot and Playwright's error context: the page under test held only Lightning's "Your session has ended" dialog. No panel was on the page and the key was never pressed, so it is not a defect in the panel's key listener.
+- Why the org ended the saved session is not known. It did not recur in the other runs.
+- Fix, test side only: gotoAccount watches for that dialog while it waits for the stage, the utility item and the launcher, and fails at once with a message naming the page. No retry, no longer timeout, no second key press. The panel's source is unchanged.
+- global-setup now reports a timeout waiting for Lightning as a timeout, not as a missing sf session. The message holds no URL, host or username.
+- After the fix: 10 of 10 smoke runs passed (11 tests each, both hotkey projects). The session did not end in any of them, so these runs show the suite is green when the session holds, not that the session-ended case is cured.
+- docs/research/fr2-hotkey-spec-flake.md records the runs, the cause and the fix; fresh-org-run.md points at it.
+
+Gate (worker and mod): Python 390 tests, 4 skipped; Jest 381 tests; check-docs 0 broken.
+
+Org: agent-probe only, smoke runs. Nothing deployed, no record written, no model call.
+
+Disclosed and accepted:
+- The worker stopped the reproduction at 8 runs, not 20, once test 1 had failed.
+- Tracing stays off (a trace holds the session cookie), so the evidence is a screenshot and error context, kept out of the repo.
+- FE-29's earlier failure is probably the same kind, but that is not confirmed.
+
+Still open:
+- Why the org ends the saved session partway through a run.
+- The a11y snapshot spec's launcher-name test failed once in 8 runs; it has no card.
+- A ladder rerun in a fresh org is still needed before the README's clean-install row can change.
+
+Privacy check over the full branch diff: 0 denylist hits, no pattern hits, no URL hosts.
