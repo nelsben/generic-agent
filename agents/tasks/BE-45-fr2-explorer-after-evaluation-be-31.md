@@ -5,7 +5,7 @@ domain: backend
 tier: standard
 tier_reason: runs an existing harness and compares numbers; no product code changes
 status: blocked
-blocked_by: [BE-44]
+blocked_by: [BE-44, BE-57]
 fixes: []
 scope: [spikes/explorer-scale/results/**, docs/research/fr2-explorer-after.md]
 forbid: [force-app/**, spikes/explorer-scale/questions.json, spikes/explorer-scale/harness.apex, spikes/explorer-scale/run.py, mcp-door/**, scripts/**, data/**, tests/**, e2e/**, agents/**, docs/plans/**, docs/patterns/**, README.md, .chassis-delegation.json, reference/**, sfdx-project.json]
