@@ -128,6 +128,21 @@ describe('customerSummarySentimentChart', () => {
         await expect(el).toBeAccessible();
     });
 
+    test('L6: a multi-day bucket is labelled "from to" with ISO days, and the axis reads only the first and last row days', async () => {
+        const el = await mount(daysApart(60, (i) => LABELS[i % 5]));
+        // 60 days from 2026-01-01 to 2026-03-01 (the last row is offset 59 days).
+        const ticks = Array.from(el.shadowRoot.querySelectorAll('svg text.cs-axis'))
+            .map((t) => t.textContent)
+            .filter(Boolean);
+        expect(ticks).toEqual(['2026-01-01', '2026-03-01']);
+        expect(el.shadowRoot.querySelector('svg').getAttribute('aria-label')).toBe(
+            'Sentiment label, ' + points(el).length + ' points, from 2026-01-01 to 2026-03-01'
+        );
+        const ranged = points(el).map((p) => p.getAttribute('aria-label'));
+        expect(ranged.some((l) => /^\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}, mean /.test(l))).toBe(true);
+        expect(el.shadowRoot.querySelector('[data-testid="focus"]')).not.toBeNull();
+    });
+
     test('L6: summaries on fewer days than the cap are bucketed by day, one point per day with its count', async () => {
         const rows = Array.from({ length: 60 }, (_, i) =>
             summary(1, LABELS[i % 5], { createdDate: new Date(Date.UTC(2026, 0, 1, 12) + Math.floor(i / 6) * 86400000).toISOString() })

@@ -169,6 +169,9 @@ export default class CustomerSummaryRail extends NavigationMixin(LightningElemen
         if (this._recordId && this._recordId.startsWith(ACCOUNT_PREFIX) && this._recordId !== this._accountId) {
             this._accountId = this._recordId;
             this.accountName = '';
+            // FE-32: History closes on an account change, so the previous account's timeline and count go with it.
+            this.historyOpen = false;
+            this.historyCount = null;
             if (this._state !== 'closed') {
                 this.prefetch();
             }
@@ -620,7 +623,12 @@ export default class CustomerSummaryRail extends NavigationMixin(LightningElemen
     }
 
     handleHistoryCount(event) {
-        const count = Number(event.detail && event.detail.count);
+        // Ignore a count from a timeline that is closed, or that loaded for an account the rail no longer shows.
+        const detail = event.detail || {};
+        if (!this.historyExpanded || detail.accountId !== this._accountId) {
+            return;
+        }
+        const count = Number(detail.count);
         this.historyCount = Number.isNaN(count) ? null : String(count);
     }
 

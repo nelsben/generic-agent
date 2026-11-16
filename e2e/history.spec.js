@@ -63,7 +63,8 @@ test.describe('customer history and sentiment in the rail', () => {
             await expect(svg.locator('polyline, path')).toHaveCount(0);
             // Focus a point: its date and label show, and its reason only where the viewer may see it.
             await points.first().focus();
-            await expect(chart.getByTestId('focus')).toContainText(/^\d{4}-\d{2}-\d{2}, /);
+            // A bucket of several days reads "YYYY-MM-DD to YYYY-MM-DD, mean <label>".
+            await expect(chart.getByTestId('focus')).toContainText(/^\d{4}-\d{2}-\d{2}( to \d{4}-\d{2}-\d{2})?, /);
             expect(await chart.locator('table tbody tr').count()).toBeGreaterThanOrEqual(2);
         }
     });

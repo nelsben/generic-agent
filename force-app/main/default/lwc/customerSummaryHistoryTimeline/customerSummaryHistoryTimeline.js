@@ -121,7 +121,9 @@ export default class CustomerSummaryHistoryTimeline extends NavigationMixin(Ligh
                 this.outcomes = (Array.isArray(rows) ? rows : []).slice().sort((a, b) => stamp(b) - stamp(a));
                 this.state = 'ready';
                 // FE-32: the rail shows this count on its History header, which is drawn before the timeline mounts.
-                this.dispatchEvent(new CustomEvent('historycount', { detail: { count: this.outcomes.length } }));
+                this.dispatchEvent(
+                    new CustomEvent('historycount', { detail: { count: this.outcomes.length, accountId: this._accountId } })
+                );
             },
             () => {
                 if (request !== this._requestId) {

@@ -628,6 +628,55 @@ describe('c-customer-summary-rail', () => {
             expect($(el, '[data-count="history"]').textContent).toBe('3');
         });
 
+        it('an account change closes History and drops the previous account\'s count', async () => {
+            listOutcomes.mockReset();
+            listOutcomes.mockResolvedValue([
+                { id: 'a0C000000000001AAA', type: 'Summary', createdDate: '2026-11-01T15:00:00.000Z', textShown: true, title: 'One' },
+                { id: 'a0C000000000002AAA', type: 'Summary', createdDate: '2026-11-02T15:00:00.000Z', textShown: true, title: 'Two' },
+                { id: 'a0C000000000003AAA', type: 'Summary', createdDate: '2026-11-03T15:00:00.000Z', textShown: true, title: 'Three' }
+            ]);
+            const el = await mount();
+            hotkey();
+            await flush();
+            toggle(el).click();
+            await flush();
+            expect($(el, '[data-count="history"]').textContent).toBe('3');
+            el.recordId = BETA;
+            await flush();
+            expect(toggle(el).getAttribute('aria-expanded')).toBe('false');
+            expect($(el, '[data-count="history"]')).toBeNull();
+            expect(history(el)).toBeNull();
+            expect(chart(el)).toBeNull();
+        });
+
+        it('a count that arrives late from the previous account is ignored, and the reopened History shows the new account\'s count', async () => {
+            listOutcomes.mockReset();
+            const late = deferred();
+            let acmeTimeline = true;
+            listOutcomes.mockImplementation((args) => {
+                if (args.types === null && acmeTimeline) {
+                    acmeTimeline = false;
+                    return late.promise;
+                }
+                return Promise.resolve([]);
+            });
+            const el = await mount();
+            hotkey();
+            await flush();
+            toggle(el).click();
+            await flush();
+            el.recordId = BETA;
+            await flush();
+            late.resolve([{ id: 'a0C000000000009AAA', type: 'Summary', createdDate: '2026-11-09T15:00:00.000Z', textShown: true, title: 'Old' }]);
+            await flush();
+            expect($(el, '[data-count="history"]')).toBeNull();
+            expect(toggle(el).getAttribute('aria-expanded')).toBe('false');
+            toggle(el).click();
+            await flush();
+            expect(history(el).recordId).toBe(BETA);
+            expect($(el, '[data-count="history"]').textContent).toBe('0');
+        });
+
         it('shows neither without an account', async () => {
             const el = await mount({ recordId: null, objectApiName: 'Contact' });
             hotkey();
