@@ -114,8 +114,8 @@ in the Apex is not the tool text. An unannotated tool is treated as destructive,
 
 ## Writing from an outside client
 
-The door can write two things: **create a task** (`create_task`) and **log a call** (`log_call`, written as an Event,
-as ledger F17 decides). It writes in two steps, with the person in between. The shared service and its rules are in
+The door can write two things: **create a task** (`create_task`) and **log a call** (`log_call`, written as a completed Task
+with subtype Call, as ledger F17 decides; one constant switches it back to an Event). It writes in two steps, with the person in between. The shared service and its rules are in
 [13](13-write-actions.md).
 
 ```mermaid

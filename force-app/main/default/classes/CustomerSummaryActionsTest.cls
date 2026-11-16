@@ -248,7 +248,7 @@ private class CustomerSummaryActionsTest {
     }
 
     @IsTest
-    static void aLoggedCallIsAFifteenMinuteEventEndingNow() {
+    static void aLoggedCallIsACompletedCallTask() {
         User rep = CustomerSummaryTestUsers.productUser();
         System.runAs(rep) {
             Id accountId = acme();
@@ -259,40 +259,40 @@ private class CustomerSummaryActionsTest {
             Assert.areEqual(0, Limits.getDmlStatements());
             CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
             Test.stopTest();
-            Assert.areEqual('Event', d.objectName, 'F17');
+            Assert.areEqual('Task', d.objectName, 'F17');
             Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
             Assert.areEqual('Call logged', r.title);
+            Task t = [SELECT Subject, Description, Status, TaskSubtype, ActivityDate, WhoId, WhatId FROM Task WHERE Id = :r.recordId];
+            Assert.areEqual('Call', t.Subject);
+            Assert.areEqual('Wants a quote', t.Description);
+            Assert.areEqual('Completed', t.Status);
+            Assert.areEqual('Call', t.TaskSubtype);
+            Assert.areEqual(NOW.date(), t.ActivityDate);
+            Assert.areEqual(mariaId, t.WhoId);
+            Assert.areEqual(accountId, t.WhatId);
+        }
+    }
+
+    @IsTest
+    static void aLoggedCallCanBeAFifteenMinuteEventEndingNow() {
+        User rep = CustomerSummaryTestUsers.productUser();
+        System.runAs(rep) {
+            Id accountId = acme();
+            Id mariaId = maria().Id;
+            CustomerSummaryActions.logCallAs = 'Event';
+            Test.startTest();
+            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('log_call', accountId,
+                new Map<String, Object>{ 'contact' => 'Maria', 'description' => 'Wants a quote' });
+            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
+            Test.stopTest();
+            Assert.areEqual('Event', d.objectName, 'F17: switching back to an Event still works');
+            Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
             Event e = [SELECT Subject, Description, StartDateTime, EndDateTime, WhoId FROM Event WHERE Id = :r.recordId];
             Assert.areEqual('Call', e.Subject);
             Assert.areEqual('Wants a quote', e.Description);
             Assert.areEqual(NOW.addMinutes(-CustomerSummaryActions.CALL_MINUTES), e.StartDateTime);
             Assert.areEqual(NOW, e.EndDateTime);
             Assert.areEqual(mariaId, e.WhoId);
-
-        }
-    }
-
-    @IsTest
-    static void aLoggedCallCanBeACompletedTask() {
-        User rep = CustomerSummaryTestUsers.productUser();
-        System.runAs(rep) {
-            Id accountId = acme();
-            Id mariaId = maria().Id;
-            CustomerSummaryActions.logCallAs = 'Task';
-            Test.startTest();
-            CustomerSummaryActions.Draft d = CustomerSummaryActions.draft('log_call', accountId,
-                new Map<String, Object>{ 'contact' => 'Maria', 'subject' => 'Pricing call' });
-            CustomerSummaryActions.Result r = CustomerSummaryActions.commitDraft(d);
-            Test.stopTest();
-            Assert.areEqual('Task', d.objectName);
-            Assert.areEqual(CustomerSummaryActions.OK, r.status, r.message);
-            Task t = [SELECT Subject, Status, TaskSubtype, ActivityDate, WhoId FROM Task WHERE Id = :r.recordId];
-            Assert.areEqual('Pricing call', t.Subject);
-            Assert.areEqual('Completed', t.Status);
-            Assert.areEqual('Call', t.TaskSubtype);
-            Assert.areEqual(NOW.date(), t.ActivityDate);
-            Assert.areEqual(mariaId, t.WhoId);
-
         }
     }
 

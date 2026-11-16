@@ -21,12 +21,12 @@
  */
 public with sharing class CustomerSummaryActions {
     /**
-     * F17 (docs/plans/feature-revision-2.md): a logged call is written as an Event, as Ben chose. BE-22 measured both
-     * shapes: a 15-minute Event and a completed Task with subtype Call both land in the account's activity history,
-     * and the standard Log a Call quick action writes a Task. To make log_call write a Task, change 'Event' to 'Task'
-     * on this line; nothing else changes.
+     * F17 (docs/plans/feature-revision-2.md): a logged call is written as a completed Task with subtype Call. Ben chose
+     * a Task on 2026-11-16: it is what the standard Log a Call quick action saves, and activity reports filter on
+     * TaskSubtype. BE-22 measured both shapes (a 15-minute Event and a completed Task both land in the account's
+     * activity history). To switch back to an Event, change 'Task' to 'Event' on this line; nothing else changes.
      */
-    public static final String LOG_CALL_AS = 'Event';
+    public static final String LOG_CALL_AS = 'Task';
     @TestVisible private static String logCallAs = LOG_CALL_AS;
 
     public static final String READY = 'READY';
@@ -77,9 +77,9 @@ public with sharing class CustomerSummaryActions {
     /** Test seam: the moment the service counts from. */
     @TestVisible private static Datetime nowForTest;
 
-    /** @return the object log_call writes, 'Event' or 'Task' (F17) */
+    /** @return the object log_call writes, 'Task' by default or 'Event' (F17) */
     public static String logCallObject() {
-        return logCallAs == 'Task' ? 'Task' : 'Event';
+        return logCallAs == 'Event' ? 'Event' : 'Task';
     }
 
     // ------------------------------------------------------------------ shapes
@@ -491,7 +491,7 @@ public with sharing class CustomerSummaryActions {
         textField(b, 'Description', 'Description', 'description', false, null);
     }
 
-    /** F17: an Event that ends now and started CALL_MINUTES before, or (LOG_CALL_AS = 'Task') a completed call Task. */
+    /** F17: a completed call Task (the default), or (LOG_CALL_AS = 'Event') an Event that ends now and started CALL_MINUTES before. */
     private static void buildCall(Built b) {
         textField(b, 'Subject', 'Subject', 'subject', true, 'Call');
         contact(b, 'WhoId', true);

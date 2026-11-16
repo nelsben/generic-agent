@@ -131,7 +131,7 @@ private class CustomerSummaryActionCatalogTest {
     static void theSixActionsAndWhatTheyWrite() {
         List<CustomerSummaryActionCatalog.Spec> all = CustomerSummaryActionCatalog.all();
         Assert.areEqual(6, all.size());
-        Assert.areEqual('Event', CustomerSummaryActionCatalog.find('log_call').objectName, 'F17: a logged call is an Event');
+        Assert.areEqual('Task', CustomerSummaryActionCatalog.find('log_call').objectName, 'F17: a logged call is a Task');
         Assert.areEqual(CustomerSummaryActions.LOG_CALL_AS, CustomerSummaryActionCatalog.find('LOG_CALL').objectName);
         Assert.isTrue(CustomerSummaryActionCatalog.find('update_contact').isUpdate());
         Assert.isFalse(CustomerSummaryActionCatalog.find('create_case').isUpdate());
