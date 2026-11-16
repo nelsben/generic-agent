@@ -118,7 +118,7 @@ sequenceDiagram
 |---|---|---|
 | `create_task` | a Task on the account | subject and due date (required), contact, priority, description |
 | `create_event` | an Event on the account | subject and start (required), end or length (30 minutes by default), contact, description |
-| `log_call` | an Event by default (see below) | contact (required), subject (`Call` by default), description |
+| `log_call` | a completed Task with subtype Call by default (see below) | contact (required), subject (`Call` by default), description |
 | `update_contact` | a Contact on the account | contact and changes, from the allow-list: Title, Phone, MobilePhone, Email, Department |
 | `create_case` | a Case on the account | subject (required), description, priority, contact |
 | `update_opportunity` | an open Opportunity on the account | deal and changes: StageName, CloseDate, NextStep, Amount |
@@ -165,10 +165,12 @@ it is still `READY`, so a draft changed on the way, or one whose contact has sin
 
 ### The log_call choice (F17)
 
-`CustomerSummaryActions.LOG_CALL_AS` decides what a logged call is. It is `'Event'`, as the product owner chose: a
-15-minute Event that ends now. Set it to `'Task'` and a logged call becomes a completed Task with subtype Call, due today,
-which is what the standard Log a Call quick action writes. The actions spike measured both: each lands in the account's
-activity history. It is a one-line change, and the tests cover both shapes.
+`CustomerSummaryActions.LOG_CALL_AS` decides what a logged call is. It is `'Task'`, as the product owner chose on
+2026-11-16: a completed Task with subtype Call, status Completed, dated today unless the person gave a date, with the
+contact as the who and the account as the related record. That is what the standard Log a Call quick action writes, and
+activity reports filter on the subtype. Set it to `'Event'` and a logged call becomes a 15-minute Event that ends now.
+The actions spike measured both: each lands in the account's activity history. It is a one-line change, and the tests
+cover both shapes.
 
 ### Add a seventh action
 
