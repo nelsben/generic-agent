@@ -22,7 +22,7 @@ Fixes for M2, M5, L5, L7, L8 and OPS-52's new frames. Line numbers are in the fi
 
 ## Counts
 
-See the hand-back for the final Jest and e2e counts; Jest: all suites pass (388 tests).
+Jest: 388 tests pass (11 suites). e2e e2e/panel.spec.js against agent-probe: 14 passed (12 specs on two platforms; the first run had spec 12 failing on header target size and a mid-slide scan, fixed in two rounds).
 New Jest cases: 5 in the voice bundle, 2 in the conversation, and the card's table case now pins tabindex, role and name.
 New e2e: spec 11 (chips inside the row at 420 px) and spec 12 (axe at 1280x720: compact window and draft card).
 
