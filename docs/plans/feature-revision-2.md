@@ -295,7 +295,7 @@ words that overrule it.
 | Decision | Overrule by saying |
 |---|---|
 | One go starts the whole burn; the order and the org lock pace it. | "Spikes only, then ask again." |
-| Log a call defaults to an Event, as Ben said, held in one constant (F17). Overruled (Ben, 2026-11-16: "yes, switch it to task"): a completed Task, `BE-60`. | "Make it a Task." |
+| Log a call defaults to an Event, as Ben said, held in one constant (F17). Overruled (Ben, 2026-11-16: "yes, switch it to task"): a completed Task, `BE-59`. | "Make it a Task." |
 | The MCP door's tools are Apex actions; the agent is not a tool. | "Keep the agent as an MCP tool." |
 | On NO-GO, everything is renamed except the agent bundle. Labels-only is dropped. | "Labels only on NO-GO." |
 | File names stay; the index page fixes titles and the reading order. | "Tidy the names." |
@@ -339,7 +339,7 @@ default that can still stall a build, and it says how. The findings behind each 
 | # | Decision | Default with no answer | On a yes |
 |---|---|---|---|
 | 1 | **Go for the burn.** One word covers two rows of the Approvals table in [gtm-burn-plan.md](gtm-burn-plan.md#approvals): the FR2 spikes, and live checks that spend model calls and write the product's own rows on existing sample accounts. | Nothing is dispatched. | Spikes, then builds in the order below, each deploy under the standing approval. |
-| 2 | **Log a call: Event or Task** (F17). **Answered: a Task (Ben, 2026-11-16, in chat: "yes, switch it to task"); `BE-60`.** Ben said "synonymous with create an event"; the brain recommends a completed Task, because that is what Salesforce's own Log a Call saves. | An Event, as Ben said. One constant in `BE-27` switches it. | "Make it a Task" changes one line. |
+| 2 | **Log a call: Event or Task** (F17). **Answered: a Task (Ben, 2026-11-16, in chat: "yes, switch it to task"); `BE-59`.** Ben said "synonymous with create an event"; the brain recommends a completed Task, because that is what Salesforce's own Log a Call saves. | An Event, as Ben said. One constant in `BE-27` switches it. | "Make it a Task" changes one line. |
 | 3 | **The MCP door under the new names** (`OPS-31`). **Answered yes (Ben, 2026-11-13), with the explorer tool too; writes follow in `OPS-59`.** with its tool set: resolve the account, get the summary, and ask anything through the explorer. The agent is not a tool. Asking anything opens the explorer to outside clients, which has its own Approvals row. | `OPS-31` stays parked. The door keeps running under the old names with its old tools, and page 09 and the README say so. The close does not wait. | `OPS-31` runs after the agent publish (`OPS-51`). A yes to the door without the explorer gives two tools. |
 | 4 | **Tests that create and delete their own task** in `agent-probe`. **Answered yes, standing (Ben, 2026-11-16).** | `FE-14`'s end-to-end test stops at the draft card and Cancel. Jest and Apex tests prove the confirm path, and the docs say so. | The test confirms a task on an existing sample account, then removes the task and its outcome. |
 | 5 | **The Testing Center suite** (`BE-38`). **Answered yes (Ben, 2026-11-16); built and run.** It tests the optional agent only, not our surfaces. | `BE-38` stays parked. The ladder prints "skipped: agent suite not built", and page 08 says the suite is not run in this build. | `BE-38` runs after the agent publish. The brain recommends yes for the functional suite: at most 20 cases, no write actions, one existing sample-data account. |
