@@ -332,6 +332,11 @@ class TestAgentTestScriptRun(unittest.TestCase):
         self.assertIn("actions: 3 passed, 1 failed", out)
         self.assertIn("outcome: 3 passed, 1 failed", out)
         self.assertIn("coherence: 4 passed, 0 failed", out)
+        # Each failed check is named by its case number in the spec, never by anything the org returned.
+        self.assertEqual(
+            [l for l in lines if l.startswith("failed:")],
+            ["failed: case 2 subagent", "failed: case 3 actions", "failed: case 3 outcome"],
+        )
         self.assertRegex(lines[-1], r"^agent-test: 12 of 15 assertions passed on Customer_Summary v2")
         # No Ids, usernames or hosts reach the output.
         for leak in ("4KB", "0X9", "0Xx", "@", "http", "salesforce.com"):
