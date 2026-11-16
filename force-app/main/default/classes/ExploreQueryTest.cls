@@ -389,7 +389,7 @@ private class ExploreQueryTest {
     }
 
     @IsTest
-    static void containsOnLongTextIsMatchedAfterTheQueryAndCapped() {
+    static void containsOnLongTextUnderTheScanCapIsMatchedAfterTheQuery() {
         insert new List<Account>{
             new Account(Name = 'Text One', Description = 'Renewal due in March'),
             new Account(Name = 'Text Two', Description = 'Nothing yet')
@@ -402,14 +402,99 @@ private class ExploreQueryTest {
         Assert.areEqual(1, rs.shown, 'case-insensitive match on one of two');
         Assert.areEqual(1, rs.total);
         Assert.areEqual('Text One', rs.rows[0].get('Name'));
+        Assert.areEqual(0, Limits.getSoslQueries(), 'under the scan cap the rows are matched without a search');
+    }
 
+    /** Three Text accounts, two of them holding "renewal"; the plan asks for those with Name LIKE Text%. */
+    private static final String RENEWAL = '{"object":"Account","fields":["Name"],"where":{"and":['
+        + '{"field":"Description","op":"CONTAINS","value":"renewal"},{"field":"Name","op":"LIKE","value":"Text%"}]}}';
+
+    private static List<Account> textAccounts() {
+        List<Account> accounts = new List<Account>{
+            new Account(Name = 'Text One', Description = 'Renewal due in March'),
+            new Account(Name = 'Text Two', Description = 'Nothing yet'),
+            new Account(Name = 'Text Three', Description = 'renewal talks paused')
+        };
+        insert accounts;
+        return accounts;
+    }
+
+    @IsTest
+    static void containsOnLongTextPastTheScanCapSearchesAndReturnsTheMatchingRow() {
+        List<Account> accounts = textAccounts();
+        // The index returns One and Two (a word can match any field); Three stands for a record not indexed yet.
+        Test.setFixedSearchResults(new List<Id>{ accounts[0].Id, accounts[1].Id });
+        ExploreQuery.textScan = 2;
+
+        ExploreQuery.ResultSet rs = run(RENEWAL);
+        Assert.areEqual(1, Limits.getSoslQueries(), 'three candidates past a scan cap of two: one search');
+        Assert.areEqual('SELECT Name, Id, Description FROM Account WHERE Name LIKE :b0 AND Id IN :b1 LIMIT 2000', rs.soql);
+        Assert.areEqual(1, rs.shown, 'Two is returned by the search but its text does not hold the word');
+        Assert.areEqual(1, rs.total);
+        Assert.areEqual('Text One', rs.rows[0].get('Name'));
+        Assert.isTrue(rs.filters.endsWith('(narrowed by search)'), rs.filters);
+    }
+
+    @IsTest
+    static void containsOnLongTextPastTheSearchCapStopsAndSaysHowManyRowsItScanned() {
+        List<Account> accounts = textAccounts();
+        Test.setFixedSearchResults(new List<Id>{ accounts[0].Id, accounts[1].Id, accounts[2].Id });
+        ExploreQuery.textScan = 1;
+        ExploreQuery.searchCap = 2;
+        try {
+            run(RENEWAL);
+            Assert.fail('the search filled its cap of two');
+        } catch (ExploreQuery.RowCapException e) {
+            Assert.isTrue(e.getMessage().contains('stopped at its cap after scanning 2 rows, so there is no full count.'), e.getMessage());
+        }
+    }
+
+    @IsTest
+    static void containsOnLongTextPastTheScanCapThatSearchCantNarrowStopsAndSaysHowManyRowsItScanned() {
+        textAccounts();
         ExploreQuery.textScan = 1;
         try {
-            run(plan);
-            Assert.fail('two rows to scan with a cap of one');
+            // One letter is too short to search for.
+            run('{"object":"Account","fields":["Name"],"where":{"and":[{"field":"Description","op":"CONTAINS","value":"r"},'
+                + '{"field":"Name","op":"LIKE","value":"Text%"}]}}');
+            Assert.fail('three candidates past a scan cap of one');
         } catch (ExploreQuery.RowCapException e) {
-            Assert.isTrue(e.getMessage().contains('reads at most 1 rows'), e.getMessage());
+            Assert.isTrue(e.getMessage().contains('stopped at its cap after scanning 1 rows, so there is no full count.'), e.getMessage());
         }
+        Assert.areEqual(0, Limits.getSoslQueries(), 'no search for a value it cannot narrow');
+    }
+
+    @IsTest
+    static void searchTermsAreWordsAndWordStartsOnly() {
+        Assert.areEqual('renewal*', ExploreQuery.searchTerm('Renewal'));
+        Assert.areEqual('three* year* price*', ExploreQuery.searchTerm('three-year price'), 'punctuation splits words');
+        Assert.areEqual('x27* drop*', ExploreQuery.searchTerm('\' or 1=1 } x27 AND "drop" *'), 'only letters and digits reach the search text');
+        Assert.isNull(ExploreQuery.searchTerm('a ! or'), 'nothing searchable is left');
+    }
+
+    @IsTest
+    static void orderByLongTextIsRefusedBeforeAnyQuery() {
+        Integer before = Limits.getQueries();
+        try {
+            run('{"object":"Account","fields":["Name"],"where":{"field":"Description","op":"CONTAINS","value":"renewal"},'
+                + '"orderBy":{"field":"Description","dir":"ASC"}}');
+            Assert.fail('sorting by long text is refused');
+        } catch (ExplorePlan.PlanException e) {
+            Assert.isTrue(e.getMessage().contains('Description can\'t be sorted.'), e.getMessage());
+        }
+        Assert.areEqual(before, Limits.getQueries(), 'refused before any query ran');
+    }
+
+    @IsTest
+    static void groupByLongTextIsRefusedBeforeAnyQuery() {
+        Integer before = Limits.getQueries();
+        try {
+            run('{"object":"Account","groupBy":["Description"],"aggregates":[{"fn":"COUNT"}]}');
+            Assert.fail('grouping by long text is refused');
+        } catch (ExplorePlan.PlanException e) {
+            Assert.isTrue(e.getMessage().contains('Description can\'t be grouped.'), e.getMessage());
+        }
+        Assert.areEqual(before, Limits.getQueries(), 'refused before any query ran');
     }
 
     @IsTest

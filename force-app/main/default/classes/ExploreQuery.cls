@@ -13,8 +13,17 @@
  * Grammar v2 (BE-43): the WHERE clause is built from the resolved tree (groups in parentheses, NOT as
  * (NOT (...)), a semi- or anti-join as a sub-select), child lists are sub-selects in the field list,
  * HAVING binds its values too, and binds are named :b0, :b1, ... in the order they appear. CONTAINS on
- * long text, which the platform can't filter, reads at most TEXT_SCAN candidate rows (refused past that)
- * and keeps those whose text holds the value, ignoring case; total is then the number that matched.
+ * long text, which the platform can't filter, reads at most TEXT_SCAN candidate rows and keeps those whose
+ * text holds the value, ignoring case; total is then the number that matched.
+ *
+ * Long text past the scan cap (BE-44). When more than TEXT_SCAN rows match the other filters, a SOSL search
+ * in user mode narrows them: the value's words, each as a word start (renewal*), ANDed, over the object's
+ * own fields, at most SEARCH_CAP records. The same query then reads only those records (Id IN :bN) and the
+ * same Apex match keeps the ones whose text holds the value, so a word found in another field never counts.
+ * It throws RowCapException, saying how many rows it scanned and that there is no full count, when the search
+ * fills SEARCH_CAP or can't narrow the value (no word of two or more letters or digits, a parent path, an
+ * object search doesn't cover). The search finds word starts only, and a record saved in the last few
+ * minutes may not be in the index yet (docs/research/fr2-explorer-long-text.md).
  *
  * Row cap. A LIMIT on an aggregate limits the groups returned, not the records aggregated, and every
  * aggregated record counts toward the 50,000 query-row limit, whose LimitException cannot be caught.
@@ -32,11 +41,15 @@ public with sharing class ExploreQuery {
     public static final Integer ROW_CAP = 10000;
     /** CONTAINS on long text reads at most this many candidate rows, then matches them in Apex. */
     public static final Integer TEXT_SCAN = 2000;
+    /** Past the scan cap, a search narrows the candidates to at most this many records (SOSL's own maximum). */
+    public static final Integer SEARCH_CAP = 2000;
 
     /** The row cap in force. Tests lower it. */
     @TestVisible private static Integer rowCap = ROW_CAP;
     /** The long-text scan cap in force. Tests lower it. */
     @TestVisible private static Integer textScan = TEXT_SCAN;
+    /** The search cap in force. Tests lower it. */
+    @TestVisible private static Integer searchCap = SEARCH_CAP;
 
     /** Thrown instead of running an aggregate that would read more than the row cap. */
     public class RowCapException extends Exception {}
@@ -78,6 +91,10 @@ public with sharing class ExploreQuery {
         Boolean countOnly = false;
         Integer rowLimit;
         String filters;
+        /** The text query in parts, so a search can add Id IN :bN: SELECT ... FROM X, the WHERE clause, ORDER BY. */
+        String selectFrom;
+        String whereClause;
+        String orderClause = '';
         /** The next bind number: binds are named in the order they appear in the text. */
         Integer next = 0;
     }
@@ -104,8 +121,7 @@ public with sharing class ExploreQuery {
         Integer matched;
         if (!b.textMatches.isEmpty()) {
             if (records.size() > textScan) {
-                throw new RowCapException('CONTAINS on long text reads at most ' + textScan
-                    + ' rows, and more match the other filters. Add filters to narrow it.');
+                records = searched(r, b);
             }
             records = matching(records, b.textMatches);
             matched = records.size();
@@ -150,6 +166,71 @@ public with sharing class ExploreQuery {
             row.put('Id', rec.Id);
         }
         return row;
+    }
+
+    /**
+     * Past the scan cap: a search in user mode finds the records holding the words, and the same query reads
+     * only those. Throws RowCapException when the search can't narrow the value or fills its cap.
+     */
+    private static List<SObject> searched(ExplorePlan.Resolved r, Built b) {
+        String term = searchable(r) ? searchTerms(b.textMatches) : null;
+        if (term == null) {
+            throw capped(textScan, 'More rows match the other filters, and a search can\'t narrow this value.');
+        }
+        // term holds only letters, digits, spaces and *, and the object name comes from the catalog.
+        List<SObject> hits = Search.query('FIND \'' + term + '\' IN ALL FIELDS RETURNING ' + r.entry.name
+            + '(Id) LIMIT ' + searchCap, AccessLevel.USER_MODE)[0];
+        if (hits.size() >= searchCap) {
+            throw capped(searchCap, 'The search found ' + searchCap + ' or more records with those words, the most it reads.');
+        }
+        String name = bind(b, new List<Id>(new Map<Id, SObject>(hits).keySet()));
+        b.soql = b.selectFrom + (b.whereClause == '' ? ' WHERE ' : b.whereClause + ' AND ') + 'Id IN :' + name
+            + b.orderClause + ' LIMIT ' + searchCap;
+        b.filters += ' (narrowed by search)';
+        return Database.queryWithBinds(b.soql, b.binds, AccessLevel.USER_MODE);
+    }
+
+    private static RowCapException capped(Integer scanned, String why) {
+        return new RowCapException('CONTAINS on long text stopped at its cap after scanning ' + scanned
+            + ' rows, so there is no full count. ' + why + ' Add filters to narrow it.');
+    }
+
+    /** A search covers the object's own fields only, and only an object the platform can search. */
+    private static Boolean searchable(ExplorePlan.Resolved r) {
+        for (ExplorePlan.TextMatch t : r.textMatches) {
+            if (t.field.path.contains('.')) {
+                return false;
+            }
+        }
+        List<Schema.DescribeSObjectResult> d = Schema.describeSObjects(new List<String>{ r.entry.name });
+        return !d.isEmpty() && d[0].isSearchable();
+    }
+
+    private static String searchTerms(List<ExplorePlan.TextMatch> matches) {
+        List<String> terms = new List<String>();
+        for (ExplorePlan.TextMatch t : matches) {
+            String one = searchTerm(t.text);
+            if (one == null) {
+                return null;
+            }
+            terms.add(one);
+        }
+        return String.join(terms, ' ');
+    }
+
+    /**
+     * The SOSL text for one value: its words of two or more letters or digits, lower case, each as a word
+     * start (renewal*), joined by spaces, which SOSL ANDs. AND, OR and NOT are SOSL operators, so they are
+     * dropped. Null when no word is left. Nothing else of the value reaches the search text.
+     */
+    public static String searchTerm(String text) {
+        List<String> words = new List<String>();
+        for (String w : (text == null ? '' : text.toLowerCase()).split('[^\\p{L}\\p{N}]+')) {
+            if (w.length() >= 2 && w != 'and' && w != 'or' && w != 'not') {
+                words.add(w + '*');
+            }
+        }
+        return words.isEmpty() ? null : String.join(words, ' ');
     }
 
     /** The records whose long text holds every CONTAINS value, ignoring case. */
@@ -236,6 +317,8 @@ public with sharing class ExploreQuery {
 
         String fromWhere = ' FROM ' + r.entry.name + whereClause;
         String soql = 'SELECT ' + String.join(selects, ', ') + fromWhere;
+        b.selectFrom = 'SELECT ' + String.join(selects, ', ') + ' FROM ' + r.entry.name;
+        b.whereClause = whereClause;
         if (!r.groupBy.isEmpty()) {
             List<String> groups = new List<String>();
             for (ExploreCatalog.Field g : r.groupBy) {
@@ -252,7 +335,8 @@ public with sharing class ExploreQuery {
             soql += ' HAVING ' + String.join(parts, ' AND ');
         }
         if (r.orderExpr != null) {
-            soql += ' ORDER BY ' + r.orderExpr + (r.orderDir == 'DESC' ? ' DESC NULLS LAST' : ' ASC');
+            b.orderClause = ' ORDER BY ' + r.orderExpr + (r.orderDir == 'DESC' ? ' DESC NULLS LAST' : ' ASC');
+            soql += b.orderClause;
         }
         if (!r.textMatches.isEmpty()) {
             // Long text is matched in Apex, so read every candidate, up to the scan cap plus one to detect more.
