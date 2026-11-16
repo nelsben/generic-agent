@@ -12,11 +12,11 @@
             onkeydown={handleSheetKeydown}>
             <div class="cs-sheet-controls">
                 <template lwc:if={expandEnabled}>
-                    <lightning-button-icon class="cs-expand" icon-name="utility:expand_alt" variant="bare"
+                    <lightning-button-icon class="cs-expand" icon-name="utility:expand_alt" variant="container" size="x-small"
                         alternative-text="Expand to the side panel" title="Expand to the side panel"
                         onclick={handleExpand}></lightning-button-icon>
                 </template>
-                <lightning-button-icon class="cs-minimize" icon-name="utility:minimize_window" variant="bare"
+                <lightning-button-icon class="cs-minimize" icon-name="utility:minimize_window" variant="container" size="x-small"
                     alternative-text="Minimize" title="Minimize" onclick={handleMinimize}></lightning-button-icon>
             </div>
             <!-- The conversation's home in the window. The one conversation moves between here and the rail. -->

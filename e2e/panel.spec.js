@@ -472,6 +472,8 @@ test('11. FE-31 at 420 px all five quick-action chips sit inside their row, and 
 test('12. FE-31 axe finds no WCAG violations at 1280x720 in the compact window and with the draft card open', async ({ page, panel }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await panel.open();
+    // Scan after the slide (280 ms): a frame mid-fade has colours that are not the resting ones.
+    await panel.sheet.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
     const windowViolations = await axeScan(panel, testInfo, 'window-1280x720');
 
     const chip = panel.host.getByRole('group', { name: 'Quick actions', exact: true }).getByRole('button', { name: 'Create a follow-up', exact: true });
