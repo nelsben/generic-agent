@@ -3,7 +3,7 @@ id: FE-31
 title: Panel rendering fixes: composer with no speech API, chips fit, card table and badge, mic focus ring, header target size, one fallback palette
 domain: frontend
 tier: standard
-status: queued
+status: merged
 scope: [force-app/main/default/lwc/customerSummaryConversation/**, force-app/main/default/lwc/customerSummaryVoiceInput/**, force-app/main/default/lwc/customerSummaryCard/**, force-app/main/default/lwc/customerSummaryPanel/**, e2e/panel.spec.js, docs/research/fr2-panel-render-fixes.md]
 forbid: [force-app/main/default/lwc/customerSummaryRail/**, force-app/main/default/lwc/customerSummarySentimentChart/**, force-app/main/default/lwc/customerSummaryHistoryTimeline/**, force-app/main/default/classes/**, force-app/main/default/objects/**, force-app/main/default/permissionsets/**, force-app/main/default/aiAuthoringBundles/**, mcp-door/**, playwright.config.js, e2e/global-setup.js, e2e/support/**, e2e/.auth/**, docs/assets/**, docs/patterns/**, docs/plans/**, README.md, agents/**, reference/**, .chassis-delegation.json, sfdx-project.json]
 resources: [org-live]
@@ -28,3 +28,30 @@ The build review (M2, M5, L5, L7, L8) and OPS-52's new frames found rendering bu
 - Gates: npm run test:unit passes in full; npx eslint on the changed LWC files passes. Deploy the changed LWC bundles to agent-probe only: sf project deploy validate --source-dir <the changed bundles> --test-level RunLocalTests -o agent-probe, then CONFIRM_PROD=1 sf project deploy quick --job-id <id> -o agent-probe. If the deploy hook refuses for want of a target org, set it worktree-local (sf config set target-org agent-probe) and unset it before hand-back. Then run npx playwright test e2e/panel.spec.js once against agent-probe and report its counts; a failure the change did not cause is reported, not fixed
 - docs/research/fr2-panel-render-fixes.md (new) lists each fix with file and line, the e2e and Jest counts, what was not fixed and why, and an Undo list (the bundles to redeploy from the previous main commit)
 - Nothing creates, edits or deletes a record beyond the product's own session and outcome rows the e2e suite already writes. No Id, job Id, username, email, hostname or local path is written to a committed file. e2e/.auth is never printed or committed. No screenshots are re-captured (a later card does that)
+
+## Review
+
+Brain review (2026-11-15). One worker attempt (sonnet, standard tier, $1.09), cut under Ben's full-burn go. The brain read the whole diff.
+
+Findings:
+- M2: with no speech API the voice host takes the class cs-voice-unsupported and the full composer row, and the composer row wraps, so the note sits on its own line under the textarea.
+- L5: the quick-action row wraps, with no sideways scroll. A new e2e spec (11) checks each chip is inside the row at 420 px.
+- The card's table box is now always a Tab stop, a region named by the card title or its type, so a keyboard user can scroll to the last column. One existing card test that pinned the old behaviour was changed.
+- The mic's focus ring is a 2 px ink outline inside the button, so no ancestor clips it; it is surface-coloured while recording.
+- M5: Expand and Minimize are container button icons, size small (28 px). A new e2e spec (12) runs axe on the compact window and the draft card at 1280x720, after the slide animation ends, and passes.
+- L7 and L8: the voice fallbacks use the conversation's #0176d3, and agentName defaults to empty. The permission message reads "Microphone permission is needed to listen." with no name and "<name> needs microphone permission to listen." with one.
+
+Gate (mod, at 40a0abc): Jest 388 tests pass in 11 suites. e2e/panel.spec.js against agent-probe: 14 passed (12 specs on two platforms) on the worker's last run.
+
+Org: agent-probe only. The worker validated with RunLocalTests and quick deployed the four LWC bundles before review; the panel bundle went through that three times while the header button size was settled. No Apex changed. No record, user or setting was created. The worktree-local target org is unset.
+
+Disclosed and accepted:
+- The Empty badge on a follow-up answer is not fixed. Its cause is Apex: DataExplorer.answer sets EMPTY whenever no query returned a row, even when the model answers from history with text. The badge text was not changed. This needs its own card.
+- The rail clipping the card's last column, if it does, belongs to the rail bundle (FE-32's scope).
+- ESLint cannot run: the repo has no eslint config or dependency.
+- Some Jest cases read the CSS and HTML files as text, because Jest has no layout.
+
+Still open:
+- The Empty badge Apex fix.
+
+Privacy check over the branch's own diff (212 added lines): 0 denylist hits, no pattern hits, no URL hosts.
