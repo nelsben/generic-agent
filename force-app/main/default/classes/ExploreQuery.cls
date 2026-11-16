@@ -10,6 +10,12 @@
  * without groupBy returns one row and has no LIMIT. Queries run in user mode, so the user's object,
  * field and sharing access all apply. When a plain query fills its limit, one COUNT() query gives the total.
  *
+ * Grammar v2 (BE-43): the WHERE clause is built from the resolved tree (groups in parentheses, NOT as
+ * (NOT (...)), a semi- or anti-join as a sub-select), child lists are sub-selects in the field list,
+ * HAVING binds its values too, and binds are named :b0, :b1, ... in the order they appear. CONTAINS on
+ * long text, which the platform can't filter, reads at most TEXT_SCAN candidate rows (refused past that)
+ * and keeps those whose text holds the value, ignoring case; total is then the number that matched.
+ *
  * Row cap. A LIMIT on an aggregate limits the groups returned, not the records aggregated, and every
  * aggregated record counts toward the 50,000 query-row limit, whose LimitException cannot be caught.
  * So an aggregate first runs a COUNT() with LIMIT rowCap + 1, and when more than rowCap records match
@@ -24,9 +30,13 @@ public with sharing class ExploreQuery {
     public static final Integer DEFAULT_LIMIT = 50;
     public static final Integer MAX_LIMIT = 200;
     public static final Integer ROW_CAP = 10000;
+    /** CONTAINS on long text reads at most this many candidate rows, then matches them in Apex. */
+    public static final Integer TEXT_SCAN = 2000;
 
     /** The row cap in force. Tests lower it. */
     @TestVisible private static Integer rowCap = ROW_CAP;
+    /** The long-text scan cap in force. Tests lower it. */
+    @TestVisible private static Integer textScan = TEXT_SCAN;
 
     /** Thrown instead of running an aggregate that would read more than the row cap. */
     public class RowCapException extends Exception {}
@@ -59,16 +69,27 @@ public with sharing class ExploreQuery {
         List<String> labels = new List<String>();
         /** Aggregate queries: the alias each column is read from. */
         List<String> aliases = new List<String>();
+        /** Columns that hold a child list: the cell is its row count. */
+        Set<String> childColumns = new Set<String>();
+        /** CONTAINS on long text, matched after the query. */
+        List<ExplorePlan.TextMatch> textMatches = new List<ExplorePlan.TextMatch>();
         Boolean aggregate = false;
         /** Every aggregate is COUNT(Id): reads one query row per group, so it needs no row cap. */
         Boolean countOnly = false;
         Integer rowLimit;
         String filters;
+        /** The next bind number: binds are named in the order they appear in the text. */
+        Integer next = 0;
     }
 
     /** Resolves, builds and runs the plan. Throws ExplorePlan.PlanException when the plan has errors. */
     public static ResultSet run(ExplorePlan plan) {
-        ExplorePlan.Resolved r = ExplorePlan.resolve(plan);
+        return run(plan, null);
+    }
+
+    /** run() for a plan whose step values read the question's earlier results (ExplorePlan.resolve). */
+    public static ResultSet run(ExplorePlan plan, List<ResultSet> steps) {
+        ExplorePlan.Resolved r = ExplorePlan.resolve(plan, steps);
         if (!r.errors.isEmpty()) {
             throw new ExplorePlan.PlanException(String.join(r.errors, ' '));
         }
@@ -80,6 +101,15 @@ public with sharing class ExploreQuery {
             }
         }
         List<SObject> records = Database.queryWithBinds(b.soql, b.binds, AccessLevel.USER_MODE);
+        Integer matched;
+        if (!b.textMatches.isEmpty()) {
+            if (records.size() > textScan) {
+                throw new RowCapException('CONTAINS on long text reads at most ' + textScan
+                    + ' rows, and more match the other filters. Add filters to narrow it.');
+            }
+            records = matching(records, b.textMatches);
+            matched = records.size();
+        }
 
         ResultSet rs = new ResultSet();
         rs.objectName = r.entry.name;
@@ -90,21 +120,52 @@ public with sharing class ExploreQuery {
         rs.plan = plan;
         rs.planJson = plan.toJson();
         for (SObject rec : records) {
-            Map<String, Object> row = new Map<String, Object>();
-            for (Integer i = 0; i < b.columns.size(); i++) {
-                row.put(b.columns[i], b.aggregate ? rec.get(b.aliases[i]) : valueAt(rec, b.columns[i]));
+            if (b.rowLimit != null && rs.rows.size() >= b.rowLimit) {
+                break;
             }
-            if (!b.aggregate) {
-                row.put('Id', rec.Id);
-            }
-            rs.rows.add(row);
+            rs.rows.add(row(b, rec));
         }
         rs.shown = rs.rows.size();
-        rs.total = rs.shown;
-        if (!b.aggregate && b.rowLimit != null && rs.shown >= b.rowLimit) {
+        rs.total = matched != null ? matched : rs.shown;
+        if (matched == null && !b.aggregate && b.rowLimit != null && rs.shown >= b.rowLimit) {
             rs.total = Database.countQueryWithBinds(b.countSoql, b.binds, AccessLevel.USER_MODE);
         }
         return rs;
+    }
+
+    private static Map<String, Object> row(Built b, SObject rec) {
+        Map<String, Object> row = new Map<String, Object>();
+        for (Integer i = 0; i < b.columns.size(); i++) {
+            String c = b.columns[i];
+            if (b.aggregate) {
+                row.put(c, rec.get(b.aliases[i]));
+            } else if (b.childColumns.contains(c)) {
+                List<SObject> kids = rec.getSObjects(c);
+                row.put(c, kids == null ? 0 : kids.size());
+            } else {
+                row.put(c, valueAt(rec, c));
+            }
+        }
+        if (!b.aggregate) {
+            row.put('Id', rec.Id);
+        }
+        return row;
+    }
+
+    /** The records whose long text holds every CONTAINS value, ignoring case. */
+    private static List<SObject> matching(List<SObject> records, List<ExplorePlan.TextMatch> matches) {
+        List<SObject> out = new List<SObject>();
+        for (SObject rec : records) {
+            Boolean all = true;
+            for (ExplorePlan.TextMatch t : matches) {
+                Object v = valueAt(rec, t.field.path);
+                all = all && v != null && String.valueOf(v).toLowerCase().contains(t.text.toLowerCase());
+            }
+            if (all) {
+                out.add(rec);
+            }
+        }
+        return out;
     }
 
     /** rowCap, or less when the transaction has fewer query rows left (one goes to the pre-count). */
@@ -119,6 +180,7 @@ public with sharing class ExploreQuery {
         Built b = new Built();
         b.aggregate = !r.aggregates.isEmpty() || !r.groupBy.isEmpty();
         b.rowLimit = r.rowLimit;
+        b.textMatches = r.textMatches;
 
         List<String> selects = new List<String>();
         if (b.aggregate) {
@@ -145,48 +207,34 @@ public with sharing class ExploreQuery {
                     selects.add(f.path);
                 }
             }
-            if (!seen.contains('Id')) {
+            if (seen.add('Id')) {
                 selects.add('Id');
             }
-        }
-
-        List<String> conditions = new List<String>();
-        List<String> readable = new List<String>();
-        for (Integer i = 0; i < r.filters.size(); i++) {
-            ExplorePlan.ResolvedFilter f = r.filters[i];
-            if (f.literal != null) {
-                conditions.add(f.field.path + ' ' + f.op + ' ' + f.literal);
-            } else if (f.bindValueEnd != null) {
-                // A whole day on a Datetime field: a range, never a match on the one instant of midnight.
-                b.binds.put('b' + i, f.bindValue);
-                b.binds.put('e' + i, f.bindValueEnd);
-                String p = f.field.path;
-                conditions.add(f.op == '='
-                    ? '(' + p + ' >= :b' + i + ' AND ' + p + ' < :e' + i + ')'
-                    : '(' + p + ' < :b' + i + ' OR ' + p + ' >= :e' + i + ' OR ' + p + ' = null)');
-            } else if (f.bindValueEnds != null) {
-                // IN on a Datetime field with date-only items: each one is a whole-day range.
-                List<Object> starts = (List<Object>) f.bindValue;
-                List<String> parts = new List<String>();
-                for (Integer j = 0; j < starts.size(); j++) {
-                    b.binds.put('b' + i + '_' + j, starts[j]);
-                    if (f.bindValueEnds[j] == null) {
-                        parts.add(f.field.path + ' = :b' + i + '_' + j);
-                    } else {
-                        b.binds.put('e' + i + '_' + j, f.bindValueEnds[j]);
-                        parts.add('(' + f.field.path + ' >= :b' + i + '_' + j + ' AND ' + f.field.path + ' < :e' + i + '_' + j + ')');
-                    }
+            for (ExplorePlan.TextMatch t : r.textMatches) {
+                if (seen.add(t.field.path)) {
+                    selects.add(t.field.path);
                 }
-                conditions.add('(' + String.join(parts, ' OR ') + ')');
-            } else {
-                b.binds.put('b' + i, f.bindValue);
-                conditions.add(f.field.path + ' ' + (f.bindOp != null ? f.bindOp : f.op) + ' :b' + i);
             }
-            readable.add(f.display);
+            for (ExplorePlan.ResolvedChild c : r.children) {
+                selects.add('(' + childSelect(b, c) + ')');
+                b.columns.add(c.rel);
+                b.labels.add(c.rel);
+                b.childColumns.add(c.rel);
+            }
         }
-        b.filters = readable.isEmpty() ? 'no filters' : String.join(readable, ' AND ');
 
-        String fromWhere = ' FROM ' + r.entry.name + (conditions.isEmpty() ? '' : ' WHERE ' + String.join(conditions, ' AND '));
+        List<String> trail = new List<String>();
+        String whereClause = '';
+        if (r.whereTree != null) {
+            whereClause = ' WHERE ' + clause(b, r.whereTree, true);
+            trail.add(readable(r.whereTree, true));
+        }
+        for (ExplorePlan.TextMatch t : r.textMatches) {
+            trail.add(t.field.path + ' CONTAINS ' + t.text);
+        }
+        b.filters = trail.isEmpty() ? 'no filters' : String.join(trail, ' AND ');
+
+        String fromWhere = ' FROM ' + r.entry.name + whereClause;
         String soql = 'SELECT ' + String.join(selects, ', ') + fromWhere;
         if (!r.groupBy.isEmpty()) {
             List<String> groups = new List<String>();
@@ -195,16 +243,133 @@ public with sharing class ExploreQuery {
             }
             soql += ' GROUP BY ' + String.join(groups, ', ');
         }
+        if (!r.havingFilters.isEmpty()) {
+            List<String> parts = new List<String>();
+            for (ExplorePlan.ResolvedHaving h : r.havingFilters) {
+                String name = bind(b, h.bindValue);
+                parts.add(h.aggregate.expr + ' ' + h.op + ' :' + name);
+            }
+            soql += ' HAVING ' + String.join(parts, ' AND ');
+        }
         if (r.orderExpr != null) {
             soql += ' ORDER BY ' + r.orderExpr + (r.orderDir == 'DESC' ? ' DESC NULLS LAST' : ' ASC');
         }
-        if (r.rowLimit != null) {
+        if (!r.textMatches.isEmpty()) {
+            // Long text is matched in Apex, so read every candidate, up to the scan cap plus one to detect more.
+            soql += ' LIMIT ' + String.valueOf(textScan + 1);
+        } else if (r.rowLimit != null) {
             soql += ' LIMIT ' + String.valueOf(r.rowLimit);
         }
         b.soql = soql;
         b.labels = uniqueLabels(b.labels);
         b.countSoql = 'SELECT COUNT()' + fromWhere;
         return b;
+    }
+
+    private static String bind(Built b, Object value) {
+        String name = 'b' + b.next++;
+        b.binds.put(name, value);
+        return name;
+    }
+
+    /** (SELECT Id, fields FROM Relationship WHERE ... LIMIT n): relationship and paths from the catalog. */
+    private static String childSelect(Built b, ExplorePlan.ResolvedChild c) {
+        List<String> paths = new List<String>{ 'Id' };
+        Set<String> seen = new Set<String>{ 'Id' };
+        for (ExploreCatalog.Field f : c.fields) {
+            if (seen.add(f.path)) {
+                paths.add(f.path);
+            }
+        }
+        return 'SELECT ' + String.join(paths, ', ') + ' FROM ' + c.rel
+            + (c.whereTree == null ? '' : ' WHERE ' + clause(b, c.whereTree, true))
+            + ' LIMIT ' + String.valueOf(c.rowLimit);
+    }
+
+    /** A WHERE clause from the resolved tree. Groups are parenthesised; the root AND is not. */
+    private static String clause(Built b, ExplorePlan.Node n, Boolean root) {
+        if (n.kind == ExplorePlan.NODE_FILTER) {
+            return condition(b, n.filter);
+        }
+        if (n.kind == ExplorePlan.NODE_SUB) {
+            ExplorePlan.ResolvedSub s = n.sub;
+            return s.left.path + ' ' + s.op + ' (SELECT ' + s.right.path + ' FROM ' + s.entry.name
+                + (s.whereTree == null ? '' : ' WHERE ' + clause(b, s.whereTree, true)) + ')';
+        }
+        List<String> parts = new List<String>();
+        for (ExplorePlan.Node c : n.children) {
+            parts.add(clause(b, c, false));
+        }
+        if (n.kind == ExplorePlan.NODE_NOT) {
+            // A group child is already in parentheses; a single condition gets its own.
+            return parts.size() == 1 && n.children[0].kind != ExplorePlan.NODE_FILTER
+                ? '(NOT ' + parts[0] + ')'
+                : '(NOT (' + String.join(parts, ' AND ') + '))';
+        }
+        if (n.kind == ExplorePlan.NODE_OR) {
+            return '(' + String.join(parts, ' OR ') + ')';
+        }
+        return root ? String.join(parts, ' AND ') : '(' + String.join(parts, ' AND ') + ')';
+    }
+
+    /** The trail's readable form of the same tree. */
+    private static String readable(ExplorePlan.Node n, Boolean root) {
+        if (n.kind == ExplorePlan.NODE_FILTER) {
+            return n.filter.display;
+        }
+        if (n.kind == ExplorePlan.NODE_SUB) {
+            ExplorePlan.ResolvedSub s = n.sub;
+            return s.left.path + ' ' + s.op + ' (' + s.entry.name + ' ' + s.right.path
+                + (s.whereTree == null ? '' : ' where ' + readable(s.whereTree, true)) + ')';
+        }
+        List<String> parts = new List<String>();
+        for (ExplorePlan.Node c : n.children) {
+            parts.add(readable(c, false));
+        }
+        if (n.kind == ExplorePlan.NODE_NOT) {
+            return parts.size() == 1 && n.children[0].kind != ExplorePlan.NODE_FILTER
+                ? 'NOT ' + parts[0]
+                : 'NOT (' + String.join(parts, ' AND ') + ')';
+        }
+        if (n.kind == ExplorePlan.NODE_OR) {
+            return '(' + String.join(parts, ' OR ') + ')';
+        }
+        return root ? String.join(parts, ' AND ') : '(' + String.join(parts, ' AND ') + ')';
+    }
+
+    /** One condition, every value bound. */
+    private static String condition(Built b, ExplorePlan.ResolvedFilter f) {
+        String p = f.field.path;
+        if (f.literal != null) {
+            return p + ' ' + f.op + ' ' + f.literal;
+        }
+        Integer i = b.next++;
+        if (f.bindValueEnd != null) {
+            // A whole day on a Datetime field: a range, never a match on the one instant of midnight.
+            b.binds.put('b' + i, f.bindValue);
+            b.binds.put('e' + i, f.bindValueEnd);
+            return f.op == '='
+                ? '(' + p + ' >= :b' + i + ' AND ' + p + ' < :e' + i + ')'
+                : '(' + p + ' < :b' + i + ' OR ' + p + ' >= :e' + i + ' OR ' + p + ' = null)';
+        }
+        if (f.bindValueEnds != null) {
+            // IN on a Datetime field with date-only items: each one is a whole-day range.
+            List<Object> starts = (List<Object>) f.bindValue;
+            List<String> parts = new List<String>();
+            for (Integer j = 0; j < starts.size(); j++) {
+                b.binds.put('b' + i + '_' + j, starts[j]);
+                if (f.bindValueEnds[j] == null) {
+                    parts.add(p + ' = :b' + i + '_' + j);
+                } else {
+                    b.binds.put('e' + i + '_' + j, f.bindValueEnds[j]);
+                    parts.add('(' + p + ' >= :b' + i + '_' + j + ' AND ' + p + ' < :e' + i + '_' + j + ')');
+                }
+            }
+            String anyDay = '(' + String.join(parts, ' OR ') + ')';
+            return f.op == 'NOT IN' ? '(NOT ' + anyDay + ')' : anyDay;
+        }
+        b.binds.put('b' + i, f.bindValue);
+        return p + ' ' + (f.bindOp != null ? f.bindOp : f.op) + ' :b' + i;
     }
 
     /** Count, Sum of Amount, Average of Account Industry: no dots, no parentheses. */
@@ -229,14 +394,14 @@ public with sharing class ExploreQuery {
         return out;
     }
 
-    /** A field or one-level parent path off a record; null when the parent lookup is empty. */
+    /** A field or a parent path (one or two lookups) off a record; null when a lookup on the way is empty. */
     @TestVisible
     private static Object valueAt(SObject rec, String path) {
-        Integer dot = path.indexOf('.');
-        if (dot < 0) {
-            return rec.get(path);
+        List<String> parts = path.split('\\.');
+        SObject cur = rec;
+        for (Integer i = 0; i < parts.size() - 1 && cur != null; i++) {
+            cur = cur.getSObject(parts[i]);
         }
-        SObject parent = rec.getSObject(path.substring(0, dot));
-        return parent == null ? null : parent.get(path.substring(dot + 1));
+        return cur == null ? null : cur.get(parts[parts.size() - 1]);
     }
 }

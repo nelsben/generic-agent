@@ -33,7 +33,7 @@ private class ExplorePlanTest {
         Assert.areEqual(new List<String>{ 'The plan is missing.' }, ExplorePlan.validate(null));
         has(errors('not json'), 'The plan is not valid JSON.');
         has(errors('[1]'), 'The plan must be a JSON object.');
-        has(errors('{"object":"Account","fields":["Name"],"where":"x"}'), 'Unknown plan key "where".');
+        has(errors('{"object":"Account","fields":["Name"],"select":"x"}'), 'Unknown plan key "select".');
         has(errors('{"fields":["Name"]}'), 'Name one object in "object".');
         has(errors('{"object":"Account","fields":["Name"],"filters":{"a":1}}'), '"filters" must be a list.');
         has(errors('{"object":"Account","fields":["Name"],"filters":["x"]}'), 'Each filter must be an object');
@@ -54,10 +54,10 @@ private class ExplorePlanTest {
 
     @IsTest
     static void filterErrorsArePlainEnglish() {
-        has(filterErrors('{"field":"Description","op":"=","value":"x"}'), 'Description can\'t be used in a filter (long text).');
-        has(filterErrors('{"field":"Name","op":"CONTAINS","value":"x"}'), 'Unknown op "CONTAINS" on Name. Use one of: = != < <= > >= LIKE IN.');
-        has(filterErrors('{"field":"Name","op":"IN","value":"x"}'), 'IN on Name needs a non-empty list');
-        has(filterErrors('{"field":"Name","op":"IN","value":[]}'), 'IN on Name needs a non-empty list');
+        has(filterErrors('{"field":"Description","op":"=","value":"x"}'), 'Description is long text: use CONTAINS at the top level of "where"');
+        has(filterErrors('{"field":"Name","op":"NOT LIKE","value":"x"}'), 'Unknown op "NOT LIKE" on Name. Use one of: = != < <= > >= LIKE IN NOT IN CONTAINS.');
+        has(filterErrors('{"field":"Name","op":"IN","value":"x"}'), 'IN on Name needs a list of 1 to 200 values.');
+        has(filterErrors('{"field":"Name","op":"IN","value":[]}'), 'IN on Name needs a list of 1 to 200 values.');
         has(filterErrors('{"field":"Name","op":"IN","value":["a",null]}'), 'IN on Name can\'t contain null.');
         has(filterErrors('{"field":"Name","op":"IN","value":[["a"]]}'), 'Each value for Name must be a single value.');
         has(filterErrors('{"field":"Name","op":"=","value":["a"]}'), 'must be a single value; use IN for a list.');
@@ -105,7 +105,7 @@ private class ExplorePlanTest {
             'Plain fields and aggregates can\'t be mixed without groupBy.');
         has(errors('{"object":"Opportunity","fields":["Name"],"groupBy":["StageName"],"aggregates":[{"fn":"COUNT"}]}'),
             'Name is in fields but not in groupBy.');
-        has(errors('{"object":"Opportunity","groupBy":["Description"],"aggregates":[{"fn":"COUNT"}]}'), 'Description can\'t be used in groupBy.');
+        has(errors('{"object":"Opportunity","groupBy":["Description"],"aggregates":[{"fn":"COUNT"}]}'), 'Description can\'t be grouped.');
         has(errors('{"object":"Opportunity","aggregates":[{"fn":"MEDIAN","field":"Amount"}]}'), 'Unknown aggregate function "MEDIAN".');
         has(errors('{"object":"Opportunity","aggregates":[{"fn":"SUM","field":"Name"}]}'), 'SUM needs a number field; Name is string.');
         has(errors('{"object":"Opportunity","aggregates":[{"fn":"MAX","field":"Description"}]}'), 'Description can\'t be used with MAX.');
@@ -124,7 +124,7 @@ private class ExplorePlanTest {
     @IsTest
     static void orderByErrors() {
         has(errors('{"object":"Opportunity","fields":["Name"],"orderBy":{"field":"Amount","dir":"UP"}}'), 'orderBy dir must be ASC or DESC.');
-        has(errors('{"object":"Opportunity","fields":["Name"],"orderBy":{"field":"Description"}}'), 'Description can\'t be used in orderBy.');
+        has(errors('{"object":"Opportunity","fields":["Name"],"orderBy":{"field":"Description"}}'), 'Description can\'t be sorted.');
         has(errors('{"object":"Opportunity","fields":["Name"],"orderBy":{"field":"Nope"}}'), 'Unknown field "Nope"');
     }
 
@@ -136,5 +136,39 @@ private class ExplorePlanTest {
         }
         List<String> errs = ExplorePlan.validate(ExplorePlan.fromJson('{"object":"Account","fields":' + JSON.serialize(fields) + '}'));
         Assert.areEqual(10, errs.size());
+    }
+
+    // ---------------------------------------------------------------- BE-43: plan grammar v2
+
+    private static final String SEMI = '{"field":"Id","op":"IN","sub":{"object":"Case","field":"AccountId",'
+        + '"where":{"field":"IsClosed","op":"=","value":false}}}';
+
+    @IsTest
+    static void anOrGroupIsAccepted() {
+        Assert.areEqual('', errors('{"object":"Case","aggregates":[{"fn":"COUNT"}],"where":{"or":['
+            + '{"field":"Status","op":"=","value":"Escalated"},{"field":"Priority","op":"=","value":"High"}]}}'));
+    }
+
+    @IsTest
+    static void aTwoLevelParentPathIsAccepted() {
+        Assert.areEqual('', errors('{"object":"Opportunity","fields":["Name","Account.Owner.Name"],'
+            + '"where":{"field":"Account.Owner.Title","op":"!=","value":null}}'));
+    }
+
+    @IsTest
+    static void aSemiJoinIsAccepted() {
+        Assert.areEqual('', errors('{"object":"Account","fields":["Name"],"where":' + SEMI + '}'));
+    }
+
+    @IsTest
+    static void aThirdSemiJoinIsRefused() {
+        has(errors('{"object":"Account","fields":["Name"],"where":{"and":[' + SEMI + ',' + SEMI + ',' + SEMI + ']}}'),
+            'Use "sub" at most twice.');
+    }
+
+    @IsTest
+    static void orderByOnLongTextIsRefused() {
+        has(errors('{"object":"Account","fields":["Name"],"orderBy":{"field":"Description","dir":"ASC"}}'),
+            'Description can\'t be sorted.');
     }
 }
