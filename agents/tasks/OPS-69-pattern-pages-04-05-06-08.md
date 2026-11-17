@@ -4,7 +4,7 @@ title: Pattern pages 04, 05, 06, 08 diagrams restyled (4 blocks)
 domain: ops
 tier: standard
 effort: medium
-status: queued
+status: merged
 scope: [docs/patterns/04-model-provider-seam.md, docs/patterns/05-conversation-memory.md, docs/patterns/06-agent-routing-and-verbatim-relay.md, docs/patterns/08-test-and-release-lifecycle.md, tests/test_pattern_04.py, tests/test_pattern_05.py, tests/test_pattern_06.py, tests/test_pattern_08.py]
 forbid: [tests/pattern_shape.py, docs/patterns/_diagram-theme.md, docs/patterns/01-route-gather-reduce.md, docs/plans/**, docs/research/**, force-app/**, .chassis-delegation.json]
 red_test: none
@@ -29,3 +29,11 @@ Ben found the diagrams messy, hard to read and not customer facing. PR #302 set 
 - Do not edit tests/pattern_shape.py, docs/patterns/_diagram-theme.md or docs/patterns/01-route-gather-reduce.md.
 - bash scripts/check-docs.sh reports 0 broken and the unit test suite passes.
 - The hand-back lists, per diagram, old step count -> new step count and every prose step reference changed (file:line).
+
+## Review
+
+Brain review, 2026-11-17. Worker attempt 1 (sonnet) consistent, accepted as handed back.
+
+- Read the whole diff: the sequence blocks on pages 04, 05, 06 and 08 use the theme page snippet; step lists renumbered and cover 1..N once (10, 18, 20 and 20 steps); class and prompt names moved into the steps, and the page tests now assert them there. Privacy grep of the added lines: hits are code references only (an agent-script variable and a test package name).
+- Viewed every block on the pushed branch on GitHub (dark): phases, coral model calls and step badges read cleanly; no node under the pan and zoom buttons.
+- Gate green (unit suite, check-docs).
