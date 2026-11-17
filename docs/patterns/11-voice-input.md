@@ -25,44 +25,54 @@ The numbers in the diagram match the steps under it. No model is involved: recog
 is the shared one in [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the seller works
-        actor U as Seller
-        participant C as Composer, in the conversation
-        participant V as Voice input
+    actor Seller as Seller
+    participant Comp as Composer
+    participant Voice as Voice input
+    participant Browser as Browser speech recognition
+    rect rgba(59, 130, 246, 0.12)
+        Note over Voice: Listen
+        Seller->>Voice: Tap the mic
+        Voice->>Browser: Start listening
+        Browser-->>Voice: Recording started
+        Voice-->>Comp: Recording state on
     end
-    box rgb(247, 249, 252) The seller's browser
-        participant B as Browser speech recognition
+    rect rgba(16, 185, 129, 0.12)
+        Note over Voice: Transcribe
+        Browser-->>Voice: Interim and final text
+        Voice-->>Comp: Transcript so far
     end
-    rect rgb(225, 236, 252)
-        Note over U,B: Listen
-        U->>V: Tap the mic
-        V->>B: start, continuous, with interim results
-        B-->>V: recording started
-        V-->>C: recordingstate
-    end
-    rect rgb(222, 243, 230)
-        Note over C,B: Transcribe
-        B-->>V: interim and final text
-        V-->>C: transcriptupdate, transcriptfinal
-    end
-    rect rgb(253, 242, 214)
-        Note over U,B: Stop and review
-        U->>V: Tap again, or 3 s of silence
-        V->>B: stop
-        V-->>C: recordingstate
-        U->>C: Edit, then send
+    rect rgba(6, 182, 212, 0.12)
+        Note over Voice: Stop and review
+        Seller->>Voice: Tap again, or 3 s of silence
+        Voice->>Browser: Stop listening
+        Voice-->>Comp: Recording state off
+        Seller->>Comp: Edit, then send
     end
 ```
 
-Steps 1 to 4: the button calls `start()` on a new recognizer. The component asks for continuous recognition with interim
-results, in the user's locale with `en-US` as the fallback, and fires `recordingstate` when listening begins. Steps 5 and
-6: each result arrives as the full text so far. The component fires `transcriptupdate` with the whole transcript
-(finished words plus the words still being heard), and `transcriptfinal` when a finished phrase is added. Steps 7 to 9: a
-stop (the button, `stop()`, three seconds with no result, an error or the component leaving the page) ends recognition
-and fires `recordingstate`. Step 10: the seller sends from the composer, never from here.
+1. **Listen (steps 1 to 4).** The button calls `start()` on a new recognizer. The component asks for continuous
+   recognition with interim results, in the user's locale with `en-US` as the fallback, and fires `recordingstate`
+   when listening begins.
+2. **Transcribe (steps 5 and 6).** Each result arrives as the full text so far. The component fires `transcriptupdate`
+   with the whole transcript (finished words plus the words still being heard), and `transcriptfinal` when a finished
+   phrase is added.
+3. **Stop and review (steps 7 to 10).** A stop (the button, `stop()`, three seconds with no result, an error or the
+   component leaving the page) ends recognition and fires `recordingstate`. The seller then edits and sends from the
+   composer, never from here.
 
 The component's public surface:
 

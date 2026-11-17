@@ -32,56 +32,65 @@ The numbers in the diagram match the steps under it. The rail makes no model cal
 [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) The surface
-        actor U as Seller
-        participant P as Panel (utility bar)
-        participant R as Rail
-        participant C as Conversation
-        participant H as History timeline and sentiment chart
+    actor Seller as Seller
+    participant Panel as Panel
+    participant Rail as Rail
+    participant Conv as Conversation
+    participant Data as Salesforce records
+    rect rgba(59, 130, 246, 0.12)
+        Note over Panel: Open
+        Seller->>Panel: Cmd/Ctrl-Shift-K, or Expand
+        Panel->>Rail: Open the rail
+        Rail->>Data: Get the account's context
+        Rail-->>Panel: Rail is open
+        Panel->>Conv: Move it into the rail
+        Panel->>Conv: Focus the composer
     end
-    box rgb(247, 249, 252) Apex
-        participant A as CustomerSummaryContext
-        participant O as CustomerOutcomes
+    rect rgba(16, 185, 129, 0.12)
+        Note over Rail: Context
+        Data-->>Rail: Deals, cases, activity, summary
+        Rail->>Data: Read the outcomes
+        Data-->>Rail: Outcomes the seller may see
+        Seller->>Rail: Click a deal, case or activity
+        Rail-->>Panel: Ask to open the record
+        Panel-->>Seller: Show the record page
     end
-    rect rgb(225, 236, 252)
-        Note over U,A: Open
-        U->>P: Cmd/Ctrl-Shift-K, or Expand
-        P->>R: open(sessionId, source)
-        R->>A: getContext(accountId)
-        R-->>P: railopen
-        P->>C: move into the rail, same session
-        P->>C: focusComposer()
-    end
-    rect rgb(222, 243, 230)
-        Note over U,A: Context
-        A-->>R: deals, activity, cases, last summary
-        R->>H: draw for the rail's account
-        H->>O: listOutcomes(accountId)
-        O-->>H: the outcomes, text only where the seller may see it
-        U->>R: click a deal, case or activity
-        R-->>P: railopenrecord
-        P->>P: Navigate to the record page
-    end
-    rect rgb(234, 238, 242)
-        Note over U,C: Close
-        U->>R: Esc or Close
-        R-->>P: railclose
-        P->>C: move back into the window
+    rect rgba(6, 182, 212, 0.12)
+        Note over Rail: Close
+        Seller->>Rail: Esc or Close
+        Rail-->>Panel: Rail is closed
+        Panel->>Conv: Move it back to the window
     end
 ```
 
-Steps 1 to 6: the panel (`customerSummaryPanel`) owns the rail (`customerSummaryRail`) and opens it. The key is caught
-by a document listener and by a capture listener on the panel's stage, because the composer stops most keys before they
-reach the document. The rail calls `getContext` first and draws while the call is on its way; the panel then moves the
-one conversation element into the rail's slot and puts focus in the composer. Step 7: the context arrives and fills
-four sections. Steps 8 to 10: under them, the history timeline and the sentiment chart read the account's outcomes (see
-[The history and the trend](#the-history-and-the-trend)). Steps 11 to 13: a click on a row asks the panel to open the
-record: the rail lives on the stage the panel moved onto `document.body`, outside the page's navigation context, so the
-panel (which stays in the utility bar) does the navigation. Steps 14 to 16: Esc or Close puts the conversation back in
-the compact window and focus back where the key was pressed.
+1. **Open (steps 1 to 6).** The panel (`customerSummaryPanel`) owns the rail (`customerSummaryRail`) and opens it,
+   and the rail fires `railopen` back. The key is caught by a document listener and by a capture listener on the
+   panel's stage, because the composer stops most keys before they reach the document. The rail calls
+   `CustomerSummaryContext.getContext` first and draws while the call is on its way; the panel then moves the one
+   conversation element into the rail's slot and puts focus in the composer.
+2. **The context arrives (step 7).** `CustomerSummaryContext` returns the context and the rail fills four sections.
+3. **History and sentiment (steps 8 and 9).** Under them, the history timeline and the sentiment chart draw for the
+   rail's account and read its outcomes through `CustomerOutcomes` (`listOutcomes(accountId)`; see
+   [The history and the trend](#the-history-and-the-trend)).
+4. **Open a record (steps 10 to 12).** A click on a row fires `railopenrecord`, which asks the panel to open the record:
+   the rail lives on the stage the panel moved onto `document.body`, outside the page's navigation context, so the
+   panel (which stays in the utility bar) does the navigation.
+5. **Close (steps 13 to 15).** Esc or Close fires `railclose`, and the panel puts the conversation back in the compact
+   window and focus back where the key was pressed.
 
 ### How it opens
 

@@ -29,48 +29,54 @@ The numbers in the diagram match the steps under it. The coral block is the mode
 in [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) The surface
-        participant P as Panel
+    actor Rep as Sales rep
+    participant Panel as Panel
+    participant Brand as Brand settings
+    participant Sum as Summary or explorer
+    participant AI as AI model
+    rect rgba(59, 130, 246, 0.12)
+        Note over Panel: Brand the panel
+        Panel->>Brand: Read the brand
+        Brand-->>Panel: Name, logo, colours, fonts
+        Panel-->>Rep: Show the logo and name
     end
-    box rgb(247, 249, 252) Apex
-        participant B as BrandSettings
-        participant S as Summary or explorer
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant M as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over P,B: Brand the panel
-        P->>B: getSettings(), cacheable
-        B-->>P: agent name, company, logo URL, colours, fonts, radius, tone
-        P->>P: set the brand variables on its host, show the logo and name
-    end
-    rect rgb(222, 243, 230)
-        Note over B,M: Brand the prompts
-        S->>B: promptLines()
-        B-->>S: the Company line and the Tone line
-        rect rgb(255, 214, 204)
-            S->>M: the prompt file's system text, then the two lines
-            M-->>S: summary or answer
+    rect rgba(16, 185, 129, 0.12)
+        Note over Sum: Brand the prompts
+        Sum->>Brand: Ask for the two lines
+        Brand-->>Sum: Company line, Tone line
+        rect rgba(244, 114, 82, 0.22)
+            Sum->>AI: System text plus two lines
+            AI-->>Sum: Summary or answer
         end
     end
 ```
 
-- **Steps 1 and 2:** the panel reads the brand through one cacheable Apex method,
-  `BrandSettings.getSettings()`. It reads the `Default` record of the custom metadata type
-  `Brand_Setting__mdt`. A blank field, a missing record or a value that is not safe to put in a
-  style falls back to a neutral default (the defaults are the values in the shipped record).
-- **Step 3:** the panel sets seven CSS variables as inline custom properties on its host:
-  `--cs-color-primary`, `--cs-color-accent`, `--cs-color-surface`, `--cs-color-ink`,
-  `--cs-font-display`, `--cs-font-body` and `--cs-radius`. Its stylesheet reads only those, each
-  with a neutral fallback, so the panel still looks right before the brand arrives or if the read
-  fails. The header shows the logo and the agent name; the empty state names the company.
-- **Steps 4 to 7:** the account summary's final step and the explorer each add the same two lines
-  after their prompt file's own system text: `Company: the user works at <company>.` and
-  `Tone: <tone>`. The prompt files themselves are not changed.
+1. **Read the brand (steps 1 and 2).** The panel reads the brand through one cacheable Apex method,
+   `BrandSettings.getSettings()`. It reads the `Default` record of the custom metadata type
+   `Brand_Setting__mdt`. A blank field, a missing record or a value that is not safe to put in a
+   style falls back to a neutral default (the defaults are the values in the shipped record).
+2. **Brand the panel (step 3).** The panel sets seven CSS variables as inline custom properties on its host:
+   `--cs-color-primary`, `--cs-color-accent`, `--cs-color-surface`, `--cs-color-ink`,
+   `--cs-font-display`, `--cs-font-body` and `--cs-radius`. Its stylesheet reads only those, each
+   with a neutral fallback, so the panel still looks right before the brand arrives or if the read
+   fails. The header shows the logo and the agent name; the empty state names the company.
+3. **Brand the prompts (steps 4 to 7).** The account summary's final step and the explorer each ask
+   `BrandSettings.promptLines()` for two lines and add them after their prompt file's own system text, in the
+   model call: `Company: the user works at <company>.` and `Tone: <tone>`. The prompt files themselves are not changed.
 
 ## Swap the brand: step by step
 
