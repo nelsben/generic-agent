@@ -182,9 +182,13 @@ From Ben's notes on pattern 01 (F49). Every Mermaid diagram in the repo follows 
 - **Colour that carries meaning.** Shaded `rect` blocks group the phases (for example route, gather, reduce), each in
   its own soft tint, with a `Note` naming the phase. Participants are grouped with `box` where it helps (the page, Apex,
   the model). Model calls use one accent colour everywhere, so a reader sees at a glance where a model is involved.
-- **Type and theme.** An `%%{init: ...}%%` block sets the theme variables and the font family once per diagram, from
-  one shared snippet so every page matches. Colours keep text at WCAG AA contrast and read in both GitHub's light and
-  dark themes.
+- **Type and theme.** One shared snippet sets the type and layout for every diagram, so every page matches, and text
+  keeps WCAG AA contrast in both GitHub's light and dark themes. *Brain-recorded 2026-11-17, on Ben's ask that the
+  diagrams be legible and customer facing ("they are messy hard to read, and not customer facing"):* the snippet is
+  now a `config` frontmatter block with no fixed theme, so GitHub draws each diagram in its own light or dark palette;
+  phases use translucent tints with a slate chip naming each one; lifelines are at most five, in plain business words,
+  with no `box` (the lifeline names say the layer); messages are short, and class and prompt names move to the
+  numbered steps under the diagram. [_diagram-theme.md](../patterns/_diagram-theme.md) holds the snippets and rules.
 - **Checked on GitHub.** A diagram counts as done only when it renders on GitHub (the GitHub markdown API or the pushed
   page), not just in a local preview.
 

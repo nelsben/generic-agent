@@ -1,74 +1,152 @@
 # Diagram theme
 
-The one theme every Mermaid diagram on the pattern pages copies, so the chapters match. The rules it serves are in
-[fr2-design.md](../plans/fr2-design.md#diagrams): numbered steps, colour that carries meaning, one theme, checked on
-GitHub. `tests/pattern_shape.py` reads the `%%{init: ...}%%` line below and checks that every sequence diagram on a
-chapter page carries it, word for word, and starts with `autonumber`.
+The one style every Mermaid diagram in the repo copies, so the pages match and every diagram reads in GitHub's light
+and dark themes. The rules it serves are in [fr2-design.md](../plans/fr2-design.md#diagrams). `tests/pattern_shape.py`
+reads the two snippets below and checks each diagram against them and against the rules in [The rules](#the-rules).
 
-## The snippet
+GitHub draws Mermaid 12 (checked with an `info` block on a pushed page in November 2026). These choices were picked
+on a scratch branch by viewing each one on GitHub in both themes:
 
-Put this line first in every diagram, before `sequenceDiagram` or `flowchart`:
+- **No `theme` is set.** GitHub then draws each diagram in its own light or dark palette, so lifelines, arrows, step
+  badges and labels always contrast with the page. A fixed theme cannot do that: a light theme left dark text on
+  GitHub's dark background, and the earlier opaque light fills made dark mode a patchwork of bright boxes.
+- **Phase tints are translucent** (`rgba`, 12 to 22 percent), so the same tint reads on white and on near-black.
+- **Phase names are slate chips with white text**, drawn by one `themeCSS` rule, at 10:1 contrast in both themes.
+- **Settings go in a `config` frontmatter block**, which replaced the `%%{init}%%` line (deprecated since Mermaid
+  10.5).
+
+## The snippets
+
+Put this block first in every sequence diagram, before `sequenceDiagram`:
 
 ```text
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 ```
+
+Put this block first in every flowchart, before `flowchart`, and copy only the `classDef` lines below that the
+diagram uses:
+
+```text
+---
+config:
+  layout: dagre
+  flowchart:
+    curve: basis
+    nodeSpacing: 40
+    rankSpacing: 55
+    wrappingWidth: 220
+    padding: 14
+---
+```
+
+```text
+    classDef surface fill:#E8F1FD,stroke:#0B5CAB,color:#0B2A4A,stroke-width:1.5px
+    classDef core fill:#0B5CAB,stroke:#0B5CAB,color:#FFFFFF,stroke-width:1.5px
+    classDef apex fill:#E6F6EE,stroke:#2E844A,color:#0B2A1A,stroke-width:1.5px
+    classDef model fill:#FDE9E3,stroke:#C2410C,color:#4A1A08,stroke-width:1.5px
+    classDef later fill:#FFFFFF,stroke:#8A96AD,color:#3A4456,stroke-dasharray:4 3
+    classDef zone fill:#8A96AD14,stroke:#8A96AD,stroke-width:1px,stroke-dasharray:5 4
+```
+
+## The rules
+
+Sequence diagrams (the test checks every rule marked *checked*):
+
+1. **The snippet, then `autonumber`** (*checked*). Every message gets a number, and the numbered list under the diagram
+   names every number once, as "(step 4)", "(steps 4 and 5)" or "(steps 4 to 7)" (*checked*).
+2. **At most five lifelines** (*checked*), named in plain business words: "Sales rep", "Customer Summary",
+   "Salesforce records", "AI model", "Memory". Class, object and prompt names belong in the numbered steps under the
+   diagram, not in the diagram. No `box` (*checked*): the lifeline names already say which layer is which.
+3. **Short messages** (*checked*: at most 32 characters each). A message says what happens in a few words ("Read 7
+   sections"); the detail goes in the steps. No message from a lifeline to itself (*checked*): say it in the steps, or
+   send it to the lifeline that does the work.
+4. **Every message sits in a phase.** Each phase is one `rect` in its tint below, opened by one
+   `Note over <one lifeline>: <Phase name>` (*checked*: one lifeline, at most 24 characters), which draws as a slate
+   chip. The opening ask and the closing answer may sit outside a phase.
+5. **Model calls in coral.** Each model call and its reply sit in a coral `rect` nested inside their phase. Coral means
+   a model is involved, and nothing else is coral.
+6. **`alt`, `loop` and `opt` sparingly.** GitHub draws their frames in its own palette; one per diagram at most.
+
+Flowcharts:
+
+1. **The snippet**, then `flowchart TB` or `flowchart LR` (*checked*), and the `classDef` lines above for colour: `core`
+   for Customer Summary itself, `surface` for where people work, `apex` for code and records in Salesforce, `model`
+   for the AI model, `later` for something planned or optional, `zone` for every `subgraph`.
+2. **Short node text**: a name and, at most, one short line under it.
+3. **Keep the bottom-right corner clear.** GitHub lays its pan and zoom buttons over it; a node there is hidden.
 
 ## The colours
 
-Every fill is opaque and light, and all text is dark ink (`#1B2233`), so text sits on a light fill in GitHub's light
-and dark themes alike, at well above WCAG AA contrast. Keep every message inside a phase `rect` and every participant
-inside a `box`: a message left outside would draw dark text on GitHub's dark background.
+| Use | Mermaid |
+| --- | --- |
+| Phase: route, or the first phase | `rect rgba(59, 130, 246, 0.12)` |
+| Phase: gather, or the second phase | `rect rgba(16, 185, 129, 0.12)` |
+| Phase: pre-reduce, or the third phase | `rect rgba(6, 182, 212, 0.12)` |
+| Phase: reduce, or the fourth phase | `rect rgba(139, 92, 246, 0.12)` |
+| Phase: remember, or the closing phase | `rect rgba(100, 116, 139, 0.12)` |
+| **Model call (the one accent)** | `rect rgba(244, 114, 82, 0.22)`, nested inside the phase |
 
-| Use | Colour | Mermaid |
-| --- | --- | --- |
-| Phase: route | light blue | `rect rgb(225, 236, 252)` |
-| Phase: gather | light green | `rect rgb(222, 243, 230)` |
-| Phase: pre-reduce | light amber | `rect rgb(253, 242, 214)` |
-| Phase: reduce | light lavender | `rect rgb(238, 232, 250)` |
-| Phase: remember, or any closing phase | light grey | `rect rgb(234, 238, 242)` |
-| **Model call (the one accent)** | coral | `rect rgb(255, 214, 204)`, nested inside the phase around each model call |
-| Box: a surface or Apex layer | near white | `box rgb(247, 249, 252) <layer name>` |
-| Box: the model layer | light coral | `box rgb(255, 236, 230) <layer name>` |
-
-A later chapter with other phases (for example draft, confirm, commit) reuses these tints in order and keeps coral for
-model calls only. Each phase opens with a `Note` that names it.
+A chapter with other phases (for example draft, confirm, commit) uses these tints in order and keeps coral for model
+calls only.
 
 ## Example
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) The surface
-        actor U as Rep
+    actor Rep as Sales rep
+    participant App as Customer Summary
+    participant Data as Salesforce records
+    participant AI as AI model
+    Rep->>App: Summarize Edge Communications
+    rect rgba(16, 185, 129, 0.12)
+        Note over App: Gather
+        App->>Data: Read 7 sections
+        Data-->>App: Capped text per section
     end
-    box rgb(247, 249, 252) Apex
-        participant A as Service
-    end
-    box rgb(255, 236, 230) The model
-        participant L as Model
-    end
-    rect rgb(222, 243, 230)
-        Note over U,A: Gather
-        U->>A: ask
-        A->>A: read records in the rep's access
-    end
-    rect rgb(238, 232, 250)
-        Note over A,L: Reduce
-        rect rgb(255, 214, 204)
-            A->>L: one focused prompt
-            L-->>A: text
+    rect rgba(139, 92, 246, 0.12)
+        Note over App: Reduce
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: Write the summary
+            AI-->>App: Headline and six sections
         end
-        A-->>U: answer
     end
+    App-->>Rep: Summary card
 ```
+
+1. **Ask (step 1).** The rep names an account.
+2. **Gather (steps 2 and 3).** Code reads each section in the rep's own access.
+3. **Reduce and answer (steps 4 to 6).** One model call writes the summary from those sections only.
 
 ## Render check
 
 The design rule asks for a check that a diagram renders on GitHub. **In OPS-44 the script below ran locally:**
 Mermaid 11.4.1 in the Chromium that the repo's Playwright installs printed `FAIL` for the broken sample's second block
 and `ok` for its first, then `ok` for every diagram on pages 01 and 06. That is a local parse and render, not a GitHub
-render: how the diagrams draw on GitHub, in its light and dark themes, is still unchecked. In OPS-38 no check could be
+render. How the diagrams draw on GitHub is checked by viewing the pushed page in a browser in both themes. In OPS-38 no check could be
 made to fail. What was tried there:
 
 1. **The GitHub markdown API** (`gh api markdown`) returns a mermaid block as its source, without parsing it. A broken
@@ -79,8 +157,8 @@ made to fail. What was tried there:
    into headless Chromium and calls `mermaid.parse` and `mermaid.render` on every block. In the OPS-38 session the
    permission policy refused to run it (a browser loading a script from a CDN), so it was never shown to fail.
 
-What `tests/pattern_shape.py` does check is structure only: the theme line, `autonumber`, the H1 and the H2 parts. It
-does not parse Mermaid.
+What `tests/pattern_shape.py` does check is structure only: the snippets, `autonumber`, the rules marked *checked*
+above, the H1 and the H2 parts. It does not parse Mermaid.
 
 **The Mermaid CDN render check is held until Ben answers (OPS-61).** Do not run it before then. Once he does,
 save the script below as a file outside the repo, run it from the repo root on the broken sample, and trust it only
