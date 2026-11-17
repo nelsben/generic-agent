@@ -4,7 +4,7 @@ title: README and ARCHITECTURE diagrams restyled (6 blocks)
 domain: ops
 tier: standard
 effort: medium
-status: queued
+status: merged
 scope: [README.md, docs/ARCHITECTURE.md, tests/test_readme_fr2.py, tests/test_architecture_doc.py]
 forbid: [tests/pattern_shape.py, docs/patterns/_diagram-theme.md, docs/patterns/01-route-gather-reduce.md, docs/plans/**, docs/research/**, force-app/**, .chassis-delegation.json]
 red_test: none
@@ -29,3 +29,12 @@ Ben found the diagrams messy, hard to read and not customer facing. PR #302 set 
 - Do not edit tests/pattern_shape.py, docs/patterns/_diagram-theme.md or docs/patterns/01-route-gather-reduce.md.
 - bash scripts/check-docs.sh reports 0 broken and the unit test suite passes.
 - The hand-back lists, per diagram, old step count -> new step count and every prose step reference changed (file:line).
+
+## Review
+
+Brain review, 2026-11-17. Worker attempt 1 (sonnet) consistent; the brain added two commits.
+
+- Read the whole diff: 6 blocks in README.md and docs/ARCHITECTURE.md now use the theme page snippets; step lists cover 1..N once; names that left the diagrams are in the steps. Privacy grep of the added lines: 0 hits.
+- Brain fix 1: ARCHITECTURE phase tints now match page 01 (Reduce violet, Remember slate); two sentences about the diagram itself removed from the steps.
+- Brain fix 2: the component flowchart (same block on both pages) was a tall, crossing layout with the AI model node under GitHub's pan and zoom buttons. Redrawn top-down: frames and other callers, one shared conversation node, the Apex zone, the AI model to the side. Viewed on GitHub (dark): reads in one pass, corner clear.
+- Viewed every block on the pushed branch on GitHub. Gate green (unit suite, check-docs).
