@@ -68,36 +68,45 @@ The component diagram shows the shared conversation core and the frames around i
 [_diagram-theme.md](patterns/_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  layout: dagre
+  flowchart:
+    curve: basis
+    nodeSpacing: 40
+    rankSpacing: 55
+    wrappingWidth: 220
+    padding: 14
+---
 flowchart TB
-    subgraph FR["Frames: they own the key, the corner and hiding"]
+    subgraph FR["Frames"]
         direction LR
         CW["Compact window<br/>customerSummaryPanel"]
         RR["Right rail<br/>customerSummaryRail"]
         EM["Embedded surface<br/>not built"]
     end
-    subgraph CORE["Shared conversation core: customerSummaryConversation"]
+    subgraph CORE["Shared conversation"]
         direction LR
         TH["Thread and composer"]
         VO["Voice input"]
-        CA["Cards<br/>customerSummaryCard"]
+        CA["Cards"]
         HI["History"]
     end
     subgraph APX["Apex, in the rep's access"]
         direction LR
-        PC["CustomerSummaryPanelController"]
-        SK["Skill services<br/>CustomerSummary, DataExplorer,<br/>CustomerSummaryActions"]
-        AC["AnswerCard<br/>the card contract"]
-        ST["Memory and outcomes<br/>CustomerSummaryMemory,<br/>CustomerOutcomes"]
-        BR["BrandSettings"]
+        PC["Panel controller"]
+        SK["Skill services"]
+        AC["Card contract"]
+        ST["Memory and outcomes"]
+        BR["Brand settings"]
     end
-    subgraph MODEL["The model, through the trust layer"]
-        LLM["AgentLlm<br/>and the model"]
+    subgraph MODEL["Through the trust layer"]
+        LLM["AI model"]
     end
-    subgraph OUT["Other callers of the same Apex actions"]
+    subgraph OUT["Other callers"]
         direction LR
-        MCP["Outside door over MCP"]
-        AG["Optional agent<br/>add-on and test bench"]
+        MCP["Outside door<br/>over MCP"]
+        AG["Optional agent<br/>and test bench"]
     end
     CW --> CORE
     RR --> CORE
@@ -110,74 +119,79 @@ flowchart TB
     BR -.-> CORE
     BR -.-> LLM
     MCP --> SK
-    AG --> SK
-    classDef frame fill:#EEF2FA,stroke:#4A5D85,color:#1B2233
-    classDef apex fill:#DEF3E6,stroke:#4A5D85,color:#1B2233
-    classDef model fill:#FFD6CC,stroke:#4A5D85,color:#1B2233
-    classDef later fill:#FFFFFF,stroke:#8A96AD,color:#1B2233,stroke-dasharray: 4 3
-    class CW,RR,TH,VO,CA,HI frame
-    class PC,SK,AC,ST,BR,MCP,AG apex
+    AG -.-> SK
+    classDef surface fill:#E8F1FD,stroke:#0B5CAB,color:#0B2A4A,stroke-width:1.5px
+    classDef core fill:#0B5CAB,stroke:#0B5CAB,color:#FFFFFF,stroke-width:1.5px
+    classDef apex fill:#E6F6EE,stroke:#2E844A,color:#0B2A1A,stroke-width:1.5px
+    classDef model fill:#FDE9E3,stroke:#C2410C,color:#4A1A08,stroke-width:1.5px
+    classDef later fill:#FFFFFF,stroke:#8A96AD,color:#3A4456,stroke-dasharray:4 3
+    classDef zone fill:#8A96AD14,stroke:#8A96AD,stroke-width:1px,stroke-dasharray:5 4
+    class CW,RR,MCP surface
+    class TH,VO,CA,HI core
+    class PC,SK,AC,ST,BR apex
     class LLM model
-    class EM later
+    class EM,AG later
+    class FR,CORE,APX,MODEL,OUT zone
 ```
 
 The sequence diagram follows one question from a surface to an answer with cards. The numbers match the steps under it.
 The coral block is the model calls; everything else is the browser and deterministic Apex.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) The surface
-        actor U as Seller or service rep
-        participant S as Frame and conversation
+    actor Rep as Sales rep
+    participant App as Customer Summary
+    participant Data as Salesforce records
+    participant AI as AI model
+    participant Mem as Memory
+    rect rgba(59, 130, 246, 0.12)
+        Note over App: Route
+        Rep->>App: Ask in words, chip or voice
     end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant C as CustomerSummaryPanelController
-        participant K as Skill service
-        participant M as Memory and outcomes
+    rect rgba(16, 185, 129, 0.12)
+        Note over App: Gather
+        App->>Data: Read records as the rep
+        Data-->>App: Records the rep can see
     end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,C: Route
-        U->>S: ask in words, a chip or by voice
-        S->>C: the question and the open record
-    end
-    rect rgb(222, 243, 230)
-        Note over C,K: Gather
-        C->>K: the skill's one service
-        K->>K: read records in user mode, build the context
-    end
-    rect rgb(238, 232, 250)
-        Note over K,L: Reduce
-        rect rgb(255, 214, 204)
-            K->>L: focused prompts, up to 4 model calls for a summary
-            L-->>K: text
+    rect rgba(6, 182, 212, 0.12)
+        Note over App: Reduce
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: Up to 4 focused prompts
+            AI-->>App: Text
         end
-        K->>K: build the cards and their plain text
     end
-    rect rgb(234, 238, 242)
-        Note over K,U: Remember and answer
-        K->>M: save the turn and the outcome, once, after every model call
-        K-->>C: the answer as cards
-        C-->>S: cards and text
-        S-->>U: cards drawn in the thread
+    rect rgba(139, 92, 246, 0.12)
+        Note over App: Remember and answer
+        App->>Mem: Save the turn, once
+        App-->>Rep: Cards drawn in the thread
     end
 ```
 
-1. **Ask.** The rep types, speaks or taps a chip. The conversation sends the question and the open record to the
-   controller.
-2. **Route.** The controller hands the request to the one service for the skill it asks for: a summary, a question or
-   an action.
-3. **Gather.** The service reads records in user mode and builds its context. No model is involved.
-4. **Reduce.** Focused prompts condense the noisy parts and write the answer from what was gathered. For a summary that
-   is up to 4 model calls; its synthesis prompt is `AgentPrompt_SummarySynthesis`.
-5. **Cards.** The service builds the cards and their plain text from data it already holds.
-6. **Remember.** The turn and the outcome are saved once, after every model call. A failed save is logged and the
-   answer still returns.
-7. **Answer.** The controller returns the cards and the surface draws them in the thread.
+1. **Ask and route (step 1).** The rep types, speaks or taps a chip. The conversation sends the question and the open
+   record to the controller (`CustomerSummaryPanelController`), which hands the request to the one service for the
+   skill it asks for: a summary, a question or an action. No message of its own is drawn for the hand-off.
+2. **Gather (steps 2 and 3).** The service reads records in user mode and builds its context. No model is involved.
+3. **Reduce (steps 4 and 5).** Focused prompts condense the noisy parts and write the answer from what was gathered.
+   For a summary that is up to 4 model calls; its synthesis prompt is `AgentPrompt_SummarySynthesis`, and `AgentLlm`
+   is the door to the model.
+4. **Cards.** The service builds the cards and their plain text from data it already holds. This step sends no
+   message, so it has no number.
+5. **Remember (step 6).** The turn and the outcome are saved once, after every model call, by the memory and outcomes
+   classes (`CustomerSummaryMemory`, `CustomerOutcomes`). A failed save is logged and the answer still returns.
+6. **Answer (step 7).** The controller returns the cards and the surface draws them in the thread.
 
 ## The two memories
 

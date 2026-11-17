@@ -99,36 +99,45 @@ The frames own the key, the corner and hiding; everything inside is one conversa
 dashed because it is not built. MCP and the optional agent call the same Apex actions.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  layout: dagre
+  flowchart:
+    curve: basis
+    nodeSpacing: 40
+    rankSpacing: 55
+    wrappingWidth: 220
+    padding: 14
+---
 flowchart TB
-    subgraph FR["Frames: they own the key, the corner and hiding"]
+    subgraph FR["Frames"]
         direction LR
         CW["Compact window<br/>customerSummaryPanel"]
         RR["Right rail<br/>customerSummaryRail"]
-        EM["Embedded surface<br/>placeholder, not built"]
+        EM["Embedded surface<br/>not built"]
     end
-    subgraph CORE["Shared conversation core: customerSummaryConversation"]
+    subgraph CORE["Shared conversation"]
         direction LR
         TH["Thread and composer"]
         VO["Voice input"]
-        CA["Cards<br/>customerSummaryCard"]
+        CA["Cards"]
         HI["History"]
     end
     subgraph APX["Apex, in the rep's access"]
         direction LR
-        PC["CustomerSummaryPanelController"]
-        SK["Skill services<br/>CustomerSummary, DataExplorer,<br/>CustomerSummaryActions"]
-        AC["AnswerCard<br/>the card contract"]
-        ST["Memory and outcomes<br/>CustomerSummaryMemory,<br/>CustomerOutcomes"]
-        BR["BrandSettings"]
+        PC["Panel controller"]
+        SK["Skill services"]
+        AC["Card contract"]
+        ST["Memory and outcomes"]
+        BR["Brand settings"]
     end
-    subgraph MODEL["The model, through the trust layer"]
-        LLM["AgentLlm<br/>and the model"]
+    subgraph MODEL["Through the trust layer"]
+        LLM["AI model"]
     end
-    subgraph OUT["Other callers of the same Apex actions"]
+    subgraph OUT["Other callers"]
         direction LR
-        MCP["Outside door over MCP"]
-        AG["Optional agent<br/>add-on and test bench"]
+        MCP["Outside door<br/>over MCP"]
+        AG["Optional agent<br/>and test bench"]
     end
     CW --> CORE
     RR --> CORE
@@ -141,15 +150,19 @@ flowchart TB
     BR -.-> CORE
     BR -.-> LLM
     MCP --> SK
-    AG --> SK
-    classDef frame fill:#EEF2FA,stroke:#4A5D85,color:#1B2233
-    classDef apex fill:#DEF3E6,stroke:#4A5D85,color:#1B2233
-    classDef model fill:#FFD6CC,stroke:#4A5D85,color:#1B2233
-    classDef later fill:#FFFFFF,stroke:#8A96AD,color:#1B2233,stroke-dasharray: 4 3
-    class CW,RR,TH,VO,CA,HI frame
-    class PC,SK,AC,ST,BR,MCP,AG apex
+    AG -.-> SK
+    classDef surface fill:#E8F1FD,stroke:#0B5CAB,color:#0B2A4A,stroke-width:1.5px
+    classDef core fill:#0B5CAB,stroke:#0B5CAB,color:#FFFFFF,stroke-width:1.5px
+    classDef apex fill:#E6F6EE,stroke:#2E844A,color:#0B2A1A,stroke-width:1.5px
+    classDef model fill:#FDE9E3,stroke:#C2410C,color:#4A1A08,stroke-width:1.5px
+    classDef later fill:#FFFFFF,stroke:#8A96AD,color:#3A4456,stroke-dasharray:4 3
+    classDef zone fill:#8A96AD14,stroke:#8A96AD,stroke-width:1px,stroke-dasharray:5 4
+    class CW,RR,MCP surface
+    class TH,VO,CA,HI core
+    class PC,SK,AC,ST,BR apex
     class LLM model
-    class EM later
+    class EM,AG later
+    class FR,CORE,APX,MODEL,OUT zone
 ```
 
 ### Ask from the rail
@@ -158,167 +171,171 @@ The numbers match the steps under the diagram. The coral blocks are the model ca
 and deterministic Apex.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant R as Right rail
-        participant C as Conversation
+    actor Rep as Sales rep
+    participant App as Customer Summary
+    participant Data as Salesforce records
+    participant AI as AI model
+    participant Mem as Memory
+    rect rgba(59, 130, 246, 0.12)
+        Note over App: Open and ask
+        Rep->>App: Open the rail, Cmd/Ctrl-Shift-K
+        Rep->>App: Type or speak a question
     end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant A as CustomerSummaryPanelController
-        participant D as DataExplorer
-        participant M as Memory and outcomes
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,A: Open and ask
-        U->>R: Cmd/Ctrl-Shift-K, or Expand
-        R->>C: the same conversation moves into the rail
-        U->>C: types or speaks the next question
-        C->>A: explore, with the question, the record in view and the last turns
-    end
-    rect rgb(222, 243, 230)
-        Note over A,L: Plan and check
-        A->>D: explore
-        rect rgb(255, 214, 204)
-            D->>L: the question and the catalog
-            L-->>D: one JSON query plan
+    rect rgba(16, 185, 129, 0.12)
+        Note over App: Plan and check
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: The question and the catalog
+            AI-->>App: One JSON query plan
         end
-        D->>D: check every name against the catalog
     end
-    rect rgb(253, 242, 214)
-        Note over A,D: Run in the rep's access
-        D->>D: bound SOQL in user mode, capped rows
+    rect rgba(6, 182, 212, 0.12)
+        Note over App: Run in the rep's access
+        App->>Data: Bound SOQL, capped rows
+        Data-->>App: Rows and their total
     end
-    rect rgb(238, 232, 250)
-        Note over D,L: Answer
-        rect rgb(255, 214, 204)
-            D->>L: the rows and the total
-            L-->>D: the answer and next questions
+    rect rgba(139, 92, 246, 0.12)
+        Note over App: Answer
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: The rows and the total
+            AI-->>App: Answer and next questions
         end
-        D-->>A: answer, rows and cards
     end
-    rect rgb(234, 238, 242)
-        Note over U,M: Remember and show
-        A->>M: save the turn
-        A-->>C: the result
-        C-->>U: cards in the thread, next questions as chips
+    rect rgba(100, 116, 139, 0.12)
+        Note over App: Remember and show
+        App->>Mem: Save the turn
+        App-->>Rep: Cards and next-question chips
     end
 ```
 
-1. **Open and ask (steps 1 to 4).** The rail opens over the page and the one conversation moves into it, thread
-   intact. The rep types or speaks; the conversation sends the question, the record in view and the last turns.
-2. **Plan and check (steps 5 to 8).** The model answers with a small query plan, never SOQL. Apex checks every object
-   and field in it against the catalog.
-3. **Run (step 9).** Apex builds the query from catalog paths only, binds every value and runs it as the rep.
-4. **Answer (steps 10 to 12).** The model answers from the rows it was shown, and Apex builds the cards.
-5. **Remember and show (steps 13 to 15).** The turn is saved to the rep's own session, and the cards are drawn.
+1. **Open and ask (steps 1 and 2).** The rail opens over the page and the one conversation moves into it, thread
+   intact. The rep types or speaks; the conversation sends the question, the record in view and the last turns to
+   `CustomerSummaryPanelController`, which calls `DataExplorer`.
+2. **Plan and check (steps 3 and 4).** `AgentLlm` sends the question and the catalog to the model, which answers with a
+   small query plan, never SOQL. Apex checks every object and field in it against the catalog.
+3. **Run (steps 5 and 6).** Apex builds the query from catalog paths only, binds every value and runs it as the rep.
+4. **Answer (steps 7 and 8).** The model answers from the rows it was shown, and Apex builds the cards.
+5. **Remember and show (steps 9 and 10).** The turn is saved to the rep's own session, and the cards are drawn.
 
 ### A write action: draft, then Confirm
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller
-        participant C as Conversation, with the draft and result cards
-    end
-    box rgb(247, 249, 252) Apex, in the seller's access
-        participant A as CustomerSummaryActions
-        participant S as Salesforce records, user mode
-        participant O as CustomerOutcomes
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant M as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,M: Draft, nothing written
-        U->>C: Create a follow-up with Maria for next Tuesday
-        C->>A: draftFromText(accountId, text)
-        rect rgb(255, 214, 204)
-            A->>M: the ActionDraft prompt
-            M-->>A: one action and its fields, as said
+    actor Rep as Seller
+    participant App as Customer Summary
+    participant Data as Salesforce records
+    participant AI as AI model
+    participant Mem as Memory
+    rect rgba(59, 130, 246, 0.12)
+        Note over App: Draft, nothing written
+        Rep->>App: Create a follow-up with Maria
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: Sentence to one action
+            AI-->>App: One action and its fields
         end
-        A->>S: read the account, its contacts and open deals
-        A-->>C: READY or NEEDS_INPUT, with a draft card
-        C-->>U: the draft card, Confirm off until nothing is missing
+        App->>Data: Read account, contacts, deals
+        App-->>Rep: Draft card, Confirm when ready
     end
-    rect rgb(253, 242, 214)
-        Note over U,O: Confirm
-        U->>C: Confirm
-        C->>A: commit, with the action, the account and the input only
-        A->>S: build the draft again, then write it as the seller
-        A->>O: record one Action outcome
-        A-->>C: a result card that links to the record
+    rect rgba(16, 185, 129, 0.12)
+        Note over App: Confirm
+        Rep->>App: Confirm
+        App->>Data: Build again, write as seller
+        App->>Mem: Record one Action outcome
+        App-->>Rep: Result card, links the record
     end
 ```
 
-1. **Draft (steps 1 to 7).** One model call turns the sentence into one action and its fields. Apex checks every field
-   against the account and the seller's access and returns a draft card. Nothing is written.
-2. **Confirm (steps 8 to 12).** Apex builds the draft again from the same input, writes it in user mode, records the
-   outcome and returns a result card. Cancel writes nothing. The full flow, with Fix and Undo, is in
+1. **Draft (steps 1 to 5).** The seller's sentence reaches `CustomerSummaryActions` (`draftFromText`), and one model
+   call (the `ActionDraft` prompt, through `AgentLlm`) turns it into one action and its fields. Apex checks every field
+   against the account and the seller's access, reading the account, its contacts and open deals in user mode, and
+   returns READY or NEEDS_INPUT with a draft card. Confirm stays off until nothing is missing. Nothing is written.
+2. **Confirm (steps 6 to 9).** `commit` takes only the action, the account and the input. Apex builds the draft again
+   from the same input, writes it in user mode, records one Action outcome (`CustomerOutcomes`) and returns a result
+   card that links to the record. Cancel writes nothing. The full flow, with Fix and Undo, is in
    [13](docs/patterns/13-write-actions.md).
 
 ### The MCP door
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant CL as MCP client
+    actor Rep as Sales rep
+    participant Client as MCP client
+    participant Login as Salesforce sign-in
+    participant App as Customer Summary
+    participant AI as AI model
+    Rep->>Client: Summarize Edge Communications
+    rect rgba(59, 130, 246, 0.12)
+        Note over Client: Sign in
+        Client->>Login: Authorization code, PKCE
+        Login-->>Client: Token, mcp_api scope
     end
-    box rgb(247, 249, 252) Salesforce, hosted
-        participant ECA as CustomerSummaryMcpClient
-        participant MCP as CustomerSummaryMcp
+    rect rgba(16, 185, 129, 0.12)
+        Note over Client: Resolve
+        Client->>App: Call resolve_account
+        App-->>Client: RESOLVED and the account Id
     end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant RA as CustomerSummaryResolver
-        participant GA as CustomerSummaryGetAction
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,ECA: Sign in
-        U->>CL: Summarize Edge Communications
-        CL->>ECA: authorization code with PKCE, as the rep
-        ECA-->>CL: a token with the mcp_api scope
-    end
-    rect rgb(222, 243, 230)
-        Note over CL,RA: Resolve
-        CL->>MCP: tools/call resolve_account
-        MCP->>RA: the invocable, run as the rep
-        RA-->>CL: RESOLVED and the account Id
-    end
-    rect rgb(253, 242, 214)
-        Note over CL,L: Summarize
-        CL->>MCP: tools/call get_account_summary with the Id
-        MCP->>GA: the invocable, run as the rep
-        rect rgb(255, 214, 204)
-            GA->>L: the summary's model calls
-            L-->>GA: text
+    rect rgba(6, 182, 212, 0.12)
+        Note over Client: Summarize
+        Client->>App: Call get_account_summary
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: The summary's model calls
+            AI-->>App: Text
         end
-        GA-->>CL: status and answer
+        App-->>Client: Status and answer
     end
-    rect rgb(234, 238, 242)
-        Note over U,CL: Answer
-        CL-->>U: the summary, in the client
+    rect rgba(139, 92, 246, 0.12)
+        Note over Client: Answer
+        Client-->>Rep: The summary, in the client
     end
 ```
 
-1. **Sign in (steps 1 to 3).** The rep signs in through one External Client App, per user, with OAuth and PKCE. There
-   is no integration user.
-2. **Resolve (steps 4 to 6).** `resolve_account` turns the rep's words into one account, or the same fixed not-found
-   or choice text the surfaces show.
-3. **Summarize (steps 7 to 11).** `get_account_summary` runs the same engine as the surfaces, as the rep.
-4. **Answer (step 12).** The client shows the status and the summary. `ask_anything`, `draft_action` and
+1. **Sign in (steps 1 to 3).** The rep asks the MCP client for a summary, and signs in through one External Client
+   App (`CustomerSummaryMcpClient`), per user, with OAuth and PKCE. The token carries the `mcp_api` scope. There is no
+   integration user.
+2. **Resolve (steps 4 and 5).** `resolve_account` (the `CustomerSummaryMcp` server, running `CustomerSummaryResolver`
+   as the rep) turns the rep's words into one account, or the same fixed not-found or choice text the surfaces show.
+3. **Summarize (steps 6 to 9).** `get_account_summary` takes the Id and runs `CustomerSummaryGetAction` as the rep,
+   the action that runs the same engine as the surfaces and makes the summary's model calls through `AgentLlm`.
+4. **Answer (step 10).** The client shows the status and the summary. `ask_anything`, `draft_action` and
    `commit_action` follow the same path ([09](docs/patterns/09-outside-door-mcp.md)).
 
 ## See it in 5 minutes
