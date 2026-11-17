@@ -6,7 +6,7 @@ rule and the pattern list. This test checks what a reader and the other pages re
 - the pattern list is the index's (docs/patterns/README.md): every page once, in order, with its title and kind;
 - chapter 00 is linked near the top and page 14 where the page names the embedded surface;
 - the built-in panel and "Ask the agent" are not shown as a way in, and the agent is called optional;
-- each sequence diagram starts with autonumber and carries the shared theme line;
+- each diagram follows the theme page's snippets and rules (pattern_shape.check_diagrams);
 - every system-context use named in docs/research/fr2-trust-rule.md appears on the page, and the Status table is
   linked without any run being called proven or not proven;
 - the old names and the old prompt name are gone, and the user group holds no agent access.
@@ -121,17 +121,11 @@ class TheWaysIn(unittest.TestCase):
 class TheDiagrams(unittest.TestCase):
     def test_there_is_one_component_diagram_and_one_sequence_diagram(self):
         blocks = pattern_shape.mermaid_blocks(text())
-        starts = sorted(b.split("\n", 2)[1].split()[0] for b in blocks)
+        starts = sorted(re.search(r"^(sequenceDiagram|flowchart)", b, re.M).group(1) for b in blocks)
         self.assertEqual(starts, ["flowchart", "sequenceDiagram"])
 
-    def test_every_diagram_carries_the_theme_and_each_sequence_starts_with_autonumber(self):
-        theme = pattern_shape.theme_line()
-        for block in pattern_shape.mermaid_blocks(text()):
-            lines = block.splitlines()
-            with self.subTest(kind=lines[1]):
-                self.assertEqual(lines[0].strip(), theme)
-                if lines[1].startswith("sequenceDiagram"):
-                    self.assertEqual(lines[2].strip(), "autonumber")
+    def test_every_diagram_follows_the_theme_page_and_each_sequence_has_numbered_steps(self):
+        pattern_shape.check_diagrams(self, text(), "ARCHITECTURE.md")
 
 
 class TheTrustPart(unittest.TestCase):

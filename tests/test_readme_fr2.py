@@ -16,7 +16,8 @@ rely on, and what the FR2 ledger asks of it:
   whether its page exists;
 - the Status table has one row per claim a page may link, and each reads "not yet proven" unless it links a tracked
   file that records the run;
-- the diagrams carry the shared theme, and each sequence diagram starts with autonumber;
+- the diagrams follow the theme page (pattern_shape.check_diagrams): its snippet, autonumber, at most five
+  lifelines, short messages, every step numbered once;
 - every image has alt text and exists; the old README captures are no longer linked.
 """
 import re
@@ -282,17 +283,12 @@ class TheStatusTable(unittest.TestCase):
 
 class TheDiagrams(unittest.TestCase):
     def test_three_sequence_diagrams_and_one_component_diagram(self):
-        starts = sorted(b.split("\n", 2)[1].split()[0] for b in pattern_shape.mermaid_blocks(text()))
+        blocks = pattern_shape.mermaid_blocks(text())
+        starts = sorted(re.search(r"^(sequenceDiagram|flowchart)", b, re.M).group(1) for b in blocks)
         self.assertEqual(starts, ["flowchart", "sequenceDiagram", "sequenceDiagram", "sequenceDiagram"])
 
-    def test_every_diagram_carries_the_theme_and_each_sequence_starts_with_autonumber(self):
-        theme = pattern_shape.theme_line()
-        for block in pattern_shape.mermaid_blocks(text()):
-            lines = block.splitlines()
-            with self.subTest(kind=lines[1]):
-                self.assertEqual(lines[0].strip(), theme)
-                if lines[1].startswith("sequenceDiagram"):
-                    self.assertEqual(lines[2].strip(), "autonumber")
+    def test_every_diagram_follows_the_theme_page_and_each_sequence_has_numbered_steps(self):
+        pattern_shape.check_diagrams(self, text(), "README.md")
 
 
 class TheImagesAndLimits(unittest.TestCase):
