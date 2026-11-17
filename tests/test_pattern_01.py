@@ -48,7 +48,7 @@ class PatternOneShape(unittest.TestCase):
         for phase in ("Route", "Gather", "Pre-reduce", "Reduce", "Remember"):
             self.assertRegex(main, r"(?m)^\s*Note over .*: *%s\b" % re.escape(phase), "phase note " + phase)
         self.assertGreaterEqual(main.count("rect "), 5, "one shaded rect per phase")
-        self.assertGreaterEqual(main.count("box "), 2, "a box per layer")
+        self.assertIn("rect rgba(244, 114, 82, 0.22)", main, "model calls use the one coral accent")
 
     def test_reduction_table_lists_every_registry_key(self):
         keys = registry_keys()

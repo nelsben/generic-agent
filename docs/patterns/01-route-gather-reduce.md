@@ -47,69 +47,69 @@ handling and the memory stay as they are. See [Adopt it](#adopt-it) and
 
 ## How it works
 
-*Part 2 of 2: the architecture.* The numbers in the diagram match the steps under it. The coral blocks are the model
-calls; everything else is deterministic Apex. The theme is the shared one in [_diagram-theme.md](_diagram-theme.md).
+*Part 2 of 2: the architecture.* The numbers in the diagram match the steps under it, and the steps name the Apex
+classes and prompts behind each one. The coral blocks are the model calls; everything else is deterministic Apex.
+The style is the shared one in [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant P as Compact window, rail or MCP
+    actor Rep as Seller or service rep
+    participant App as Customer Summary
+    participant Data as Salesforce records
+    participant AI as AI model
+    participant Mem as Memory
+    Rep->>App: Summarize Edge Communications
+    rect rgba(59, 130, 246, 0.12)
+        Note over App: Route
+        App->>Data: Find the one account
+        Data-->>App: One account, or why not
     end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant R as CustomerSummaryResolver
-        participant B as CustomerSummary
-        participant S as Sections x7
-        participant O as CustomerOutcomes
-        participant M as CustomerSummaryMemory
+    rect rgba(16, 185, 129, 0.12)
+        Note over App: Gather
+        App->>Data: Can this rep see it?
+        Data-->>App: Yes, in the rep's access
+        App->>Data: Read 7 sections
+        Data-->>App: Capped text per section
+        App->>Mem: Last summary and outcomes?
+        Mem-->>App: Headline, date, outcomes
     end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,R: Route
-        U->>P: Summarize Edge Communications
-        P->>R: resolve(words, open record Id)
-        R-->>P: RESOLVED with one Id, or the fixed AMBIGUOUS or NOT_FOUND text
-    end
-    rect rgb(222, 243, 230)
-        Note over P,O: Gather
-        P->>B: run(accountId, question, include)
-        B->>B: can the rep see this account? WITH USER_MODE
-        loop each registry line, in order
-            B->>S: build(accountId)
-            S-->>B: OK, EMPTY or ERROR, capped plain text
-        end
-        B->>O: outcome context for this account
-        O-->>B: last summary's headline and date, recent outcomes
-    end
-    rect rgb(253, 242, 214)
-        Note over B,L: Pre-reduce
-        rect rgb(255, 214, 204)
-            B->>L: BriefEngagement: contacts, activity, calls (600 tokens)
-            L-->>B: engagement summary
-            B->>L: BriefDealHistory: deal history (400 tokens)
-            L-->>B: deal history summary
+    rect rgba(245, 158, 11, 0.14)
+        Note over App: Pre-reduce
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: Condense engagement
+            AI-->>App: Engagement summary
+            App->>AI: Condense deal history
+            AI-->>App: Deal history summary
         end
     end
-    rect rgb(238, 232, 250)
-        Note over B,L: Reduce
-        rect rgb(255, 214, 204)
-            B->>L: SummarySynthesis: sections, both summaries, question, brand lines (1,500 tokens)
-            L-->>B: headline and six sections
-            B->>L: Sentiment: the same reduced parts
-            L-->>B: score, label and reason
+    rect rgba(139, 92, 246, 0.12)
+        Note over App: Reduce
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: Write the summary
+            AI-->>App: Headline and six sections
+            App->>AI: Score the sentiment
+            AI-->>App: Score, label and reason
         end
     end
-    rect rgb(234, 238, 242)
-        Note over P,M: Remember and return
-        B->>M: recordAll: the turn, one write after every model call
-        B->>O: recordAll: the summary as an outcome, with its sentiment
-        B-->>P: status, answer, sections and cards
-        P-->>U: the summary
+    rect rgba(100, 116, 139, 0.12)
+        Note over App: Remember
+        App->>Mem: Save the turn
+        App->>Mem: Save the summary as an outcome
     end
+    App-->>Rep: The summary
 ```
 
 1. **Route (steps 1 to 3).** `CustomerSummaryResolver` turns the rep's words, a pasted Account Id or the open record
@@ -132,7 +132,7 @@ sequenceDiagram
    scores the account from the same reduced parts (no new query). A sentiment that fails, or that would not fit the
    model-time budget, is stored as no score, and the summary still returns. A failed synthesis gives ERROR with fixed
    text and keeps the gathered sections.
-7. **Remember and return (steps 18 to 21).** `CustomerSummaryMemory.recordAll` writes the turn once, after every model
+7. **Remember and return (steps 18 to 20).** `CustomerSummaryMemory.recordAll` writes the turn once, after every model
    call, because a write before a model call in the same transaction would fail it. The summary is then saved as a
    customer outcome with its sentiment. A failed outcome write is logged and the summary still returns. The answer is
    capped at 5,900 characters and ends on a clear marker if it is cut.
@@ -155,18 +155,35 @@ without touching Apex.
 Everything the summary knows hangs off one Account. Each branch is one section, read by its own class.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  layout: dagre
+  flowchart:
+    curve: basis
+    nodeSpacing: 40
+    rankSpacing: 55
+    wrappingWidth: 220
+    padding: 14
+---
 flowchart LR
-    subgraph G["The account's records, read in the rep's access"]
-        A(["Account"])
-        A --> P["profile<br/>Account fields"]
-        A --> OD["open_deals<br/>open Opportunities<br/>and their contact roles"]
-        A --> C["cases<br/>Cases"]
-        A --> CT["contacts<br/>Contacts, with touches<br/>from Tasks and Events"]
-        A --> AC["activity<br/>Tasks, last 90 days"]
-        A --> CA["calls<br/>Events and their notes"]
-        A --> DH["deal_history<br/>closed Opportunities"]
+    A(["Account"])
+    subgraph G["Read in the rep's own access"]
+        direction TB
+        P["profile<br/>Account fields"]
+        OD["open_deals<br/>open deals and their contacts"]
+        C["cases<br/>Cases"]
+        CT["contacts<br/>Contacts and their touches"]
+        AC["activity<br/>Tasks, last 90 days"]
+        CA["calls<br/>Events and their notes"]
+        DH["deal_history<br/>closed deals"]
     end
+    A --> P & OD & C & CT & AC & CA & DH
+    classDef core fill:#0B5CAB,stroke:#0B5CAB,color:#FFFFFF,stroke-width:1.5px
+    classDef apex fill:#E6F6EE,stroke:#2E844A,color:#0B2A1A,stroke-width:1.5px
+    classDef zone fill:#8A96AD14,stroke:#8A96AD,stroke-width:1px,stroke-dasharray:5 4
+    class A core
+    class P,OD,C,CT,AC,CA,DH apex
+    class G zone
 ```
 
 ### The reduction structure
@@ -174,22 +191,44 @@ flowchart LR
 Which sections the model sees as they are, and which it sees condensed first. The coral nodes are model calls.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  layout: dagre
+  flowchart:
+    curve: basis
+    nodeSpacing: 40
+    rankSpacing: 55
+    wrappingWidth: 220
+    padding: 14
+---
 flowchart LR
-    subgraph RS["Gathered sections, then the model calls that reduce them"]
-        P["profile"] --> SY
-        OD["open_deals"] --> SY
-        C["cases"] --> SY
-        CT["contacts"] --> EN
-        AC["activity"] --> EN
-        CA["calls"] --> EN
-        DH["deal_history"] --> DHP
-        EN{{"BriefEngagement<br/>600 tokens"}} --> SY
-        DHP{{"BriefDealHistory<br/>400 tokens"}} --> SY
-        SY{{"SummarySynthesis<br/>1,500 tokens"}} --> OUT(["Headline and six sections"])
+    subgraph IN["Gathered sections"]
+        direction TB
+        P["profile"]
+        OD["open_deals"]
+        C["cases"]
+        CT["contacts"]
+        AC["activity"]
+        CA["calls"]
+        DH["deal_history"]
     end
-    classDef model fill:#FFD6CC,stroke:#B5482E,color:#1B2233
+    EN{{"Condense engagement<br/>600 tokens"}}
+    DHP{{"Condense deal history<br/>400 tokens"}}
+    SY{{"Write the summary<br/>1,500 tokens"}}
+    OUT(["Headline and six sections"])
+    CT & AC & CA --> EN
+    DH --> DHP
+    P & OD & C --> SY
+    EN & DHP --> SY
+    SY --> OUT
+    classDef core fill:#0B5CAB,stroke:#0B5CAB,color:#FFFFFF,stroke-width:1.5px
+    classDef apex fill:#E6F6EE,stroke:#2E844A,color:#0B2A1A,stroke-width:1.5px
+    classDef model fill:#FDE9E3,stroke:#C2410C,color:#4A1A08,stroke-width:1.5px
+    classDef zone fill:#8A96AD14,stroke:#8A96AD,stroke-width:1px,stroke-dasharray:5 4
+    class P,OD,C,CT,AC,CA,DH apex
     class EN,DHP,SY model
+    class OUT core
+    class IN zone
 ```
 
 | Key | Section | What it reads | Caps | Pre-reduced | Prompt and token budget |

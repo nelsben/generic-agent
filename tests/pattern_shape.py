@@ -2,7 +2,7 @@
 
 Not a test module (its name does not start with test_): each chapter's own test calls check_page() with the page
 path, the fixed parts the page has and any extra H2 parts of its own. The fixed H2 headings are read from
-fr2-design.md, and the theme line from docs/patterns/_diagram-theme.md, so neither is copied here and no page
+fr2-design.md, and the diagram snippets from docs/patterns/_diagram-theme.md, so neither is copied here and no page
 name is written into this helper.
 """
 import re
@@ -25,13 +25,117 @@ def fixed_parts():
     return re.findall(r"^\s+\d+\.\s+`([^`]+)`", section, re.M)
 
 
+# The %%{init}%% line every diagram carried before the theme page moved to frontmatter snippets. A page still in the
+# old style is accepted while the restyle rolls out page by page; the last rollout card deletes this and the legacy
+# branch in check_diagrams.
+LEGACY_THEME = (
+    '%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, '
+    'Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", '
+    '"primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", '
+    '"textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", '
+    '"actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": '
+    '"#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", '
+    '"noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": '
+    '"#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", '
+    '"clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%'
+)
+
+MAX_LIFELINES = 5
+MAX_MESSAGE = 32
+MAX_NOTE = 24
+ARROW = re.compile(r"^\s*([\w]+)\s*(?:-->>|->>|-->|->|--x|-x|--\)|-\))[+-]?\s*([\w]+)\s*:(.*)$")
+LIFELINE = re.compile(r"^\s*(?:participant|actor)\s+(\w+)")
+NOTE = re.compile(r"^\s*Note\s+(?:over|left of|right of)\s+([^:]+):(.*)$")
+
+
 def theme_line():
-    """The one %%{init: ...}%% line in the theme page's snippet."""
+    """The old %%{init}%% line, accepted during the rollout only."""
+    return LEGACY_THEME
+
+
+def snippets():
+    """The theme page's snippets: {'sequence': [...lines], 'flowchart': [...lines], 'classDef': {...lines}}."""
     text = THEME.read_text(encoding="utf-8")
-    lines = {line.strip() for line in text.splitlines() if line.strip().startswith("%%{init:")}
-    if len(lines) != 1:
-        raise AssertionError("%s should hold exactly one %%%%{init: ...}%%%% line, found %d" % (THEME, len(lines)))
-    return lines.pop()
+    blocks = re.findall(r"^```text[ \t]*\n(.*?)^```[ \t]*$", text, re.M | re.S)
+    out = {}
+    for block in blocks:
+        lines = [line.rstrip() for line in block.splitlines() if line.strip()]
+        if lines and lines[0] == "---" and any(line.strip() == "sequence:" for line in lines):
+            out["sequence"] = lines
+        elif lines and lines[0] == "---" and any(line.strip() == "layout: dagre" for line in lines):
+            out["flowchart"] = lines
+        elif lines and all(line.strip().startswith("classDef ") for line in lines):
+            out["classDef"] = {line.strip() for line in lines}
+    if set(out) != {"sequence", "flowchart", "classDef"}:
+        raise AssertionError("%s should hold the sequence, flowchart and classDef snippets, found %s" % (THEME, sorted(out)))
+    return out
+
+
+def covered_numbers(steps):
+    """Every diagram number a numbered item names: '(step 4)', '(steps 4 to 7)', '(steps 4 and 5)'."""
+    numbers = []
+    for item in re.findall(r"(?ms)^\d+\. (.*?)(?=^\d+\. |\Z)", steps):
+        for a, b in re.findall(r"\bsteps? (\d+)(?: (?:to|and) (\d+))?\b", item):
+            numbers.extend(range(int(a), int(b or a) + 1))
+    return numbers
+
+
+def check_diagrams(case, text, name):
+    """Check every mermaid block in one page's text against the theme page's snippets and rules."""
+    snip = snippets()
+    for match in re.finditer(MERMAID, text):
+        code = match.group(1)
+        n = text[: match.start()].count("```mermaid") + 1
+        where = "%s: diagram %d" % (name, n)
+        raw = [line.rstrip() for line in code.splitlines() if line.strip()]
+        lines = [line.strip() for line in raw]
+        if lines and lines[0].startswith("%%{init:"):
+            case.assertEqual(lines[0], LEGACY_THEME, "%s: the old theme line, word for word" % where)
+            if lines[1:2] == ["sequenceDiagram"]:
+                case.assertEqual(lines[2:3], ["autonumber"], "%s starts with autonumber" % where)
+            continue
+        case.assertNotIn("%%{init", code, "%s: settings go in the frontmatter snippet" % where)
+        if "sequenceDiagram" in lines:
+            head = snip["sequence"]
+            case.assertEqual(raw[: len(head)], head, "%s opens with the sequence snippet, word for word" % where)
+            case.assertEqual(lines[len(head) : len(head) + 2], ["sequenceDiagram", "autonumber"],
+                             "%s: sequenceDiagram, then autonumber" % where)
+            body = lines[len(head) + 2 :]
+            lifelines = [m.group(1) for m in map(LIFELINE.match, body) if m]
+            case.assertLessEqual(len(lifelines), MAX_LIFELINES, "%s: at most %d lifelines" % (where, MAX_LIFELINES))
+            case.assertFalse([l for l in body if l.startswith("box ")], "%s: no box" % where)
+            arrows = 0
+            for line in body:
+                arrow = ARROW.match(line)
+                if arrow:
+                    arrows += 1
+                    case.assertNotEqual(arrow.group(1), arrow.group(2), "%s: a message to itself: %r" % (where, line))
+                    case.assertLessEqual(len(arrow.group(3).strip()), MAX_MESSAGE,
+                                         "%s: a message over %d characters: %r" % (where, MAX_MESSAGE, line))
+                note = NOTE.match(line)
+                if note:
+                    case.assertNotIn(",", note.group(1), "%s: a phase note sits over one lifeline: %r" % (where, line))
+                    case.assertLessEqual(len(note.group(2).strip()), MAX_NOTE,
+                                         "%s: a phase name over %d characters: %r" % (where, MAX_NOTE, line))
+            rest = text[match.end():]
+            stop = re.search(r"^(```|#{1,6} )", rest, re.M)
+            steps = rest[: stop.start()] if stop else rest
+            case.assertEqual(sorted(covered_numbers(steps)), list(range(1, arrows + 1)),
+                             "%s: the numbered steps under it name 1 to %d, each once" % (where, arrows))
+        else:
+            head = snip["flowchart"]
+            case.assertEqual(raw[: len(head)], head, "%s opens with the flowchart snippet, word for word" % where)
+            case.assertRegex(lines[len(head)] if len(lines) > len(head) else "", r"^flowchart (TB|LR)$",
+                             "%s: flowchart TB or LR after the snippet" % where)
+            for line in lines:
+                if line.startswith("classDef "):
+                    case.assertIn(line, snip["classDef"], "%s: a classDef not on the theme page: %r" % (where, line))
+            subgraphs = re.findall(r"^\s*subgraph\s+(\w+)", code, re.M)
+            classed = set()
+            for ids, cls in re.findall(r"^\s*class\s+([\w,]+)\s+(\w+)\s*$", code, re.M):
+                if cls == "zone":
+                    classed.update(ids.split(","))
+            case.assertEqual(sorted(set(subgraphs) - classed), [], "%s: every subgraph is class zone" % where)
 
 
 def outside_fences(text):
@@ -81,14 +185,7 @@ def check_page(case, page, parts, extras=()):
         at = h2.index(extra)
         case.assertTrue(0 < at < len(h2) - 1, "%s: the extra part %r sits between fixed parts" % (page.name, extra))
 
-    theme = theme_line()
-    for n, code in enumerate(mermaid_blocks(text), 1):
-        lines = [line.strip() for line in code.splitlines() if line.strip()]
-        if "sequenceDiagram" not in lines:
-            continue
-        at = lines.index("sequenceDiagram")
-        case.assertIn(theme, lines[:at], "%s: sequence diagram %d carries the theme line first" % (page.name, n))
-        case.assertEqual(lines[at + 1 : at + 2], ["autonumber"], "%s: sequence diagram %d starts with autonumber" % (page.name, n))
+    check_diagrams(case, text, page.name)
 
     if TRUST_PART in parts:
         body = part_body(text, TRUST_PART)
