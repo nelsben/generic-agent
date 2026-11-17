@@ -19,8 +19,7 @@ EXTRAS = ()
 PRINCIPLE = "A follow-up is never a new build"
 PHASES = ("Ask", "Plan and check", "Run in the rep's access", "Answer", "Drill")
 FOLLOW_UP_PHASES = ("Summary", "Follow-up")
-MODEL_ACCENT = "rect rgb(255, 214, 204)"
-MODEL_BOX = "box rgb(255, 236, 230)"
+MODEL_ACCENT = "rect rgba(244, 114, 82, 0.22)"
 ARROW = re.compile(r"^\s*[A-Za-z0-9_]+\s*(?:->>|-->>|->|-->|-x|--x|-\)|--\))\s*[A-Za-z0-9_]+")
 OPENERS = re.compile(r"^\s*(rect|box|loop|alt|opt|par|critical|break)\b")
 SEE_IT_IMAGES = (
@@ -106,12 +105,13 @@ class PatternTwoShape(unittest.TestCase):
         main = seqs[0]
         for phase in PHASES:
             self.assertRegex(main, r"(?m)^\s*Note over [^:]+: *%s\s*$" % re.escape(phase), "phase note " + phase)
-        self.assertGreaterEqual(main.count("rect rgb("), len(PHASES) + 1, "a shaded rect per phase, and the accent")
-        self.assertGreaterEqual(main.count("box "), 3, "a box per layer")
+        self.assertGreaterEqual(main.count("rect rgba("), len(PHASES) + 1, "a tinted rect per phase, and the accent")
+        self.assertNotIn("box ", main, "no box: the lifeline names say which layer is which")
+        self.assertIn("AI model", main, "the model is its own lifeline")
         self.assertIn(MODEL_ACCENT, main, "the model calls carry the one accent")
-        self.assertIn(MODEL_BOX, main, "the model layer has its own box")
-        for name in ("DataExplorer", "ExplorePlan", "ExploreCatalog", "ExploreQuery", "AgentLlm"):
-            self.assertIn(name, main)
+        steps = steps_after_each_sequence(self.text)[0][1]
+        for name in ("DataExplorer", "ExplorePlan", "ExploreCatalog", "ExploreQuery", "AgentLlm", "CustomerSummaryPanelController"):
+            self.assertIn(name, steps, "the steps under the diagram name " + name)
 
     def test_follow_up_diagram_carries_the_summary_context_in(self):
         self.assertIn("A follow-up after a summary", pattern_shape.headings(pattern_shape.part_body(self.text, "How it works"), 3))
@@ -119,8 +119,10 @@ class PatternTwoShape(unittest.TestCase):
         for phase in FOLLOW_UP_PHASES:
             self.assertRegex(follow, r"(?m)^\s*Note over [^:]+: *%s\s*$" % re.escape(phase), "phase note " + phase)
         self.assertIn(MODEL_ACCENT, follow)
-        self.assertIn("lastBrief", follow)
+        steps = steps_after_each_sequence(self.text)[1][1]
+        self.assertIn("lastBrief", steps)
         self.assertIn("summary's records", follow)
+        self.assertIn("The summary's records", steps)
 
     def test_every_sequence_diagram_starts_with_autonumber(self):
         seqs = sequences(self.text)

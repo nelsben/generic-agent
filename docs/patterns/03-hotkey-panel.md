@@ -46,66 +46,64 @@ call; everything else is the browser and deterministic Apex. The theme is the sh
 [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant X as Another component on the page
-        participant P as Compact window (customerSummaryPanel)
-        participant C as Conversation (customerSummaryConversation)
+    actor Rep as Sales rep
+    participant Other as Another component
+    participant Win as Compact window
+    participant App as Customer Summary
+    participant AI as AI model
+    rect rgba(59, 130, 246, 0.12)
+        Note over Win: Open
+        Rep->>Win: Cmd-K or Ctrl-K, or launcher
+        Win-->>Rep: Window open, cursor ready
     end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant A as CustomerSummaryPanelController
-        participant H as CustomerSummaryHistory
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,C: Open
-        P->>P: moves its stage, the launcher and the window, onto the page body once
-        U->>P: Cmd-K or Ctrl-K on any page, or the launcher
-        P->>P: show() the dialog, and the browser notes where focus was
-        P->>C: focusComposer()
-    end
-    rect rgb(222, 243, 230)
-        Note over U,L: Ask through Apex
-        U->>C: types or speaks a question, a /brief or an action, then Enter
-        C->>A: resolve and getBrief, explore, or draftFromText, with a request token
-        rect rgb(255, 214, 204)
-            A->>L: the summary's, the explorer's or the draft's model calls
-            L-->>A: text
+    rect rgba(16, 185, 129, 0.12)
+        Note over Win: Ask through Apex
+        Rep->>Win: Type or speak a question
+        Win->>App: Request with a token
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: The service's model calls
+            AI-->>App: Text
         end
-        A-->>C: status, answer and cards
-        C->>C: drops any reply that is not the latest, then draws the cards
-        C-->>U: the answer, and one line in the live region
+        App-->>Win: Status, answer and cards
+        Win-->>Rep: Latest answer as cards
     end
-    rect rgb(253, 242, 214)
-        Note over U,H: Switch chats
-        U->>C: History
-        C->>H: listSessions(accountId)
-        H-->>C: this rep's chats on the account, newest first
-        U->>C: picks one, or New conversation
-        C->>H: getSession(sessionId)
-        H-->>C: its turns, oldest first, as text
-        C->>P: sessionchange with the session id
+    rect rgba(6, 182, 212, 0.12)
+        Note over Win: Switch chats
+        Rep->>Win: Open History
+        Win->>App: List this rep's chats
+        App-->>Win: Chats, newest first
+        Rep->>Win: Pick a chat, or start new
+        Win->>App: Get that chat's turns
+        App-->>Win: Its turns, oldest first
     end
-    rect rgb(238, 232, 250)
-        Note over X,C: Driven by another component
-        X->>P: CustomerSummaryOpen message with a prompt and a recordId
-        P->>C: opens the window and asks the prompt with that record
+    rect rgba(139, 92, 246, 0.12)
+        Note over Other: Opened by a component
+        Other->>Win: Open message with a prompt
+        Win->>App: Ask the prompt on that record
     end
-    rect rgb(234, 238, 242)
-        Note over U,P: Close
-        U->>P: Esc or Minimize
-        P->>P: close() the dialog, focus back where it was, else the launcher, and the thread stays
-        U->>P: Expand
-        P->>P: publishes CustomerSummaryExpand with sessionId and recordId, and the rail takes the thread
+    rect rgba(100, 116, 139, 0.12)
+        Note over Win: Close
+        Rep->>Win: Esc or Minimize
+        Rep->>Win: Expand
+        Win->>Other: Hand the thread to the rail
     end
 ```
 
-1. **The corner, and why (step 1).** The window and the launcher sit at the bottom right, 16 px from the right edge
+1. **The corner, and why (before the first message).** The window and the launcher sit at the bottom right, 16 px from the right edge
    and 48 px above the bottom, clear of the utility bar, which stays at its default left alignment where a softphone
    lives ([fr2-surfaces-spike.md](../research/fr2-surfaces-spike.md#corner)). A closed utility panel is
    `display: none` and an open one is a transformed box, so nothing fixed inside it can reach the page's corner. The
@@ -113,7 +111,7 @@ sequenceDiagram
    opened, and moves its stage, the launcher and the window, onto `document.body` once. Lightning Web Security allows
    that, but it is not a documented pattern, so it lives in one function (`moveToBody`). For an org that mirrors its
    bar to the right, the item's `corner` property flips both to the bottom left.
-2. **The key and the window (steps 2 to 4).** A document `keydown` listener takes Cmd-K on a Mac and Ctrl-K elsewhere
+2. **The key and the window (steps 1 and 2).** A document `keydown` listener takes Cmd-K on a Mac and Ctrl-K elsewhere
    (`event.code === 'KeyK'`, no Shift or Alt), and yields when another component already handled the event
    (`defaultPrevented`). Lightning's own shortcut list has no K shortcut, and Chrome on a Mac lists no Cmd-K. On
    Windows and Linux, Ctrl-K is Chrome's "search from anywhere", an ordinary accelerator a page may take
@@ -124,37 +122,37 @@ sequenceDiagram
    420 by 560 px (at most the window height less 96 px), a non-modal `<dialog>` named after the agent, opened with
    `show()`, never `showModal()`, so Tab is never trapped. It slides up over 280 ms, and `prefers-reduced-motion` turns
    the motion off. Then the conversation's `focusComposer()` puts the cursor in the text box.
-3. **Ask (steps 5 and 6).** The rep types, or speaks into the composer with the mic ([11](11-voice-input.md)). A
-   `/brief <name>` goes to `resolve` and then `getBrief` ([01](01-route-gather-reduce.md)); a question goes to
+3. **Ask (steps 3 and 4).** The rep types, or speaks into the composer with the mic ([11](11-voice-input.md)). A
+   `/brief <name>` goes to `CustomerSummaryPanelController`, which runs `resolve` and then `getBrief` ([01](01-route-gather-reduce.md)); a question goes to
    `explore` ([02](02-ask-anything-explorer.md)); text whose first real word is an action verb, with an account in
    view, goes to `draftFromText` ([13](13-write-actions.md)). The scope chip above the composer reads "About <account>"
    on an account page, and one press asks the whole org instead. Every call carries a token, and a repeat of the
    request already on its way is ignored.
-4. **The model call (steps 7 and 8).** The window never calls a model. The summary, the explorer and a typed draft
+4. **The model call (steps 5 and 6).** The window never calls a model. The summary, the explorer and a typed draft
    each make their own model calls in Apex, through the model door `AgentLlm` and the platform's trust layer
    ([04](04-model-provider-seam.md)). A quick action such as "Log a call" drafts with no model call.
-5. **Answer (steps 9 to 11).** The controller passes back the service's status, its text and its cards. The latest
+5. **Answer (steps 7 and 8).** The controller passes back the service's status, its text and its cards. The latest
    request wins: a reply whose token is no longer the newest is dropped, so a slow first answer never replaces a
    second. The answer is drawn as cards (see [The cards](#the-cards)), model text is drawn as text runs and never as
    markup, and the live region says one line so a screen reader hears that the answer is in. A failed call gives one
    fixed sentence, never the platform's text.
-6. **Switch chats (steps 12 to 18).** History lists this rep's own chats on the account, newest first, ten by default
+6. **Switch chats (steps 9 to 14).** History lists this rep's own chats on the account, newest first, ten by default
    (`CustomerSummaryHistory.listSessions`, from the session store of [05](05-conversation-memory.md)). Picking one
    reopens its turns in order (`getSession`), as text, because memory keeps no cards. "New conversation" starts a
    clean thread with a new id. Either way the conversation fires `sessionchange`, so the frame and the rail follow the
    same session. A chat whose account the rep can no longer see is hidden, and an empty list or a failed load says so
    in one sentence.
-7. **Driven by another component (steps 19 and 20).** A message on the `CustomerSummaryOpen` channel opens the window
+7. **Driven by another component (steps 15 and 16).** A message on the `CustomerSummaryOpen` channel opens the window
    and runs its prompt with that message's record as context, or summarizes an Account Id sent alone. That is how a
    button elsewhere on the page can start a question in the window.
-8. **Hide and close (steps 21 and 22).** Esc anywhere in the window closes it, except during an IME composition, where
+8. **Hide and close (step 17).** Esc anywhere in the window closes it, except during an IME composition, where
    it only ends the composition. `close()` gives focus back to the element that had it when the window opened. That
    browser record is what reaches a field inside another component on the record page: Lightning Web Security hides
    that field from the panel. When that element is gone, focus goes to the launcher, never the page body, and for a
    short while after a close focus is kept on the restored element against late moves of the page, until the rep
    presses a key or a pointer. Minimize does the same from a button. The conversation stays mounted, so the thread and
    any answer still on its way are there when the window opens again.
-9. **Expand (steps 23 and 24).** Expand fires an `expand` event and publishes on the `CustomerSummaryExpand` channel,
+9. **Expand (steps 18 and 19).** Expand fires an `expand` event and publishes on the `CustomerSummaryExpand` channel,
    both with `{ sessionId, recordId }`, and the same conversation moves into the [right rail](12-right-rail.md): one
    thread, one session, on both surfaces. It is behind the item's `expandEnabled` property, which is on in the
    `Customer_Summary_UtilityBar` utility bar.

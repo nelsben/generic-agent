@@ -56,44 +56,48 @@ coral blocks are the model calls; everything else is deterministic. The theme is
 ### The standard chat
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Agentforce's own panel
-        actor U as Seller or service rep
-        participant P as The panel
+    actor Rep as Sales rep
+    participant Panel as Agentforce panel
+    participant AI as Agent's AI model
+    participant Act as Apex action
+    rect rgba(59, 130, 246, 0.12)
+        Note over Panel: Ask
+        Rep->>Panel: Open deals closing this quarter?
     end
-    box rgb(255, 236, 230) The agent's model
-        participant L as Reasoning model
-    end
-    box rgb(247, 249, 252) Apex
-        participant A as Agent action
-    end
-    rect rgb(225, 236, 252)
-        Note over U,P: Ask
-        U->>P: Which open deals close this quarter?
-    end
-    rect rgb(222, 243, 230)
-        Note over P,A: Plan and act
-        rect rgb(255, 214, 204)
-            P->>L: the turn: the agent's script and the question
-            L->>A: calls the action it picks
+    rect rgba(16, 185, 129, 0.12)
+        Note over Panel: Plan and act
+        rect rgba(244, 114, 82, 0.22)
+            Panel->>AI: Script and question
+            AI->>Act: Calls the action it picks
         end
-        A-->>L: the answer as text, under the action's own cap
+        Act-->>AI: Answer as text, capped
     end
-    rect rgb(253, 242, 214)
-        Note over P,L: Relay
-        rect rgb(255, 214, 204)
-            L->>L: writes the reply from the answer: the layout can change, the turn takes longer
-            L-->>P: the reply
+    rect rgba(6, 182, 212, 0.12)
+        Note over AI: Relay
+        rect rgba(244, 114, 82, 0.22)
+            AI-->>Panel: Reply, rewritten from the answer
         end
     end
-    rect rgb(234, 238, 242)
-        Note over U,A: Show
-        alt the action's output setting names a Lightning type
-            P-->>U: the card
-        else no Lightning type, or a misnamed one
-            P-->>U: text only, with no error
+    rect rgba(139, 92, 246, 0.12)
+        Note over Panel: Show
+        alt Output names a Lightning type
+            Panel-->>Rep: The card
+        else No type, or a misnamed one
+            Panel-->>Rep: Text only, no error
         end
     end
 ```
@@ -102,71 +106,78 @@ sequenceDiagram
    branding are unproven (see [What was measured](#what-was-measured-and-how-to-say-it)).
 2. **Plan and act (steps 2 to 4).** The agent's model reads its script and the question and calls an action. The
    action returns its answer as text, under whatever cap its author set.
-3. **Relay (steps 5 and 6).** The answer passes back through the agent's model before the rep sees it. This is where
+3. **Relay (step 5).** The answer passes back through the agent's model, which writes the reply from it, before the
+   rep sees it. This is where
    a formatted answer's layout is rewritten and where the turn spends its extra time
    ([BE-32](../research/fr2-standard-limits.md#findings)).
-4. **Show (step 7 or 8).** A card shows only when the action's output setting names a custom Lightning type and marks
+4. **Show (steps 6 and 7).** The rep gets one of the two. A card shows only when the action's output setting names a custom Lightning type and marks
    the output for display; otherwise the rep gets text. The output setting decides, not the model, and a misnamed type
    gives text with no error ([BE-32's sources](../research/fr2-standard-limits.md#rich-cards-in-the-standard-chat-public-docs)).
 
 ### Our surfaces
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Our surface
-        actor U as Seller or service rep
-        participant P as Compact window
+    actor Rep as Sales rep
+    participant Win as Compact window
+    participant Svc as Summary or explorer
+    participant Data as Salesforce records
+    participant AI as AI model
+    rect rgba(59, 130, 246, 0.12)
+        Note over Win: Ask
+        Rep->>Win: Open deals closing this quarter?
+        Win->>Svc: One call, no agent turn
     end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant S as CustomerSummary or DataExplorer
-        participant C as AnswerCard
+    rect rgba(16, 185, 129, 0.12)
+        Note over Svc: Gather
+        Svc->>Data: Read in the rep's access
+        Data-->>Svc: The records
     end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as Models API and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,S: Ask
-        U->>P: Which open deals close this quarter?
-        P->>S: one Apex call through CustomerSummaryPanelController
-    end
-    rect rgb(222, 243, 230)
-        Note over S: Gather
-        S->>S: read the records WITH USER_MODE
-    end
-    rect rgb(253, 242, 214)
-        Note over S,L: Reduce
-        rect rgb(255, 214, 204)
-            S->>L: focused prompts from the team's prompt files
-            L-->>S: text
+    rect rgba(6, 182, 212, 0.12)
+        Note over Svc: Reduce
+        rect rgba(244, 114, 82, 0.22)
+            Svc->>AI: Focused prompts
+            AI-->>Svc: Text
         end
     end
-    rect rgb(238, 232, 250)
-        Note over S,C: Cards
-        S->>C: build the cards from the data already held
-        C-->>S: typed cards, each with its plain text
+    rect rgba(139, 92, 246, 0.12)
+        Note over Svc: Cards
+        Svc-->>Win: Answer and typed cards
     end
-    rect rgb(234, 238, 242)
-        Note over U,S: Show
-        S-->>P: status, answer and cards
-        P-->>U: every card drawn, or its own text
+    rect rgba(100, 116, 139, 0.12)
+        Note over Win: Show
+        Win-->>Rep: Every card, or its own text
     end
 ```
 
-1. **Ask (steps 1 and 2).** The compact window holds the conversation component, and the right rail
+1. **Ask (steps 1 and 2).** The rep's question goes to the compact window. It holds the conversation component, and the right rail
    ([12](12-right-rail.md)) moves that same conversation out of the window, so the thread is kept. Either one calls
    `CustomerSummaryPanelController`, which passes each service's result through as the service built it. No agent turn
    and no relay.
-2. **Gather (step 3).** Code reads the records in the rep's own access: the summary's fixed sections
+2. **Gather (steps 3 and 4).** `CustomerSummary` or `DataExplorer` reads the records in the rep's own access
+   (`WITH USER_MODE`): the summary's fixed sections
    ([01](01-route-gather-reduce.md)) or the explorer's checked query plan ([02](02-ask-anything-explorer.md)).
-3. **Reduce (steps 4 and 5).** These are the only model calls on the path, through the Models API and the trust layer.
-4. **Cards (steps 6 and 7).** `AnswerCard` builds the cards from data the service already holds, with no new model call
+3. **Reduce (steps 5 and 6).** Focused prompts from the team's prompt files are the only model calls on the path,
+   through the Models API and the trust layer.
+4. **Cards (step 7).** `AnswerCard` builds the cards from data the service already holds, with no new model call
    or query. A summary gives a `summary` card and one `section` card per section. An explorer answer gives a `text`
    card, then a `table`, `metric` or `recordList` card for its result, a `notice` when rows are left out, the `trail`
    of its queries and its `followups`. Every card carries its own plain text, and the panel's table card holds every
    row the explorer read ([BE-39](../research/fr2-card-contract-apex.md#what-the-services-return)).
-5. **Show (steps 8 and 9).** The conversation component draws each card with `customerSummaryCard`, in six layouts.
+5. **Show (step 8).** The conversation component draws each card with `customerSummaryCard`, in six layouts.
    A card it cannot draw (an unknown type, a newer version, the action cards it does not draw yet) shows the card's
    own text, and unreadable cards leave the reply's text. Nothing rewrites the answer between the service and the rep.
 
