@@ -4,7 +4,7 @@ title: Pattern pages 09 to 13 diagrams restyled (6 blocks)
 domain: ops
 tier: standard
 effort: medium
-status: queued
+status: merged
 scope: [docs/patterns/09-outside-door-mcp.md, docs/patterns/10-brand-and-theming.md, docs/patterns/11-voice-input.md, docs/patterns/12-right-rail.md, docs/patterns/13-write-actions.md, tests/test_pattern_pages.py]
 forbid: [tests/pattern_shape.py, docs/patterns/_diagram-theme.md, docs/patterns/01-route-gather-reduce.md, docs/plans/**, docs/research/**, force-app/**, .chassis-delegation.json]
 red_test: none
@@ -29,3 +29,11 @@ Ben found the diagrams messy, hard to read and not customer facing. PR #302 set 
 - Do not edit tests/pattern_shape.py, docs/patterns/_diagram-theme.md or docs/patterns/01-route-gather-reduce.md.
 - bash scripts/check-docs.sh reports 0 broken and the unit test suite passes.
 - The hand-back lists, per diagram, old step count -> new step count and every prose step reference changed (file:line).
+
+## Review
+
+Brain review, 2026-11-17. Worker attempt 1 (sonnet) consistent, accepted as handed back.
+
+- Read the whole diff: the six sequence blocks on pages 09 to 13 use the theme page snippet; step lists renumbered and cover 1..N once (page 09: 10 and 10; page 10: 7; page 11: 10; page 12: 15; page 13: 19); class and prompt names moved into the steps. No test changes were needed. Privacy grep of the added lines: 0 hits.
+- Viewed every block on the pushed branch on GitHub (dark): phases, coral model calls and step badges read cleanly; the last badge on page 10 sits next to the pan and zoom buttons but is not covered.
+- Gate green (unit suite, check-docs).
