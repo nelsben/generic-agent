@@ -35,81 +35,84 @@ The numbers in the diagram match the steps under it. The coral block is the mode
 deterministic Apex and the conversation. The theme is the shared one in [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the seller works
-        actor U as Seller
-        participant C as Conversation, with the draft and result cards
-    end
-    box rgb(247, 249, 252) Apex, in the seller's access
-        participant A as CustomerSummaryActions
-        participant S as Salesforce records, user mode
-        participant O as CustomerOutcomes
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant M as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,M: Draft, nothing written
-        U->>C: Create a follow-up with Maria for next Tuesday
-        C->>C: pre-check, the first real word is an action verb
-        C->>A: draftFromText(accountId, text)
-        rect rgb(255, 214, 204)
-            A->>M: the ActionDraft prompt, with today, the account and the request
-            M-->>A: one action and its fields, as said
+    actor Seller as Seller
+    participant Conv as Conversation
+    participant App as Customer Summary
+    participant Data as Salesforce records
+    participant AI as AI model
+    rect rgba(59, 130, 246, 0.12)
+        Note over Conv: Draft, nothing written
+        Seller->>Conv: Create a follow-up with Maria
+        Conv->>App: Draft it from the words
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: Propose one action
+            AI-->>App: One action and its fields
         end
-        A->>S: read the account, its contacts and open deals
-        A-->>C: READY or NEEDS_INPUT, with an actionDraft card
-        C-->>U: the draft card, Confirm off until nothing is missing
+        App->>Data: Read contacts and open deals
+        App-->>Conv: Draft: READY or NEEDS_INPUT
+        Conv-->>Seller: Show the draft card
     end
-    rect rgb(222, 243, 230)
-        Note over U,A: Fix the draft
-        U->>C: fill a field, or pick one of two contacts
-        C->>A: draftAction with the draft's input and the new value
-        A-->>C: the card again, with the status Apex decided
+    rect rgba(16, 185, 129, 0.12)
+        Note over Conv: Fix the draft
+        Seller->>Conv: Fill a field or pick a contact
+        Conv->>App: Draft again with the new value
+        App-->>Conv: Card again, status from Apex
     end
-    rect rgb(253, 242, 214)
-        Note over U,O: Confirm
-        U->>C: Confirm
-        C->>A: commitDraft with the action, the account and the input only
-        A->>S: build the draft again, then insert or update as the seller
-        A->>O: record one Action outcome
-        A-->>C: OK, an actionResult card, and an undo token for an update
+    rect rgba(6, 182, 212, 0.12)
+        Note over Conv: Confirm
+        Seller->>Conv: Confirm
+        Conv->>App: Commit the action and input
+        App->>Data: Rebuild, then write as seller
+        App->>Data: Record one Action outcome
+        App-->>Conv: OK, result card, undo token
     end
-    rect rgb(234, 238, 242)
-        Note over U,O: Undo, updates only, 15 s
-        U->>C: Undo
-        C->>A: undo(token)
-        A->>S: put the previous values back as the seller
-        A->>O: remove that outcome
+    rect rgba(139, 92, 246, 0.12)
+        Note over Conv: Undo, updates only, 15 s
+        Seller->>Conv: Undo
+        Conv->>App: Undo with the token
+        App->>Data: Put the old values back
+        App->>Data: Remove that outcome
     end
 ```
 
-1. **Ask and pre-check (steps 1 to 3).** The conversation runs the same pre-check as Apex (`CustomerSummaryActionCatalog`,
+1. **Ask and pre-check (steps 1 and 2).** The conversation runs the same pre-check as Apex (`CustomerSummaryActionCatalog`,
    from the actions spike): it skips filler words ("so", "please", "can you") and tests the first word left against a
    verb list ("create", "add", "schedule", "log", "update", "push" and others). Matching a verb anywhere would be wrong:
    "Which of their open deals close this quarter?" contains "open". Text that does not start with a verb goes straight
    to the ask path with no extra request; `NOT_AN_ACTION` from the server also goes on to the ask path in the same turn,
-   so the seller sees one turn. The chips "Create a follow-up" (`create_task`) and "Log a call" (`log_call`) skip the
+   so the seller sees one turn. An action goes to `CustomerSummaryActions.draftFromText`. The chips "Create a follow-up" (`create_task`) and "Log a call" (`log_call`) skip the
    model and call `draftAction` with no input; they show on an account's record page only.
-2. **The model proposes (steps 4 and 5).** The `ActionDraft` prompt (static resource `AgentPrompt_ActionDraft`, settings
+2. **The model proposes (steps 3 and 4).** The `ActionDraft` prompt, sent through `AgentLlm` (static resource `AgentPrompt_ActionDraft`, settings
    in `Agent_Prompt_Setting.ActionDraft`) gets today's date, the weekday, the account name and the request, and answers
    with one JSON object or `{"action":"none"}`. A person or deal the request never named is dropped from the reply, so
    the model cannot add one. A draft costs one model call at most.
-3. **Apex decides (steps 6 to 8).** `draft` reads the account, matches contacts and open deals by name on that account
+3. **Apex decides (steps 5 to 7).** `draft` reads the account, matches contacts and open deals by name on that account
    only, parses the dates and values, and returns a `Draft` with BE-39's `actionDraft` card. The card is drawn by
    `c-customer-summary-card` with the same plain-text fallback as every other card. A missing field has an error
    border, the word "Needed" and `aria-invalid`, and Confirm stays off until no field is missing.
-4. **Fix the draft (steps 9 to 11).** A changed value or a chosen record calls `draftAction` again with the draft's
+4. **Fix the draft (steps 8 to 10).** A changed value or a chosen record calls `draftAction` again with the draft's
    resolved input plus the new words. The client never builds a field or decides a status: the server is the only
    source of a draft.
-5. **Confirm (steps 12 to 16).** Confirm calls `commitAction` once, with only the draft's action, account and input; the
+5. **Confirm (steps 11 to 15).** Confirm calls `commitAction` once, with only the draft's action, account and input; the
    card is busy while it runs, so a second click does nothing. `commitDraft` builds the draft again from that input,
-   writes only a `READY` draft, records the outcome and returns a `Result` with an `actionResult` card: the title ("Task
+   writes only a `READY` draft, records the outcome through `CustomerOutcomes` and returns a `Result` with an `actionResult` card: the title ("Task
    created"), the record as a link, what was written, and Open. A refusal or a failure adds the error turn with a plain
    message and leaves the draft open. Cancel closes the card and says "Cancelled. Nothing was saved."
-6. **Undo (steps 17 to 20).** An update's result card shows Undo next to Open for 15 seconds, by a client timer; the
+6. **Undo (steps 16 to 19).** An update's result card shows Undo next to Open for 15 seconds, by a client timer; the
    server's own 15-second check still decides. `undo` restores the values the token carries and removes the outcome.
 
 ### The six actions

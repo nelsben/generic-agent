@@ -40,66 +40,66 @@ The numbers in the diagram match the steps under it. The coral block is the mode
 in [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant CL as MCP client
+    actor Rep as Seller or service rep
+    participant Client as AI client
+    participant App as Customer Summary
+    participant AI as AI model
+    Rep->>Client: Brief me on Edge Communications
+    rect rgba(59, 130, 246, 0.12)
+        Note over Client: Sign in
+        Client->>App: Ask to sign in the rep
+        App-->>Client: Token, mcp_api scope
     end
-    box rgb(247, 249, 252) Salesforce, hosted
-        participant ECA as CustomerSummaryMcpClient
-        participant MCP as CustomerSummaryMcp
+    rect rgba(16, 185, 129, 0.12)
+        Note over Client: Resolve
+        Client->>App: Resolve the account
+        App-->>Client: Account Id, or why not
     end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant RA as CustomerSummaryResolver
-        participant GA as CustomerSummaryGetAction
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,ECA: Sign in
-        U->>CL: Brief me on Edge Communications
-        CL->>ECA: authorization code with PKCE, as the rep
-        ECA-->>CL: a token with the mcp_api scope
-    end
-    rect rgb(222, 243, 230)
-        Note over CL,RA: Resolve
-        CL->>MCP: tools/call resolve_account
-        MCP->>RA: the invocable, run as the rep
-        RA-->>CL: RESOLVED and the account Id
-    end
-    rect rgb(253, 242, 214)
-        Note over CL,L: Summarize
-        CL->>MCP: tools/call get_account_summary with the Id
-        MCP->>GA: the invocable, run as the rep
-        rect rgb(255, 214, 204)
-            GA->>L: the summary's model calls
-            L-->>GA: text
+    rect rgba(6, 182, 212, 0.12)
+        Note over App: Summarize
+        Client->>App: Get the summary for the Id
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: Up to 4 model calls
+            AI-->>App: Text for each call
         end
-        GA-->>CL: status and answer
+        App-->>Client: Status and answer
     end
-    rect rgb(234, 238, 242)
-        Note over U,CL: Answer
-        CL-->>U: the summary, in the client
+    rect rgba(139, 92, 246, 0.12)
+        Note over Client: Answer
+        Client-->>Rep: The summary, in the client
     end
 ```
 
-1. **Sign in (steps 1 to 3).** MCP servers are off by default; an admin turns them on in Setup under API Catalog, MCP
-   Servers. The client signs the rep in through the External Client App `CustomerSummaryMcpClient`: authorization code
-   with PKCE, per user, with the `mcp_api` and `refresh_token` scopes. Only holders of `Customer_Summary_Data_Access`,
-   which the permission set group carries, may sign in.
-2. **Resolve (steps 4 to 6).** The client calls `resolve_account`, which runs `CustomerSummaryResolver` as the rep and
-   returns RESOLVED with one Id, or the same fixed AMBIGUOUS or NOT_FOUND text the panel shows
-   ([01](01-route-gather-reduce.md#when-something-fails)). The client briefs only a RESOLVED Id, the order the agent
-   follows in [06](06-agent-routing-and-verbatim-relay.md).
-3. **Summarize (steps 7 to 11).** `get_account_summary` runs `CustomerSummaryGetAction`, the same engine as the panel.
-   A summary makes up to 4 model calls (two pre-reduce calls, the synthesis and the sentiment score), shown here as one
-   coral block, and writes one memory row and one outcome, as in [05](05-conversation-memory.md).
-4. **Answer (step 12).** The client shows the status and the answer. `ask_anything` (`ExploreAction`) follows the same
-   path from step 7 for a question such as "Which open deals close this quarter?": it runs read-only queries as the rep
-   and calls a model on each turn.
+1. **Sign in (steps 1 to 3).** The rep asks in the client. MCP servers are off by default; an admin turns them on in
+   Setup under API Catalog, MCP Servers. The client signs the rep in through the External Client App
+   `CustomerSummaryMcpClient`: authorization code with PKCE, per user, with the `mcp_api` and `refresh_token` scopes, and
+   gets a token with the `mcp_api` scope. Only holders of `Customer_Summary_Data_Access`, which the permission set group
+   carries, may sign in.
+2. **Resolve (steps 4 and 5).** The client calls the tool `resolve_account` on the server `CustomerSummaryMcp`, which runs
+   `CustomerSummaryResolver` as the rep and returns RESOLVED with one Id, or the same fixed AMBIGUOUS or NOT_FOUND text
+   the panel shows ([01](01-route-gather-reduce.md#when-something-fails)). The client briefs only a RESOLVED Id, the
+   order the agent follows in [06](06-agent-routing-and-verbatim-relay.md).
+3. **Summarize (steps 6 to 9).** `get_account_summary` runs `CustomerSummaryGetAction` as the rep, the same engine as
+   the panel. A summary makes up to 4 model calls through `AgentLlm` (two pre-reduce calls, the synthesis and the
+   sentiment score), shown here as one coral block, and writes one memory row and one outcome, as in
+   [05](05-conversation-memory.md). The action returns a status and the answer.
+4. **Answer (step 10).** The client shows the status and the answer. `ask_anything` (`ExploreAction`) follows the same
+   path as the summary for a question such as "Which open deals close this quarter?": it runs read-only queries as the
+   rep and calls a model on each turn.
 
 **The five tools.** Each tool has its own client-facing description, so the agent-facing "Relay it verbatim" wording
 in the Apex is not the tool text. An unannotated tool is treated as destructive, so the hints are set by hand.
@@ -119,51 +119,59 @@ with subtype Call, as ledger F17 decides; one constant switches it back to an Ev
 [13](13-write-actions.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant CL as MCP client
-    end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant DA as draft_action
-        participant CA as commit_action
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,L: Draft
-        U->>CL: Log a call with Maria, she wants a quote
-        CL->>DA: the account Id and the words
-        rect rgb(255, 214, 204)
-            DA->>L: the ActionDraft prompt
-            L-->>DA: one action and its fields
+    actor Rep as Seller or service rep
+    participant Client as AI client
+    participant App as Customer Summary
+    participant Data as Salesforce records
+    participant AI as AI model
+    Rep->>Client: Log a call with Maria
+    rect rgba(59, 130, 246, 0.12)
+        Note over App: Draft
+        Client->>App: The account Id and the words
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: Draft the action
+            AI-->>App: One action and its fields
         end
-        DA-->>CL: READY, Draft Text and Draft JSON, nothing written
+        App-->>Client: Draft text, nothing written
     end
-    rect rgb(222, 243, 230)
-        Note over U,CL: Confirm
-        CL->>U: shows the Draft Text and asks
-        U->>CL: yes
+    rect rgba(16, 185, 129, 0.12)
+        Note over Client: Confirm
+        Client->>Rep: Show the draft and ask
+        Rep->>Client: Yes
     end
-    rect rgb(253, 242, 214)
-        Note over CL,CA: Commit
-        CL->>CA: the Draft JSON, unchanged
-        CA->>CA: build and check the draft again, then write as the rep
-        CA-->>CL: OK, the record, a link path and the message
+    rect rgba(6, 182, 212, 0.12)
+        Note over App: Commit
+        Client->>App: Send the Draft JSON back
+        App->>Data: Check, then write as the rep
+        App-->>Client: OK, the record, a link
     end
 ```
 
-1. **Draft (steps 1 to 5).** `draft_action` takes the account Id from `resolve_account` and either the request in plain
-   words, which goes to the model as in [13](13-write-actions.md), or one of the two actions with its fields, which
-   needs no model call. It returns the draft as text to show and as JSON to send back. It writes nothing.
+1. **Draft (steps 1 to 5).** The rep says what to log, for example "Log a call with Maria, she wants a quote".
+   `draft_action` takes the account Id from `resolve_account` and either the request in plain words, which goes to the
+   model as the `ActionDraft` prompt through `AgentLlm`, as in [13](13-write-actions.md), or one of the two actions with
+   its fields, which needs no model call. It returns the draft as text to show (READY, Draft Text) and as JSON to send
+   back (Draft JSON). It writes nothing.
 2. **The person's yes (steps 6 and 7).** Both tool descriptions tell the client to show the draft and to call
    `commit_action` only after the person says yes. The client's own approval prompt for a destructive tool is a second
-   check. The server cannot know that a person said yes, which is why step 9 checks again.
+   check. The server cannot know that a person said yes, which is why the commit checks the draft again.
 3. **Commit (steps 8 to 10).** `commit_action` takes the Draft JSON back unchanged, builds and checks the draft again
    in user mode, and writes it as the signed-in rep, so a changed draft writes nothing the rep could not write by hand.
+   It answers OK with the record, a link path and the message.
 4. **The refusal.** Any other action (an event, a case, a contact or opportunity update), asked for by name, drafted
    from words, or sent as a hand-made draft, gets one fixed text and writes nothing: "Only two actions are allowed
    here: create a task (create_task) and log a call (log_call). Nothing was drafted or saved." The allow-list is
