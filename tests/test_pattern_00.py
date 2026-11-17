@@ -18,7 +18,7 @@ EXEMPT = ("See it", "Why you can trust it", "How it scales", "Adopt it")
 PARTS = [p for p in pattern_shape.fixed_parts() if p not in EXEMPT]
 EXTRAS = ("What was measured, and how to say it", "What changes for a team", "When the standard chat fits")
 LIMITS = "../research/fr2-standard-limits.md"
-CORAL = "rect rgb(255, 214, 204)"
+CORAL = "rect rgba(244, 114, 82, 0.22)"
 
 
 class PatternZeroShape(unittest.TestCase):
@@ -39,11 +39,16 @@ class PatternZeroShape(unittest.TestCase):
         sequences = [b for b in pattern_shape.mermaid_blocks(self.text) if "sequenceDiagram" in b]
         self.assertEqual(len(sequences), 2, "the standard path and ours")
         for n, code in enumerate(sequences, 1):
+            self.assertNotIn("box ", code, "diagram %d: no box, the lifeline names say which layer is which" % n)
             self.assertIn(CORAL, code, "diagram %d marks its model calls in coral" % n)
             self.assertGreaterEqual(code.count("rect "), 4, "diagram %d has phase blocks" % n)
             self.assertRegex(code, r"(?m)^\s*Note over ", "diagram %d names its phases" % n)
         self.assertIn("Lightning type", sequences[0], "the standard path shows when a card renders")
-        self.assertIn("AnswerCard", sequences[1], "our path builds the typed card contract")
+        self.assertIn("typed cards", sequences[1], "our path builds the typed card contract")
+        after = self.text.split("### Our surfaces", 1)[1].split("**What an MCP client gets.**", 1)[0]
+        self.assertIn("`AnswerCard`", after, "the steps name the class that builds the cards")
+        for name in ("CustomerSummary", "DataExplorer", "CustomerSummaryPanelController"):
+            self.assertIn("`%s`" % name, after, "the steps name " + name)
 
     def test_every_number_in_the_business_problem_has_a_link_on_its_line(self):
         part = pattern_shape.part_body(self.text, "The business problem")

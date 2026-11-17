@@ -50,99 +50,93 @@ calls; everything else is the browser and deterministic Apex. The theme is the s
 [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant C as Conversation (customerSummaryConversation)
+    actor Rep as Sales rep
+    participant Conv as Conversation
+    participant Exp as Data explorer
+    participant Data as Salesforce records
+    participant AI as AI model
+    rect rgba(59, 130, 246, 0.12)
+        Note over Conv: Ask
+        Rep->>Conv: Ask a question
+        Conv->>Exp: Question, record, last turns
     end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant A as CustomerSummaryPanelController
-        participant D as DataExplorer
-        participant P as ExplorePlan
-        participant K as ExploreCatalog
-        participant Q as ExploreQuery
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,D: Ask
-        U->>C: types or speaks a question, then Enter
-        C->>A: explore, with the question, the record in view and the last turns
-        A->>D: explore(question, contextRecordId, historyJson)
-    end
-    rect rgb(222, 243, 230)
-        Note over D,L: Plan and check
-        rect rgb(255, 214, 204)
-            D->>L: AgentPrompt_Explore with the catalog, the context, the history and queries_left
-            L-->>D: one JSON object, a query plan or the answer
+    rect rgba(16, 185, 129, 0.12)
+        Note over Exp: Plan and check
+        rect rgba(244, 114, 82, 0.22)
+            Exp->>AI: Catalog, context, history
+            AI-->>Exp: Query plan, or the answer
         end
-        D->>P: resolve the plan
-        P->>K: match every object and field name
-        K-->>P: allowed paths, or a plain-English error
-        P-->>D: the checked plan, or the errors
+        Exp->>Data: Check names in the catalog
+        Data-->>Exp: Allowed fields, or errors
     end
-    rect rgb(253, 242, 214)
-        Note over D,Q: Run in the rep's access
-        D->>Q: run the checked plan
-        Q->>Q: SOQL from catalog paths only, every value bound, user mode, capped rows
-        Q-->>D: a result set with its total, or a refusal
+    rect rgba(6, 182, 212, 0.12)
+        Note over Exp: Run in the rep's access
+        Exp->>Data: Run the checked plan
+        Data-->>Exp: Rows and total, or refusal
     end
-    rect rgb(238, 232, 250)
-        Note over U,L: Answer
-        rect rgb(255, 214, 204)
-            D->>L: the first 20 rows and the total, or INVALID and the reason
-            L-->>D: the answer with next questions, or a corrected plan
+    rect rgba(139, 92, 246, 0.12)
+        Note over Exp: Answer
+        rect rgba(244, 114, 82, 0.22)
+            Exp->>AI: First 20 rows and the total
+            AI-->>Exp: Answer, or a corrected plan
         end
-        D-->>A: status, answer, result sets, query trail, next questions and cards
-        A->>A: saves the turn to the rep's session for the account
-        A-->>C: the result
-        C-->>U: the answer as cards, the next questions as chips
+        Exp-->>Conv: Answer, results and cards
+        Conv-->>Rep: Cards and next questions
     end
-    rect rgb(234, 238, 242)
-        Note over U,Q: Drill
-        U->>C: clicks a row, or a link in a card
-        C->>A: drill(recordId, relatedObject)
-        A->>D: drill, with no model call
-        D->>Q: the record's catalog fields, or its child rows in one related object
-        Q-->>D: rows in user mode
-        D-->>A: rows with labels for headers and the name first
-        A-->>C: a record card, or a table card
+    rect rgba(100, 116, 139, 0.12)
+        Note over Conv: Drill
+        Rep->>Conv: Click a row or a link
+        Conv->>Exp: Drill, no model call
+        Exp->>Data: Read the record or its rows
+        Data-->>Exp: Rows in user mode
+        Exp-->>Conv: Record card or table card
     end
 ```
 
-1. **Ask (steps 1 to 3).** The rep types or speaks into the composer ([11](11-voice-input.md)). The conversation sends
+1. **Ask (steps 1 and 2).** The rep types or speaks into the composer ([11](11-voice-input.md)). The conversation sends
    the question, the record in view and its last turns as history to `CustomerSummaryPanelController.explore`, which
-   hands them to `DataExplorer.explore`. The scope chip above the composer says what the question is about: "About"
+   hands them to `DataExplorer.explore(question, contextRecordId, historyJson)`. The scope chip above the composer says what the question is about: "About"
    and the account's name on an account page, "About this record" on another record, or "Whole org", which sends no
    record. After a summary on a page with no record, the question goes with the summarized account. Text whose first
    real word is an action verb goes to a draft instead ([13](13-write-actions.md)).
-2. **Plan (steps 4 and 5).** Each turn, the model gets the prompt file `AgentPrompt_Explore` with the catalog, the
+2. **Plan (steps 3 and 4).** Each turn, the model gets the prompt file `AgentPrompt_Explore` with the catalog, the
    record in view (with the account's earlier outcomes, [05](05-conversation-memory.md)), the history, the turns so far
    and `queries_left`, through the model door `AgentLlm` ([04](04-model-provider-seam.md)). It replies with one JSON
    object: a query plan (object, fields, filters, order, limit, group by, aggregates) or an answer.
-3. **Check (steps 6 to 9).** `ExplorePlan.resolve` matches every name to `ExploreCatalog`. The catalog is a curated
+3. **Check (steps 5 and 6).** `ExplorePlan.resolve` matches every name to `ExploreCatalog`. The catalog is a curated
    list of eight objects (Account, Contact, Opportunity, OpportunityContactRole, Case, Task, Event and User), each with
    its fields, describe-checked for the running user: anything the rep cannot read is dropped before the model sees
    the catalog, and a name outside it is an error in plain English.
-4. **Run in the rep's access (steps 10 to 12).** `ExploreQuery` builds SOQL only from catalog paths, fixed operators
+4. **Run in the rep's access (steps 7 and 8).** `ExploreQuery` builds SOQL only from catalog paths, fixed operators
    and its own aliases. Every value is a bind variable, and the query runs in `AccessLevel.USER_MODE`. The limit
    defaults to 50 rows and is capped at 200. An aggregate first runs a capped `COUNT()`: past 10,000 matching records
    it is refused with "Add filters to narrow it", instead of hitting a platform limit that cannot be caught.
-5. **Correct (steps 13 and 14).** The model sees the first 20 rows of each result and its total. A reply that is not
+5. **Correct (steps 9 and 10).** The model sees the first 20 rows of each result and its total. A reply that is not
    one JSON object, a plan error, a query error or a row-cap refusal goes back as `INVALID: <reason>`, and the model
    tries again. A question gets at most 5 model turns and 4 queries. When the turns run out with rows in hand, the
    status stays OK and the last result is shown with a fixed note.
-6. **Answer (steps 15 to 18).** The explorer returns its status, the answer, the result sets, the query trail, up to
+6. **Answer (steps 11 and 12).** The explorer returns its status, the answer, the result sets, the query trail, up to
    four next questions and the same answer as cards, built from those members with no new query or model call. The
    controller saves an answered turn about an account to the rep's session ([05](05-conversation-memory.md)), last,
    after every model call; a failed save is logged and the answer still returns. The conversation draws the cards: the
    answer as text runs, the last result as a table, a record list or a metric, a notice when rows were cut, the query
    trail closed to start, and the next questions as chips that ask them. No record Id is in the answer text or a
    column: rows keep their Id only to open the record.
-7. **Drill (steps 19 to 25).** A row, or a link in a card, calls `drill`. `DataExplorer.drill` reads that record's
+7. **Drill (steps 13 to 17).** A row, or a link in a card, calls `CustomerSummaryPanelController.drill(recordId, relatedObject)`, which hands it to `DataExplorer.drill`. That reads the record's
    catalog fields, or its child rows in one related catalog object found by describe, in user mode and with no model
    call. Child rows lead with the record's name and carry field labels as headers. A single record comes back as a
    record card with its related objects as chips; related rows come back as the explorer's own table card.
@@ -153,74 +147,75 @@ The summary comes first ([01](01-route-gather-reduce.md)). The next question goe
 other: no new action, no new input. What changes is what the model sees.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant C as Conversation (customerSummaryConversation)
-    end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant A as CustomerSummaryPanelController
-        participant E as CustomerSummary and its sections
-        participant S as CustomerSummaryMemory
-        participant D as DataExplorer
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,L: Summary
-        U->>C: Summarize, on the account page
-        C->>A: getBrief for the account
-        A->>E: run the summary in the rep's access
-        rect rgb(255, 214, 204)
-            E->>L: the summary's model calls
-            L-->>E: the summary text
+    actor Rep as Sales rep
+    participant App as Customer Summary
+    participant Exp as Data explorer
+    participant Mem as Memory
+    participant AI as AI model
+    rect rgba(59, 130, 246, 0.12)
+        Note over App: Summary
+        Rep->>App: Summarize this account
+        rect rgba(244, 114, 82, 0.22)
+            App->>AI: The summary's model calls
+            AI-->>App: Summary text
         end
-        E->>S: keeps it as the rep's last summary of the account
-        E-->>C: the summary and its cards, through the controller
+        App->>Mem: Keep it as the last summary
+        App-->>Rep: Summary and cards
     end
-    rect rgb(222, 243, 230)
-        Note over U,L: Follow-up
-        U->>C: Which of those close this quarter?
-        C->>A: explore, with the account and the last turns, the summary last
-        A->>D: explore(question, accountId, historyJson)
-        D->>S: lastBrief for this rep and this account
-        S-->>D: the last summary, to match against the history's last answer
-        D->>E: rebuild the summary's sections in the rep's access
-        E-->>D: the summary's records, as line text and Id, capped
-        rect rgb(255, 214, 204)
-            D->>L: the question, the history and the summary's records, Ids for plans only
-            L-->>D: a plan filtered on those Ids
+    rect rgba(16, 185, 129, 0.12)
+        Note over App: Follow-up
+        Rep->>App: Which close this quarter?
+        App->>Exp: Explore, with the last turns
+        Exp->>Mem: Last summary for this rep?
+        Mem-->>Exp: The last summary
+        Exp->>App: Rebuild the summary's records
+        App-->>Exp: Records as line text and Id
+        rect rgba(244, 114, 82, 0.22)
+            Exp->>AI: Question, history, records
+            AI-->>Exp: A plan filtered on those Ids
         end
-        D-->>C: the answer and its rows, only those records, through the controller
-        C-->>U: the answer as cards, with no Id in the text
+        Exp-->>App: Answer and its rows
+        App-->>Rep: Answer as cards, no Id
     end
 ```
 
-1. **The summary (steps 1 to 7).** The rep asks for the summary. `CustomerSummary` gathers the account's sections in
+1. **The summary (steps 1 to 5).** The rep asks for the summary, which goes to `CustomerSummaryPanelController.getBrief`.
+   `CustomerSummary` gathers the account's sections in
    the rep's access, makes its model calls, and keeps the summary as the rep's last one for that account in the
    session store ([05](05-conversation-memory.md)). Each section line that names a record ends with that record's Id,
    which stays out of the text the rep reads.
-2. **The follow-up goes out as an ordinary question (steps 8 to 10).** The rep asks the next question in their own
+2. **The follow-up goes out as an ordinary question (steps 6 and 7).** The rep asks the next question in their own
    words. The conversation sends it to `explore` like any other, with the account as the record and the summary as the
    last turn of the history.
-3. **Is the last turn the summary? (steps 11 and 12).** The explorer adds the summary's records only when the record
+3. **Is the last turn the summary? (steps 8 and 9).** The explorer adds the summary's records only when the record
    is an account and the history's last answer matches the summary this rep last got for it
    (`CustomerSummaryMemory.lastBrief`; spaces are collapsed and a clipped tail is allowed, and an answer under 20
    characters never matches). Otherwise nothing is added and the explorer works as in the diagram above.
-4. **The summary's records (steps 13 and 14).** The explorer rebuilds the summary's sections (open deals, cases,
+4. **The summary's records (steps 10 and 11).** The explorer rebuilds the summary's sections (open deals, cases,
    contacts, activity, calls and deal history) for that account, in the rep's access, and reads each record's line
    and Id from them. It is the same set of records the summary was built from, not a new search. They go only into
    the prompt, under "Earlier in this conversation": at most 10 records per section, each line clipped to 120
    characters, and 3,000 characters in all, with "(N more not listed)" where a section was cut.
-5. **The plan (steps 15 and 16).** Prompt rule 12 tells the model that "those", "them", "there" or "that deal" mean the
+5. **The plan (steps 12 and 13).** Prompt rule 12 tells the model that "those", "them", "there" or "that deal" mean the
    records of the last turn: after a summary, it filters on their Ids, and on the account's Id for "there". The listed
    lines only say which records; they are never the source of a value, a count or a ranking, so the answer comes from
    a query. When it is unclear which records the question means, the model asks back, runs no query and offers the
    likely choices as next questions. The plan is then checked and run exactly as in the diagram above.
-6. **The answer (steps 17 and 18).** The rep sees the answer and its rows, which are the summary's own records, as
+6. **The answer (steps 14 and 15).** The rep sees the answer and its rows, which are the summary's own records, as
    cards. Prompt rule 5 keeps Ids out of the answer.
 
 ## See it

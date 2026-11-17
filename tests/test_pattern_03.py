@@ -15,9 +15,8 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "docs/patterns/03-hotkey-panel.md"
 PARTS = pattern_shape.fixed_parts()
 EXTRAS = ()
-PHASES = ("Open", "Ask through Apex", "Switch chats", "Driven by another component", "Close")
-MODEL_ACCENT = "rect rgb(255, 214, 204)"
-MODEL_BOX = "box rgb(255, 236, 230)"
+PHASES = ("Open", "Ask through Apex", "Switch chats", "Opened by a component", "Close")
+MODEL_ACCENT = "rect rgba(244, 114, 82, 0.22)"
 ARROW = re.compile(r"^\s*[A-Za-z0-9_]+\s*(?:->>|-->>|->|-->|-x|--x|-\)|--\))\s*[A-Za-z0-9_]+")
 OPENERS = re.compile(r"^\s*(rect|box|loop|alt|opt|par|critical|break)\b")
 SEE_IT_IMAGES = (
@@ -97,12 +96,13 @@ class PatternThreeShape(unittest.TestCase):
         main = seqs[0]
         for phase in PHASES:
             self.assertRegex(main, r"(?m)^\s*Note over [^:]+: *%s\s*$" % re.escape(phase), "phase note " + phase)
-        self.assertGreaterEqual(main.count("rect rgb("), len(PHASES) + 1, "a shaded rect per phase, and the accent")
-        self.assertGreaterEqual(main.count("box "), 3, "a box per layer")
+        self.assertGreaterEqual(main.count("rect rgba("), len(PHASES) + 1, "a tinted rect per phase, and the accent")
+        self.assertNotIn("box ", main, "no box: the lifeline names say which layer is which")
+        self.assertIn("AI model", main, "the model is its own lifeline")
         self.assertIn(MODEL_ACCENT, main, "the model call carries the one accent")
-        self.assertIn(MODEL_BOX, main, "the model layer has its own box")
+        steps = steps_after_each_sequence(self.text)[0][1]
         for name in ("CustomerSummaryPanelController", "CustomerSummaryHistory", "CustomerSummaryOpen"):
-            self.assertIn(name, main)
+            self.assertIn(name, steps, "the steps under the diagram name " + name)
 
     def test_every_sequence_diagram_is_well_formed(self):
         for n, code in enumerate(sequences(self.text), 1):
