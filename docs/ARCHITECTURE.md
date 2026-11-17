@@ -64,7 +64,7 @@ and 12 show them on each surface; the contract itself is in
 
 ## The two diagrams
 
-The component diagram shows the shared conversation core and the frames around it. The theme is the shared one in
+The component diagram shows the shared conversation core (`customerSummaryConversation`) and the frames around it. The theme is the shared one in
 [_diagram-theme.md](patterns/_diagram-theme.md).
 
 ```mermaid
