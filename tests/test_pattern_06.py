@@ -43,8 +43,14 @@ class PatternSixAppendix(unittest.TestCase):
         sequences = [b for b in pattern_shape.mermaid_blocks(self.text) if "sequenceDiagram" in b]
         self.assertEqual(len(sequences), 1)
         main = sequences[0]
-        self.assertIn("rect rgb(255, 214, 204)", main, "model calls use the one coral accent")
-        self.assertGreaterEqual(main.count("box "), 3, "a box per layer")
+        self.assertIn("rect rgba(244, 114, 82, 0.22)", main, "model calls use the one coral accent")
+        self.assertNotIn("box ", main, "no box: the lifeline names say which layer is which")
+        for lifeline in ("Agent", "Customer Summary", "AI model"):
+            self.assertIn(" as " + lifeline + "\n", main, "a lifeline for " + lifeline)
+        how = pattern_shape.part_body(self.text, "How it works")
+        for name in ("agent_router", "account_summary", "explore", "CustomerSummaryResolver",
+                     "CustomerSummaryGetAction", "ExploreAction", "go_to_account_summary", "go_to_explore"):
+            self.assertIn(name, how, "the steps under the diagram name " + name)
         for phase in ("Route", "Resolve, then summarize", "Explore", "Relay"):
             self.assertRegex(main, r"(?m)^\s*Note over .*: *%s\b" % re.escape(phase), "phase note " + phase)
 

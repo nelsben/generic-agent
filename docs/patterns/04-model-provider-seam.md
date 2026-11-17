@@ -77,80 +77,79 @@ deterministic Apex. The two branches are the two sources a prompt's setting can 
 [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant F as A feature, for example CustomerSummary
-        participant L as AgentLlm, the door
-    end
-    box rgb(247, 249, 252) The product's own files and settings
-        participant ST as Agent_Prompt_Setting__mdt
-        participant SR as StaticResource AgentPrompt_Name
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant MA as AgentLlmModelsApi and the Models API
-        participant PT as AgentLlmPromptTemplate and the prompt template
-    end
-    rect rgb(225, 236, 252)
-        Note over F,SR: Prepare
-        F->>L: complete(prompt name, values, max tokens)
-        L->>ST: the prompt's setting, read once per transaction
-        ST-->>L: model, max tokens, source, template and inputs, trace
-        alt Source is Static_Resource, the default
-            L->>SR: load AgentPrompt_Name in user mode, once per transaction
-            SR-->>L: the system part and the user part
-            L->>L: fill each placeholder in one literal pass, then add the brand lines
-        else Source is Prompt_Template, opt-in per prompt
-            L->>L: map the values to the template's inputs
+    participant F as A feature
+    participant L as Prompt door
+    participant S as Settings
+    participant P as Prompt files
+    participant M as AI model
+    F->>L: Ask for a prompt by name
+    rect rgba(59, 130, 246, 0.12)
+        Note over L: Prepare
+        L->>S: Read the prompt's setting
+        S-->>L: Model, length and source
+        alt Source is a static resource
+            L->>P: Load the prompt file
+            P-->>L: System and user parts
+        else Source is a prompt template
+            L->>S: Read the template inputs
+            S-->>L: Template and its inputs
         end
     end
-    rect rgb(222, 243, 230)
-        Note over L,PT: Call
-        rect rgb(255, 214, 204)
-            alt Static_Resource
-                L->>MA: system and user messages, with the setting's model
-                MA-->>L: the first generation's text
-            else Prompt_Template
-                L->>PT: the template name, its inputs and max tokens
-                PT-->>L: the first generation's text
-            end
+    rect rgba(16, 185, 129, 0.12)
+        Note over L: Call
+        rect rgba(244, 114, 82, 0.22)
+            L->>M: Send the prompt or template
+            M-->>L: The first generation's text
         end
     end
-    rect rgb(234, 238, 242)
-        Note over F,L: Return
-        L->>L: no text is an error, and the reply is cut at max tokens x 4 characters
-        L-->>F: the text, or one LlmException with the cause kept
+    rect rgba(6, 182, 212, 0.12)
+        Note over L: Return
+        L-->>F: The text, or one error
     end
 ```
 
 1. **Name a prompt (step 1).** A feature calls `AgentLlm.complete('SummarySynthesis', values, 1500)`, optionally with
    extra system lines such as the brand's company and tone. Four features call the door, with six prompts:
    `CustomerSummary` (`BriefEngagement`, `BriefDealHistory`, `SummarySynthesis`), `CustomerSentiment` (`Sentiment`),
-   `DataExplorer` (`Explore`) and `CustomerSummaryActions` (`ActionDraft`).
+   `DataExplorer` (`Explore`) and `CustomerSummaryActions` (`ActionDraft`). The feature never builds a prompt string.
 2. **Load its settings (steps 2 and 3).** `AgentLlm` reads `Agent_Prompt_Setting__mdt` once per transaction. The
    record named after the prompt gives the model (`Model__c`), the maximum length (`Max_Tokens__c`, which wins over
    the caller's value), the source (`Source__c`), the template and its inputs, and the trace switch (`Trace__c`). A
    prompt with no record runs on every default: the prompt file, the caller's length and the fallback model
    `AgentLlmModelsApi.MODEL`.
-3. **Fill it (steps 4 to 7).** On the default path, `AgentLlm` loads the static resource `AgentPrompt_<Name>` in user
-   mode, once per transaction. The file has a `---system---` part and a `---user---` part. Each `{{name}}` is filled in
-   one literal pass, so a value is never expanded again, and a placeholder with no value is an error, so a renamed
-   variable fails loudly. Extra system lines go after the file's system text. On the template path (step 7) the values
-   go to the template's inputs as `Template_Inputs__c` maps them; a variable it names with no value is an error. With
-   the trace on, the filled text (or the template and its inputs) goes to the debug log with record Ids replaced.
-4. **Send it (steps 8 to 11).** `AgentLlmModelsApi` sends a system message and a user message to the Models API's
-   chat generations, with the setting's model (steps 8 and 9). `AgentLlmPromptTemplate` runs the named template with
-   its inputs and sends the maximum length as the request's own setting, which the Models API request does not take
-   (steps 10 and 11). `AgentLlm` reaches both classes by name, so the door holds no compile-time reference to a
-   platform AI API.
-5. **Cap and check (step 12).** No text is an error. A reply longer than about 4 characters per token of the maximum
-   length is cut, on both paths: on the Models API path it is the only length control, on the template path a
-   backstop. This cut adds no marker. Some features cap their own answer after it (see
-   [Limits and open items](#limits-and-open-items)).
-6. **Return (step 13).** The feature gets the text. Any failure, from a missing prompt to a provider exception, is
-   one `AgentLlm.LlmException` with the cause kept, which each feature turns into its fixed plain sentence. In tests,
-   `AgentLlm.stub` (and `templateStub`) replace the model, so no test calls one.
+3. **Fill it from a file (steps 4 and 5).** On the default path, `AgentLlm` loads the static resource
+   `AgentPrompt_<Name>` in user mode, once per transaction. The file has a `---system---` part and a `---user---`
+   part. Each `{{name}}` is then filled in one literal pass, so a value is never expanded again, and a placeholder
+   with no value is an error, so a renamed variable fails loudly. Extra system lines go after the file's system text.
+4. **Fill it from a template (steps 6 and 7).** On the template path, the setting names the template and its inputs,
+   and `AgentLlm` maps the values to the inputs as `Template_Inputs__c` says; a variable it names with no value is an
+   error. With the trace on, the filled text (or the template and its inputs) goes to the debug log with record Ids
+   replaced.
+5. **Send it (steps 8 and 9).** `AgentLlmModelsApi` sends a system message and a user message to the Models API's chat
+   generations, with the setting's model. `AgentLlmPromptTemplate` runs the named template with its inputs and sends
+   the maximum length as the request's own setting, which the Models API request does not take. Either way the first
+   generation's text comes back. `AgentLlm` reaches both classes by name, so the door holds no compile-time reference
+   to a platform AI API.
+6. **Cap and check, then return (step 10).** No text is an error. A reply longer than about 4 characters per token of
+   the maximum length is cut, on both paths: on the Models API path it is the only length control, on the template
+   path a backstop. This cut adds no marker. Some features cap their own answer after it (see
+   [Limits and open items](#limits-and-open-items)). The feature gets the text. Any failure, from a missing prompt to
+   a provider exception, is one `AgentLlm.LlmException` with the cause kept, which each feature turns into its fixed
+   plain sentence. In tests, `AgentLlm.stub` (and `templateStub`) replace the model, so no test calls one.
 
 ## See it
 

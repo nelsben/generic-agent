@@ -48,51 +48,56 @@ the optional agent track. The coral blocks are the model calls; everything else 
 one in [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) The builder's machine
-        actor B as Builder
-        participant LD as scripts/ladder.sh
-        participant BR as Chromium, driven by Playwright
-    end
-    box rgb(247, 249, 252) The org
-        participant ORG as The org (check-only deploy, Apex tests, the panel)
-        participant AG as Customer_Summary agent
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant M as Model
-    end
-    rect rgb(225, 236, 252)
-        Note over B,ORG: Every change
-        B->>LD: npm run ladder
-        LD->>LD: python: the metadata files, no org
-        LD->>LD: jest: each component with fake data, and axe
-        LD->>LD: scan: Code Analyzer reports, never stops the ladder
-        LD->>ORG: org-check: deploy without saving, every Apex test, model stubbed
-        LD->>ORG: drift: read main's components back and compare
-        LD->>BR: e2e-smoke: one test per surface
-        BR->>ORG: open the panel as the signed-in builder
-        rect rgb(255, 214, 204)
-            ORG->>M: full suite only: briefs and questions
+    actor B as Builder
+    participant L as Test ladder
+    participant K as Local checks
+    participant O as Salesforce org
+    participant M as AI model
+    B->>L: Run the ladder
+    rect rgba(59, 130, 246, 0.12)
+        Note over L: Every change
+        L->>K: Check files and components
+        K-->>L: Pass, fail or skipped
+        L->>O: Test deploy and Apex tests
+        L->>O: Compare main with the org
+        L->>O: Open each surface in a browser
+        rect rgba(244, 114, 82, 0.22)
+            O->>M: Full run only: real calls
+            M-->>O: Answers
         end
-        LD-->>B: one line per rung
+        L-->>B: One line per rung
     end
-    rect rgb(222, 243, 230)
-        Note over B,M: The optional agent
-        LD->>AG: agent-compile: compile locally, validate in the org, save nothing
-        B->>AG: preview the draft in Agentforce Studio
-        rect rgb(255, 214, 204)
-            AG->>M: route and actions, for each spec case
+    rect rgba(16, 185, 129, 0.12)
+        Note over B: The optional agent
+        L->>O: Compile and validate the agent
+        B->>O: Preview the draft
+        rect rgba(244, 114, 82, 0.22)
+            O->>M: Route and actions per case
+            M-->>O: Replies
         end
-        AG-->>B: trace of the route, the actions and the reply
-        B->>AG: publish: a new inactive version
-        B->>AG: activate it, the previous version stays for rollback
-        LD->>AG: agent-suite: Testing Center on the active version
-        rect rgb(255, 214, 204)
-            AG->>M: each case: the agent's own calls, then a judge
+        O-->>B: Trace of route and reply
+        B->>O: Publish a new version
+        B->>O: Activate it
+        L->>O: Run Testing Center
+        rect rgba(244, 114, 82, 0.22)
+            O->>M: Each case, then a judge
+            M-->>O: Replies and verdicts
         end
-        LD-->>B: one line, or skipped: agent suite not built
+        L-->>B: One line, or skipped
     end
 ```
 
@@ -100,23 +105,23 @@ sequenceDiagram
    given `--continue`. `--full` runs the full browser suite in place of the smoke subset, and `--agent` adds the agent
    track. The org is `agent-probe` unless `SF_TARGET_ORG` names another. Nothing on the ladder deploys for real,
    publishes or activates.
-2. **The local rungs (steps 2 to 4).** `python3 -m unittest discover -s tests` reads the metadata and needs no org.
-   `npm run test:unit` runs the components with `sfdx-lwc-jest`, including the accessibility checks from
-   `@sa11y/jest`. `scripts/apex-scan.sh` runs Code Analyzer; without Java it runs the engines that need none and says
-   which it skipped.
-3. **The org rungs (steps 5 and 6).** `scripts/validate-org.sh` runs a check-only deploy of everything except the
+2. **The local rungs (steps 2 and 3).** `python3 -m unittest discover -s tests` reads the metadata and needs no org.
+   `npm run test:unit` runs the components with `sfdx-lwc-jest` on fake data, including the accessibility checks from
+   `@sa11y/jest`. `scripts/apex-scan.sh` runs Code Analyzer and never stops the ladder; without Java it runs the
+   engines that need none and says which it skipped. Each rung comes back as passed, failed or skipped.
+3. **The org rungs (steps 4 and 5).** `scripts/validate-org.sh` runs a check-only deploy of everything except the
    agent bundle, with every `*Test` class, and saves nothing. No Apex test calls a model: each one sets `AgentLlm.stub`.
    `scripts/org-drift.sh` retrieves main's components into a temporary folder and compares them file by file; it never
    asks for a type that can carry a secret.
-4. **The browser (steps 7 to 9).** `npm run test:e2e:smoke` signs in through the builder's own sf CLI session and runs
-   one test per surface in Chromium, with no model call. `npm run test:e2e` is the full suite, the release check; its
-   briefs and questions reach the model (step 9).
-5. **The result (step 10).** One line per rung: passed, failed or skipped, and why. A failed rung also prints its last
+4. **The browser (steps 6 to 8).** `npm run test:e2e:smoke` signs in through the builder's own sf CLI session and runs
+   one test per surface in Chromium, which opens the panel as the signed-in builder, with no model call.
+   `npm run test:e2e` is the full suite, the release check; its briefs and questions reach the model.
+5. **The result (step 9).** One line per rung: passed, failed or skipped, and why. A failed rung also prints its last
    lines. The exit status is 1 when a rung failed.
-6. **Compile the agent (step 11).** `bash scripts/agent-check.sh` compiles the `.agent` file with the Agentforce
+6. **Compile the agent (step 10).** `bash scripts/agent-check.sh` compiles the `.agent` file with the Agentforce
    skill's local compiler, then runs `sf agent validate authoring-bundle`, which compiles it in the org and saves
    nothing.
-7. **Preview the draft (steps 12 to 14).** Save the script as a new draft version in Agentforce Studio and run each
+7. **Preview the draft (steps 11 to 14).** Save the script as a new draft version in Agentforce Studio and run each
    spec case in the live preview. The trace shows the route, each action's inputs and outputs, and the reply, as in
    [studio-preview.md](../research/studio-preview.md). This step is by hand.
 8. **Publish, then activate (steps 15 and 16).** Publish creates an inactive version; activate makes it the live one.
@@ -127,9 +132,9 @@ sequenceDiagram
    sf agent activate --json --api-name Customer_Summary --version <n> -o <org-alias>
    ```
 
-9. **Testing Center (steps 17 to 19).** The ladder's `agent-suite` rung runs `scripts/agent-test.sh` when that script
-   exists and its approval is recorded. Both are true in this build. What the suite checks is under
-   [Testing Center for the agent](#testing-center-for-the-agent).
+9. **Testing Center (steps 17 to 20).** The ladder's `agent-suite` rung runs `scripts/agent-test.sh` when that script
+   exists and its approval is recorded, and ends with one line, or skipped. Both are true in this build. What the
+   suite checks is under [Testing Center for the agent](#testing-center-for-the-agent).
 
 ## Each kind of test, with a first test to copy
 
