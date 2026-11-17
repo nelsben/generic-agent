@@ -25,32 +25,12 @@ def fixed_parts():
     return re.findall(r"^\s+\d+\.\s+`([^`]+)`", section, re.M)
 
 
-# The %%{init}%% line every diagram carried before the theme page moved to frontmatter snippets. A page still in the
-# old style is accepted while the restyle rolls out page by page; the last rollout card deletes this and the legacy
-# branch in check_diagrams.
-LEGACY_THEME = (
-    '%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, '
-    'Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", '
-    '"primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", '
-    '"textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", '
-    '"actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": '
-    '"#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", '
-    '"noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": '
-    '"#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", '
-    '"clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%'
-)
-
 MAX_LIFELINES = 5
 MAX_MESSAGE = 32
 MAX_NOTE = 24
 ARROW = re.compile(r"^\s*([\w]+)\s*(?:-->>|->>|-->|->|--x|-x|--\)|-\))[+-]?\s*([\w]+)\s*:(.*)$")
 LIFELINE = re.compile(r"^\s*(?:participant|actor)\s+(\w+)")
 NOTE = re.compile(r"^\s*Note\s+(?:over|left of|right of)\s+([^:]+):(.*)$")
-
-
-def theme_line():
-    """The old %%{init}%% line, accepted during the rollout only."""
-    return LEGACY_THEME
 
 
 def snippets():
@@ -89,11 +69,6 @@ def check_diagrams(case, text, name):
         where = "%s: diagram %d" % (name, n)
         raw = [line.rstrip() for line in code.splitlines() if line.strip()]
         lines = [line.strip() for line in raw]
-        if lines and lines[0].startswith("%%{init:"):
-            case.assertEqual(lines[0], LEGACY_THEME, "%s: the old theme line, word for word" % where)
-            if lines[1:2] == ["sequenceDiagram"]:
-                case.assertEqual(lines[2:3], ["autonumber"], "%s starts with autonumber" % where)
-            continue
         case.assertNotIn("%%{init", code, "%s: settings go in the frontmatter snippet" % where)
         if "sequenceDiagram" in lines:
             head = snip["sequence"]
