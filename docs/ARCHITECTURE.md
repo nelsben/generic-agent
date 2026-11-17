@@ -166,14 +166,14 @@ sequenceDiagram
         App->>Data: Read records as the rep
         Data-->>App: Records the rep can see
     end
-    rect rgba(6, 182, 212, 0.12)
+    rect rgba(139, 92, 246, 0.12)
         Note over App: Reduce
         rect rgba(244, 114, 82, 0.22)
             App->>AI: Up to 4 focused prompts
             AI-->>App: Text
         end
     end
-    rect rgba(139, 92, 246, 0.12)
+    rect rgba(100, 116, 139, 0.12)
         Note over App: Remember and answer
         App->>Mem: Save the turn, once
         App-->>Rep: Cards drawn in the thread
@@ -182,13 +182,12 @@ sequenceDiagram
 
 1. **Ask and route (step 1).** The rep types, speaks or taps a chip. The conversation sends the question and the open
    record to the controller (`CustomerSummaryPanelController`), which hands the request to the one service for the
-   skill it asks for: a summary, a question or an action. No message of its own is drawn for the hand-off.
+   skill it asks for: a summary, a question or an action.
 2. **Gather (steps 2 and 3).** The service reads records in user mode and builds its context. No model is involved.
 3. **Reduce (steps 4 and 5).** Focused prompts condense the noisy parts and write the answer from what was gathered.
    For a summary that is up to 4 model calls; its synthesis prompt is `AgentPrompt_SummarySynthesis`, and `AgentLlm`
    is the door to the model.
-4. **Cards.** The service builds the cards and their plain text from data it already holds. This step sends no
-   message, so it has no number.
+4. **Cards.** The service builds the cards and their plain text from data it already holds, with no model call.
 5. **Remember (step 6).** The turn and the outcome are saved once, after every model call, by the memory and outcomes
    classes (`CustomerSummaryMemory`, `CustomerOutcomes`). A failed save is logged and the answer still returns.
 6. **Answer (step 7).** The controller returns the cards and the surface draws them in the thread.
