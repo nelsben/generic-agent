@@ -79,47 +79,35 @@ config:
     padding: 14
 ---
 flowchart TB
-    subgraph FR["Frames"]
-        direction LR
-        CW["Compact window<br/>customerSummaryPanel"]
-        RR["Right rail<br/>customerSummaryRail"]
+    subgraph FR["Frames, where the rep works"]
+        CW["Compact window"]
+        RR["Right rail"]
         EM["Embedded surface<br/>not built"]
     end
-    subgraph CORE["Shared conversation"]
-        direction LR
-        TH["Thread and composer"]
-        VO["Voice input"]
-        CA["Cards"]
-        HI["History"]
-    end
-    subgraph APX["Apex, in the rep's access"]
-        direction LR
-        PC["Panel controller"]
-        SK["Skill services"]
-        AC["Card contract"]
-        ST["Memory and outcomes"]
-        BR["Brand settings"]
-    end
-    subgraph MODEL["Through the trust layer"]
-        LLM["AI model"]
-    end
     subgraph OUT["Other callers"]
-        direction LR
         MCP["Outside door<br/>over MCP"]
         AG["Optional agent<br/>and test bench"]
     end
-    CW --> CORE
-    RR --> CORE
-    EM -.-> CORE
-    CORE --> PC
+    CONV["Shared conversation<br/>thread, voice, cards, history"]
+    subgraph APX["Apex, in the rep's access"]
+        PC["Panel controller"]
+        BR["Brand settings"]
+        SK["Skill services<br/>summary, explorer, actions"]
+        AC["Card contract"]
+        ST["Memory and outcomes"]
+    end
+    LLM["AI model<br/>through the trust layer"]
+    CW --> CONV
+    RR --> CONV
+    EM -.-> CONV
+    CONV --> PC
+    CONV -.-> BR
     PC --> SK
+    MCP --> SK
+    AG -.-> SK
     SK --> AC
     SK --> ST
     SK --> LLM
-    BR -.-> CORE
-    BR -.-> LLM
-    MCP --> SK
-    AG -.-> SK
     classDef surface fill:#E8F1FD,stroke:#0B5CAB,color:#0B2A4A,stroke-width:1.5px
     classDef core fill:#0B5CAB,stroke:#0B5CAB,color:#FFFFFF,stroke-width:1.5px
     classDef apex fill:#E6F6EE,stroke:#2E844A,color:#0B2A1A,stroke-width:1.5px
@@ -127,11 +115,11 @@ flowchart TB
     classDef later fill:#FFFFFF,stroke:#8A96AD,color:#3A4456,stroke-dasharray:4 3
     classDef zone fill:#8A96AD14,stroke:#8A96AD,stroke-width:1px,stroke-dasharray:5 4
     class CW,RR,MCP surface
-    class TH,VO,CA,HI core
+    class CONV core
     class PC,SK,AC,ST,BR apex
     class LLM model
     class EM,AG later
-    class FR,CORE,APX,MODEL,OUT zone
+    class FR,OUT,APX zone
 ```
 
 The sequence diagram follows one question from a surface to an answer with cards. The numbers match the steps under it.
