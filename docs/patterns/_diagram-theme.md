@@ -92,7 +92,7 @@ Flowcharts:
 | --- | --- |
 | Phase: route, or the first phase | `rect rgba(59, 130, 246, 0.12)` |
 | Phase: gather, or the second phase | `rect rgba(16, 185, 129, 0.12)` |
-| Phase: pre-reduce, or the third phase | `rect rgba(245, 158, 11, 0.14)` |
+| Phase: pre-reduce, or the third phase | `rect rgba(6, 182, 212, 0.12)` |
 | Phase: reduce, or the fourth phase | `rect rgba(139, 92, 246, 0.12)` |
 | Phase: remember, or the closing phase | `rect rgba(100, 116, 139, 0.12)` |
 | **Model call (the one accent)** | `rect rgba(244, 114, 82, 0.22)`, nested inside the phase |

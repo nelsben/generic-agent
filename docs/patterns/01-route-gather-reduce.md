@@ -86,7 +86,7 @@ sequenceDiagram
         App->>Mem: Last summary and outcomes?
         Mem-->>App: Headline, date, outcomes
     end
-    rect rgba(245, 158, 11, 0.14)
+    rect rgba(6, 182, 212, 0.12)
         Note over App: Pre-reduce
         rect rgba(244, 114, 82, 0.22)
             App->>AI: Condense engagement

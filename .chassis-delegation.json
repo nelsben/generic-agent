@@ -50,5 +50,9 @@
     "economy": 3,
     "standard": 10,
     "frontier": 25
-  }
+  },
+  "_ignore": "globs a repo=here delta never counts",
+  "ignore": [".delegation/**"],
+  "_delegateOnly": "off | warn | deny: whether an opus or fable brain may edit source itself",
+  "delegateOnly": "warn"
 }
