@@ -23,7 +23,7 @@ BAD_ANSWER = "Turn a bad answer into a test"
 EXTRAS = (FIRST_TESTS, BAD_ANSWER)
 KINDS = ("Apex tests", "Jest for components", "Playwright in a real browser", "Testing Center for the agent")
 AREAS = ("Summary", "Explorer", "Panel", "Memory", "Access")
-ACCENT = "rect rgb(255, 214, 204)"
+ACCENT = "rect rgba(244, 114, 82, 0.22)"
 GRANT = "Grant access: assign the permission set group `Customer_Summary_User`."
 PUBLIC_DOCS = (
     "developer.salesforce.com/docs/ai/agentforce/guide/testing-api-get-started.html",
@@ -56,7 +56,12 @@ class PatternEightShape(unittest.TestCase):
         main = sequences[0]
         for track in ("Every change", "The optional agent"):
             self.assertRegex(main, r"(?m)^\s*Note over .*: *%s\b" % re.escape(track), "track note " + track)
-        self.assertGreaterEqual(main.count("rect rgb("), 3, "a shaded block per track, and the accent")
+        self.assertGreaterEqual(main.count("rect rgba("), 3, "a shaded block per track, and the accent")
+        self.assertNotIn("box ", main, "no box: the lifeline names say which layer is which")
+        how = pattern_shape.part_body(self.text, "How it works")
+        for name in ("scripts/ladder.sh", "scripts/validate-org.sh", "scripts/org-drift.sh", "scripts/agent-check.sh",
+                     "scripts/agent-test.sh", "Chromium"):
+            self.assertIn(name, how, "the steps under the diagram name " + name)
         self.assertIn(ACCENT, main, "model calls use the one coral accent")
 
     def test_steps_under_the_diagram_use_its_numbers(self):

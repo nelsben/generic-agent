@@ -11,98 +11,102 @@ steps under it. The coral blocks are the model's turns; everything else is deter
 one in [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) An Agentforce channel
-        actor U as Seller or service rep
-    end
-    box rgb(247, 249, 252) The agent, Agent Script
-        participant R as agent_router
-        participant AS as account_summary
-        participant EX as explore
-    end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant RA as CustomerSummaryResolver
-        participant GA as CustomerSummaryGetAction
-        participant EA as ExploreAction
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as The platform's model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,EX: Route
-        U->>R: Summarize Edge Communications
-        rect rgb(255, 214, 204)
-            R->>L: which of the six rules matches first?
-            L-->>R: go_to_account_summary
-        end
-        R->>AS: transition
-    end
-    rect rgb(222, 243, 230)
-        Note over AS,GA: Resolve, then summarize
-        AS->>RA: resolve_account(accountName)
-        RA-->>AS: RESOLVED, so set briefed_account_id and briefed_account_name
-        AS->>GA: get_brief(accountId, userQuestion, include)
-        rect rgb(255, 214, 204)
-            GA->>L: the summary's model calls (pattern 01)
-            L-->>GA: headline and sections
-        end
-        GA-->>AS: status and answer
-    end
-    rect rgb(234, 238, 242)
-        Note over U,L: Relay
-        rect rgb(255, 214, 204)
-            AS->>L: the reply is the answer text only
-            L-->>U: the answer, verbatim
+    actor R as Sales rep
+    participant G as Agent
+    participant A as Customer Summary
+    participant M as AI model
+    R->>G: Summarize Edge Communications
+    rect rgba(59, 130, 246, 0.12)
+        Note over G: Route
+        rect rgba(244, 114, 82, 0.22)
+            G->>M: Which rule matches first?
+            M-->>G: Go to account summary
         end
     end
-    rect rgb(225, 236, 252)
-        Note over U,EX: Route
-        U->>R: How many open opportunities are there?
-        rect rgb(255, 214, 204)
-            R->>L: which of the six rules matches first?
-            L-->>R: go_to_explore
+    rect rgba(16, 185, 129, 0.12)
+        Note over G: Resolve, then summarize
+        G->>A: Find the account
+        A-->>G: One account, or why not
+        G->>A: Get the summary
+        rect rgba(244, 114, 82, 0.22)
+            A->>M: Run the summary's model calls
+            M-->>A: Headline and sections
         end
-        R->>EX: transition
+        A-->>G: Status and answer
     end
-    rect rgb(253, 242, 214)
-        Note over EX,EA: Explore
-        EX->>EA: before_reasoning runs explore_data(user_input, explore_history)
-        rect rgb(255, 214, 204)
-            EA->>L: the explorer's model calls (pattern 02)
-            L-->>EA: queries, then the answer
+    rect rgba(6, 182, 212, 0.12)
+        Note over G: Relay
+        rect rgba(244, 114, 82, 0.22)
+            G->>M: Reply with the answer only
+            M-->>R: The answer, verbatim
         end
-        EA-->>EX: status, answer with table, history
     end
-    rect rgb(234, 238, 242)
-        Note over U,L: Relay
-        rect rgb(255, 214, 204)
-            EX->>L: the reply is the answer text only
-            L-->>U: the answer, verbatim
+    rect rgba(59, 130, 246, 0.12)
+        Note over G: Route
+        R->>G: How many open deals?
+        rect rgba(244, 114, 82, 0.22)
+            G->>M: Which rule matches first?
+            M-->>G: Go to explore
+        end
+    end
+    rect rgba(139, 92, 246, 0.12)
+        Note over G: Explore
+        G->>A: Explore the rep's question
+        rect rgba(244, 114, 82, 0.22)
+            A->>M: Run the explorer's model calls
+            M-->>A: Queries, then the answer
+        end
+        A-->>G: Status, answer and history
+    end
+    rect rgba(6, 182, 212, 0.12)
+        Note over G: Relay
+        rect rgba(244, 114, 82, 0.22)
+            G->>M: Reply with the answer only
+            M-->>R: The answer, verbatim
         end
     end
 ```
 
-1. **Route (steps 1 to 4, and 13 to 16).** Every turn starts at `agent_router`, which applies six rules in order;
-   the first match wins. An org-wide count, list or total that names no account goes to `explore`, even after a
-   summary. A named account, a pick from a candidate list, or "their" right after a summary goes to
-   `account_summary`. A follow-up about the records of an explore answer stays with `explore`. Anything that is not
-   about CRM data gets one fixed line, "I can brief you on an account or answer questions about your CRM data.",
-   and nothing is called. The router never answers a data question itself.
-2. **Resolve, then summarize (steps 5 to 10).** `resolve_account` always sets `briefed_account_id` and
-   `briefed_account_name`, and the resolver returns them blank unless RESOLVED, so a failed resolve clears the
-   earlier account. `get_brief` is available only when `briefed_account_id` is not None and not empty. On
-   AMBIGUOUS, NOT_FOUND or ERROR the reply is the resolver's message, and nothing else is called. `get_brief` runs
-   the summary engine of [pattern 01](01-route-gather-reduce.md).
-3. **Explore (steps 17 to 20).** The `explore` subagent's `before_reasoning` block runs `explore_data` without the
-   model choosing it, with the rep's message (`@system_variables.user_input`) as the question and the previous
-   explore question and answer (`explore_history`) as history. It passes no open record, so an org-wide question
-   is never scoped to the summarized account. A resolve or a summary clears the history. The explorer is
-   [pattern 02](02-ask-anything-explorer.md).
-4. **Verbatim relay (steps 11 and 12, 21 and 22).** The system instruction and each subagent say the reply is the
-   action's answer text only, with its line breaks kept, and no closing question or offer.
-5. **The way back out.** Each subagent has a `reclassify` transition to the router, so a change of subject is
+1. **Route (steps 1 to 3).** Every turn starts at `agent_router`, which applies six rules in order; the first match
+   wins, and the model's reply names the transition (`go_to_account_summary` or `go_to_explore`) that moves the turn to
+   that subagent. An org-wide count, list or total that names no account goes to `explore`, even after a summary. A
+   named account, a pick from a candidate list, or "their" right after a summary goes to `account_summary`. A
+   follow-up about the records of an explore answer stays with `explore`. Anything that is not about CRM data gets one
+   fixed line, "I can brief you on an account or answer questions about your CRM data.", and nothing is called. The
+   router never answers a data question itself.
+2. **Resolve, then summarize (steps 4 to 9).** In `account_summary`, `resolve_account` (`CustomerSummaryResolver`)
+   always sets `briefed_account_id` and `briefed_account_name`, and the resolver returns them blank unless RESOLVED,
+   so a failed resolve clears the earlier account. `get_brief` (`CustomerSummaryGetAction`) is available only when
+   `briefed_account_id` is not None and not empty. On AMBIGUOUS, NOT_FOUND or ERROR the reply is the resolver's
+   message, and nothing else is called. `get_brief` runs the summary engine of
+   [pattern 01](01-route-gather-reduce.md), whose model calls produce the headline and the sections.
+3. **Verbatim relay (steps 10 and 11).** The system instruction and each subagent say the reply is the action's answer
+   text only, with its line breaks kept, and no closing question or offer. The model's turn carries that text to the
+   rep as it is.
+4. **Route again (steps 12 to 14).** The next message starts at `agent_router` again and the same six rules apply.
+   "How many open deals?" names no account, so the model picks `go_to_explore`, even right after a summary.
+5. **Explore (steps 15 to 18).** The `explore` subagent's `before_reasoning` block runs `explore_data`
+   (`ExploreAction`) without the model choosing it, with the rep's message (`@system_variables.user_input`) as the
+   question and the previous explore question and answer (`explore_history`) as history. It passes no open record, so
+   an org-wide question is never scoped to the summarized account. A resolve or a summary clears the history. The
+   explorer is [pattern 02](02-ask-anything-explorer.md), and its model calls write the queries and then the answer.
+6. **Relay again (steps 19 and 20).** The explore answer is relayed the same way as the summary: the answer text only,
+   verbatim.
+7. **The way back out.** Each subagent has a `reclassify` transition to the router, so a change of subject is
    routed again.
 
 The script is `force-app/main/default/aiAuthoringBundles/Customer_Summary/Customer_Summary.agent`.

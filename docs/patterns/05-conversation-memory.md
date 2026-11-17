@@ -101,98 +101,99 @@ calls; everything else is the browser and deterministic Apex. The theme is the s
 [_diagram-theme.md](_diagram-theme.md).
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#EEF2FA", "primaryBorderColor": "#4A5D85", "primaryTextColor": "#1B2233", "secondaryColor": "#F4F6F9", "tertiaryColor": "#FFFFFF", "lineColor": "#4A5D85", "textColor": "#1B2233", "actorBkg": "#EEF2FA", "actorBorder": "#4A5D85", "actorTextColor": "#1B2233", "actorLineColor": "#8A96AD", "signalColor": "#4A5D85", "signalTextColor": "#1B2233", "labelBoxBkgColor": "#FFFFFF", "labelBoxBorderColor": "#4A5D85", "labelTextColor": "#1B2233", "loopTextColor": "#1B2233", "noteBkgColor": "#FFFFFF", "noteBorderColor": "#8A96AD", "noteTextColor": "#1B2233", "sequenceNumberColor": "#FFFFFF", "activationBkgColor": "#DDE4F2", "activationBorderColor": "#4A5D85", "clusterBkg": "#F7F9FC", "clusterBorder": "#8A96AD", "edgeLabelBackground": "#FFFFFF"}}}%%
+---
+config:
+  themeCSS: ".note { fill: #334155 !important; stroke: none !important; } .noteText, .noteText tspan { fill: #FFFFFF !important; font-weight: 600 !important; letter-spacing: 0.04em; }"
+  sequence:
+    mirrorActors: false
+    actorMargin: 50
+    width: 140
+    messageMargin: 40
+    boxMargin: 10
+    noteAlign: left
+    wrap: true
+---
 sequenceDiagram
     autonumber
-    box rgb(247, 249, 252) Where the rep works
-        actor U as Seller or service rep
-        participant C as Conversation (customerSummaryConversation)
-        participant R as Rail panes (timeline and sentiment chart)
-    end
-    box rgb(247, 249, 252) Apex, in the rep's access
-        participant S as The skill (CustomerSummary, DataExplorer or CustomerSummaryActions)
-        participant M as CustomerSummaryMemory
-        participant H as CustomerSummaryHistory
-        participant O as CustomerOutcomes
-    end
-    box rgb(255, 236, 230) The model, through the trust layer
-        participant L as AgentLlm and the model
-    end
-    rect rgb(225, 236, 252)
-        Note over U,O: Write
-        U->>C: Summarize the account, or Confirm a drafted action
-        C->>S: getBrief, or confirm the draft
-        rect rgb(255, 214, 204)
-            S->>L: the synthesis, then the sentiment call, for a summary
-            L-->>S: the summary text, then a score, a label and a reason
+    actor R as Sales rep
+    participant A as Customer Summary
+    participant C as Conversation memory
+    participant O as Customer outcomes
+    participant M as AI model
+    R->>A: Ask for a summary or confirm
+    rect rgba(59, 130, 246, 0.12)
+        Note over A: Write
+        rect rgba(244, 114, 82, 0.22)
+            A->>M: Write summary, then sentiment
+            M-->>A: Summary, score, label, reason
         end
-        S->>M: recordAll, the turn into this rep's session, after every model call
-        S->>O: recordAll, one Summary outcome, or record, one Action outcome
-        S-->>C: the answer as cards
+        A->>C: Save the turn
+        A->>O: Save the outcome
+        A-->>R: Show the answer as cards
     end
-    rect rgb(222, 243, 230)
-        Note over U,O: Read
-        U->>C: opens the account again, in the window or the rail
-        C->>H: listSessions(accountId)
-        H-->>C: this rep's own sessions on the account, newest first
-        R->>O: listOutcomes(accountId)
-        O-->>R: the account's outcomes, newest first, text only where view() allows
-        R-->>U: the timeline, and each summary's sentiment label over time
+    rect rgba(16, 185, 129, 0.12)
+        Note over A: Read
+        R->>A: Open the account again
+        A->>C: List this rep's sessions
+        C-->>A: Own sessions, newest first
+        A->>O: List the account's outcomes
+        O-->>A: Outcomes, newest first
+        A-->>R: Timeline and sentiment trend
     end
-    rect rgb(253, 242, 214)
-        Note over U,L: Reuse
-        U->>C: the next summary, or a question about the account
-        C->>S: getBrief, or explore with the account as context
-        S->>O: contextFor(accountId)
-        O-->>S: the last summary's headline and date, then up to 3 other outcomes
-        rect rgb(255, 214, 204)
-            S->>L: the prompt, with the outcome context after the brand lines
-            L-->>S: an answer written knowing what was done before
+    rect rgba(6, 182, 212, 0.12)
+        Note over A: Reuse
+        R->>A: Ask the next question
+        A->>O: Get the outcome context
+        O-->>A: Last headline, up to 3 more
+        rect rgba(244, 114, 82, 0.22)
+            A->>M: Prompt plus that context
+            M-->>A: An answer that knows the past
         end
-        S-->>C: the answer as cards
+        A-->>R: The answer as cards
     end
 ```
 
-1. **A skill finishes (steps 1 and 2).** The rep asks for a summary in the compact window or the rail, or confirms a
-   drafted action ([13](13-write-actions.md)). An explorer question ([02](02-ask-anything-explorer.md)) takes the same
+1. **A skill finishes (step 1).** The rep asks for a summary in the compact window or the rail, or confirms a
+   drafted action ([13](13-write-actions.md)). The conversation (`customerSummaryConversation`) calls the skill
+   (`CustomerSummary`, `DataExplorer` or `CustomerSummaryActions`): `getBrief`, or the confirm of the draft. An explorer question ([02](02-ask-anything-explorer.md)) takes the same
    path through `CustomerSummaryPanelController.explore`, and records only its turn.
-2. **The model calls (steps 3 and 4).** The summary's model calls run first, all of them, before anything is written
+2. **The model calls (steps 2 and 3).** The summary's model calls (`AgentLlm`) run first, all of them, before anything is written
    ([01](01-route-gather-reduce.md)). After the synthesis, one focused call reads the already-reduced sections and
    returns strict JSON: a score from -2 to +2, one of five labels (At risk, Concerned, Neutral, Positive, Very
    positive) and a one-line reason. A partial summary, a failed call or a malformed reply stores no sentiment, and the
    summary still returns ([fr2-sentiment.md](../research/fr2-sentiment.md)). A confirmed action makes no model call.
-3. **The turn is saved (step 5).** `CustomerSummaryMemory.recordAll` writes once, last, and only on an OK or EMPTY
+3. **The turn is saved (step 4).** `CustomerSummaryMemory.recordAll` writes once, last, and only on an OK or EMPTY
    answer. The rep's rows are read `FOR UPDATE`; a row another transaction created first is caught by its
    `DUPLICATE_VALUE` and the write is redone once from a fresh locked read. A turn more than 30 minutes after the
    session's last activity ends that session: its row keeps its title, start and turns, and a new row starts. The ring
    keeps the newest 10 turns, each with its time, status, question, a 200-character headline and its kind, `summary`
    or `explorer`. After a write that created rows, the rep's least recently active rows beyond 200 are deleted, and
    another rep's rows are never touched. A failed write is logged and the answer still returns.
-4. **The outcome is saved (step 6).** A summary writes one `Summary` outcome with the question as its title, the
+4. **The outcome is saved (step 5).** `CustomerOutcomes` (`recordAll` for a summary, `record` for an action) writes. A summary writes one `Summary` outcome with the question as its title, the
    answer as its body, its first line as its headline, and the sentiment; an EMPTY summary is recorded too, because
    the rep did ask. A confirmed action writes one `Action` outcome titled with what was done and linked to the record
    it wrote; a failed outcome write never undoes the action. `CustomerOutcomes` stamps each with its type's expiry and
    fills the surface from where the request came from (`panel`, `action` for MCP and the agent, `api`, `script`). The
    write is in its own try and catch, so a failure is logged and the answer still returns.
-5. **The answer (step 7).** The conversation draws the answer as cards ([03](03-hotkey-panel.md#the-cards)).
-6. **History (steps 8 to 10).** When the rep opens the account again, History lists this rep's own sessions on it,
+5. **The answer (step 6).** The conversation draws the answer as cards ([03](03-hotkey-panel.md#the-cards)).
+6. **History (steps 7 to 9).** When the rep opens the account again, `CustomerSummaryHistory.listSessions` lists this rep's own sessions on it,
    newest first, ten by default and never more than fifty, and `getSession` reopens one with its turns in order, as
    text. Both read in user mode, and both first check that the rep can still read the account: a session for an
    account the rep has lost is hidden, never deleted. Inside one conversation, the last 5 turns go with each question
    as `historyJson`, so "their open cases" means the account just summarized.
-7. **The timeline and the trend (steps 11 to 13).** In the rail's context column, `customerSummaryHistoryTimeline`
-   lists the account's outcomes, newest first, as one `timeline` card drawn by the shared card renderer, with a filter
+7. **The timeline and the trend (steps 10 to 12).** In the rail's context column, the panes read
+   `CustomerOutcomes.listOutcomes(accountId)`. `customerSummaryHistoryTimeline` lists the account's outcomes, newest first, as one `timeline` card drawn by the shared card renderer, with a filter
    by type and a detail under the card for each entry. `customerSummarySentimentChart` draws each summary as a point on
    the band of its label, oldest on the left, with a text table for screen readers. It draws labels only: no line and
    no numeric axis, because the score is not yet steady enough to chart (BE-36). Both draw only what
    `CustomerOutcomes.view()` returns: another rep's entry shows its type, date and label, and says its text stays with
    its author.
-8. **The outcome context (steps 14 to 17).** Every new summary, and every explorer question with an account open,
-   asks `CustomerOutcomes` for a short context: the last summary's headline and date, then up to 3 other outcomes,
+8. **The outcome context (steps 13 to 15).** Every new summary, and every explorer question with an account open,
+   asks `CustomerOutcomes.contextFor(accountId)` for a short context: the last summary's headline and date, then up to 3 other outcomes,
    one line each, at most 160 characters a line and 900 in all. A line carries a headline only when the rep may see
    its text, so one rep's headline never reaches another rep's prompt; the body is never in it. The context is built
    inside the shared services, so the compact window, the rail and both MCP tools get it with no change to a door.
-9. **The answer knows what came before (steps 18 to 20).** The summary adds the context to its synthesis prompt's
+9. **The answer knows what came before (steps 16 to 18).** The summary adds the context to its synthesis prompt's
    system text, after the brand lines, so the new summary is written knowing the last one's headline and can say what
    changed since; the explorer adds it to its prompt's context value. The prompt files themselves are unchanged.
 

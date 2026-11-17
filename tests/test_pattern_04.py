@@ -28,7 +28,7 @@ GUIDE_PARTS = (
     "Switch one prompt to a template and back",
     "Work on prompts with an AI assistant",
 )
-MODEL_ACCENT = "rect rgb(255, 214, 204)"
+MODEL_ACCENT = "rect rgba(244, 114, 82, 0.22)"
 
 
 def guide_text():
@@ -77,9 +77,14 @@ class PatternFourShape(unittest.TestCase):
         main = sequences[0]
         for phase in ("Prepare", "Call", "Return"):
             self.assertRegex(main, r"(?m)^\s*Note over .*: *%s\b" % re.escape(phase), "phase note " + phase)
-        self.assertGreaterEqual(main.count("box "), 2, "a box per layer")
+        self.assertNotIn("box ", main, "no box: the lifeline names say which layer is which")
+        for lifeline in ("A feature", "Prompt door", "Settings", "Prompt files", "AI model"):
+            self.assertIn(" as " + lifeline, main, "a lifeline for " + lifeline)
         self.assertIn(MODEL_ACCENT, main, "the model call carries the one accent")
-        self.assertIn("AgentPrompt_", main, "the static resource path")
+        how = pattern_shape.part_body(self.text, "How it works")
+        self.assertIn("AgentPrompt_", how, "the static resource path, named in the steps under the diagram")
+        for name in ("Agent_Prompt_Setting__mdt", "AgentLlmModelsApi", "AgentLlmPromptTemplate"):
+            self.assertIn(name, how, "the steps under the diagram name " + name)
         self.assertRegex(main, r"(?i)prompt template", "the opt-in template path")
         self.assertRegex(main, r"(?m)^\s*alt ", "the two sources are the two branches of one alt")
 

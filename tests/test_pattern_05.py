@@ -21,8 +21,7 @@ TWO_MEMORIES = "Two memories"
 AGENT_MEMORY = "Agentforce's Agent Memory"
 EXTRAS = (TWO_MEMORIES, AGENT_MEMORY)
 PHASES = ("Write", "Read", "Reuse")
-MODEL_ACCENT = "rect rgb(255, 214, 204)"
-MODEL_BOX = "box rgb(255, 236, 230)"
+MODEL_ACCENT = "rect rgba(244, 114, 82, 0.22)"
 ARROW = re.compile(r"^\s*[A-Za-z0-9_]+\s*(?:->>|-->>|->|-->|-x|--x|-\)|--\))\s*[A-Za-z0-9_]+")
 OPENERS = re.compile(r"^\s*(rect|box|loop|alt|opt|par|critical|break)\b")
 FE19_CAPTURES = ("fr2-history-timeline.png", "fr2-history-sentiment.png")
@@ -129,12 +128,14 @@ class PatternFiveShape(unittest.TestCase):
         main = seqs[0]
         for phase in PHASES:
             self.assertRegex(main, r"(?m)^\s*Note over [^:]+: *%s\s*$" % re.escape(phase), "phase note " + phase)
-        self.assertGreaterEqual(main.count("rect rgb("), len(PHASES) + 1, "a shaded rect per phase, and the accent")
-        self.assertGreaterEqual(main.count("box "), 3, "a box per layer")
+        self.assertGreaterEqual(main.count("rect rgba("), len(PHASES) + 1, "a shaded rect per phase, and the accent")
+        self.assertNotIn("box ", main, "no box: the lifeline names say which layer is which")
         self.assertIn(MODEL_ACCENT, main, "the model calls carry the one accent")
-        self.assertIn(MODEL_BOX, main, "the model layer has its own box")
+        for lifeline in ("Conversation memory", "Customer outcomes", "AI model"):
+            self.assertIn(" as " + lifeline, main, "a lifeline for " + lifeline)
+        steps = steps_after_each_sequence(self.text)[0][1]
         for name in ("CustomerSummaryMemory", "CustomerOutcomes", "CustomerSummaryHistory"):
-            self.assertIn(name, main)
+            self.assertIn(name, steps, "the steps under the diagram name " + name)
 
     def test_every_sequence_diagram_is_well_formed(self):
         for n, code in enumerate(sequences(self.text), 1):
